@@ -13,6 +13,7 @@ import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
+import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
@@ -36,6 +37,11 @@ const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
   path: '/facturacion',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellEstadisticasRoute = ShellEstadisticasRouteImport.update({
+  id: '/estadisticas',
+  path: '/estadisticas',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
   id: '/entrenadores',
   path: '/entrenadores',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
+  '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
 }
@@ -64,6 +71,7 @@ export interface FileRoutesByTo {
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
+  '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
   '/': typeof ShellIndexRoute
@@ -74,6 +82,7 @@ export interface FileRoutesById {
   '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
+  '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
   '/_shell/': typeof ShellIndexRoute
@@ -85,6 +94,7 @@ export interface FileRouteTypes {
     | '/bonos'
     | '/clientes'
     | '/entrenadores'
+    | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
   fileRoutesByTo: FileRoutesByTo
@@ -92,6 +102,7 @@ export interface FileRouteTypes {
     | '/bonos'
     | '/clientes'
     | '/entrenadores'
+    | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
     | '/'
@@ -101,6 +112,7 @@ export interface FileRouteTypes {
     | '/_shell/bonos'
     | '/_shell/clientes'
     | '/_shell/entrenadores'
+    | '/_shell/estadisticas'
     | '/_shell/facturacion'
     | '/_shell/sesiones'
     | '/_shell/'
@@ -140,6 +152,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellFacturacionRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/estadisticas': {
+      id: '/_shell/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/estadisticas'
+      preLoaderRoute: typeof ShellEstadisticasRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/entrenadores': {
       id: '/_shell/entrenadores'
       path: '/entrenadores'
@@ -168,6 +187,7 @@ interface ShellRouteChildren {
   ShellBonosRoute: typeof ShellBonosRoute
   ShellClientesRoute: typeof ShellClientesRoute
   ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
+  ShellEstadisticasRoute: typeof ShellEstadisticasRoute
   ShellFacturacionRoute: typeof ShellFacturacionRoute
   ShellSesionesRoute: typeof ShellSesionesRoute
   ShellIndexRoute: typeof ShellIndexRoute
@@ -177,6 +197,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellBonosRoute: ShellBonosRoute,
   ShellClientesRoute: ShellClientesRoute,
   ShellEntrenadoresRoute: ShellEntrenadoresRoute,
+  ShellEstadisticasRoute: ShellEstadisticasRoute,
   ShellFacturacionRoute: ShellFacturacionRoute,
   ShellSesionesRoute: ShellSesionesRoute,
   ShellIndexRoute: ShellIndexRoute,
