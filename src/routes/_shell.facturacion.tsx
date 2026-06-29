@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
-import { supabase, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -116,7 +116,7 @@ function FacturacionPage() {
                 <TableCell>{i.fecha}</TableCell>
                 <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell className="font-medium">{clientMap.get(i.client_id)?.nombre ?? "?"}</TableCell>
-                <TableCell>{catMap.get(i.bono_catalogo_id)?.nombre ?? "?"}</TableCell>
+                <TableCell>{prettyBonoNombre(catMap.get(i.bono_catalogo_id)?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{i.nota ?? "—"}</TableCell>
               </TableRow>
@@ -157,8 +157,8 @@ function FacturacionPage() {
                   {(["individual", "pareja", "grupal"] as const).map((tipo) => (
                     <div key={tipo}>
                       <div className="text-[10px] uppercase text-muted-foreground px-2 pt-2">{tipo}</div>
-                      {catalogo.filter((b) => b.tipo === tipo).map((b) => (
-                        <SelectItem key={b.id} value={b.id}>{b.nombre} — {Number(b.precio).toFixed(0)} €</SelectItem>
+                      {sortCatalogo(catalogo.filter((b) => b.tipo === tipo)).map((b) => (
+                        <SelectItem key={b.id} value={b.id}>{prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
                       ))}
                     </div>
                   ))}
