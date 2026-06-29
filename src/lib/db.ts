@@ -1,0 +1,34 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+export type Trainer = Database["public"]["Tables"]["trainers"]["Row"];
+export type Client = Database["public"]["Tables"]["clients"]["Row"];
+export type BonoCatalogo = Database["public"]["Tables"]["bonos_catalogo"]["Row"];
+export type ClientBono = Database["public"]["Tables"]["client_bonos"]["Row"];
+export type Session = Database["public"]["Tables"]["sessions"]["Row"];
+export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
+export type SesionEstado = Database["public"]["Enums"]["sesion_estado"];
+export type BonoTipo = Database["public"]["Enums"]["bono_tipo"];
+
+export { supabase };
+
+export const ESTADO_LABEL: Record<SesionEstado, string> = {
+  reservada: "Reservada",
+  realizada: "Realizada",
+  cancelada: "Cancelada",
+  prueba: "Prueba",
+  renovacion: "Renovación",
+};
+
+export const ESTADO_BG: Record<SesionEstado, string> = {
+  reservada: "bg-state-reservada text-state-reservada-fg",
+  realizada: "bg-state-realizada text-state-realizada-fg",
+  cancelada: "bg-state-cancelada text-state-cancelada-fg",
+  prueba: "bg-state-prueba text-state-prueba-fg",
+  renovacion: "bg-state-renovacion text-state-renovacion-fg",
+};
+
+export function turnoFromHora(hora: string): "manana" | "tarde" {
+  const [h] = hora.split(":").map(Number);
+  return h < 14 ? "manana" : "tarde";
+}

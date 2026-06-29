@@ -9,61 +9,205 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as ShellRouteImport } from './routes/_shell'
+import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
+import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
+import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
+import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
+import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
+import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
 
-const IndexRoute = IndexRouteImport.update({
+const ShellRoute = ShellRouteImport.update({
+  id: '/_shell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSesionesRoute = ShellSesionesRouteImport.update({
+  id: '/sesiones',
+  path: '/sesiones',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
+  id: '/facturacion',
+  path: '/facturacion',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEstadisticasRoute = ShellEstadisticasRouteImport.update({
+  id: '/estadisticas',
+  path: '/estadisticas',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
+  id: '/entrenadores',
+  path: '/entrenadores',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellClientesRoute = ShellClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellBonosRoute = ShellBonosRouteImport.update({
+  id: '/bonos',
+  path: '/bonos',
+  getParentRoute: () => ShellRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
+  '/': typeof ShellIndexRoute
+  '/bonos': typeof ShellBonosRoute
+  '/clientes': typeof ShellClientesRoute
+  '/entrenadores': typeof ShellEntrenadoresRoute
+  '/estadisticas': typeof ShellEstadisticasRoute
+  '/facturacion': typeof ShellFacturacionRoute
+  '/sesiones': typeof ShellSesionesRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
+  '/bonos': typeof ShellBonosRoute
+  '/clientes': typeof ShellClientesRoute
+  '/entrenadores': typeof ShellEntrenadoresRoute
+  '/estadisticas': typeof ShellEstadisticasRoute
+  '/facturacion': typeof ShellFacturacionRoute
+  '/sesiones': typeof ShellSesionesRoute
+  '/': typeof ShellIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
+  '/_shell': typeof ShellRouteWithChildren
+  '/_shell/bonos': typeof ShellBonosRoute
+  '/_shell/clientes': typeof ShellClientesRoute
+  '/_shell/entrenadores': typeof ShellEntrenadoresRoute
+  '/_shell/estadisticas': typeof ShellEstadisticasRoute
+  '/_shell/facturacion': typeof ShellFacturacionRoute
+  '/_shell/sesiones': typeof ShellSesionesRoute
+  '/_shell/': typeof ShellIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/bonos'
+    | '/clientes'
+    | '/entrenadores'
+    | '/estadisticas'
+    | '/facturacion'
+    | '/sesiones'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/bonos'
+    | '/clientes'
+    | '/entrenadores'
+    | '/estadisticas'
+    | '/facturacion'
+    | '/sesiones'
+    | '/'
+  id:
+    | '__root__'
+    | '/_shell'
+    | '/_shell/bonos'
+    | '/_shell/clientes'
+    | '/_shell/entrenadores'
+    | '/_shell/estadisticas'
+    | '/_shell/facturacion'
+    | '/_shell/sesiones'
+    | '/_shell/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
+  ShellRoute: typeof ShellRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
+    '/_shell': {
+      id: '/_shell'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof ShellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_shell/': {
+      id: '/_shell/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/sesiones': {
+      id: '/_shell/sesiones'
+      path: '/sesiones'
+      fullPath: '/sesiones'
+      preLoaderRoute: typeof ShellSesionesRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/facturacion': {
+      id: '/_shell/facturacion'
+      path: '/facturacion'
+      fullPath: '/facturacion'
+      preLoaderRoute: typeof ShellFacturacionRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/estadisticas': {
+      id: '/_shell/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/estadisticas'
+      preLoaderRoute: typeof ShellEstadisticasRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/entrenadores': {
+      id: '/_shell/entrenadores'
+      path: '/entrenadores'
+      fullPath: '/entrenadores'
+      preLoaderRoute: typeof ShellEntrenadoresRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/clientes': {
+      id: '/_shell/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ShellClientesRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/bonos': {
+      id: '/_shell/bonos'
+      path: '/bonos'
+      fullPath: '/bonos'
+      preLoaderRoute: typeof ShellBonosRouteImport
+      parentRoute: typeof ShellRoute
     }
   }
 }
 
+interface ShellRouteChildren {
+  ShellBonosRoute: typeof ShellBonosRoute
+  ShellClientesRoute: typeof ShellClientesRoute
+  ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
+  ShellEstadisticasRoute: typeof ShellEstadisticasRoute
+  ShellFacturacionRoute: typeof ShellFacturacionRoute
+  ShellSesionesRoute: typeof ShellSesionesRoute
+  ShellIndexRoute: typeof ShellIndexRoute
+}
+
+const ShellRouteChildren: ShellRouteChildren = {
+  ShellBonosRoute: ShellBonosRoute,
+  ShellClientesRoute: ShellClientesRoute,
+  ShellEntrenadoresRoute: ShellEntrenadoresRoute,
+  ShellEstadisticasRoute: ShellEstadisticasRoute,
+  ShellFacturacionRoute: ShellFacturacionRoute,
+  ShellSesionesRoute: ShellSesionesRoute,
+  ShellIndexRoute: ShellIndexRoute,
+}
+
+const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
+  ShellRoute: ShellRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
