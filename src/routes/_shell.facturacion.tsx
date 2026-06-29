@@ -108,12 +108,12 @@ function FacturacionPage() {
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="-1">Año completo</SelectItem>
-            {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+            {availableMonths.map(({ label, idx }) => <SelectItem key={idx} value={String(idx)}>{label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>{[year-2, year-1, year, year+1].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          <SelectContent>{availableYears.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
         <div className="ml-auto rounded-lg border bg-card px-4 py-2">
           <span className="text-xs text-muted-foreground">{isYear ? "Total año: " : "Total mes: "}</span>
