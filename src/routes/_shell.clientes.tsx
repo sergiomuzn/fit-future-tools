@@ -72,6 +72,7 @@ function ClientesPage() {
       fecha_inicio: editing.fecha_inicio ?? null,
       cumpleanos: editing.cumpleanos ?? null,
       notas: editing.notas ?? null,
+      activo: editing.activo ?? true,
     };
     const { error } = editing.id
       ? await supabase.from("clients").update(payload).eq("id", editing.id)
