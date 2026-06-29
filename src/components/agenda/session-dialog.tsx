@@ -28,6 +28,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [ocupacion, setOcupacion] = useState(1);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [search, setSearch] = useState("");
+  const [horaInicio, setHoraInicio] = useState("");
+  const [horaFin, setHoraFin] = useState("");
+  const [creatingClient, setCreatingClient] = useState(false);
+  const [newClientName, setNewClientName] = useState("");
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients-search"],
@@ -46,6 +50,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setOcupacion(session?.ocupacion ?? 1);
     setRepeatWeeks(0);
     setSearch("");
+    setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
+    setHoraFin((session?.hora_fin ?? "").slice(0,5));
+    setCreatingClient(false);
+    setNewClientName("");
   }, [open, session]);
 
   const filtered = useMemo(
@@ -53,21 +61,38 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     [clients, search],
   );
 
+  async function addClientInline() {
+    const nombre = newClientName.trim();
+    if (!nombre) return;
+    const { data, error } = await supabase.from("clients").insert({ nombre }).select().single();
+    if (error) { toast.error(error.message); return; }
+    setClientId(data.id);
+    setCreatingClient(false);
+    setNewClientName("");
+    qc.invalidateQueries({ queryKey: ["clients"] });
+    qc.invalidateQueries({ queryKey: ["clients-search"] });
+    toast.success(`Cliente «${nombre}» creado`);
+  }
+
   async function save() {
     if (!session) return;
+    if (!horaInicio || !horaFin || horaFin <= horaInicio) {
+      toast.error("Revisa las horas de la sesión");
+      return;
+    }
     const base = {
       client_id: clientId,
       trainer_id: trainerId,
       fecha: session.fecha!,
-      hora_inicio: session.hora_inicio!,
-      hora_fin: session.hora_fin!,
+      hora_inicio: `${horaInicio}:00`,
+      hora_fin: `${horaFin}:00`,
       estado,
       ocupacion,
       incidencia: incidencia || null,
     };
     // Auto-realizada si la sesión es pasada
     const now = new Date();
-    const sessionEnd = new Date(`${session.fecha}T${session.hora_fin}`);
+    const sessionEnd = new Date(`${session.fecha}T${base.hora_fin}`);
     if (sessionEnd < now && base.estado === "reservada") base.estado = "realizada";
 
     if (isNew) {
@@ -108,28 +133,53 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
-          <div className="text-sm text-muted-foreground">
-            {session.fecha} · {session.hora_inicio?.slice(0,5)} – {session.hora_fin?.slice(0,5)}
+          <div className="text-xs text-muted-foreground">{session.fecha}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Hora inicio</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hora fin</Label>
+              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+            </div>
           </div>
 
           <div className="space-y-1.5">
-            <Label>Cliente</Label>
-            <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
-            <div className="max-h-32 overflow-y-auto rounded-md border">
-              {filtered.length === 0 && (
-                <div className="p-2 text-xs text-muted-foreground">Sin resultados</div>
+            <div className="flex items-center justify-between">
+              <Label>Cliente</Label>
+              {!creatingClient && (
+                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setCreatingClient(true); setNewClientName(search); }}>
+                  + Nuevo cliente
+                </Button>
               )}
-              {filtered.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => setClientId(c.id)}
-                  className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${clientId === c.id ? "bg-accent font-medium" : ""}`}
-                >
-                  {c.nombre}
-                </button>
-              ))}
             </div>
+            {creatingClient ? (
+              <div className="flex gap-2">
+                <Input autoFocus placeholder="Nombre completo" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addClientInline()} />
+                <Button type="button" size="sm" onClick={addClientInline}>Crear</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setCreatingClient(false)}>×</Button>
+              </div>
+            ) : (
+              <>
+                <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <div className="max-h-32 overflow-y-auto rounded-md border">
+                  {filtered.length === 0 && (
+                    <div className="p-2 text-xs text-muted-foreground">Sin resultados. Usa «+ Nuevo cliente».</div>
+                  )}
+                  {filtered.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => setClientId(c.id)}
+                      className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${clientId === c.id ? "bg-accent font-medium" : ""}`}
+                    >
+                      {c.nombre}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

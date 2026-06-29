@@ -116,7 +116,7 @@ function FacturacionPage() {
             {invoices.map((i) => (
               <TableRow key={i.id}>
                 <TableCell>{i.fecha}</TableCell>
-                <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.iniciales : "—"}</TableCell>
+                <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell className="font-medium">{clientMap.get(i.client_id)?.nombre ?? "?"}</TableCell>
                 <TableCell>{catMap.get(i.bono_catalogo_id)?.nombre ?? "?"}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
@@ -153,10 +153,30 @@ function FacturacionPage() {
                     {c.nombre}
                   </button>
                 ))}
-                {filteredClients.length === 0 && search && (
-                  <div className="p-2 text-xs text-muted-foreground">Se creará un nuevo cliente: <span className="font-semibold text-foreground">{search}</span></div>
+                {filteredClients.length === 0 && (
+                  <div className="p-2 text-xs text-muted-foreground">Sin resultados.</div>
                 )}
               </div>
+              {search && !form.client_id && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={async () => {
+                    const nombre = search.trim();
+                    if (!nombre) return;
+                    const { data, error } = await supabase.from("clients").insert({ nombre }).select().single();
+                    if (error) { toast.error(error.message); return; }
+                    qc.invalidateQueries({ queryKey: ["clients"] });
+                    setForm({ ...form, client_id: data.id, nuevoCliente: undefined });
+                    setSearch(data.nombre);
+                    toast.success(`Cliente «${nombre}» creado`);
+                  }}
+                >
+                  + Añadir «{search}» como nuevo cliente
+                </Button>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Bono</Label>
