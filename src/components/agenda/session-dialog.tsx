@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
-import { supabase, type Client, type Trainer, type Session, type SesionEstado, ESTADO_LABEL } from "@/lib/db";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL } from "@/lib/db";
+import { useQueryClient } from "@tanstack/react-query";
+import { ClientPicker } from "@/components/clients/client-picker";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 
@@ -27,19 +27,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [incidencia, setIncidencia] = useState("");
   const [ocupacion, setOcupacion] = useState(1);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
-  const [search, setSearch] = useState("");
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
-  const [creatingClient, setCreatingClient] = useState(false);
-  const [newClientName, setNewClientName] = useState("");
-
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients-search"],
-    queryFn: async () => {
-      const { data } = await supabase.from("clients").select("*").order("nombre");
-      return (data ?? []) as Client[];
-    },
-  });
 
   useEffect(() => {
     if (!open) return;
@@ -49,30 +38,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setIncidencia(session?.incidencia ?? "");
     setOcupacion(session?.ocupacion ?? 1);
     setRepeatWeeks(0);
-    setSearch("");
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
-    setCreatingClient(false);
-    setNewClientName("");
   }, [open, session]);
-
-  const filtered = useMemo(
-    () => clients.filter((c) => c.nombre.toLowerCase().includes(search.toLowerCase())),
-    [clients, search],
-  );
-
-  async function addClientInline() {
-    const nombre = newClientName.trim();
-    if (!nombre) return;
-    const { data, error } = await supabase.from("clients").insert({ nombre }).select().single();
-    if (error) { toast.error(error.message); return; }
-    setClientId(data.id);
-    setCreatingClient(false);
-    setNewClientName("");
-    qc.invalidateQueries({ queryKey: ["clients"] });
-    qc.invalidateQueries({ queryKey: ["clients-search"] });
-    toast.success(`Cliente «${nombre}» creado`);
-  }
 
   async function save() {
     if (!session) return;
@@ -146,40 +114,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
           <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label>Cliente</Label>
-              {!creatingClient && (
-                <Button type="button" variant="ghost" size="sm" className="h-6 text-xs" onClick={() => { setCreatingClient(true); setNewClientName(search); }}>
-                  + Nuevo cliente
-                </Button>
-              )}
-            </div>
-            {creatingClient ? (
-              <div className="flex gap-2">
-                <Input autoFocus placeholder="Nombre completo" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addClientInline()} />
-                <Button type="button" size="sm" onClick={addClientInline}>Crear</Button>
-                <Button type="button" size="sm" variant="ghost" onClick={() => setCreatingClient(false)}>×</Button>
-              </div>
-            ) : (
-              <>
-                <Input placeholder="Buscar cliente..." value={search} onChange={(e) => setSearch(e.target.value)} />
-                <div className="max-h-32 overflow-y-auto rounded-md border">
-                  {filtered.length === 0 && (
-                    <div className="p-2 text-xs text-muted-foreground">Sin resultados. Usa «+ Nuevo cliente».</div>
-                  )}
-                  {filtered.map((c) => (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => setClientId(c.id)}
-                      className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${clientId === c.id ? "bg-accent font-medium" : ""}`}
-                    >
-                      {c.nombre}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+            <Label>Cliente</Label>
+            <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
