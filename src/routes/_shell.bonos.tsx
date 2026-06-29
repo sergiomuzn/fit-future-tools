@@ -34,14 +34,6 @@ function BonosPage() {
     },
   });
   const clientMap = new Map(clients.map((c) => [c.id, c]));
-  const catMap = new Map(catalogo.map((c) => [c.id, c]));
-
-  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
-  const TIPO_CLASS: Record<string, string> = {
-    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  };
 
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
@@ -50,6 +42,14 @@ function BonosPage() {
       return (data ?? []) as BonoCatalogo[];
     },
   });
+  const catMap = new Map(catalogo.map((c) => [c.id, c]));
+
+  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_CLASS: Record<string, string> = {
+    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+  };
 
   // Activos primero (cronológico), luego inactivos
   const sorted = [...bonos].sort((a, b) => {
