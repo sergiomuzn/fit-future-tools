@@ -13,6 +13,7 @@ import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
+import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
 
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
@@ -33,13 +34,20 @@ const ShellClientesRoute = ShellClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellBonosRoute = ShellBonosRouteImport.update({
+  id: '/bonos',
+  path: '/bonos',
+  getParentRoute: () => ShellRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
+  '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
 }
 export interface FileRoutesByTo {
+  '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
   '/': typeof ShellIndexRoute
@@ -47,18 +55,20 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
+  '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
   '/_shell/': typeof ShellIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clientes' | '/entrenadores'
+  fullPaths: '/' | '/bonos' | '/clientes' | '/entrenadores'
   fileRoutesByTo: FileRoutesByTo
-  to: '/clientes' | '/entrenadores' | '/'
+  to: '/bonos' | '/clientes' | '/entrenadores' | '/'
   id:
     | '__root__'
     | '/_shell'
+    | '/_shell/bonos'
     | '/_shell/clientes'
     | '/_shell/entrenadores'
     | '/_shell/'
@@ -98,16 +108,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellClientesRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/bonos': {
+      id: '/_shell/bonos'
+      path: '/bonos'
+      fullPath: '/bonos'
+      preLoaderRoute: typeof ShellBonosRouteImport
+      parentRoute: typeof ShellRoute
+    }
   }
 }
 
 interface ShellRouteChildren {
+  ShellBonosRoute: typeof ShellBonosRoute
   ShellClientesRoute: typeof ShellClientesRoute
   ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
   ShellIndexRoute: typeof ShellIndexRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellBonosRoute: ShellBonosRoute,
   ShellClientesRoute: ShellClientesRoute,
   ShellEntrenadoresRoute: ShellEntrenadoresRoute,
   ShellIndexRoute: ShellIndexRoute,
