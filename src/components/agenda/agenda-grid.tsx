@@ -197,14 +197,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       const rect = gridRef.current.getBoundingClientRect();
       if (moving) {
         const y = e.clientY - rect.top - moving.offset;
-        setMovePreview(Math.max(0, pxToMinRaw(y)));
+        setMovePreview(Math.max(0, snapMin(pxToMinRaw(y))));
       } else if (resizing) {
-        const m = Math.max(0, pxToMinRaw(e.clientY - rect.top));
+        const m = Math.max(0, snapMin(pxToMinRaw(e.clientY - rect.top)));
         if (resizing.edge === "top") {
-          const newStart = Math.min(m, resizing.endMin - 5);
+          const newStart = Math.min(m, resizing.endMin - SLOT_MIN);
           setResizePreview({ startMin: newStart, endMin: resizing.endMin });
         } else {
-          const newEnd = Math.max(m, resizing.startMin + 5);
+          const newEnd = Math.max(m, resizing.startMin + SLOT_MIN);
           setResizePreview({ startMin: resizing.startMin, endMin: newEnd });
         }
       }
