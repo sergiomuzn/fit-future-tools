@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
-import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, minToTime, timeToMin, formatDateISO } from "./types";
+import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -139,7 +139,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     if (dragStartRef.current === null) return;
     const rect = gridRef.current!.getBoundingClientRect();
     const y = e.clientY - rect.top;
-    const m = pxToMin(y);
+    const m = snapMin(pxToMinRaw(y));
     const start = dragStartRef.current;
     const end = Math.max(m, start + 15);
     setDraft({ startMin: start, endMin: end });
@@ -171,8 +171,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   useEffect(() => {
     function up() {
       if (moving && movePreview !== null) {
-        const newStart = minToTime(movePreview);
-        const newEnd = minToTime(movePreview + moving.dur);
+        const snapped = snapMin(movePreview);
+        const newStart = minToTime(snapped);
+        const newEnd = minToTime(snapped + moving.dur);
         supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", moving.id).then(({ error }) => {
           if (error) toast.error(error.message);
           qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -181,8 +182,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       setMoving(null);
       setMovePreview(null);
       if (resizing && resizePreview) {
-        const newStart = minToTime(resizePreview.startMin);
-        const newEnd = minToTime(resizePreview.endMin);
+        const newStart = minToTime(snapMin(resizePreview.startMin));
+        const newEnd = minToTime(snapMin(resizePreview.endMin));
         supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
           if (error) toast.error(error.message);
           qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -196,14 +197,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       const rect = gridRef.current.getBoundingClientRect();
       if (moving) {
         const y = e.clientY - rect.top - moving.offset;
-        setMovePreview(Math.max(0, pxToMin(y)));
+        setMovePreview(Math.max(0, pxToMinRaw(y)));
       } else if (resizing) {
-        const m = Math.max(0, pxToMin(e.clientY - rect.top));
+        const m = Math.max(0, pxToMinRaw(e.clientY - rect.top));
         if (resizing.edge === "top") {
-          const newStart = Math.min(m, resizing.endMin - 15);
+          const newStart = Math.min(m, resizing.endMin - 5);
           setResizePreview({ startMin: newStart, endMin: resizing.endMin });
         } else {
-          const newEnd = Math.max(m, resizing.startMin + 15);
+          const newEnd = Math.max(m, resizing.startMin + 5);
           setResizePreview({ startMin: resizing.startMin, endMin: newEnd });
         }
       }

@@ -8,6 +8,12 @@ export const TOTAL_PX = (TOTAL_MIN / SLOT_MIN) * SLOT_PX;
 export function pxToMin(px: number) {
   return Math.round(px / SLOT_PX) * SLOT_MIN;
 }
+export function pxToMinRaw(px: number) {
+  return (px / SLOT_PX) * SLOT_MIN;
+}
+export function snapMin(min: number) {
+  return Math.round(min / SLOT_MIN) * SLOT_MIN;
+}
 export function minToTime(min: number) {
   const total = HOUR_START * 60 + min;
   const h = Math.floor(total / 60);
