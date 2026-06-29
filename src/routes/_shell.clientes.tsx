@@ -112,7 +112,7 @@ function ClientesPage() {
           </TableHeader>
           <TableBody>
             {filtered.map((c) => (
-              <TableRow key={c.id} className={activoByClient.get(c.id) ? "" : "opacity-60"}>
+              <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
                 <TableCell>
                   {(() => {
@@ -121,10 +121,7 @@ function ClientesPage() {
                   })()}
                 </TableCell>
                 <TableCell>
-                  {(() => {
-                    const a = activoByClient.get(c.id);
-                    return <span className={`text-xs px-2 py-0.5 rounded-full ${a ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{a ? "Activo" : "Inactivo"}</span>;
-                  })()}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
                 </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
                 <TableCell>{c.fecha_inicio ?? "—"}</TableCell>
