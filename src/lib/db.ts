@@ -36,7 +36,10 @@ export function turnoFromHora(hora: string): "manana" | "tarde" {
 /** Quita el prefijo "Bono" del nombre para mostrar. */
 export function prettyBonoNombre(nombre?: string | null): string {
   if (!nombre) return "—";
-  return nombre.replace(/^\s*bono\s+/i, "").trim();
+  return nombre
+    .replace(/^\s*bono\s+/i, "")
+    .replace(/^10\s+(45|60)'/, "10 ses $1'")
+    .trim();
 }
 
 /** Ordena catálogo: por tipo (individual, pareja, grupal), luego duración (45 antes que 60), luego orden. */
