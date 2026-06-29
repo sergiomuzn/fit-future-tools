@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { supabase, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { ClientPicker } from "@/components/clients/client-picker";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -22,8 +23,7 @@ function FacturacionPage() {
   const [month, setMonth] = useState(now.getMonth());
   const [year, setYear] = useState(now.getFullYear());
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<Partial<Invoice> & { nuevoCliente?: string }>({});
-  const [search, setSearch] = useState("");
+  const [form, setForm] = useState<Partial<Invoice>>({});
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -44,25 +44,13 @@ function FacturacionPage() {
 
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
-  const filteredClients = useMemo(
-    () => clients.filter((c) => c.nombre.toLowerCase().includes(search.toLowerCase())),
-    [clients, search],
-  );
-
   function openNew() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
-    setSearch("");
     setOpen(true);
   }
 
   async function save() {
-    let clientId = form.client_id;
-    if (!clientId && form.nuevoCliente) {
-      const { data, error } = await supabase.from("clients").insert({ nombre: form.nuevoCliente }).select().single();
-      if (error) { toast.error(error.message); return; }
-      clientId = data.id;
-      qc.invalidateQueries({ queryKey: ["clients"] });
-    }
+    const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
     if (!form.bono_catalogo_id) { toast.error("Selecciona un bono"); return; }
     const { error } = await supabase.from("invoices").insert({
@@ -146,37 +134,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Cliente</Label>
-              <Input placeholder="Buscar cliente o escribir nuevo nombre..." value={search} onChange={(e) => { setSearch(e.target.value); setForm({ ...form, client_id: undefined, nuevoCliente: e.target.value }); }} />
-              <div className="max-h-32 overflow-y-auto rounded-md border">
-                {filteredClients.map((c) => (
-                  <button key={c.id} type="button" onClick={() => { setForm({ ...form, client_id: c.id, nuevoCliente: undefined }); setSearch(c.nombre); }} className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${form.client_id === c.id ? "bg-accent font-medium" : ""}`}>
-                    {c.nombre}
-                  </button>
-                ))}
-                {filteredClients.length === 0 && (
-                  <div className="p-2 text-xs text-muted-foreground">Sin resultados.</div>
-                )}
-              </div>
-              {search && !form.client_id && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={async () => {
-                    const nombre = search.trim();
-                    if (!nombre) return;
-                    const { data, error } = await supabase.from("clients").insert({ nombre }).select().single();
-                    if (error) { toast.error(error.message); return; }
-                    qc.invalidateQueries({ queryKey: ["clients"] });
-                    setForm({ ...form, client_id: data.id, nuevoCliente: undefined });
-                    setSearch(data.nombre);
-                    toast.success(`Cliente «${nombre}» creado`);
-                  }}
-                >
-                  + Añadir «{search}» como nuevo cliente
-                </Button>
-              )}
+              <ClientPicker value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id })} />
             </div>
             <div className="space-y-1.5">
               <Label>Bono</Label>
