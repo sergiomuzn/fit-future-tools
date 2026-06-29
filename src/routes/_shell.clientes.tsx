@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -38,10 +39,8 @@ function ClientesPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, "individual" | "pareja" | "grupal">();
-  const activoByClient = new Map<string, boolean>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
-    activoByClient.set(b.client_id, true);
     if (b.bono_catalogo_id) {
       const t = catMap.get(b.bono_catalogo_id)?.tipo;
       if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
@@ -54,11 +53,11 @@ function ClientesPage() {
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   };
 
-  const filtered = clients
+    const filtered = clients
     .filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => {
-      const aa = activoByClient.get(a.id) ? 0 : 1;
-      const bb = activoByClient.get(b.id) ? 0 : 1;
+      const aa = a.activo ? 0 : 1;
+      const bb = b.activo ? 0 : 1;
       if (aa !== bb) return aa - bb;
       return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
     });
@@ -71,6 +70,7 @@ function ClientesPage() {
       fecha_inicio: editing.fecha_inicio ?? null,
       cumpleanos: editing.cumpleanos ?? null,
       notas: editing.notas ?? null,
+      activo: editing.activo ?? true,
     };
     const { error } = editing.id
       ? await supabase.from("clients").update(payload).eq("id", editing.id)
@@ -110,7 +110,7 @@ function ClientesPage() {
           </TableHeader>
           <TableBody>
             {filtered.map((c) => (
-              <TableRow key={c.id} className={activoByClient.get(c.id) ? "" : "opacity-60"}>
+              <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
                 <TableCell>
                   {(() => {
@@ -119,10 +119,7 @@ function ClientesPage() {
                   })()}
                 </TableCell>
                 <TableCell>
-                  {(() => {
-                    const a = activoByClient.get(c.id);
-                    return <span className={`text-xs px-2 py-0.5 rounded-full ${a ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{a ? "Activo" : "Inactivo"}</span>;
-                  })()}
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
                 </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
                 <TableCell>{c.fecha_inicio ?? "—"}</TableCell>
@@ -151,6 +148,10 @@ function ClientesPage() {
               <div className="space-y-1.5"><Label>Cumpleaños</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
             </div>
             <div className="space-y-1.5"><Label>Notas</Label><Textarea rows={2} value={editing?.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></div>
+            <div className="flex items-center gap-2 pt-1">
+              <Checkbox id="activo" checked={editing?.activo ?? true} onCheckedChange={(v) => setEditing({ ...editing, activo: Boolean(v) })} />
+              <Label htmlFor="activo" className="cursor-pointer">Activo</Label>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
