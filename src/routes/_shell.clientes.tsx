@@ -55,11 +55,11 @@ function ClientesPage() {
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   };
 
-  const filtered = clients
+    const filtered = clients
     .filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => {
-      const aa = activoByClient.get(a.id) ? 0 : 1;
-      const bb = activoByClient.get(b.id) ? 0 : 1;
+      const aa = a.activo ? 0 : 1;
+      const bb = b.activo ? 0 : 1;
       if (aa !== bb) return aa - bb;
       return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
     });
