@@ -44,12 +44,24 @@ function FacturacionPage() {
     monthsByYear.get(y)!.add(m);
   }
   yearsSet.add(now.getFullYear());
-  const availableYears = Array.from(yearsSet).filter((y) => y <= now.getFullYear()).sort((a, b) => b - a);
-  const maxMonthForYear = year === now.getFullYear() ? now.getMonth() : 11;
-  const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
-  const availableMonths = MONTHS
-    .map((label, idx) => ({ label, idx }))
-    .filter(({ idx }) => idx <= maxMonthForYear && (monthsWithData.has(idx) || (idx === now.getMonth() && year === now.getFullYear())));
+  const allYears = Array.from(yearsSet);
+  const minYear = allYears.length ? Math.min(...allYears, now.getFullYear()) : now.getFullYear();
+  const availableYears: number[] = [];
+  for (let y = now.getFullYear(); y >= minYear; y--) availableYears.push(y);
+  for (const y of allYears) {
+    if (y > now.getFullYear() && !availableYears.includes(y)) availableYears.push(y);
+  }
+  availableYears.sort((a, b) => b - a);
+
+  let availableMonths: { label: string; idx: number }[];
+  if (year < now.getFullYear()) {
+    availableMonths = MONTHS.map((label, idx) => ({ label, idx }));
+  } else if (year === now.getFullYear()) {
+    availableMonths = MONTHS.map((label, idx) => ({ label, idx })).filter(({ idx }) => idx <= now.getMonth());
+  } else {
+    const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
+    availableMonths = MONTHS.map((label, idx) => ({ label, idx })).filter(({ idx }) => monthsWithData.has(idx));
+  }
 
   const isYear = month === -1;
   const startD = isYear
