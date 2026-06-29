@@ -39,10 +39,8 @@ function ClientesPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, "individual" | "pareja" | "grupal">();
-  const activoByClient = new Map<string, boolean>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
-    activoByClient.set(b.client_id, true);
     if (b.bono_catalogo_id) {
       const t = catMap.get(b.bono_catalogo_id)?.tipo;
       if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
