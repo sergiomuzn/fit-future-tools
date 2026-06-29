@@ -1,4 +1,4 @@
-import { createFileRoute, Outlet, Link, useRouterState } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3 } from "lucide-react";
 import { MiniCalendar } from "@/components/mini-calendar";
@@ -32,6 +32,7 @@ function ShellInner() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { date, setDate } = useAgendaDate();
   const [month, setMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
+  const navigate = useNavigate();
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
@@ -43,7 +44,11 @@ function ShellInner() {
         <div className="p-3">
           <MiniCalendar
             selected={date}
-            onSelect={(d) => { setDate(d); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}
+            onSelect={(d) => {
+              setDate(d);
+              setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+              if (pathname !== "/") navigate({ to: "/" });
+            }}
             month={month}
             onMonthChange={setMonth}
           />
