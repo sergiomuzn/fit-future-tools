@@ -1,0 +1,1 @@
+ALTER TABLE public.clients ADD COLUMN activo boolean NOT NULL DEFAULT true;

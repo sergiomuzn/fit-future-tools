@@ -103,6 +103,7 @@ export type Database = {
       }
       clients: {
         Row: {
+          activo: boolean
           created_at: string
           cumpleanos: string | null
           fecha_inicio: string | null
@@ -112,6 +113,7 @@ export type Database = {
           telefono: string | null
         }
         Insert: {
+          activo?: boolean
           created_at?: string
           cumpleanos?: string | null
           fecha_inicio?: string | null
@@ -121,6 +123,7 @@ export type Database = {
           telefono?: string | null
         }
         Update: {
+          activo?: boolean
           created_at?: string
           cumpleanos?: string | null
           fecha_inicio?: string | null
