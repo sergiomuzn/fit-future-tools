@@ -35,6 +35,14 @@ function BonosPage() {
   });
   const clientMap = new Map(clients.map((c) => [c.id, c]));
 
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => {
+      const { data } = await supabase.from("bonos_catalogo").select("*").order("orden");
+      return (data ?? []) as BonoCatalogo[];
+    },
+  });
+
   // Activos primero (cronológico), luego inactivos
   const sorted = [...bonos].sort((a, b) => {
     if (a.activo !== b.activo) return a.activo ? -1 : 1;
