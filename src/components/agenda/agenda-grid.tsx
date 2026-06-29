@@ -164,6 +164,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const [moving, setMoving] = useState<{ id: string; offset: number; dur: number } | null>(null);
   const [movePreview, setMovePreview] = useState<number | null>(null);
 
+  // Resize existing
+  const [resizing, setResizing] = useState<{ id: string; edge: "top" | "bottom"; startMin: number; endMin: number } | null>(null);
+  const [resizePreview, setResizePreview] = useState<{ startMin: number; endMin: number } | null>(null);
+
   useEffect(() => {
     function up() {
       if (moving && movePreview !== null) {
@@ -176,12 +180,33 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
       setMoving(null);
       setMovePreview(null);
+      if (resizing && resizePreview) {
+        const newStart = minToTime(resizePreview.startMin);
+        const newEnd = minToTime(resizePreview.endMin);
+        supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
+          if (error) toast.error(error.message);
+          qc.invalidateQueries({ queryKey: ["sessions"] });
+        });
+      }
+      setResizing(null);
+      setResizePreview(null);
     }
     function move(e: MouseEvent) {
-      if (!moving || !gridRef.current) return;
+      if (!gridRef.current) return;
       const rect = gridRef.current.getBoundingClientRect();
-      const y = e.clientY - rect.top - moving.offset;
-      setMovePreview(Math.max(0, pxToMin(y)));
+      if (moving) {
+        const y = e.clientY - rect.top - moving.offset;
+        setMovePreview(Math.max(0, pxToMin(y)));
+      } else if (resizing) {
+        const m = Math.max(0, pxToMin(e.clientY - rect.top));
+        if (resizing.edge === "top") {
+          const newStart = Math.min(m, resizing.endMin - 15);
+          setResizePreview({ startMin: newStart, endMin: resizing.endMin });
+        } else {
+          const newEnd = Math.max(m, resizing.startMin + 15);
+          setResizePreview({ startMin: resizing.startMin, endMin: newEnd });
+        }
+      }
     }
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
@@ -189,7 +214,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, qc]);
+  }, [moving, movePreview, resizing, resizePreview, qc]);
 
   // Dialog
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
@@ -314,10 +339,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const widthPct = 88 / cols; // 88% total, deja 12% lateral para click-add
               const leftPct = 2 + col * widthPct;
               const isMoving = moving?.id === session.id;
-              const top = isMoving && movePreview !== null
-                ? (movePreview / SLOT_MIN) * SLOT_PX
-                : (startMin / SLOT_MIN) * SLOT_PX;
-              const height = ((endMin - startMin) / SLOT_MIN) * SLOT_PX;
+              const isResizing = resizing?.id === session.id;
+              const effStart = isResizing && resizePreview ? resizePreview.startMin
+                : isMoving && movePreview !== null ? movePreview
+                : startMin;
+              const effEnd = isResizing && resizePreview ? resizePreview.endMin
+                : isMoving && movePreview !== null ? movePreview + (moving!.dur)
+                : endMin;
+              const top = (effStart / SLOT_MIN) * SLOT_PX;
+              const height = ((effEnd - effStart) / SLOT_MIN) * SLOT_PX;
               const client = session.client_id ? clientMap.get(session.client_id) : null;
               const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
               const bono = session.client_id ? bonoMap.get(session.client_id) : null;
@@ -353,6 +383,26 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   }}
                   onClick={(e) => handleSessionClick(session, e)}
                 >
+                  <div
+                    className="absolute left-0 right-0 top-0 h-1.5 cursor-ns-resize z-10"
+                    onMouseDown={(e) => {
+                      if (paintTrainerId) return;
+                      e.stopPropagation();
+                      setResizing({ id: session.id, edge: "top", startMin, endMin });
+                      setResizePreview({ startMin, endMin });
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                  <div
+                    className="absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize z-10"
+                    onMouseDown={(e) => {
+                      if (paintTrainerId) return;
+                      e.stopPropagation();
+                      setResizing({ id: session.id, edge: "bottom", startMin, endMin });
+                      setResizePreview({ startMin, endMin });
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
                   <div className="flex items-center justify-between gap-1">
                     <div className="font-medium truncate">{client?.nombre ?? "Sin cliente"}</div>
                     {trainer && (
