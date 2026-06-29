@@ -139,24 +139,36 @@ function FacturacionPage() {
               <TableHead>Fecha</TableHead>
               <TableHead>Cobrador</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Bono</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Nota</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((i) => (
+            {invoices.map((i) => {
+              const cat = catMap.get(i.bono_catalogo_id);
+              const tipo = cat?.tipo;
+              const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+              const TIPO_CLASS: Record<string, string> = {
+                individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+                pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+                grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+              };
+              return (
               <TableRow key={i.id}>
                 <TableCell>{i.fecha}</TableCell>
                 <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell className="font-medium">{clientMap.get(i.client_id)?.nombre ?? "?"}</TableCell>
-                <TableCell>{prettyBonoNombre(catMap.get(i.bono_catalogo_id)?.nombre)}</TableCell>
+                <TableCell>{tipo ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[tipo]}`}>{TIPO_LABEL[tipo]}</span> : <span className="text-muted-foreground">—</span>}</TableCell>
+                <TableCell>{prettyBonoNombre(cat?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{i.nota ?? "—"}</TableCell>
               </TableRow>
-            ))}
+              );
+            })}
             {invoices.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
