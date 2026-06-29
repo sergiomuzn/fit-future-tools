@@ -119,7 +119,7 @@ function ClientesPage() {
                   })()}
                 </TableCell>
                 <TableCell>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
                 </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
                 <TableCell>{c.fecha_inicio ?? "—"}</TableCell>
