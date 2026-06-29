@@ -29,6 +29,28 @@ function FacturacionPage() {
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
 
+  const { data: allFechas = [] } = useQuery({
+    queryKey: ["invoices-fechas"],
+    queryFn: async () => (await supabase.from("invoices").select("fecha")).data as { fecha: string }[] ?? [],
+  });
+  const yearsSet = new Set<number>();
+  const monthsByYear = new Map<number, Set<number>>();
+  for (const r of allFechas) {
+    const d = new Date(r.fecha);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    yearsSet.add(y);
+    if (!monthsByYear.has(y)) monthsByYear.set(y, new Set());
+    monthsByYear.get(y)!.add(m);
+  }
+  yearsSet.add(now.getFullYear());
+  const availableYears = Array.from(yearsSet).filter((y) => y <= now.getFullYear()).sort((a, b) => b - a);
+  const maxMonthForYear = year === now.getFullYear() ? now.getMonth() : 11;
+  const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
+  const availableMonths = MONTHS
+    .map((label, idx) => ({ label, idx }))
+    .filter(({ idx }) => idx <= maxMonthForYear && (monthsWithData.has(idx) || (idx === now.getMonth() && year === now.getFullYear())));
+
   const isYear = month === -1;
   const startD = isYear
     ? `${year}-01-01`
@@ -86,12 +108,12 @@ function FacturacionPage() {
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="-1">Año completo</SelectItem>
-            {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+            {availableMonths.map(({ label, idx }) => <SelectItem key={idx} value={String(idx)}>{label}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>{[year-2, year-1, year, year+1].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          <SelectContent>{availableYears.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
         <div className="ml-auto rounded-lg border bg-card px-4 py-2">
           <span className="text-xs text-muted-foreground">{isYear ? "Total año: " : "Total mes: "}</span>
