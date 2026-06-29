@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
