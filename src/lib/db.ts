@@ -32,3 +32,21 @@ export function turnoFromHora(hora: string): "manana" | "tarde" {
   const [h] = hora.split(":").map(Number);
   return h < 14 ? "manana" : "tarde";
 }
+
+/** Quita el prefijo "Bono" del nombre para mostrar. */
+export function prettyBonoNombre(nombre?: string | null): string {
+  if (!nombre) return "—";
+  return nombre.replace(/^\s*bono\s+/i, "").trim();
+}
+
+/** Ordena catálogo: por tipo (individual, pareja, grupal), luego duración (45 antes que 60), luego orden. */
+export function sortCatalogo<T extends { tipo: BonoTipo; duracion_min: number | null; orden: number }>(items: T[]): T[] {
+  const tipoRank: Record<BonoTipo, number> = { individual: 0, pareja: 1, grupal: 2 };
+  return [...items].sort((a, b) => {
+    if (a.tipo !== b.tipo) return tipoRank[a.tipo] - tipoRank[b.tipo];
+    const da = a.duracion_min ?? 9999;
+    const db = b.duracion_min ?? 9999;
+    if (da !== db) return da - db;
+    return a.orden - b.orden;
+  });
+}
