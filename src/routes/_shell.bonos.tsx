@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { ArrowUpDown } from "lucide-react";
 
 export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
@@ -18,6 +19,7 @@ function BonosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
+  const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
@@ -50,11 +52,24 @@ function BonosPage() {
     pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   };
+  const tipoRank: Record<string, number> = { individual: 0, pareja: 1, grupal: 2 };
 
-  // Activos primero (cronológico), luego inactivos
+  // Inactivos siempre al final, dentro orden seleccionado
   const sorted = [...bonos].sort((a, b) => {
     if (a.activo !== b.activo) return a.activo ? -1 : 1;
-    return (b.ultimo_bono_fecha ?? "").localeCompare(a.ultimo_bono_fecha ?? "");
+    if (sortBy === "nombre") {
+      const na = clientMap.get(a.client_id)?.nombre ?? "";
+      const nb = clientMap.get(b.client_id)?.nombre ?? "";
+      return na.localeCompare(nb, "es", { sensitivity: "base" });
+    }
+    const ta = catMap.get(a.bono_catalogo_id ?? "")?.tipo;
+    const tb = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+    const ra = ta ? tipoRank[ta] : 99;
+    const rb = tb ? tipoRank[tb] : 99;
+    if (ra !== rb) return ra - rb;
+    const na = clientMap.get(a.client_id)?.nombre ?? "";
+    const nb = clientMap.get(b.client_id)?.nombre ?? "";
+    return na.localeCompare(nb, "es", { sensitivity: "base" });
   });
 
   async function save() {
@@ -78,14 +93,21 @@ function BonosPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead>
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("nombre")}>
+                  Nombre <ArrowUpDown className={`h-3 w-3 ${sortBy === "nombre" ? "text-foreground" : "opacity-40"}`} />
+                </button>
+              </TableHead>
+              <TableHead>
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("tipo")}>
+                  Tipo de bono <ArrowUpDown className={`h-3 w-3 ${sortBy === "tipo" ? "text-foreground" : "opacity-40"}`} />
+                </button>
+              </TableHead>
               <TableHead>Disponibles</TableHead>
               <TableHead>Realizadas</TableHead>
               <TableHead>Restantes</TableHead>
               <TableHead>Último bono</TableHead>
               <TableHead>Última fecha</TableHead>
-              <TableHead>Estado</TableHead>
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -105,17 +127,12 @@ function BonosPage() {
                   <TableCell>{prettyBonoNombre(b.ultimo_bono_nombre)}</TableCell>
                 <TableCell>{b.ultimo_bono_fecha ?? "—"}</TableCell>
                 <TableCell>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${b.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>
-                    {b.activo ? "Activo" : "Inactivo"}
-                  </span>
-                </TableCell>
-                <TableCell>
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
             ))}
             {sorted.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
