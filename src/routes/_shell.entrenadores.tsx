@@ -117,7 +117,11 @@ function EntrenadoresPage() {
         <DialogContent>
           <DialogHeader><DialogTitle>{editing?.id ? "Editar" : "Nuevo"} entrenador</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div className="space-y-1.5"><Label>Nombre</Label><Input value={editing?.nombre ?? ""} onChange={(e) => setEditing({ ...editing, nombre: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Nombre</Label><Input value={editing?.nombre ?? ""} onChange={(e) => {
+              const nombre = e.target.value;
+              const iniciales = nombre.split(/\s+/).filter(Boolean).map((w) => w[0]?.toUpperCase() ?? "").join("").slice(0, 3);
+              setEditing({ ...editing, nombre, iniciales: iniciales || editing?.iniciales || "" });
+            }} /></div>
             <div className="space-y-1.5"><Label>Iniciales</Label><Input maxLength={3} value={editing?.iniciales ?? ""} onChange={(e) => setEditing({ ...editing, iniciales: e.target.value.toUpperCase() })} /></div>
             <div className="flex items-center gap-2"><Switch checked={editing?.activo ?? true} onCheckedChange={(c) => setEditing({ ...editing, activo: c })} /><Label>Activo</Label></div>
           </div>
