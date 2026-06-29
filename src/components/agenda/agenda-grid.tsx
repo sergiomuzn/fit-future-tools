@@ -174,6 +174,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const snapped = snapMin(movePreview);
         const newStart = minToTime(snapped);
         const newEnd = minToTime(snapped + moving.dur);
+        const movingId = moving.id;
+        qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
+          (old ?? []).map((s) => (s.id === movingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
+        );
         supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", moving.id).then(({ error }) => {
           if (error) toast.error(error.message);
           qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -184,6 +188,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (resizing && resizePreview) {
         const newStart = minToTime(snapMin(resizePreview.startMin));
         const newEnd = minToTime(snapMin(resizePreview.endMin));
+        const resizingId = resizing.id;
+        qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
+          (old ?? []).map((s) => (s.id === resizingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
+        );
         supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
           if (error) toast.error(error.message);
           qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -215,7 +223,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, resizing, resizePreview, qc]);
+  }, [moving, movePreview, resizing, resizePreview, qc, isoDate]);
 
   // Dialog
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
