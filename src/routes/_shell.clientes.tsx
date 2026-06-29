@@ -38,10 +38,14 @@ function ClientesPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, "individual" | "pareja" | "grupal">();
+  const activoByClient = new Map<string, boolean>();
   for (const b of clientBonos) {
-    if (!b.activo || !b.bono_catalogo_id) continue;
-    const t = catMap.get(b.bono_catalogo_id)?.tipo;
-    if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+    if (!b.activo) continue;
+    activoByClient.set(b.client_id, true);
+    if (b.bono_catalogo_id) {
+      const t = catMap.get(b.bono_catalogo_id)?.tipo;
+      if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+    }
   }
   const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
   const TIPO_CLASS: Record<string, string> = {
@@ -50,7 +54,14 @@ function ClientesPage() {
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   };
 
-  const filtered = clients.filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()));
+  const filtered = clients
+    .filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => {
+      const aa = activoByClient.get(a.id) ? 0 : 1;
+      const bb = activoByClient.get(b.id) ? 0 : 1;
+      if (aa !== bb) return aa - bb;
+      return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+    });
 
   async function save() {
     if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
@@ -90,6 +101,7 @@ function ClientesPage() {
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead>Tipo de bono</TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha inicio</TableHead>
               <TableHead>Cumpleaños</TableHead>
@@ -98,12 +110,18 @@ function ClientesPage() {
           </TableHeader>
           <TableBody>
             {filtered.map((c) => (
-              <TableRow key={c.id}>
+              <TableRow key={c.id} className={activoByClient.get(c.id) ? "" : "opacity-60"}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
                 <TableCell>
                   {(() => {
                     const t = tipoByClient.get(c.id);
                     return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                  })()}
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const a = activoByClient.get(c.id);
+                    return <span className={`text-xs px-2 py-0.5 rounded-full ${a ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>{a ? "Activo" : "Inactivo"}</span>;
                   })()}
                 </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
@@ -116,7 +134,7 @@ function ClientesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
