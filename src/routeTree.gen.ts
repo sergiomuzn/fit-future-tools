@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 
 const ShellRoute = ShellRouteImport.update({
@@ -22,6 +23,11 @@ const ShellIndexRoute = ShellIndexRouteImport.update({
   path: '/',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
+  id: '/entrenadores',
+  path: '/entrenadores',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ShellClientesRoute = ShellClientesRouteImport.update({
   id: '/clientes',
   path: '/clientes',
@@ -31,23 +37,31 @@ const ShellClientesRoute = ShellClientesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/clientes': typeof ShellClientesRoute
+  '/entrenadores': typeof ShellEntrenadoresRoute
 }
 export interface FileRoutesByTo {
   '/clientes': typeof ShellClientesRoute
+  '/entrenadores': typeof ShellEntrenadoresRoute
   '/': typeof ShellIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/_shell/clientes': typeof ShellClientesRoute
+  '/_shell/entrenadores': typeof ShellEntrenadoresRoute
   '/_shell/': typeof ShellIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/clientes'
+  fullPaths: '/' | '/clientes' | '/entrenadores'
   fileRoutesByTo: FileRoutesByTo
-  to: '/clientes' | '/'
-  id: '__root__' | '/_shell' | '/_shell/clientes' | '/_shell/'
+  to: '/clientes' | '/entrenadores' | '/'
+  id:
+    | '__root__'
+    | '/_shell'
+    | '/_shell/clientes'
+    | '/_shell/entrenadores'
+    | '/_shell/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -70,6 +84,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellIndexRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/entrenadores': {
+      id: '/_shell/entrenadores'
+      path: '/entrenadores'
+      fullPath: '/entrenadores'
+      preLoaderRoute: typeof ShellEntrenadoresRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/clientes': {
       id: '/_shell/clientes'
       path: '/clientes'
@@ -82,11 +103,13 @@ declare module '@tanstack/react-router' {
 
 interface ShellRouteChildren {
   ShellClientesRoute: typeof ShellClientesRoute
+  ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
   ShellIndexRoute: typeof ShellIndexRoute
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
   ShellClientesRoute: ShellClientesRoute,
+  ShellEntrenadoresRoute: ShellEntrenadoresRoute,
   ShellIndexRoute: ShellIndexRoute,
 }
 
