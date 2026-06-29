@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
@@ -22,6 +23,11 @@ const ShellRoute = ShellRouteImport.update({
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellSesionesRoute = ShellSesionesRouteImport.update({
+  id: '/sesiones',
+  path: '/sesiones',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
@@ -45,11 +51,13 @@ export interface FileRoutesByFullPath {
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
+  '/sesiones': typeof ShellSesionesRoute
 }
 export interface FileRoutesByTo {
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
+  '/sesiones': typeof ShellSesionesRoute
   '/': typeof ShellIndexRoute
 }
 export interface FileRoutesById {
@@ -58,19 +66,21 @@ export interface FileRoutesById {
   '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
+  '/_shell/sesiones': typeof ShellSesionesRoute
   '/_shell/': typeof ShellIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/bonos' | '/clientes' | '/entrenadores'
+  fullPaths: '/' | '/bonos' | '/clientes' | '/entrenadores' | '/sesiones'
   fileRoutesByTo: FileRoutesByTo
-  to: '/bonos' | '/clientes' | '/entrenadores' | '/'
+  to: '/bonos' | '/clientes' | '/entrenadores' | '/sesiones' | '/'
   id:
     | '__root__'
     | '/_shell'
     | '/_shell/bonos'
     | '/_shell/clientes'
     | '/_shell/entrenadores'
+    | '/_shell/sesiones'
     | '/_shell/'
   fileRoutesById: FileRoutesById
 }
@@ -92,6 +102,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/sesiones': {
+      id: '/_shell/sesiones'
+      path: '/sesiones'
+      fullPath: '/sesiones'
+      preLoaderRoute: typeof ShellSesionesRouteImport
       parentRoute: typeof ShellRoute
     }
     '/_shell/entrenadores': {
@@ -122,6 +139,7 @@ interface ShellRouteChildren {
   ShellBonosRoute: typeof ShellBonosRoute
   ShellClientesRoute: typeof ShellClientesRoute
   ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
+  ShellSesionesRoute: typeof ShellSesionesRoute
   ShellIndexRoute: typeof ShellIndexRoute
 }
 
@@ -129,6 +147,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellBonosRoute: ShellBonosRoute,
   ShellClientesRoute: ShellClientesRoute,
   ShellEntrenadoresRoute: ShellEntrenadoresRoute,
+  ShellSesionesRoute: ShellSesionesRoute,
   ShellIndexRoute: ShellIndexRoute,
 }
 
