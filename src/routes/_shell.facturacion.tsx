@@ -154,14 +154,12 @@ function FacturacionPage() {
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
                 <SelectContent>
-                  {(["individual", "pareja", "grupal"] as const).map((tipo) => (
-                    <div key={tipo}>
-                      <div className="text-[10px] uppercase text-muted-foreground px-2 pt-2">{tipo}</div>
-                      {sortCatalogo(catalogo.filter((b) => b.tipo === tipo)).map((b) => (
-                        <SelectItem key={b.id} value={b.id}>{prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
-                      ))}
-                    </div>
-                  ))}
+                  {sortCatalogo(catalogo).map((b) => {
+                    const label = b.tipo.charAt(0).toUpperCase() + b.tipo.slice(1);
+                    return (
+                      <SelectItem key={b.id} value={b.id}>{label} · {prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
