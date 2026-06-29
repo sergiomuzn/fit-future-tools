@@ -73,6 +73,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const isoDate = formatDateISO(date);
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // reloj en vivo para la línea horaria
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(id);
+  }, []);
+  const isToday =
+    now.getFullYear() === date.getFullYear() &&
+    now.getMonth() === date.getMonth() &&
+    now.getDate() === date.getDate();
+  const nowMin = now.getHours() * 60 + now.getMinutes() - HOUR_START * 60;
+  const nowTop = (nowMin / SLOT_MIN) * SLOT_PX;
+
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
@@ -214,25 +227,34 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   return (
     <>
-      <div className="flex h-full overflow-hidden">
-        {/* time gutter */}
-        <div className="w-14 shrink-0 border-r bg-card/40 text-xs text-muted-foreground">
-          <div style={{ height: TOTAL_PX, position: "relative" }}>
-            {hours.map((h) => (
-              <div
-                key={h}
-                style={{ position: "absolute", top: (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6 }}
-                className="w-full text-right pr-2"
-              >
-                {String(h).padStart(2, "0")}:00
-              </div>
-            ))}
+      <div className="h-full overflow-y-auto">
+        <div className="flex" style={{ minHeight: TOTAL_PX }}>
+          {/* time gutter (scrolls with sessions) */}
+          <div className="w-14 shrink-0 border-r bg-card/40 text-xs text-muted-foreground">
+            <div style={{ height: TOTAL_PX, position: "relative" }}>
+              {hours.map((h) => (
+                <div
+                  key={h}
+                  style={{ position: "absolute", top: (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6 }}
+                  className="w-full text-right pr-2"
+                >
+                  {String(h).padStart(2, "0")}:00
+                </div>
+              ))}
+              {isToday && nowMin >= 0 && nowMin <= (HOUR_END - HOUR_START) * 60 && (
+                <div
+                  className="absolute right-1 -translate-y-1/2 rounded bg-destructive px-1 py-0.5 text-[10px] font-semibold text-destructive-foreground"
+                  style={{ top: nowTop }}
+                >
+                  {String(now.getHours()).padStart(2,"0")}:{String(now.getMinutes()).padStart(2,"0")}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* grid */}
-        <div className="flex-1 overflow-y-auto">
-          <div
+          {/* grid */}
+          <div className="flex-1">
+            <div
             ref={gridRef}
             className="relative w-full select-none"
             style={{ height: TOTAL_PX }}
@@ -257,17 +279,32 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               />
             ))}
 
+            {/* línea de tiempo actual */}
+            {isToday && nowMin >= 0 && nowMin <= (HOUR_END - HOUR_START) * 60 && (
+              <div
+                className="absolute left-0 right-0 pointer-events-none z-20"
+                style={{ top: nowTop }}
+              >
+                <div className="h-px bg-destructive shadow-[0_0_4px_var(--color-destructive)]" />
+                <div className="absolute -left-1 -top-1 h-2 w-2 rounded-full bg-destructive" />
+              </div>
+            )}
+
             {/* draft */}
             {draft && (
               <div
-                className="absolute rounded-md bg-primary/30 border border-primary pointer-events-none"
+                className="absolute rounded-md bg-primary/30 border border-primary pointer-events-none flex items-start justify-center text-[11px] font-semibold text-primary"
                 style={{
                   top: (draft.startMin / SLOT_MIN) * SLOT_PX,
                   height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
                   left: 4,
                   right: 4,
                 }}
-              />
+              >
+                <span className="mt-1 rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
+                  {minToTime(draft.startMin).slice(0,5)} – {minToTime(draft.endMin).slice(0,5)}
+                </span>
+              </div>
             )}
 
             {/* sessions */}
@@ -326,6 +363,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 </div>
               );
             })}
+            </div>
           </div>
         </div>
       </div>
