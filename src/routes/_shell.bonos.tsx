@@ -51,10 +51,13 @@ function BonosPage() {
 
   async function save() {
     if (!editing) return;
+    const selectedCatalogo = catalogo.find((c) => c.id === editing.bono_catalogo_id);
     const { error } = await supabase.from("client_bonos").update({
+      bono_catalogo_id: editing.bono_catalogo_id,
       sesiones_disponibles: editing.sesiones_disponibles,
       sesiones_realizadas: editing.sesiones_realizadas,
       activo: editing.activo,
+      ultimo_bono_nombre: selectedCatalogo?.nombre ?? editing.ultimo_bono_nombre,
     }).eq("id", editing.id);
     if (error) toast.error(error.message);
     else { qc.invalidateQueries({ queryKey: ["client_bonos"] }); setOpen(false); toast.success("Bono actualizado"); }
@@ -109,6 +112,15 @@ function BonosPage() {
           {editing && (
             <div className="grid gap-3">
               <div className="text-sm text-muted-foreground">{clientMap.get(editing.client_id)?.nombre}</div>
+            <div className="space-y-1.5">
+                <Label>Tipo de bono</Label>
+                <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona bono" /></SelectTrigger>
+                  <SelectContent>
+                    {catalogo.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5"><Label>Disponibles</Label><Input type="number" value={editing.sesiones_disponibles} onChange={(e) => setEditing({ ...editing, sesiones_disponibles: Number(e.target.value) })} /></div>
                 <div className="space-y-1.5"><Label>Realizadas</Label><Input type="number" value={editing.sesiones_realizadas} onChange={(e) => setEditing({ ...editing, sesiones_realizadas: Number(e.target.value) })} /></div>
