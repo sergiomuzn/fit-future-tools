@@ -29,6 +29,28 @@ function FacturacionPage() {
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
 
+  const { data: allFechas = [] } = useQuery({
+    queryKey: ["invoices-fechas"],
+    queryFn: async () => (await supabase.from("invoices").select("fecha")).data as { fecha: string }[] ?? [],
+  });
+  const yearsSet = new Set<number>();
+  const monthsByYear = new Map<number, Set<number>>();
+  for (const r of allFechas) {
+    const d = new Date(r.fecha);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    yearsSet.add(y);
+    if (!monthsByYear.has(y)) monthsByYear.set(y, new Set());
+    monthsByYear.get(y)!.add(m);
+  }
+  yearsSet.add(now.getFullYear());
+  const availableYears = Array.from(yearsSet).filter((y) => y <= now.getFullYear()).sort((a, b) => b - a);
+  const maxMonthForYear = year === now.getFullYear() ? now.getMonth() : 11;
+  const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
+  const availableMonths = MONTHS
+    .map((label, idx) => ({ label, idx }))
+    .filter(({ idx }) => idx <= maxMonthForYear && (monthsWithData.has(idx) || idx === now.getMonth() && year === now.getFullYear()));
+
   const isYear = month === -1;
   const startD = isYear
     ? `${year}-01-01`
