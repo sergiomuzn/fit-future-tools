@@ -49,7 +49,7 @@ function FacturacionPage() {
   const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
   const availableMonths = MONTHS
     .map((label, idx) => ({ label, idx }))
-    .filter(({ idx }) => idx <= maxMonthForYear && (monthsWithData.has(idx) || idx === now.getMonth() && year === now.getFullYear()));
+    .filter(({ idx }) => idx <= maxMonthForYear && (monthsWithData.has(idx) || (idx === now.getMonth() && year === now.getFullYear())));
 
   const isYear = month === -1;
   const startD = isYear
