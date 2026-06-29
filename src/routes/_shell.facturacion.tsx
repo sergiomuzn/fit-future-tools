@@ -15,7 +15,7 @@ import { ClientPicker } from "@/components/clients/client-picker";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
-const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function FacturacionPage() {
   const qc = useQueryClient();
