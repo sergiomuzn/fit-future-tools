@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
-import { supabase, type Client } from "@/lib/db";
+import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,27 @@ function ClientesPage() {
       return (data ?? []) as Client[];
     },
   });
+  const { data: clientBonos = [] } = useQuery({
+    queryKey: ["client_bonos"],
+    queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
+  });
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+  });
+  const catMap = new Map(catalogo.map((c) => [c.id, c]));
+  const tipoByClient = new Map<string, "individual" | "pareja" | "grupal">();
+  for (const b of clientBonos) {
+    if (!b.activo || !b.bono_catalogo_id) continue;
+    const t = catMap.get(b.bono_catalogo_id)?.tipo;
+    if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+  }
+  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_CLASS: Record<string, string> = {
+    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+  };
 
   const filtered = clients.filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()));
 
@@ -68,6 +89,7 @@ function ClientesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Tipo de bono</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha inicio</TableHead>
               <TableHead>Cumpleaños</TableHead>
@@ -78,6 +100,12 @@ function ClientesPage() {
             {filtered.map((c) => (
               <TableRow key={c.id}>
                 <TableCell className="font-medium">{c.nombre}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const t = tipoByClient.get(c.id);
+                    return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                  })()}
+                </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
                 <TableCell>{c.fecha_inicio ?? "—"}</TableCell>
                 <TableCell>{c.cumpleanos ?? "—"}</TableCell>
@@ -88,7 +116,7 @@ function ClientesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

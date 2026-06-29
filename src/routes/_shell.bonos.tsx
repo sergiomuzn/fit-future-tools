@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { supabase, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +42,14 @@ function BonosPage() {
       return (data ?? []) as BonoCatalogo[];
     },
   });
+  const catMap = new Map(catalogo.map((c) => [c.id, c]));
+
+  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_CLASS: Record<string, string> = {
+    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+  };
 
   // Activos primero (cronológico), luego inactivos
   const sorted = [...bonos].sort((a, b) => {
@@ -71,6 +79,7 @@ function BonosPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Cliente</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Disponibles</TableHead>
               <TableHead>Realizadas</TableHead>
               <TableHead>Restantes</TableHead>
@@ -84,10 +93,16 @@ function BonosPage() {
             {sorted.map((b) => (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">{clientMap.get(b.client_id)?.nombre ?? "?"}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+                    return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                  })()}
+                </TableCell>
                 <TableCell>{b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
                 <TableCell>{b.sesiones_realizadas}</TableCell>
                 <TableCell className={b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{b.sesiones_disponibles}</TableCell>
-                <TableCell>{b.ultimo_bono_nombre ?? "—"}</TableCell>
+                  <TableCell>{prettyBonoNombre(b.ultimo_bono_nombre)}</TableCell>
                 <TableCell>{b.ultimo_bono_fecha ?? "—"}</TableCell>
                 <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${b.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-muted text-muted-foreground"}`}>
@@ -100,7 +115,7 @@ function BonosPage() {
               </TableRow>
             ))}
             {sorted.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -117,7 +132,7 @@ function BonosPage() {
                 <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecciona bono" /></SelectTrigger>
                   <SelectContent>
-                    {catalogo.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}
+                    {sortCatalogo(catalogo).map((c) => <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
