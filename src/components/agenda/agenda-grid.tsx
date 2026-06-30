@@ -406,9 +406,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
               const isGroup = session.ocupacion === 2;
               const members = groupMembers.get(session.id);
-              const displayName = members && members.length > 1
-                ? members.map((m) => clientMap.get(m.client_id ?? "")?.nombre?.split(" ")[0] ?? "?").join(", ")
+              const groupMemberCount = isGroup
+                ? (members ?? [session]).filter((m) => !!m.client_id).length
+                : 0;
+              const groupNames = isGroup
+                ? (members ?? [session])
+                    .filter((m) => !!m.client_id)
+                    .map((m) => clientMap.get(m.client_id ?? "")?.nombre?.split(" ")[0] ?? "?")
+                    .join(", ")
+                : "";
+              const displayName = isGroup
+                ? (groupNames || "Sin clientes")
                 : (client?.nombre ?? "Sin cliente");
+              const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               return (
                 <div
                   key={session.id}
@@ -418,6 +428,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     isGroup
                       ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                       : ESTADO_BG[estadoForColor],
+                    isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
                   )}
                   style={{
                     top,
@@ -466,10 +477,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     )}
                   </div>
                   <div className="font-medium text-xs truncate leading-tight">
-                    {isGroup && session.titulo ? session.titulo : displayName}
+                    {isGroup
+                      ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
+                      : (isCanceladaNC ? `Cancelada NC · ${displayName}` : displayName)}
                   </div>
-                  {isGroup && session.titulo && (
-                    <div className="truncate text-[10px] opacity-90">{displayName}</div>
+                  {isGroup && groupMemberCount > 0 && (
+                    <div className="truncate text-[10px] opacity-90">{groupNames}</div>
                   )}
                 </div>
               );
