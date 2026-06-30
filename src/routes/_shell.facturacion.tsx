@@ -76,7 +76,12 @@ function FacturacionPage() {
 
   const { data: invoices = [] } = useQuery({
     queryKey: ["invoices", startD, endD],
-    queryFn: async () => (await supabase.from("invoices").select("*").gte("fecha", startD).lte("fecha", endD).order("fecha", { ascending: false })).data as Invoice[] ?? [],
+    queryFn: async () => (await supabase
+      .from("invoices").select("*")
+      .gte("fecha", startD).lte("fecha", endD)
+      .order("fecha", { ascending: false })
+      .order("created_at", { ascending: false })
+    ).data as Invoice[] ?? [],
   });
 
   const clientMap = new Map(clients.map((c) => [c.id, c]));
@@ -211,7 +216,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Precio cobrado (€)</Label>
-              <Input type="number" step="0.01" value={form.precio_cobrado ?? ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) })} />
+              <Input type="number" step="5" value={form.precio_cobrado ?? ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) })} />
             </div>
             <div className="space-y-1.5">
               <Label>Nota</Label>

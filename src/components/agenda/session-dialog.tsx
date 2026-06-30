@@ -82,9 +82,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         d.setDate(d.getDate() + 7 * w);
         dates.push(formatDateISO(d));
       }
-      const inserts = dates.flatMap((fecha) =>
-        memberIds.map((cid) => ({ ...base, fecha, client_id: cid })),
-      );
+      // Para grupos: un recurrencia_id compartido para que se rendericen como un solo bloque.
+      const inserts = dates.flatMap((fecha) => {
+        const groupId = grupo && memberIds.length > 1
+          ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
+          : null;
+        return memberIds.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: groupId }));
+      });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
     } else {

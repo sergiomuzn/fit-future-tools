@@ -121,7 +121,29 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     return m;
   }, [bonos]);
 
-  const layout = useMemo(() => computeLayout(sessions), [sessions]);
+  // Agrupar sesiones de grupo (mismo recurrencia_id + misma franja) en un solo bloque visual.
+  const { displaySessions, groupMembers } = useMemo(() => {
+    const groups = new Map<string, Session[]>();
+    const display: Session[] = [];
+    const members = new Map<string, Session[]>(); // primary.id -> member sessions
+    for (const s of sessions) {
+      if (s.recurrencia_id && s.ocupacion === 2) {
+        const key = `${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
+        const arr = groups.get(key);
+        if (arr) arr.push(s); else groups.set(key, [s]);
+      } else {
+        display.push(s);
+      }
+    }
+    for (const arr of groups.values()) {
+      const primary = arr[0];
+      display.push(primary);
+      members.set(primary.id, arr);
+    }
+    return { displaySessions: display, groupMembers: members };
+  }, [sessions]);
+
+  const layout = useMemo(() => computeLayout(displaySessions), [displaySessions]);
 
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
@@ -369,6 +391,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 (!bono || bono.sesiones_disponibles <= 1);
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
               const isGroup = session.ocupacion === 2;
+              const members = groupMembers.get(session.id);
+              const displayName = members && members.length > 1
+                ? members.map((m) => clientMap.get(m.client_id ?? "")?.nombre?.split(" ")[0] ?? "?").join(", ")
+                : (client?.nombre ?? "Sin cliente");
               return (
                 <div
                   key={session.id}
@@ -416,7 +442,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     onClick={(e) => e.stopPropagation()}
                   />
                   <div className="flex items-center justify-between gap-1">
-                    <div className="font-medium truncate">{client?.nombre ?? "Sin cliente"}</div>
+                    <div className="font-medium truncate">{displayName}</div>
                     {trainer && (
                       <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold">
                         {trainer.iniciales}
