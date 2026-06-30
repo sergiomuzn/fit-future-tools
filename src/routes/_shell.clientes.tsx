@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -21,6 +22,7 @@ function ClientesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
+  const [viewing, setViewing] = useState<Client | null>(null);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -111,7 +113,9 @@ function ClientesPage() {
           <TableBody>
             {filtered.map((c) => (
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
-                <TableCell className="font-medium">{c.nombre}</TableCell>
+                <TableCell className="font-medium">
+                  <button className="hover:underline text-left" onClick={() => setViewing(c)}>{c.nombre}</button>
+                </TableCell>
                 <TableCell>
                   {(() => {
                     const t = tipoByClient.get(c.id);
@@ -159,6 +163,7 @@ function ClientesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ClientDetailsDialog client={viewing} defaultTab="info" onOpenChange={(o) => !o && setViewing(null)} />
     </div>
   );
 }
