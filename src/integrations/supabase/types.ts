@@ -287,7 +287,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      apply_invoice_row: {
+        Args: { p_bono_cat: string; p_client: string; p_fecha: string }
+        Returns: undefined
+      }
+      revert_invoice_row: {
+        Args: { p_bono_cat: string; p_client: string; p_fecha: string }
+        Returns: undefined
+      }
+      sync_client_fecha_inicio: {
+        Args: { p_client: string }
+        Returns: undefined
+      }
     }
     Enums: {
       bono_tipo: "individual" | "pareja" | "grupal"
