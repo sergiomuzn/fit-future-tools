@@ -1,0 +1,1 @@
+DROP TRIGGER IF EXISTS trg_session_realizada ON public.sessions;
