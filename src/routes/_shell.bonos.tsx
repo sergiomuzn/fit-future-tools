@@ -202,23 +202,26 @@ function BonosPage() {
 function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpenChange: (v: boolean) => void; catalogo: BonoCatalogo[] }) {
   const qc = useQueryClient();
   const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
-  const [drafts, setDrafts] = useState<Record<string, { precio: string; tipo: string }>>({});
+  const [drafts, setDrafts] = useState<Record<string, { precio: string; tipo: string; sesiones: string }>>({});
   const [adding, setAdding] = useState(false);
   const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; sesiones_incluidas: string; precio: string }>({
     nombre: "", tipo: "individual", sesiones_incluidas: "1", precio: "0",
   });
 
-  function getVal(c: BonoCatalogo, field: "precio" | "tipo") {
+  function getVal(c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") {
     const d = drafts[c.id];
     if (d) return d[field];
-    return field === "precio" ? String(c.precio) : c.tipo;
+    if (field === "precio") return String(c.precio);
+    if (field === "sesiones") return String(c.sesiones_incluidas);
+    return c.tipo;
   }
-  function setVal(c: BonoCatalogo, field: "precio" | "tipo", v: string) {
+  function setVal(c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) {
     setDrafts((prev) => ({
       ...prev,
       [c.id]: {
         precio: field === "precio" ? v : prev[c.id]?.precio ?? String(c.precio),
         tipo: field === "tipo" ? v : prev[c.id]?.tipo ?? c.tipo,
+        sesiones: field === "sesiones" ? v : prev[c.id]?.sesiones ?? String(c.sesiones_incluidas),
       },
     }));
   }
@@ -226,8 +229,13 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
     const d = drafts[c.id];
     if (!d) return;
     const precio = Number(d.precio);
-    if (Number.isNaN(precio)) { toast.error("Precio inválido"); return; }
-    const { error } = await supabase.from("bonos_catalogo").update({ precio, tipo: d.tipo as BonoCatalogo["tipo"] }).eq("id", c.id);
+    const sesiones = Number(d.sesiones);
+    if (Number.isNaN(precio) || Number.isNaN(sesiones)) { toast.error("Valores numéricos inválidos"); return; }
+    const { error } = await supabase.from("bonos_catalogo").update({
+      precio,
+      tipo: d.tipo as BonoCatalogo["tipo"],
+      sesiones_incluidas: sesiones,
+    }).eq("id", c.id);
     if (error) { toast.error(error.message); return; }
     setDrafts((prev) => { const { [c.id]: _, ...rest } = prev; return rest; });
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
@@ -273,8 +281,8 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Bono</TableHead>
                 <TableHead className="w-40">Tipo</TableHead>
+                <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
                 <TableHead className="w-28">Precio (€)</TableHead>
                 <TableHead className="w-32"></TableHead>
@@ -285,7 +293,6 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
                 const dirty = !!drafts[c.id];
                 return (
                   <TableRow key={c.id}>
-                    <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
                     <TableCell>
                       <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
                         <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
@@ -294,11 +301,19 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
                         </SelectContent>
                       </Select>
                     </TableCell>
-                    <TableCell>{c.sesiones_incluidas}</TableCell>
+                    <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
                     <TableCell>
                       <Input
                         type="number"
-                        step="0.01"
+                        className="h-8"
+                        value={getVal(c, "sesiones")}
+                        onChange={(e) => setVal(c, "sesiones", e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="5"
                         className="h-8"
                         value={getVal(c, "precio")}
                         onChange={(e) => setVal(c, "precio", e.target.value)}
@@ -314,9 +329,6 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
               {adding && (
                 <TableRow>
                   <TableCell>
-                    <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
-                  </TableCell>
-                  <TableCell>
                     <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -325,10 +337,13 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
                     </Select>
                   </TableCell>
                   <TableCell>
+                    <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
+                  </TableCell>
+                  <TableCell>
                     <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value })} />
                   </TableCell>
                   <TableCell>
-                    <Input className="h-8" type="number" step="0.01" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value })} />
+                    <Input className="h-8" type="number" step="5" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value })} />
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button size="sm" onClick={addRow}>Añadir</Button>
