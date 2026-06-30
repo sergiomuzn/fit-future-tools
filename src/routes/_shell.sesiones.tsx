@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import type { SesionEstado } from "@/lib/db";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Search, X } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { ESTADO_BG } from "@/lib/db";
 
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
@@ -17,6 +18,7 @@ function SesionesPage() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-past"],
@@ -52,28 +54,41 @@ function SesionesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
-        <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
+        <div className="flex items-center gap-2">
+          {searchOpen ? (
+            <div className="flex items-center gap-1">
+              <Input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nombre o fecha (YYYY-MM-DD)…"
+                className="h-9 w-64"
+              />
+              <Button variant="ghost" size="icon" onClick={() => { setSearch(""); setSearchOpen(false); }}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button variant="outline" size="icon" onClick={() => setSearchOpen(true)} aria-label="Buscar">
+              <Search className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
           Fecha: s.fecha,
-          "Hora inicio": s.hora_inicio.slice(0, 5),
-          "Hora fin": s.hora_fin.slice(0, 5),
+          Hora: s.hora_inicio.slice(0, 5),
           Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : "",
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
-          Estado: ESTADO_LABEL[s.estado],
+          Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada (no cuenta)" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
           Incidencia: s.incidencia ?? "",
-        })), "Sesiones")}>
-          <Download className="h-4 w-4 mr-1" /> Excel
-        </Button>
+          })), "Sesiones")}>
+            <Download className="h-4 w-4 mr-1" /> Excel
+          </Button>
+        </div>
       </div>
       <p className="text-sm text-muted-foreground">Histórico de sesiones pasadas. Edita la incidencia o el estado en línea.</p>
-      <Input
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Buscar por nombre o fecha (YYYY-MM-DD)…"
-        className="max-w-sm"
-      />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -90,12 +105,20 @@ function SesionesPage() {
             {filtered.map((s) => (
               <TableRow key={s.id}>
                 <TableCell>{s.fecha}</TableCell>
-                <TableCell>{s.hora_inicio.slice(0,5)}–{s.hora_fin.slice(0,5)}</TableCell>
+                <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : "—"}</TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.iniciales : "—"}</TableCell>
                 <TableCell>
                   <Select value={s.estado} onValueChange={(v) => updateEstado(s.id, v as SesionEstado)}>
-                    <SelectTrigger className="h-8 w-32"><SelectValue /></SelectTrigger>
+                    <SelectTrigger
+                      className={`h-8 w-40 ${ESTADO_BG[s.estado]} ${s.estado === "cancelada" && s.no_contabilizar ? "opacity-60 line-through" : ""}`}
+                    >
+                      <SelectValue>
+                        {s.estado === "cancelada" && s.no_contabilizar
+                          ? "Cancelada (no cuenta)"
+                          : ESTADO_LABEL[s.estado]}
+                      </SelectValue>
+                    </SelectTrigger>
                     <SelectContent>
                       {Object.entries(ESTADO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                     </SelectContent>
