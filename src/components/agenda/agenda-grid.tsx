@@ -368,13 +368,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 session.client_id != null &&
                 (!bono || bono.sesiones_disponibles <= 1);
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
+              const isGroup = session.ocupacion === 2;
               return (
                 <div
                   key={session.id}
                   data-session
                   className={cn(
                     "absolute rounded-md px-2 py-1 text-xs shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
-                    ESTADO_BG[estadoForColor],
+                    isGroup
+                      ? "bg-purple-500/30 text-purple-950 dark:text-purple-100 border-purple-500/40"
+                      : ESTADO_BG[estadoForColor],
                   )}
                   style={{
                     top,
