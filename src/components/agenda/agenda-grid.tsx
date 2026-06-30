@@ -471,6 +471,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   {isGroup && session.titulo && (
                     <div className="truncate text-[10px] opacity-90">{displayName}</div>
                   )}
+                  {!isGroup && session.client_id && height > 36 && (
+                    <div className="text-[10px] opacity-90 truncate">
+                      Restantes: {bono ? bono.sesiones_disponibles - bono.sesiones_realizadas : "—"}
+                    </div>
+                  )}
                 </div>
               );
             })}
