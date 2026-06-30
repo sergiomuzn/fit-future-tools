@@ -416,7 +416,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   className={cn(
                     "absolute rounded-md px-2 py-1 text-xs shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isGroup
-                      ? "bg-purple-500/30 text-purple-950 dark:text-purple-100 border-purple-500/40"
+                      ? "bg-purple-700 text-white border-purple-800"
                       : ESTADO_BG[estadoForColor],
                   )}
                   style={{
