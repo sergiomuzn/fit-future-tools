@@ -481,8 +481,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
                       : (isCanceladaNC ? `Cancelada NC · ${displayName}` : displayName)}
                   </div>
-                  {isGroup && session.titulo && (
-                    <div className="truncate text-[10px] opacity-90">{displayName}</div>
+                  {isGroup && groupMemberCount > 0 && (
+                    <div className="truncate text-[10px] opacity-90">{groupNames}</div>
                   )}
                 </div>
               );
