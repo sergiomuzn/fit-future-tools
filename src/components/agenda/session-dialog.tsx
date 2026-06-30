@@ -43,7 +43,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const activeBono = clientId
     ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
     : null;
-  const restantes = activeBono ? activeBono.sesiones_disponibles - activeBono.sesiones_realizadas : null;
+  // Coincide con la columna "Restantes" del apartado Bonos.
+  const restantes = activeBono ? activeBono.sesiones_disponibles : null;
 
   useEffect(() => {
     if (!open) return;
