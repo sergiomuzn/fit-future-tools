@@ -191,3 +191,96 @@ function BonosPage() {
     </div>
   );
 }
+
+function CatalogoSection({ open, onToggle, catalogo }: { open: boolean; onToggle: () => void; catalogo: BonoCatalogo[] }) {
+  const qc = useQueryClient();
+  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const [drafts, setDrafts] = useState<Record<string, { precio: string; tipo: string }>>({});
+
+  function getVal(c: BonoCatalogo, field: "precio" | "tipo") {
+    const d = drafts[c.id];
+    if (d) return d[field];
+    return field === "precio" ? String(c.precio) : c.tipo;
+  }
+  function setVal(c: BonoCatalogo, field: "precio" | "tipo", v: string) {
+    setDrafts((prev) => ({
+      ...prev,
+      [c.id]: {
+        precio: field === "precio" ? v : prev[c.id]?.precio ?? String(c.precio),
+        tipo: field === "tipo" ? v : prev[c.id]?.tipo ?? c.tipo,
+      },
+    }));
+  }
+  async function saveRow(c: BonoCatalogo) {
+    const d = drafts[c.id];
+    if (!d) return;
+    const precio = Number(d.precio);
+    if (Number.isNaN(precio)) { toast.error("Precio inválido"); return; }
+    const { error } = await supabase.from("bonos_catalogo").update({ precio, tipo: d.tipo as BonoCatalogo["tipo"] }).eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    setDrafts((prev) => { const { [c.id]: _, ...rest } = prev; return rest; });
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+    toast.success("Bono actualizado");
+  }
+
+  const sorted = sortCatalogo(catalogo);
+
+  return (
+    <div className="rounded-lg border bg-card">
+      <button
+        className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium hover:bg-accent/40"
+        onClick={onToggle}
+      >
+        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        Tipos de bono y precios
+        <span className="text-xs text-muted-foreground ml-auto">Modifica precio y tipo · afecta a Facturación y Bonos</span>
+      </button>
+      {open && (
+        <div className="border-t p-3">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Bono</TableHead>
+                <TableHead className="w-40">Tipo</TableHead>
+                <TableHead className="w-32">Sesiones</TableHead>
+                <TableHead className="w-32">Precio (€)</TableHead>
+                <TableHead className="w-24"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((c) => {
+                const dirty = !!drafts[c.id];
+                return (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
+                    <TableCell>
+                      <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
+                        <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>{c.sesiones_incluidas}</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        className="h-8"
+                        value={getVal(c, "precio")}
+                        onChange={(e) => setVal(c, "precio", e.target.value)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
+      )}
+    </div>
+  );
+}
