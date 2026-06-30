@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, ChevronDown, ChevronRight } from "lucide-react";
+import { Pencil, Plus, Trash2, Settings2 } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +93,6 @@ function BonosPage() {
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-display font-semibold">Bonos</h1>
-      <CatalogoSection open={showCatalog} onToggle={() => setShowCatalog((v) => !v)} catalogo={catalogo} />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -188,14 +187,26 @@ function BonosPage() {
       </Dialog>
 
       <ClientDetailsDialog client={historyClient} defaultTab="historial" onOpenChange={(o) => !o && setHistoryClient(null)} />
+
+      <div className="pt-2">
+        <Button variant="outline" onClick={() => setShowCatalog(true)}>
+          <Settings2 className="h-4 w-4 mr-1" /> Tipos de bono y precios
+        </Button>
+      </div>
+
+      <CatalogoDialog open={showCatalog} onOpenChange={setShowCatalog} catalogo={catalogo} />
     </div>
   );
 }
 
-function CatalogoSection({ open, onToggle, catalogo }: { open: boolean; onToggle: () => void; catalogo: BonoCatalogo[] }) {
+function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpenChange: (v: boolean) => void; catalogo: BonoCatalogo[] }) {
   const qc = useQueryClient();
   const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
   const [drafts, setDrafts] = useState<Record<string, { precio: string; tipo: string }>>({});
+  const [adding, setAdding] = useState(false);
+  const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; sesiones_incluidas: string; precio: string }>({
+    nombre: "", tipo: "individual", sesiones_incluidas: "1", precio: "0",
+  });
 
   function getVal(c: BonoCatalogo, field: "precio" | "tipo") {
     const d = drafts[c.id];
@@ -222,29 +233,51 @@ function CatalogoSection({ open, onToggle, catalogo }: { open: boolean; onToggle
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
     toast.success("Bono actualizado");
   }
+  async function removeRow(c: BonoCatalogo) {
+    if (!confirm(`¿Eliminar "${prettyBonoNombre(c.nombre)}"?`)) return;
+    const { error } = await supabase.from("bonos_catalogo").delete().eq("id", c.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+    toast.success("Bono eliminado");
+  }
+  async function addRow() {
+    if (!nuevo.nombre.trim()) { toast.error("Nombre requerido"); return; }
+    const sesiones = Number(nuevo.sesiones_incluidas);
+    const precio = Number(nuevo.precio);
+    if (Number.isNaN(sesiones) || Number.isNaN(precio)) { toast.error("Valores numéricos inválidos"); return; }
+    const maxOrden = catalogo.reduce((m, c) => Math.max(m, c.orden), 0);
+    const { error } = await supabase.from("bonos_catalogo").insert({
+      nombre: nuevo.nombre.trim(),
+      tipo: nuevo.tipo as BonoCatalogo["tipo"],
+      sesiones_incluidas: sesiones,
+      precio,
+      orden: maxOrden + 1,
+    });
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+    toast.success("Bono añadido");
+    setNuevo({ nombre: "", tipo: "individual", sesiones_incluidas: "1", precio: "0" });
+    setAdding(false);
+  }
 
   const sorted = sortCatalogo(catalogo);
 
   return (
-    <div className="rounded-lg border bg-card">
-      <button
-        className="w-full flex items-center gap-2 px-4 py-3 text-sm font-medium hover:bg-accent/40"
-        onClick={onToggle}
-      >
-        {open ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
-        Tipos de bono y precios
-        <span className="text-xs text-muted-foreground ml-auto">Modifica precio y tipo · afecta a Facturación y Bonos</span>
-      </button>
-      {open && (
-        <div className="border-t p-3">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Tipos de bono y precios</DialogTitle>
+          <p className="text-xs text-muted-foreground">Los cambios afectan a Facturación y Bonos.</p>
+        </DialogHeader>
+        <div>
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-40">Tipo</TableHead>
-                <TableHead className="w-32">Sesiones</TableHead>
-                <TableHead className="w-32">Precio (€)</TableHead>
-                <TableHead className="w-24"></TableHead>
+                <TableHead className="w-24">Sesiones</TableHead>
+                <TableHead className="w-28">Precio (€)</TableHead>
+                <TableHead className="w-32"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -271,16 +304,50 @@ function CatalogoSection({ open, onToggle, catalogo }: { open: boolean; onToggle
                         onChange={(e) => setVal(c, "precio", e.target.value)}
                       />
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right space-x-1">
                       <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
+                      <Button size="icon" variant="ghost" onClick={() => removeRow(c)}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 );
               })}
+              {adding && (
+                <TableRow>
+                  <TableCell>
+                    <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
+                  </TableCell>
+                  <TableCell>
+                    <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
+                      <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                  <TableCell>
+                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value })} />
+                  </TableCell>
+                  <TableCell>
+                    <Input className="h-8" type="number" step="0.01" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value })} />
+                  </TableCell>
+                  <TableCell className="text-right space-x-1">
+                    <Button size="sm" onClick={addRow}>Añadir</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancelar</Button>
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </div>
-      )}
-    </div>
+        <DialogFooter>
+          {!adding && (
+            <Button variant="outline" onClick={() => setAdding(true)}>
+              <Plus className="h-4 w-4 mr-1" /> Nuevo tipo de bono
+            </Button>
+          )}
+          <Button onClick={() => onOpenChange(false)}>Cerrar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
