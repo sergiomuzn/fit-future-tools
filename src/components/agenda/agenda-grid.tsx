@@ -185,6 +185,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Drag-to-move existing
   const [moving, setMoving] = useState<{ id: string; offset: number; dur: number } | null>(null);
   const [movePreview, setMovePreview] = useState<number | null>(null);
+  const movedRef = useRef(false);
+  const suppressClickRef = useRef(false);
 
   // Resize existing
   const [resizing, setResizing] = useState<{ id: string; edge: "top" | "bottom"; startMin: number; endMin: number } | null>(null);
@@ -193,6 +195,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   useEffect(() => {
     function up() {
       if (moving && movePreview !== null) {
+        if (movedRef.current) suppressClickRef.current = true;
         const snapped = snapMin(movePreview);
         const newStart = minToTime(snapped);
         const newEnd = minToTime(snapped + moving.dur);
@@ -207,7 +210,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
       setMoving(null);
       setMovePreview(null);
+      movedRef.current = false;
       if (resizing && resizePreview) {
+        suppressClickRef.current = true;
         const newStart = minToTime(snapMin(resizePreview.startMin));
         const newEnd = minToTime(snapMin(resizePreview.endMin));
         const resizingId = resizing.id;
@@ -227,7 +232,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       const rect = gridRef.current.getBoundingClientRect();
       if (moving) {
         const y = e.clientY - rect.top - moving.offset;
-        setMovePreview(Math.max(0, snapMin(pxToMinRaw(y))));
+        const next = Math.max(0, snapMin(pxToMinRaw(y)));
+        setMovePreview((prev) => {
+          if (prev !== null && prev !== next) movedRef.current = true;
+          return next;
+        });
       } else if (resizing) {
         const m = Math.max(0, snapMin(pxToMinRaw(e.clientY - rect.top)));
         if (resizing.edge === "top") {
@@ -253,6 +262,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // Click on a session — if paintMode, just assign trainer
   async function handleSessionClick(s: Session, e: React.MouseEvent) {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      e.stopPropagation();
+      return;
+    }
     if (paintTrainerId) {
       e.stopPropagation();
       await supabase.from("sessions").update({ trainer_id: paintTrainerId }).eq("id", s.id);
@@ -456,6 +470,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   </div>
                   {isGroup && session.titulo && (
                     <div className="truncate text-[10px] opacity-90">{displayName}</div>
+                  )}
+                  {!isGroup && session.client_id && height > 36 && (
+                    <div className="text-[10px] opacity-90 truncate">
+                      Restantes: {bono ? bono.sesiones_disponibles - bono.sesiones_realizadas : "—"}
+                    </div>
                   )}
                 </div>
               );
