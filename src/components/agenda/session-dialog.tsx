@@ -31,6 +31,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
+  const [titulo, setTitulo] = useState("");
+  const [noContabilizar, setNoContabilizar] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +45,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
+    setTitulo((session as any)?.titulo ?? "");
+    setNoContabilizar(!!(session as any)?.no_contabilizar);
   }, [open, session]);
 
   async function save() {
@@ -61,6 +65,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       estado,
       ocupacion,
       incidencia: incidencia || null,
+      titulo: grupo ? (titulo.trim() || null) : null,
+      no_contabilizar: estado === "cancelada" ? noContabilizar : false,
     };
     // Auto-realizada si la sesión es pasada
     const now = new Date();
@@ -93,6 +99,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
     } else {
       const { error } = await supabase.from("sessions").update({ ...base, client_id: clientId }).eq("id", session.id!);
+      // Si es grupo en edición, también actualizar todos los miembros del recurrencia_id
+      if (grupo && (session as any).recurrencia_id) {
+        await supabase.from("sessions").update({
+          trainer_id: base.trainer_id,
+          hora_inicio: base.hora_inicio,
+          hora_fin: base.hora_fin,
+          estado: base.estado,
+          titulo: base.titulo,
+          no_contabilizar: base.no_contabilizar,
+        }).eq("recurrencia_id", (session as any).recurrencia_id).eq("fecha", session.fecha!);
+      }
       if (error) toast.error(error.message); else toast.success("Sesión actualizada");
     }
     qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -137,6 +154,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           {grupo && isNew ? (
             <div className="space-y-1.5">
+              <Label>Título del grupo</Label>
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional avanzado" />
               {groupClientIds.map((cid, i) => (
                 <ClientPicker
                   key={i}
@@ -144,6 +163,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
                 />
               ))}
+            </div>
+          ) : grupo ? (
+            <div className="space-y-1.5">
+              <Label>Título del grupo</Label>
+              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional avanzado" />
+              <Label>Cliente</Label>
+              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
             </div>
           ) : (
             <div className="space-y-1.5">
@@ -174,6 +200,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               </Select>
             </div>
           </div>
+
+          {estado === "cancelada" && (
+            <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
+              <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
+              <div className="space-y-0.5">
+                <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
+                <p className="text-[11px] text-muted-foreground leading-tight">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
+              </div>
+            </div>
+          )}
 
           {isNew && (
             <div className="space-y-1.5">
