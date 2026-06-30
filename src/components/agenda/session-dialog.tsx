@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL } from "@/lib/db";
+import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { formatDateISO } from "./types";
@@ -33,6 +34,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [horaFin, setHoraFin] = useState("");
   const [titulo, setTitulo] = useState("");
   const [noContabilizar, setNoContabilizar] = useState(false);
+
+  const { data: bonos = [] } = useQuery({
+    queryKey: ["client_bonos"],
+    queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
+    enabled: open,
+  });
+  const activeBono = clientId
+    ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
+    : null;
+  const restantes = activeBono ? activeBono.sesiones_disponibles - activeBono.sesiones_realizadas : null;
 
   useEffect(() => {
     if (!open) return;
@@ -175,6 +186,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <div className="space-y-1.5">
               <Label>Cliente</Label>
               <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
+              {!grupo && clientId && (
+                <div className="text-[11px] text-muted-foreground">
+                  Sesiones restantes:{" "}
+                  <span className={`font-semibold ${restantes !== null && restantes <= 1 ? "text-state-renovacion-fg" : "text-foreground"}`}>
+                    {restantes ?? "Sin bono"}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

@@ -442,8 +442,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     onClick={(e) => e.stopPropagation()}
                   />
                   <div className="flex items-center justify-between gap-1">
-                    <div className="font-medium truncate">
-                      {isGroup && session.titulo ? session.titulo : displayName}
+                    <div className="font-semibold text-xs leading-tight">
+                      {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
                     </div>
                     {trainer && (
                       <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold">
@@ -451,12 +451,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                     )}
                   </div>
+                  <div className="font-medium text-xs truncate leading-tight">
+                    {isGroup && session.titulo ? session.titulo : displayName}
+                  </div>
                   {isGroup && session.titulo && (
                     <div className="truncate text-[10px] opacity-90">{displayName}</div>
                   )}
-                  <div className="opacity-80 text-[10px]">
-                    {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
-                  </div>
                 </div>
               );
             })}
