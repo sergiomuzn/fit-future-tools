@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Download } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -92,9 +93,22 @@ function ClientesPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Clientes</h1>
-        <Button onClick={() => { setEditing({}); setOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
+            Nombre: c.nombre,
+            "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
+            Estado: c.activo ? "Activo" : "Inactivo",
+            Teléfono: c.telefono ?? "",
+            "Fecha inicio": c.fecha_inicio ?? "",
+            Cumpleaños: c.cumpleanos ?? "",
+            Notas: c.notas ?? "",
+          })), "Clientes")}>
+            <Download className="h-4 w-4 mr-1" /> Excel
+          </Button>
+          <Button onClick={() => { setEditing({}); setOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
+          </Button>
+        </div>
       </div>
       <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="rounded-lg border bg-card">

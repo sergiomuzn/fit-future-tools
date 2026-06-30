@@ -7,6 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { SesionEstado } from "@/lib/db";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
+import { exportToXlsx } from "@/lib/export-xlsx";
 
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
@@ -40,7 +43,21 @@ function SesionesPage() {
 
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
+        <Button variant="outline" onClick={() => exportToXlsx("sesiones", sessions.map((s) => ({
+          Fecha: s.fecha,
+          "Hora inicio": s.hora_inicio.slice(0, 5),
+          "Hora fin": s.hora_fin.slice(0, 5),
+          Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : "",
+          Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
+          Estado: ESTADO_LABEL[s.estado],
+          Ocupación: s.ocupacion,
+          Incidencia: s.incidencia ?? "",
+        })), "Sesiones")}>
+          <Download className="h-4 w-4 mr-1" /> Excel
+        </Button>
+      </div>
       <p className="text-sm text-muted-foreground">Histórico de sesiones pasadas. Edita la incidencia o el estado en línea.</p>
       <div className="rounded-lg border bg-card">
         <Table>

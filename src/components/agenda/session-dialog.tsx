@@ -109,7 +109,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
@@ -128,20 +128,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           <div className="flex items-center gap-2">
             <Checkbox id="grupo" checked={grupo} onCheckedChange={(v) => setGrupo(!!v)} />
-            <Label htmlFor="grupo" className="cursor-pointer">Grupo (hasta 6 integrantes, ocupación 2)</Label>
+            <Label htmlFor="grupo" className="cursor-pointer">Grupo</Label>
           </div>
 
           {grupo && isNew ? (
-            <div className="space-y-2">
-              <Label>Integrantes</Label>
+            <div className="space-y-1.5">
               {groupClientIds.map((cid, i) => (
-                <div key={i}>
-                  <div className="text-[11px] text-muted-foreground mb-0.5">Hueco {i + 1}</div>
-                  <ClientPicker
-                    value={cid}
-                    onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
-                  />
-                </div>
+                <ClientPicker
+                  key={i}
+                  value={cid}
+                  onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
+                />
               ))}
             </div>
           ) : (
