@@ -57,6 +57,8 @@
   --color-state-prueba-fg: var(--state-prueba-fg);
   --color-state-renovacion: var(--state-renovacion);
   --color-state-renovacion-fg: var(--state-renovacion-fg);
+  --color-state-grupo: var(--state-grupo);
+  --color-state-grupo-fg: var(--state-grupo-fg);
 }
 
 :root {
@@ -104,6 +106,8 @@
   --state-prueba-fg: oklch(1 0 0);
   --state-renovacion: oklch(0.78 0.16 70);
   --state-renovacion-fg: oklch(1 0 0);
+  --state-grupo: oklch(0.58 0.18 305);
+  --state-grupo-fg: oklch(1 0 0);
 }
 
 .dark {
@@ -149,6 +153,8 @@
   --state-prueba-fg: oklch(1 0 0);
   --state-renovacion: oklch(0.7 0.16 70);
   --state-renovacion-fg: oklch(1 0 0);
+  --state-grupo: oklch(0.64 0.17 305);
+  --state-grupo-fg: oklch(1 0 0);
 }
 
 @layer base {

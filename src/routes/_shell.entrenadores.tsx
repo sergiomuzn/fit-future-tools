@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
@@ -92,7 +92,7 @@ function EntrenadoresPage() {
               <TableHead>Iniciales</TableHead>
               <TableHead>Nombre</TableHead>
               <TableHead>Entrenamientos {MONTHS[month]} {year}</TableHead>
-              <TableHead>Activo</TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -102,7 +102,11 @@ function EntrenadoresPage() {
                 <TableCell><span className="rounded bg-muted px-2 py-0.5 font-semibold text-xs">{t.iniciales}</span></TableCell>
                 <TableCell className="font-medium">{t.nombre}</TableCell>
                 <TableCell>{countByTrainer[t.id] ?? 0}</TableCell>
-                <TableCell>{t.activo ? "Sí" : "No"}</TableCell>
+                <TableCell>
+                  <Badge className={t.activo ? "bg-state-prueba/30 text-foreground border-state-prueba/30" : "bg-destructive/15 text-destructive border-destructive/20"}>
+                    {t.activo ? "Activo" : "Inactivo"}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(t.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -123,7 +127,16 @@ function EntrenadoresPage() {
               setEditing({ ...editing, nombre, iniciales: iniciales || editing?.iniciales || "" });
             }} /></div>
             <div className="space-y-1.5"><Label>Iniciales</Label><Input maxLength={3} value={editing?.iniciales ?? ""} onChange={(e) => setEditing({ ...editing, iniciales: e.target.value.toUpperCase() })} /></div>
-            <div className="flex items-center gap-2"><Switch checked={editing?.activo ?? true} onCheckedChange={(c) => setEditing({ ...editing, activo: c })} /><Label>Activo</Label></div>
+            <div className="space-y-1.5">
+              <Label>Estado</Label>
+              <Select value={(editing?.activo ?? true) ? "activo" : "inactivo"} onValueChange={(v) => setEditing({ ...editing, activo: v === "activo" })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="activo">Activo</SelectItem>
+                  <SelectItem value="inactivo">Inactivo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
