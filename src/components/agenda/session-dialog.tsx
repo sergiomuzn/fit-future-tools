@@ -100,14 +100,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         d.setDate(d.getDate() + 7 * w);
         dates.push(formatDateISO(d));
       }
-      // Para grupos: un recurrencia_id compartido. Si no hay miembros, se crea
-      // una sola fila con client_id null para reservar el hueco del grupo.
+      // Recurrencia: compartida entre todas las fechas de la serie (para poder
+      // cancelar la serie futura más adelante). Para grupos también agrupa a
+      // los miembros del mismo día.
+      const seriesId = (repeatWeeks > 0 || grupo)
+        ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
+        : null;
       const inserts = dates.flatMap((fecha) => {
-        const groupId = grupo
-          ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
-          : null;
         const ids = grupo && memberIds.length === 0 ? [null] : memberIds;
-        return ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: groupId }));
+        return ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: seriesId }));
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
@@ -124,7 +125,37 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           no_contabilizar: base.no_contabilizar,
         }).eq("recurrencia_id", (session as any).recurrencia_id).eq("fecha", session.fecha!);
       }
-      if (error) toast.error(error.message); else toast.success("Sesión actualizada");
+      if (error) { toast.error(error.message); }
+      else {
+        // Repetir en serie también al editar: crea N copias semanales tras la fecha actual.
+        if (repeatWeeks > 0) {
+          let seriesId: string | null = (session as any).recurrencia_id ?? null;
+          if (!seriesId) {
+            seriesId = crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+            await supabase.from("sessions").update({ recurrencia_id: seriesId }).eq("id", session.id!);
+          }
+          const memberIds = grupo
+            ? groupClientIds.filter((id): id is string => !!id)
+            : [clientId];
+          const ids = grupo && memberIds.length === 0 ? [null] : memberIds;
+          const extraDates: string[] = [];
+          for (let w = 1; w <= repeatWeeks; w++) {
+            const d = new Date(session.fecha!);
+            d.setDate(d.getDate() + 7 * w);
+            extraDates.push(formatDateISO(d));
+          }
+          const inserts = extraDates.flatMap((fecha) =>
+            ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: seriesId }))
+          );
+          if (inserts.length) {
+            const { error: e2 } = await supabase.from("sessions").insert(inserts);
+            if (e2) toast.error(e2.message);
+          }
+          toast.success(`Sesión actualizada (+${repeatWeeks} repeticiones)`);
+        } else {
+          toast.success("Sesión actualizada");
+        }
+      }
     }
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -135,6 +166,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!session?.id) return;
     const { error } = await supabase.from("sessions").delete().eq("id", session.id);
     if (error) toast.error(error.message); else toast.success("Sesión eliminada");
+    qc.invalidateQueries({ queryKey: ["sessions"] });
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    onClose();
+  }
+
+  async function cancelFutureSeries() {
+    if (!session?.id) return;
+    const recId = (session as any).recurrencia_id as string | null | undefined;
+    if (!recId) { toast.error("Esta sesión no pertenece a una serie"); return; }
+    if (!confirm("¿Eliminar todas las sesiones futuras de esta serie?")) return;
+    const today = formatDateISO(new Date());
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("recurrencia_id", recId)
+      .gt("fecha", today);
+    if (error) toast.error(error.message);
+    else toast.success("Serie futura cancelada");
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     onClose();
@@ -233,12 +282,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           )}
 
-          {isNew && (
-            <div className="space-y-1.5">
-              <Label>Repetir semanas</Label>
-              <Input type="number" min={0} max={52} value={repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value))} />
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label>Repetir semanas</Label>
+            <Input type="number" min={0} max={52} value={repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value))} />
+            <p className="text-[11px] text-muted-foreground leading-tight">
+              {isNew
+                ? "Crea copias semanales tras esta fecha (también funciona para fechas pasadas ya realizadas)."
+                : "Añade N copias semanales tras esta sesión. Útil para series pasadas o planificar las siguientes."}
+            </p>
+          </div>
 
           <div className="space-y-1.5">
             <Label>Incidencia / nota</Label>
@@ -246,6 +298,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
         </div>
         <DialogFooter className="gap-2">
+          {!isNew && (session as any).recurrencia_id && (
+            <Button variant="outline" onClick={cancelFutureSeries}>Cancelar serie futura</Button>
+          )}
           {!isNew && <Button variant="destructive" onClick={remove}>Eliminar</Button>}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={save}>{isNew ? "Crear" : "Guardar"}</Button>
