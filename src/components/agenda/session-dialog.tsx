@@ -90,8 +90,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const memberIds = grupo
         ? groupClientIds.filter((id): id is string => !!id)
         : [clientId];
-      if (memberIds.length === 0) {
-        toast.error(grupo ? "Selecciona al menos un cliente en el grupo" : "Selecciona un cliente");
+      if (!grupo && memberIds.length === 0) {
+        toast.error("Selecciona un cliente");
         return;
       }
       const dates = [session.fecha!];
@@ -100,12 +100,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         d.setDate(d.getDate() + 7 * w);
         dates.push(formatDateISO(d));
       }
-      // Para grupos: un recurrencia_id compartido para que se rendericen como un solo bloque.
+      // Para grupos: un recurrencia_id compartido. Si no hay miembros, se crea
+      // una sola fila con client_id null para reservar el hueco del grupo.
       const inserts = dates.flatMap((fecha) => {
-        const groupId = grupo && memberIds.length > 1
+        const groupId = grupo
           ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
           : null;
-        return memberIds.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: groupId }));
+        const ids = grupo && memberIds.length === 0 ? [null] : memberIds;
+        return ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: groupId }));
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
