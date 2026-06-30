@@ -168,7 +168,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label>Título del grupo</Label>
               <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional avanzado" />
               {groupClientIds.map((cid, i) => (
-                <ClientPicker
+              <ClientPicker
                   key={i}
                   value={cid}
                   onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}

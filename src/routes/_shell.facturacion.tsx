@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ function FacturacionPage() {
   const [year, setYear] = useState(now.getFullYear());
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Invoice>>({});
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -92,24 +93,49 @@ function FacturacionPage() {
 
   function openNew() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
+    setEditingId(null);
     setOpen(true);
+  }
+
+  function openEdit(inv: Invoice) {
+    setForm(inv);
+    setEditingId(inv.id);
+    setOpen(true);
+  }
+
+  async function removeInvoice(inv: Invoice) {
+    if (!confirm("¿Eliminar esta factura? Se revertirá el bono creado.")) return;
+    const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Factura eliminada");
+    qc.invalidateQueries({ queryKey: ["invoices"] });
+    qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
   }
 
   async function save() {
     const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
     if (!form.bono_catalogo_id) { toast.error("Selecciona un bono"); return; }
-    const { error } = await supabase.from("invoices").insert({
+    const payload = {
       fecha: form.fecha!,
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
       client_id: clientId,
       bono_catalogo_id: form.bono_catalogo_id,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
-    });
-    if (error) { toast.error(error.message); return; }
-    toast.success("Factura registrada · bono actualizado");
+    };
+    if (editingId) {
+      const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Factura actualizada");
+    } else {
+      const { error } = await supabase.from("invoices").insert(payload);
+      if (error) { toast.error(error.message); return; }
+      toast.success("Factura registrada · bono actualizado");
+    }
     qc.invalidateQueries({ queryKey: ["invoices"] });
+    qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     setOpen(false);
   }
@@ -148,6 +174,7 @@ function FacturacionPage() {
               <TableHead>Bono</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Nota</TableHead>
+              <TableHead className="w-20"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -169,11 +196,17 @@ function FacturacionPage() {
                 <TableCell>{prettyBonoNombre(cat?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{i.nota ?? "—"}</TableCell>
+                <TableCell>
+                  <div className="flex justify-end gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => openEdit(i)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => removeInvoice(i)}><Trash2 className="h-3.5 w-3.5" /></Button>
+                  </div>
+                </TableCell>
               </TableRow>
               );
             })}
             {invoices.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -181,7 +214,7 @@ function FacturacionPage() {
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-lg">
-          <DialogHeader><DialogTitle>Nueva factura</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editingId ? "Editar factura" : "Nueva factura"}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Fecha</Label><Input type="date" value={form.fecha ?? ""} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></div>
@@ -195,7 +228,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Cliente</Label>
-              <ClientPicker value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id })} />
+            <ClientPicker value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} />
             </div>
             <div className="space-y-1.5">
               <Label>Bono</Label>
@@ -225,7 +258,7 @@ function FacturacionPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>Registrar</Button>
+            <Button onClick={save}>{editingId ? "Guardar" : "Registrar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
