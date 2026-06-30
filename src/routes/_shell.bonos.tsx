@@ -20,6 +20,7 @@ function BonosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
+  const [historyClient, setHistoryClient] = useState<Client | null>(null);
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
@@ -54,8 +55,11 @@ function BonosPage() {
   };
   const tipoRank: Record<string, number> = { individual: 0, pareja: 1, grupal: 2 };
 
-  // Inactivos siempre al final, dentro orden seleccionado
-  const sorted = [...bonos].sort((a, b) => {
+  // Solo el bono activo de cada cliente (los inactivos van al historial)
+  const activeBonos = bonos.filter((b) => b.activo);
+  const historyBonos = bonos.filter((b) => !b.activo);
+
+  const sorted = [...activeBonos].sort((a, b) => {
     if (a.activo !== b.activo) return a.activo ? -1 : 1;
     if (sortBy === "nombre") {
       const na = clientMap.get(a.client_id)?.nombre ?? "";
@@ -103,6 +107,7 @@ function BonosPage() {
                   Tipo de bono <ArrowUpDown className={`h-3 w-3 ${sortBy === "tipo" ? "text-foreground" : "opacity-40"}`} />
                 </button>
               </TableHead>
+              <TableHead>Estado</TableHead>
               <TableHead>Disponibles</TableHead>
               <TableHead>Realizadas</TableHead>
               <TableHead>Restantes</TableHead>
@@ -114,12 +119,26 @@ function BonosPage() {
           <TableBody>
             {sorted.map((b) => (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
-                <TableCell className="font-medium">{clientMap.get(b.client_id)?.nombre ?? "?"}</TableCell>
+                <TableCell className="font-medium">
+                  <button
+                    className="hover:underline text-left"
+                    onClick={() => setHistoryClient(clientMap.get(b.client_id) ?? null)}
+                  >
+                    {clientMap.get(b.client_id)?.nombre ?? "?"}
+                  </button>
+                </TableCell>
                 <TableCell>
                   {(() => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
                     return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
                   })()}
+                </TableCell>
+                <TableCell>
+                  {b.sesiones_disponibles > 0 ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
+                  ) : (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
+                  )}
                 </TableCell>
                 <TableCell>{b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
                 <TableCell>{b.sesiones_realizadas}</TableCell>
@@ -132,7 +151,7 @@ function BonosPage() {
               </TableRow>
             ))}
             {sorted.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
@@ -164,6 +183,45 @@ function BonosPage() {
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save}>Guardar</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!historyClient} onOpenChange={(o) => !o && setHistoryClient(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader><DialogTitle>Historial de bonos · {historyClient?.nombre}</DialogTitle></DialogHeader>
+          {historyClient && (() => {
+            const items = historyBonos
+              .filter((b) => b.client_id === historyClient.id)
+              .sort((a, b) => (b.ultimo_bono_fecha ?? "").localeCompare(a.ultimo_bono_fecha ?? ""));
+            if (items.length === 0) return <p className="text-sm text-muted-foreground py-4">Sin bonos anteriores.</p>;
+            return (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Bono</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Realizadas</TableHead>
+                    <TableHead>Restantes al cerrar</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((b) => {
+                    const cat = catMap.get(b.bono_catalogo_id ?? "");
+                    return (
+                      <TableRow key={b.id}>
+                        <TableCell>{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
+                        <TableCell>{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]}`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
+                        <TableCell>{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
+                        <TableCell>{b.sesiones_realizadas}</TableCell>
+                        <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </div>
