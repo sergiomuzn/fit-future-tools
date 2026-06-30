@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
@@ -25,7 +26,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [estado, setEstado] = useState<SesionEstado>("reservada");
   const [incidencia, setIncidencia] = useState("");
-  const [ocupacion, setOcupacion] = useState(1);
+  const [grupo, setGrupo] = useState(false);
+  const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([null, null, null, null, null, null]);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
@@ -36,7 +38,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setTrainerId(session?.trainer_id ?? null);
     setEstado((session?.estado as SesionEstado) ?? "reservada");
     setIncidencia(session?.incidencia ?? "");
-    setOcupacion(session?.ocupacion ?? 1);
+    setGrupo((session?.ocupacion ?? 1) === 2);
+    setGroupClientIds([session?.client_id ?? null, null, null, null, null, null]);
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
@@ -48,8 +51,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       toast.error("Revisa las horas de la sesión");
       return;
     }
+    const ocupacion = grupo ? 2 : 1;
     const base = {
-      client_id: clientId,
+      client_id: grupo ? null : clientId,
       trainer_id: trainerId,
       fecha: session.fecha!,
       hora_inicio: `${horaInicio}:00`,
@@ -64,18 +68,27 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (sessionEnd < now && base.estado === "reservada") base.estado = "realizada";
 
     if (isNew) {
-      const inserts = [base];
-      if (repeatWeeks > 0) {
-        for (let w = 1; w <= repeatWeeks; w++) {
-          const d = new Date(session.fecha!);
-          d.setDate(d.getDate() + 7 * w);
-          inserts.push({ ...base, fecha: formatDateISO(d) });
-        }
+      // Para grupo, insertar una sesión por cada hueco con cliente seleccionado.
+      const memberIds = grupo
+        ? groupClientIds.filter((id): id is string => !!id)
+        : [clientId];
+      if (memberIds.length === 0) {
+        toast.error(grupo ? "Selecciona al menos un cliente en el grupo" : "Selecciona un cliente");
+        return;
       }
+      const dates = [session.fecha!];
+      for (let w = 1; w <= repeatWeeks; w++) {
+        const d = new Date(session.fecha!);
+        d.setDate(d.getDate() + 7 * w);
+        dates.push(formatDateISO(d));
+      }
+      const inserts = dates.flatMap((fecha) =>
+        memberIds.map((cid) => ({ ...base, fecha, client_id: cid })),
+      );
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
     } else {
-      const { error } = await supabase.from("sessions").update(base).eq("id", session.id!);
+      const { error } = await supabase.from("sessions").update({ ...base, client_id: clientId }).eq("id", session.id!);
       if (error) toast.error(error.message); else toast.success("Sesión actualizada");
     }
     qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -113,10 +126,30 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label>Cliente</Label>
-            <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
+          <div className="flex items-center gap-2">
+            <Checkbox id="grupo" checked={grupo} onCheckedChange={(v) => setGrupo(!!v)} />
+            <Label htmlFor="grupo" className="cursor-pointer">Grupo (hasta 6 integrantes, ocupación 2)</Label>
           </div>
+
+          {grupo && isNew ? (
+            <div className="space-y-2">
+              <Label>Integrantes</Label>
+              {groupClientIds.map((cid, i) => (
+                <div key={i}>
+                  <div className="text-[11px] text-muted-foreground mb-0.5">Hueco {i + 1}</div>
+                  <ClientPicker
+                    value={cid}
+                    onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              <Label>Cliente</Label>
+              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -141,24 +174,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          {isNew && (
             <div className="space-y-1.5">
-              <Label>Ocupación</Label>
-              <Select value={String(ocupacion)} onValueChange={(v) => setOcupacion(Number(v))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="1">1 (individual/pareja)</SelectItem>
-                  <SelectItem value="2">2 (grupal)</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Repetir semanas</Label>
+              <Input type="number" min={0} max={52} value={repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value))} />
             </div>
-            {isNew && (
-              <div className="space-y-1.5">
-                <Label>Repetir semanas</Label>
-                <Input type="number" min={0} max={52} value={repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value))} />
-              </div>
-            )}
-          </div>
+          )}
 
           <div className="space-y-1.5">
             <Label>Incidencia / nota</Label>
