@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil } from "lucide-react";
+import { Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +22,7 @@ function BonosPage() {
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
+  const [showCatalog, setShowCatalog] = useState(false);
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
@@ -92,6 +93,7 @@ function BonosPage() {
   return (
     <div className="p-6 space-y-4">
       <h1 className="text-2xl font-display font-semibold">Bonos</h1>
+      <CatalogoSection open={showCatalog} onToggle={() => setShowCatalog((v) => !v)} catalogo={catalogo} />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
