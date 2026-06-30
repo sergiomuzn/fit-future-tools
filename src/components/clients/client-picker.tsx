@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,7 @@ import { toast } from "sonner";
 
 interface Props {
   value: string | null;
-  onChange: (clientId: string, client: Client) => void;
+  onChange: (clientId: string | null, client: Client | null) => void;
 }
 
 export function ClientPicker({ value, onChange }: Props) {
@@ -59,18 +59,32 @@ export function ClientPicker({ value, onChange }: Props) {
 
   return (
     <div className="space-y-1.5">
-      <Input
-        placeholder={selected ? selected.nombre : "Buscar cliente..."}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        onFocus={() => {
-          if (blurTimer.current) window.clearTimeout(blurTimer.current);
-          setListOpen(true);
-        }}
-        onBlur={() => {
-          blurTimer.current = window.setTimeout(() => setListOpen(false), 150);
-        }}
-      />
+      <div className="relative">
+        <Input
+          placeholder={selected ? selected.nombre : "Buscar cliente..."}
+          value={search}
+          className={selected || search ? "pr-8" : undefined}
+          onChange={(e) => setSearch(e.target.value)}
+          onFocus={() => {
+            if (blurTimer.current) window.clearTimeout(blurTimer.current);
+            setListOpen(true);
+          }}
+          onBlur={() => {
+            blurTimer.current = window.setTimeout(() => setListOpen(false), 150);
+          }}
+        />
+        {(selected || search) && (
+          <button
+            type="button"
+            aria-label="Limpiar cliente"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { setSearch(""); onChange(null, null); setListOpen(false); }}
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
       {listOpen && (
       <div className="max-h-40 overflow-y-auto rounded-md border">
         <button
