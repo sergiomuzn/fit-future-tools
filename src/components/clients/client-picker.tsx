@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,8 @@ export function ClientPicker({ value, onChange }: Props) {
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState<Partial<Client>>({});
+  const [listOpen, setListOpen] = useState(false);
+  const blurTimer = useRef<number | null>(null);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -61,10 +63,19 @@ export function ClientPicker({ value, onChange }: Props) {
         placeholder={selected ? selected.nombre : "Buscar cliente..."}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
+        onFocus={() => {
+          if (blurTimer.current) window.clearTimeout(blurTimer.current);
+          setListOpen(true);
+        }}
+        onBlur={() => {
+          blurTimer.current = window.setTimeout(() => setListOpen(false), 150);
+        }}
       />
+      {listOpen && (
       <div className="max-h-40 overflow-y-auto rounded-md border">
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={openNew}
           className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-accent border-b sticky top-0 bg-card flex items-center gap-1.5"
         >
@@ -74,7 +85,8 @@ export function ClientPicker({ value, onChange }: Props) {
           <button
             key={c.id}
             type="button"
-            onClick={() => { onChange(c.id, c); setSearch(c.nombre); }}
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { onChange(c.id, c); setSearch(c.nombre); setListOpen(false); }}
             className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${value === c.id ? "bg-accent font-medium" : ""}`}
           >
             {c.nombre}
@@ -84,6 +96,7 @@ export function ClientPicker({ value, onChange }: Props) {
           <div className="p-2 text-xs text-muted-foreground">Sin coincidencias.</div>
         )}
       </div>
+      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

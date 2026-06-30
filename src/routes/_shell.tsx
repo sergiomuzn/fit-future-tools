@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3 } from "lucide-react";
 import { MiniCalendar } from "@/components/mini-calendar";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -33,6 +33,13 @@ function ShellInner() {
   const { date, setDate } = useAgendaDate();
   const [month, setMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
   const navigate = useNavigate();
+
+  // Mantén el mes visible del mini-calendario alineado con la fecha seleccionada
+  useEffect(() => {
+    if (date.getFullYear() !== month.getFullYear() || date.getMonth() !== month.getMonth()) {
+      setMonth(new Date(date.getFullYear(), date.getMonth(), 1));
+    }
+  }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">

@@ -22,10 +22,22 @@ export function MiniCalendar({ selected, onSelect, month, onMonthChange }: Props
     const first = new Date(month.getFullYear(), month.getMonth(), 1);
     const last = new Date(month.getFullYear(), month.getMonth() + 1, 0);
     const startDow = (first.getDay() + 6) % 7; // Lunes = 0
-    const cells: (Date | null)[] = [];
-    for (let i = 0; i < startDow; i++) cells.push(null);
+    const cells: { date: Date; outside: boolean }[] = [];
+    // Días del mes anterior para rellenar primera semana
+    for (let i = startDow - 1; i >= 0; i--) {
+      const d = new Date(month.getFullYear(), month.getMonth(), -i);
+      cells.push({ date: d, outside: true });
+    }
     for (let d = 1; d <= last.getDate(); d++) {
-      cells.push(new Date(month.getFullYear(), month.getMonth(), d));
+      cells.push({ date: new Date(month.getFullYear(), month.getMonth(), d), outside: false });
+    }
+    // Rellenar hasta completar última semana con días del mes siguiente
+    while (cells.length % 7 !== 0) {
+      const nextDay = cells.length - (startDow + last.getDate()) + 1;
+      cells.push({
+        date: new Date(month.getFullYear(), month.getMonth() + 1, nextDay),
+        outside: true,
+      });
     }
     return cells;
   }, [month]);
@@ -51,20 +63,22 @@ export function MiniCalendar({ selected, onSelect, month, onMonthChange }: Props
         {DOW.map((d) => <div key={d} className="text-center">{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
-        {days.map((d, i) => (
+        {days.map(({ date: d, outside }, i) => (
           <button
             key={i}
-            disabled={!d}
-            onClick={() => d && onSelect(d)}
+            onClick={() => {
+              onSelect(d);
+              if (outside) onMonthChange(new Date(d.getFullYear(), d.getMonth(), 1));
+            }}
             className={cn(
               "h-7 text-xs rounded-md flex items-center justify-center transition-colors",
-              d && sameDay(d, selected) && "bg-primary text-primary-foreground font-semibold",
-              d && !sameDay(d, selected) && sameDay(d, today) && "ring-1 ring-primary/40 font-semibold",
-              d && !sameDay(d, selected) && "hover:bg-accent",
-              !d && "invisible",
+              sameDay(d, selected) && "bg-primary text-primary-foreground font-semibold",
+              !sameDay(d, selected) && sameDay(d, today) && "ring-1 ring-primary/40 font-semibold",
+              !sameDay(d, selected) && "hover:bg-accent",
+              outside && !sameDay(d, selected) && "text-muted-foreground/40",
             )}
           >
-            {d?.getDate()}
+            {d.getDate()}
           </button>
         ))}
       </div>
