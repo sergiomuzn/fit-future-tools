@@ -81,6 +81,7 @@ function AgendaPage() {
         <Legend color="bg-state-prueba" label="Prueba" />
         <Legend color="bg-state-cancelada" label="Cancelada" />
         <Legend color="bg-state-renovacion" label="Renovación" />
+        <Legend color="bg-purple-500/60" label="Grupo" />
       </footer>
     </div>
   );

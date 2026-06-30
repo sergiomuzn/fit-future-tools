@@ -16,6 +16,7 @@ export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPa
 function SesionesPage() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
+  const [search, setSearch] = useState("");
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-past"],
@@ -29,6 +30,14 @@ function SesionesPage() {
 
   const clientMap = new Map(clients.map((c) => [c.id, c]));
   const trainerMap = new Map(trainers.map((t) => [t.id, t]));
+
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? sessions.filter((s) => {
+        const name = s.client_id ? clientMap.get(s.client_id)?.nombre?.toLowerCase() ?? "" : "";
+        return name.includes(q) || s.fecha.includes(q);
+      })
+    : sessions;
 
   async function updateIncidencia(id: string, val: string) {
     const { error } = await supabase.from("sessions").update({ incidencia: val || null }).eq("id", id);
@@ -45,7 +54,7 @@ function SesionesPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
-        <Button variant="outline" onClick={() => exportToXlsx("sesiones", sessions.map((s) => ({
+        <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
           Fecha: s.fecha,
           "Hora inicio": s.hora_inicio.slice(0, 5),
           "Hora fin": s.hora_fin.slice(0, 5),
@@ -59,6 +68,12 @@ function SesionesPage() {
         </Button>
       </div>
       <p className="text-sm text-muted-foreground">Histórico de sesiones pasadas. Edita la incidencia o el estado en línea.</p>
+      <Input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Buscar por nombre o fecha (YYYY-MM-DD)…"
+        className="max-w-sm"
+      />
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -72,7 +87,7 @@ function SesionesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sessions.map((s) => (
+            {filtered.map((s) => (
               <TableRow key={s.id}>
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}–{s.hora_fin.slice(0,5)}</TableCell>
@@ -91,7 +106,7 @@ function SesionesPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {sessions.length === 0 && (
+            {filtered.length === 0 && (
               <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin sesiones aún</TableCell></TableRow>
             )}
           </TableBody>

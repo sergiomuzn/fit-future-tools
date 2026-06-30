@@ -199,9 +199,11 @@ export type Database = {
           hora_inicio: string
           id: string
           incidencia: string | null
+          no_contabilizar: boolean
           ocupacion: number
           recurrencia_id: string | null
           tipo: Database["public"]["Enums"]["bono_tipo"] | null
+          titulo: string | null
           trainer_id: string | null
           updated_at: string
         }
@@ -214,9 +216,11 @@ export type Database = {
           hora_inicio: string
           id?: string
           incidencia?: string | null
+          no_contabilizar?: boolean
           ocupacion?: number
           recurrencia_id?: string | null
           tipo?: Database["public"]["Enums"]["bono_tipo"] | null
+          titulo?: string | null
           trainer_id?: string | null
           updated_at?: string
         }
@@ -229,9 +233,11 @@ export type Database = {
           hora_inicio?: string
           id?: string
           incidencia?: string | null
+          no_contabilizar?: boolean
           ocupacion?: number
           recurrencia_id?: string | null
           tipo?: Database["public"]["Enums"]["bono_tipo"] | null
+          titulo?: string | null
           trainer_id?: string | null
           updated_at?: string
         }
