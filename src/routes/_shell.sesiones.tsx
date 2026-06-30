@@ -4,8 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Client, type Trainer, ESTADO_LABEL } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { SesionEstado } from "@/lib/db";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Download, Search, X } from "lucide-react";
@@ -46,11 +44,6 @@ function SesionesPage() {
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["sessions-past"] });
   }
-  async function updateEstado(id: string, val: SesionEstado) {
-    const { error } = await supabase.from("sessions").update({ estado: val }).eq("id", id);
-    if (error) toast.error(error.message);
-    else { qc.invalidateQueries({ queryKey: ["sessions-past"] }); qc.invalidateQueries({ queryKey: ["client_bonos"] }); }
-  }
 
   return (
     <div className="p-6 space-y-4">
@@ -88,7 +81,6 @@ function SesionesPage() {
           </Button>
         </div>
       </div>
-      <p className="text-sm text-muted-foreground">Histórico de sesiones pasadas. Edita la incidencia o el estado en línea.</p>
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -109,20 +101,13 @@ function SesionesPage() {
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : "—"}</TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.iniciales : "—"}</TableCell>
                 <TableCell>
-                  <Select value={s.estado} onValueChange={(v) => updateEstado(s.id, v as SesionEstado)}>
-                    <SelectTrigger
-                      className={`h-8 w-40 ${ESTADO_BG[s.estado]} ${s.estado === "cancelada" && s.no_contabilizar ? "opacity-60 line-through" : ""}`}
-                    >
-                      <SelectValue>
-                        {s.estado === "cancelada" && s.no_contabilizar
-                          ? "Cancelada (no cuenta)"
-                          : ESTADO_LABEL[s.estado]}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(ESTADO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
+                  <span
+                    className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[s.estado]} opacity-60 ${s.estado === "cancelada" && s.no_contabilizar ? "line-through" : ""}`}
+                  >
+                    {s.estado === "cancelada" && s.no_contabilizar
+                      ? "Cancelada (no cuenta)"
+                      : ESTADO_LABEL[s.estado]}
+                  </span>
                 </TableCell>
                 <TableCell>
                   <Input defaultValue={s.incidencia ?? ""} onBlur={(e) => updateIncidencia(s.id, e.target.value)} placeholder="—" className="h-8" />
