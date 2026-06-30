@@ -94,7 +94,7 @@
   --sidebar-border: oklch(0.9 0.01 250);
   --sidebar-ring: oklch(0.55 0.04 257);
   /* Session state colors */
-  --state-reservada: oklch(0.85 0.07 230);
+  --state-reservada: oklch(0.72 0.1 235);
   --state-reservada-fg: oklch(1 0 0);
   --state-realizada: oklch(0.38 0.1 245);
   --state-realizada-fg: oklch(0.98 0.005 247);
@@ -139,7 +139,7 @@
   --sidebar-accent-foreground: oklch(0.96 0.005 247);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.6 0.03 257);
-  --state-reservada: oklch(0.45 0.09 230);
+  --state-reservada: oklch(0.5 0.11 235);
   --state-reservada-fg: oklch(1 0 0);
   --state-realizada: oklch(0.55 0.12 245);
   --state-realizada-fg: oklch(0.99 0.005 247);
