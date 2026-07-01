@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
+import { useState } from "react";
+import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
 const TIPO_CLASS: Record<string, string> = {
@@ -12,7 +16,7 @@ const TIPO_CLASS: Record<string, string> = {
   prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
 };
 
-export type ClientDetailsTab = "info" | "historial";
+export type ClientDetailsTab = "info" | "historial" | "calendario";
 
 export function ClientDetailsDialog({
   client,
@@ -50,6 +54,7 @@ export function ClientDetailsDialog({
             <TabsList>
               <TabsTrigger value="info">Información</TabsTrigger>
               <TabsTrigger value="historial">Historial de bonos</TabsTrigger>
+              <TabsTrigger value="calendario">Calendario</TabsTrigger>
             </TabsList>
             <TabsContent value="info" className="pt-4">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
@@ -100,6 +105,9 @@ export function ClientDetailsDialog({
                   </TableBody>
                 </Table>
               )}
+            </TabsContent>
+            <TabsContent value="calendario" className="pt-4">
+              <ClientCalendar clientId={client.id} />
             </TabsContent>
           </Tabs>
         )}
