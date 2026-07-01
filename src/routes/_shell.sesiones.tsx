@@ -34,7 +34,7 @@ function SesionesPage() {
   const q = search.trim().toLowerCase();
   const filtered = q
     ? sessions.filter((s) => {
-        const name = s.client_id ? clientMap.get(s.client_id)?.nombre?.toLowerCase() ?? "" : "";
+        const name = (s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? "")).toLowerCase();
         return name.includes(q) || s.fecha.includes(q);
       })
     : sessions;
@@ -71,7 +71,7 @@ function SesionesPage() {
           <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
-          Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : "",
+          Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
           Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
@@ -98,7 +98,7 @@ function SesionesPage() {
               <TableRow key={s.id}>
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
-                <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : "—"}</TableCell>
+                <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.iniciales : "—"}</TableCell>
                 <TableCell>
                   <span
