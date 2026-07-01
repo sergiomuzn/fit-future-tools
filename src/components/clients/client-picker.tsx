@@ -63,7 +63,7 @@ export function ClientPicker({ value, onChange }: Props) {
         <Input
           placeholder={selected ? selected.nombre : "Buscar cliente..."}
           value={search}
-          className={selected || search ? "pr-8" : undefined}
+          className={`${selected ? "placeholder:text-foreground/75" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}
           onChange={(e) => setSearch(e.target.value)}
           onFocus={() => {
             if (blurTimer.current) window.clearTimeout(blurTimer.current);

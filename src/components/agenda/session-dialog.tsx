@@ -255,13 +255,82 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
         // Si scope=future, propagar los campos compartidos al resto de fechas de la serie.
         if (scope === "future") {
-          await supabase.from("sessions").update({
-            trainer_id: sharedGroupFields.trainer_id,
-            hora_inicio: sharedGroupFields.hora_inicio,
-            hora_fin: sharedGroupFields.hora_fin,
-            titulo: sharedGroupFields.titulo,
-            incidencia: sharedGroupFields.incidencia,
-          }).eq("recurrencia_id", recurrenciaId).gt("fecha", session.fecha!);
+          const { data: futureRows } = await supabase
+            .from("sessions")
+            .select("*")
+            .eq("recurrencia_id", recurrenciaId)
+            .gt("fecha", session.fecha!);
+          const desiredIds2 = groupClientIds.filter((id): id is string => !!id);
+          const desiredSet2 = new Set(desiredIds2);
+          const futureDates = Array.from(new Set((futureRows ?? []).map((r) => r.fecha)));
+          for (const fecha of futureDates) {
+            const rows = (futureRows ?? []).filter((r) => r.fecha === fecha);
+            const existingWithClient2 = rows.filter((r) => !!r.client_id);
+            const existingIds2 = new Set(existingWithClient2.map((r) => r.client_id as string));
+            const placeholder2 = rows.find((r) => !r.client_id);
+            const keepIds2 = existingWithClient2.filter((r) => desiredSet2.has(r.client_id as string)).map((r) => r.id);
+            const removeIds2 = existingWithClient2.filter((r) => !desiredSet2.has(r.client_id as string)).map((r) => r.id);
+            let addQueue2 = desiredIds2.filter((id) => !existingIds2.has(id));
+
+            if (keepIds2.length) {
+              await supabase.from("sessions").update({
+                trainer_id: sharedGroupFields.trainer_id,
+                hora_inicio: sharedGroupFields.hora_inicio,
+                hora_fin: sharedGroupFields.hora_fin,
+                titulo: sharedGroupFields.titulo,
+                incidencia: sharedGroupFields.incidencia,
+                ocupacion: 2,
+              }).in("id", keepIds2);
+            }
+            if (placeholder2 && addQueue2.length) {
+              const first = addQueue2.shift()!;
+              await supabase.from("sessions").update({
+                trainer_id: sharedGroupFields.trainer_id,
+                hora_inicio: sharedGroupFields.hora_inicio,
+                hora_fin: sharedGroupFields.hora_fin,
+                titulo: sharedGroupFields.titulo,
+                incidencia: sharedGroupFields.incidencia,
+                ocupacion: 2,
+                client_id: first,
+              }).eq("id", placeholder2.id);
+            }
+            if (addQueue2.length) {
+              const inserts2 = addQueue2.map((cid) => ({
+                trainer_id: sharedGroupFields.trainer_id,
+                hora_inicio: sharedGroupFields.hora_inicio,
+                hora_fin: sharedGroupFields.hora_fin,
+                titulo: sharedGroupFields.titulo,
+                incidencia: sharedGroupFields.incidencia,
+                no_contabilizar: false,
+                fecha,
+                estado: "reservada" as SesionEstado,
+                ocupacion: 2,
+                client_id: cid,
+                recurrencia_id: recurrenciaId,
+              }));
+              const { error: eIns } = await supabase.from("sessions").insert(inserts2);
+              if (eIns) updateErr = eIns;
+            }
+            if (removeIds2.length) {
+              await supabase.from("sessions").delete().in("id", removeIds2);
+            }
+            // Si el grupo queda vacío en esta fecha, mantener un placeholder.
+            if (desiredIds2.length === 0 && !placeholder2) {
+              await supabase.from("sessions").insert([{
+                trainer_id: sharedGroupFields.trainer_id,
+                hora_inicio: sharedGroupFields.hora_inicio,
+                hora_fin: sharedGroupFields.hora_fin,
+                titulo: sharedGroupFields.titulo,
+                incidencia: sharedGroupFields.incidencia,
+                no_contabilizar: false,
+                fecha,
+                estado: "reservada" as SesionEstado,
+                ocupacion: 2,
+                client_id: null,
+                recurrencia_id: recurrenciaId,
+              }]);
+            }
+          }
         }
       } else {
         // Sesión individual.
@@ -312,7 +381,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           }
           toast.success(`Sesión actualizada (+${repeatWeeks} repeticiones)`);
         } else {
-          toast.success(scope === "future" ? "Serie futura actualizada" : "Sesión actualizada");
+          toast.success(scope === "future" ? "Series futuras actualizadas" : "Sesión actualizada");
         }
       }
     }
@@ -469,7 +538,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </div>
         <DialogFooter className="gap-2">
           {!isNew && (session as any).recurrencia_id && (
-            <Button variant="outline" onClick={cancelFutureSeries}>Cancelar serie futura</Button>
+            <Button variant="outline" onClick={cancelFutureSeries}>Cancelar series futuras</Button>
           )}
           {!isNew && <Button variant="destructive" onClick={remove}>Eliminar</Button>}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
@@ -487,7 +556,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => doSave("one")}>Sólo esta sesión</AlertDialogAction>
-            <AlertDialogAction onClick={() => doSave("future")}>Serie futura</AlertDialogAction>
+            <AlertDialogAction onClick={() => doSave("future")}>Series futuras</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
