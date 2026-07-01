@@ -225,7 +225,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
             <div
               key={i}
               className={cn(
-                "aspect-square rounded border p-1 text-[10px] flex flex-col gap-0.5 overflow-hidden",
+                "h-14 rounded border p-1 text-[10px] flex flex-col gap-0.5 overflow-hidden",
                 isToday ? "border-primary bg-primary/5" : "border-border",
               )}
             >
@@ -239,7 +239,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                 )}
               </div>
               <div className="flex flex-col gap-0.5 overflow-hidden">
-                {daySessions.slice(0, 3).map((s) => {
+                {daySessions.slice(0, 2).map((s) => {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
                   const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
@@ -262,8 +262,8 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                     </div>
                   );
                 })}
-                {daySessions.length > 3 && (
-                  <div className="text-[9px] text-muted-foreground">+{daySessions.length - 3}</div>
+                {daySessions.length > 2 && (
+                  <div className="text-[9px] text-muted-foreground">+{daySessions.length - 2}</div>
                 )}
               </div>
             </div>

@@ -556,12 +556,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
           {estado === "reservada" && (
-            <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
+            <div className="flex items-center gap-2">
               <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
-              <div className="space-y-0.5">
-                <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
-                <p className="text-[11px] text-muted-foreground leading-tight">Marca la sesión como provisional. En la agenda aparecerá con el color de reservada pero con un patrón diagonal sutil.</p>
-              </div>
+              <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
             </div>
           )}
         </div>
