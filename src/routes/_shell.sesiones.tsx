@@ -73,7 +73,7 @@ function SesionesPage() {
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
-          Estado: s.estado === "cancelada" && s.no_contabilizar ? "NC" : ESTADO_LABEL[s.estado],
+          Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
           Incidencia: s.incidencia ?? "",
           })), "Sesiones")}>
