@@ -249,6 +249,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   </span>
                 </div>
               )}
+              {!clientId && (
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">o nombre libre (cliente no registrado)</Label>
+                  <Input value={nombreLibre} onChange={(e) => setNombreLibre(e.target.value)} placeholder="Ej. Juan (prueba)" />
+                </div>
+              )}
             </div>
           )}
 
