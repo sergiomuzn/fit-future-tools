@@ -105,7 +105,7 @@ function SesionesPage() {
                     className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[s.estado]} opacity-60`}
                   >
                     {s.estado === "cancelada" && s.no_contabilizar
-                      ? "NC"
+                      ? "Cancelada NC"
                       : ESTADO_LABEL[s.estado]}
                   </span>
                 </TableCell>
