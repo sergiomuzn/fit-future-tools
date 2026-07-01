@@ -212,12 +212,12 @@ function ClientCalendar({ clientId }: { clientId: string }) {
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-[10px] text-muted-foreground text-center">
+      <div className="grid grid-cols-7 gap-0.5 text-[10px] text-muted-foreground text-center">
         {DOW.map((d) => <div key={d}>{d}</div>)}
       </div>
-      <div className="grid grid-cols-7 gap-1">
+      <div className="grid grid-cols-7 gap-0.5">
         {cells.map((d, i) => {
-          if (d === null) return <div key={i} className="aspect-square" />;
+          if (d === null) return <div key={i} className="h-10" />;
           const daySessions = sessionsByDay.get(d) ?? [];
           const dayInvoices = invoicesByDay.get(d) ?? [];
           const isToday = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth() && today.getDate() === d;
@@ -225,7 +225,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
             <div
               key={i}
               className={cn(
-                "h-14 rounded border p-1 text-[10px] flex flex-col gap-0.5 overflow-hidden",
+                "h-10 rounded border p-0.5 text-[10px] flex flex-col gap-0.5 overflow-hidden",
                 isToday ? "border-primary bg-primary/5" : "border-border",
               )}
             >
