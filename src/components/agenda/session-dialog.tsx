@@ -48,7 +48,23 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [scopeAsk, setScopeAsk] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
-  const isSeries = !isNew && !!recurrenciaId;
+
+  // Contar hermanas futuras en la misma serie (fecha > actual). Solo pedimos
+  // el "scope" al editar cuando de hecho existen series futuras.
+  const { data: futureSiblingsCount = 0 } = useQuery({
+    queryKey: ["series-future-count", recurrenciaId, session?.fecha],
+    queryFn: async () => {
+      if (!recurrenciaId || !session?.fecha) return 0;
+      const { count } = await supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("recurrencia_id", recurrenciaId)
+        .gt("fecha", session.fecha);
+      return count ?? 0;
+    },
+    enabled: open && !isNew && !!recurrenciaId,
+  });
+  const isSeries = !isNew && !!recurrenciaId && futureSiblingsCount > 0;
 
   // Fetch group members (same recurrencia_id + fecha + hora_inicio) when editing a group.
   const { data: groupMembersData } = useQuery({
