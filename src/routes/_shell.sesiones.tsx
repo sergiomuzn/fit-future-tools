@@ -73,7 +73,7 @@ function SesionesPage() {
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
-          Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
+          Estado: s.estado === "cancelada" && s.no_contabilizar ? "NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
           Incidencia: s.incidencia ?? "",
           })), "Sesiones")}>
@@ -102,10 +102,10 @@ function SesionesPage() {
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.iniciales : "—"}</TableCell>
                 <TableCell>
                   <span
-                    className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[s.estado]} opacity-60 ${s.estado === "cancelada" && s.no_contabilizar ? "line-through" : ""}`}
+                    className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[s.estado]} opacity-60`}
                   >
                     {s.estado === "cancelada" && s.no_contabilizar
-                      ? "Cancelada NC"
+                      ? "NC"
                       : ESTADO_LABEL[s.estado]}
                   </span>
                 </TableCell>
