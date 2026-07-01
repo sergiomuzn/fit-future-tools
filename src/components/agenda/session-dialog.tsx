@@ -83,10 +83,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
     };
-    // Auto-realizada si la sesión es pasada
+    // Auto-realizada si la sesión es pasada (se aplica por fecha en la serie)
     const now = new Date();
-    const sessionEnd = new Date(`${session.fecha}T${base.hora_fin}`);
-    if (sessionEnd < now && base.estado === "reservada") base.estado = "realizada";
+    const estadoForDate = (fecha: string) => {
+      if (base.estado !== "reservada") return base.estado;
+      const end = new Date(`${fecha}T${base.hora_fin}`);
+      return end < now ? "realizada" : "reservada";
+    };
 
     if (isNew) {
       // Para grupo, insertar una sesión por cada hueco con cliente seleccionado.
@@ -111,12 +114,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         : null;
       const inserts = dates.flatMap((fecha) => {
         const ids = grupo && memberIds.length === 0 ? [null] : memberIds;
-        return ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: seriesId }));
+        return ids.map((cid) => ({ ...base, fecha, estado: estadoForDate(fecha), client_id: cid, recurrencia_id: seriesId }));
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
     } else {
-      const { error } = await supabase.from("sessions").update({ ...base, client_id: clientId }).eq("id", session.id!);
+      const { error } = await supabase.from("sessions").update({ ...base, estado: estadoForDate(session.fecha!), client_id: clientId }).eq("id", session.id!);
       // Si es grupo en edición, también actualizar todos los miembros del recurrencia_id
       if (grupo && (session as any).recurrencia_id) {
         await supabase.from("sessions").update({
@@ -148,7 +151,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             extraDates.push(formatDateISO(d));
           }
           const inserts = extraDates.flatMap((fecha) =>
-            ids.map((cid) => ({ ...base, fecha, client_id: cid, recurrencia_id: seriesId }))
+            ids.map((cid) => ({ ...base, fecha, estado: estadoForDate(fecha), client_id: cid, recurrencia_id: seriesId }))
           );
           if (inserts.length) {
             const { error: e2 } = await supabase.from("sessions").insert(inserts);
@@ -178,13 +181,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!session?.id) return;
     const recId = (session as any).recurrencia_id as string | null | undefined;
     if (!recId) { toast.error("Esta sesión no pertenece a una serie"); return; }
-    if (!confirm("¿Eliminar todas las sesiones futuras de esta serie?")) return;
-    const today = formatDateISO(new Date());
     const { error } = await supabase
       .from("sessions")
       .delete()
       .eq("recurrencia_id", recId)
-      .gt("fecha", today);
+      .gte("fecha", session.fecha!);
     if (error) toast.error(error.message);
     else toast.success("Serie futura cancelada");
     qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -293,7 +294,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           <div className="space-y-1.5">
             <Label>Repetir semanas</Label>
-            <Input type="number" min={0} max={52} value={repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value))} />
+              <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
             <p className="text-[11px] text-muted-foreground leading-tight">
               {isNew
                 ? "Crea copias semanales tras esta fecha (también funciona para fechas pasadas ya realizadas)."
