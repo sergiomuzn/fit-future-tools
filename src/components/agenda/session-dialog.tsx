@@ -85,7 +85,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     };
     // Auto-realizada si la sesión es pasada (se aplica por fecha en la serie)
     const now = new Date();
-    const estadoForDate = (fecha: string) => {
+    const estadoForDate = (fecha: string): SesionEstado => {
       if (base.estado !== "reservada") return base.estado;
       const end = new Date(`${fecha}T${base.hora_fin}`);
       return end < now ? "realizada" : "reservada";
