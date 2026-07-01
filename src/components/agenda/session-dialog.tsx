@@ -189,7 +189,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (grupo && recurrenciaId) {
         // ---- Sincronizar miembros del grupo para esta fecha ----
         const desiredIds = groupClientIds.filter((id): id is string => !!id);
-        const existing = groupMembersData;
+        const existing = groupMembersData ?? [];
         const existingWithClient = existing.filter((m) => !!m.client_id);
         const existingIds = new Set(existingWithClient.map((m) => m.client_id as string));
         const desiredSet = new Set(desiredIds);
