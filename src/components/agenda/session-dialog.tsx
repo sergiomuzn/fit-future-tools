@@ -33,6 +33,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [titulo, setTitulo] = useState("");
+  const [nombreLibre, setNombreLibre] = useState("");
   const [noContabilizar, setNoContabilizar] = useState(false);
 
   const { data: bonos = [] } = useQuery({
@@ -58,6 +59,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
     setTitulo((session as any)?.titulo ?? "");
+    setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
     setNoContabilizar(!!(session as any)?.no_contabilizar);
   }, [open, session]);
 
@@ -68,6 +70,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       return;
     }
     const ocupacion = grupo ? 2 : 1;
+    const nombreLibreTrim = nombreLibre.trim();
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
@@ -77,7 +80,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       estado,
       ocupacion,
       incidencia: incidencia || null,
-      titulo: grupo ? (titulo.trim() || null) : null,
+      titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
     };
     // Auto-realizada si la sesión es pasada
@@ -90,8 +93,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const memberIds = grupo
         ? groupClientIds.filter((id): id is string => !!id)
         : [clientId];
-      if (!grupo && memberIds.length === 0) {
-        toast.error("Selecciona un cliente");
+      if (!grupo && !clientId && !nombreLibreTrim) {
+        toast.error("Selecciona un cliente o escribe un nombre");
         return;
       }
       const dates = [session.fecha!];
@@ -244,6 +247,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   <span className={`font-semibold ${restantes !== null && restantes <= 1 ? "text-state-renovacion-fg" : "text-foreground"}`}>
                     {restantes ?? "Sin bono"}
                   </span>
+                </div>
+              )}
+              {!clientId && (
+                <div className="space-y-1">
+                  <Label className="text-[11px] text-muted-foreground">o nombre libre (cliente no registrado)</Label>
+                  <Input value={nombreLibre} onChange={(e) => setNombreLibre(e.target.value)} placeholder="Ej. Juan (prueba)" />
                 </div>
               )}
             </div>

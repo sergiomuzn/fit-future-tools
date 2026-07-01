@@ -49,13 +49,14 @@ function BonosPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
-  const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
   const TIPO_CLASS: Record<string, string> = {
+    prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
     individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
     pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   };
-  const tipoRank: Record<string, number> = { individual: 0, pareja: 1, grupal: 2 };
+  const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3 };
 
   const activeBonos = bonos.filter((b) => b.activo);
 
