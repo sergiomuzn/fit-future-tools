@@ -51,7 +51,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const isSeries = !isNew && !!recurrenciaId;
 
   // Fetch group members (same recurrencia_id + fecha + hora_inicio) when editing a group.
-  const { data: groupMembersData = [] } = useQuery({
+  const { data: groupMembersData } = useQuery({
     queryKey: ["group-members", recurrenciaId, session?.fecha, session?.hora_inicio],
     queryFn: async () => {
       if (!recurrenciaId || !session?.fecha || !session?.hora_inicio) return [] as Session[];
@@ -100,6 +100,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       setGroupClientIds([session?.client_id ?? null, null, null, null, null, null]);
       return;
     }
+    if (!groupMembersData) return;
     const ids = groupMembersData
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
