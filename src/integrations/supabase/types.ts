@@ -301,7 +301,7 @@ export type Database = {
       }
     }
     Enums: {
-      bono_tipo: "individual" | "pareja" | "grupal"
+      bono_tipo: "individual" | "pareja" | "grupal" | "prueba"
       sesion_estado:
         | "reservada"
         | "realizada"
@@ -435,7 +435,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      bono_tipo: ["individual", "pareja", "grupal"],
+      bono_tipo: ["individual", "pareja", "grupal", "prueba"],
       sesion_estado: [
         "reservada",
         "realizada",
