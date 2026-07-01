@@ -5,6 +5,16 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 interface Props {
   date: Date;
@@ -192,6 +202,33 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const [resizing, setResizing] = useState<{ id: string; edge: "top" | "bottom"; startMin: number; endMin: number } | null>(null);
   const [resizePreview, setResizePreview] = useState<{ startMin: number; endMin: number } | null>(null);
 
+  // Pending time-change on a series → ask scope (this / future).
+  const [pendingTimeEdit, setPendingTimeEdit] = useState<{
+    id: string;
+    recurrencia_id: string;
+    fecha: string;
+    hora_inicio: string;
+    hora_fin: string;
+  } | null>(null);
+
+  async function applyTimeEdit(scope: "one" | "future") {
+    if (!pendingTimeEdit) return;
+    const p = pendingTimeEdit;
+    if (scope === "one") {
+      const { error } = await supabase.from("sessions").update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin }).eq("id", p.id);
+      if (error) toast.error(error.message);
+    } else {
+      const { error } = await supabase.from("sessions")
+        .update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin })
+        .eq("recurrencia_id", p.recurrencia_id)
+        .gte("fecha", p.fecha);
+      if (error) toast.error(error.message);
+      else toast.success("Serie futura actualizada");
+    }
+    setPendingTimeEdit(null);
+    qc.invalidateQueries({ queryKey: ["sessions"] });
+  }
+
   useEffect(() => {
     function up() {
       if (moving && movePreview !== null) {
@@ -200,13 +237,24 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const newStart = minToTime(snapped);
         const newEnd = minToTime(snapped + moving.dur);
         const movingId = moving.id;
+        const movingSession = sessions.find((s) => s.id === movingId);
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
           (old ?? []).map((s) => (s.id === movingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
-        supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", moving.id).then(({ error }) => {
-          if (error) toast.error(error.message);
-          qc.invalidateQueries({ queryKey: ["sessions"] });
-        });
+        if (movingSession?.recurrencia_id && movedRef.current) {
+          setPendingTimeEdit({
+            id: movingId,
+            recurrencia_id: movingSession.recurrencia_id,
+            fecha: movingSession.fecha,
+            hora_inicio: newStart,
+            hora_fin: newEnd,
+          });
+        } else {
+          supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", moving.id).then(({ error }) => {
+            if (error) toast.error(error.message);
+            qc.invalidateQueries({ queryKey: ["sessions"] });
+          });
+        }
       }
       setMoving(null);
       setMovePreview(null);
@@ -216,13 +264,24 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const newStart = minToTime(snapMin(resizePreview.startMin));
         const newEnd = minToTime(snapMin(resizePreview.endMin));
         const resizingId = resizing.id;
+        const resizingSession = sessions.find((s) => s.id === resizingId);
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
           (old ?? []).map((s) => (s.id === resizingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
-        supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
-          if (error) toast.error(error.message);
-          qc.invalidateQueries({ queryKey: ["sessions"] });
-        });
+        if (resizingSession?.recurrencia_id) {
+          setPendingTimeEdit({
+            id: resizingId,
+            recurrencia_id: resizingSession.recurrencia_id,
+            fecha: resizingSession.fecha,
+            hora_inicio: newStart,
+            hora_fin: newEnd,
+          });
+        } else {
+          supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
+            if (error) toast.error(error.message);
+            qc.invalidateQueries({ queryKey: ["sessions"] });
+          });
+        }
       }
       setResizing(null);
       setResizePreview(null);
@@ -254,7 +313,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, resizing, resizePreview, qc, isoDate]);
+  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions]);
 
   // Dialog
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
@@ -503,6 +562,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         session={dialogSession}
         trainers={trainers}
       />
+      <AlertDialog open={!!pendingTimeEdit} onOpenChange={(o) => { if (!o) { setPendingTimeEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Editar sesión en serie</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta sesión se repite en varias semanas. ¿Quieres cambiar el horario sólo de esta sesión o también de las siguientes de la serie?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => applyTimeEdit("one")}>Sólo esta sesión</AlertDialogAction>
+            <AlertDialogAction onClick={() => applyTimeEdit("future")}>Serie futura</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
