@@ -201,6 +201,7 @@ export type Database = {
           incidencia: string | null
           no_contabilizar: boolean
           ocupacion: number
+          por_confirmar: boolean
           recurrencia_id: string | null
           tipo: Database["public"]["Enums"]["bono_tipo"] | null
           titulo: string | null
@@ -218,6 +219,7 @@ export type Database = {
           incidencia?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
+          por_confirmar?: boolean
           recurrencia_id?: string | null
           tipo?: Database["public"]["Enums"]["bono_tipo"] | null
           titulo?: string | null
@@ -235,6 +237,7 @@ export type Database = {
           incidencia?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
+          por_confirmar?: boolean
           recurrencia_id?: string | null
           tipo?: Database["public"]["Enums"]["bono_tipo"] | null
           titulo?: string | null
