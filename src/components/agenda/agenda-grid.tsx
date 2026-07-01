@@ -229,6 +229,34 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     qc.invalidateQueries({ queryKey: ["sessions"] });
   }
 
+  async function handleTimeChange(sess: Session, newStart: string, newEnd: string) {
+    if (!sess.recurrencia_id) {
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", sess.id);
+      if (error) toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      return;
+    }
+    // Solo preguntar por el "scope" si existen hermanas futuras en la serie.
+    const { count } = await supabase
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("recurrencia_id", sess.recurrencia_id)
+      .gt("fecha", sess.fecha);
+    if ((count ?? 0) > 0) {
+      setPendingTimeEdit({
+        id: sess.id,
+        recurrencia_id: sess.recurrencia_id,
+        fecha: sess.fecha,
+        hora_inicio: newStart,
+        hora_fin: newEnd,
+      });
+    } else {
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", sess.id);
+      if (error) toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+    }
+  }
+
   useEffect(() => {
     function up() {
       if (moving && movePreview !== null) {
