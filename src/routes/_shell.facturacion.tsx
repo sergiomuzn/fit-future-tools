@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,6 +26,7 @@ function FacturacionPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<Partial<Invoice>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -192,7 +194,14 @@ function FacturacionPage() {
               <TableRow key={i.id}>
                 <TableCell>{i.fecha}</TableCell>
                 <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
-                <TableCell className="font-medium">{clientMap.get(i.client_id)?.nombre ?? "?"}</TableCell>
+                <TableCell className="font-medium">
+                  {(() => {
+                    const c = clientMap.get(i.client_id);
+                    return c ? (
+                      <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                    ) : "?";
+                  })()}
+                </TableCell>
                 <TableCell>{tipo ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[tipo]}`}>{TIPO_LABEL[tipo]}</span> : <span className="text-muted-foreground">—</span>}</TableCell>
                 <TableCell>{prettyBonoNombre(cat?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
@@ -263,6 +272,7 @@ function FacturacionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <ClientDetailsDialog client={viewingClient} defaultTab="historial" onOpenChange={(o) => !o && setViewingClient(null)} />
     </div>
   );
 }
