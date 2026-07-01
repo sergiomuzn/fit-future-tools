@@ -174,8 +174,8 @@ function BonosPage() {
                 </Select>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5"><Label>Teóricas</Label><Input type="number" value={editing.sesiones_disponibles} onChange={(e) => setEditing({ ...editing, sesiones_disponibles: Number(e.target.value) })} /></div>
-                <div className="space-y-1.5"><Label>Realizadas</Label><Input type="number" value={editing.sesiones_realizadas} onChange={(e) => setEditing({ ...editing, sesiones_realizadas: Number(e.target.value) })} /></div>
+                <div className="space-y-1.5"><Label>Teóricas</Label><Input type="number" placeholder="0" value={editing.sesiones_disponibles === 0 ? "" : editing.sesiones_disponibles} onChange={(e) => setEditing({ ...editing, sesiones_disponibles: Number(e.target.value) || 0 })} /></div>
+                <div className="space-y-1.5"><Label>Realizadas</Label><Input type="number" placeholder="0" value={editing.sesiones_realizadas === 0 ? "" : editing.sesiones_realizadas} onChange={(e) => setEditing({ ...editing, sesiones_realizadas: Number(e.target.value) || 0 })} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={editing.activo} onCheckedChange={(c) => setEditing({ ...editing, activo: c })} /><Label>Activo</Label></div>
             </div>
@@ -217,6 +217,7 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
     return c.tipo;
   }
   function setVal(c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) {
+    if (field !== "tipo") v = v.replace(/^0+(?=\d)/, "");
     setDrafts((prev) => ({
       ...prev,
       [c.id]: {
@@ -341,10 +342,10 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
                     <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
                   </TableCell>
                   <TableCell>
-                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value })} />
+                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
                   <TableCell>
-                    <Input className="h-8" type="number" step="5" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value })} />
+                    <Input className="h-8" type="number" step="5" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button size="sm" onClick={addRow}>Añadir</Button>

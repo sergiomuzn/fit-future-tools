@@ -250,7 +250,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Precio cobrado (€)</Label>
-              <Input type="number" step="5" value={form.precio_cobrado ?? ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) })} />
+              <Input type="number" step="5" placeholder="0" value={form.precio_cobrado ? form.precio_cobrado : ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) || 0 })} />
             </div>
             <div className="space-y-1.5">
               <Label>Nota</Label>
