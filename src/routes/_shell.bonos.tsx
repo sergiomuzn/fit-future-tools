@@ -342,10 +342,10 @@ function CatalogoDialog({ open, onOpenChange, catalogo }: { open: boolean; onOpe
                     <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre} onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
                   </TableCell>
                   <TableCell>
-                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value })} />
+                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas} onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
                   <TableCell>
-                    <Input className="h-8" type="number" step="5" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value })} />
+                    <Input className="h-8" type="number" step="5" value={nuevo.precio} onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
                   <TableCell className="text-right space-x-1">
                     <Button size="sm" onClick={addRow}>Añadir</Button>
