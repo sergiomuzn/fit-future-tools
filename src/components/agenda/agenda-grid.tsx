@@ -417,7 +417,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : "";
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
-                : (client?.nombre ?? session.titulo ?? "Sin cliente");
+                : (client?.nombre ?? session.titulo ?? "");
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               return (
                 <div
@@ -486,7 +486,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   )}
                   {session.incidencia && (
                     <div className="truncate text-[10px] opacity-90 italic" title={session.incidencia}>
-                      📝 {session.incidencia}
+                      {session.incidencia}
                     </div>
                   )}
                 </div>
