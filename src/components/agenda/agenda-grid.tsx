@@ -269,19 +269,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
           (old ?? []).map((s) => (s.id === movingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
-        if (movingSession?.recurrencia_id && movedRef.current) {
-          setPendingTimeEdit({
-            id: movingId,
-            recurrencia_id: movingSession.recurrencia_id,
-            fecha: movingSession.fecha,
-            hora_inicio: newStart,
-            hora_fin: newEnd,
-          });
-        } else {
-          supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", moving.id).then(({ error }) => {
-            if (error) toast.error(error.message);
-            qc.invalidateQueries({ queryKey: ["sessions"] });
-          });
+        if (movingSession && movedRef.current) {
+          void handleTimeChange(movingSession, newStart, newEnd);
         }
       }
       setMoving(null);
@@ -296,19 +285,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
           (old ?? []).map((s) => (s.id === resizingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
-        if (resizingSession?.recurrencia_id) {
-          setPendingTimeEdit({
-            id: resizingId,
-            recurrencia_id: resizingSession.recurrencia_id,
-            fecha: resizingSession.fecha,
-            hora_inicio: newStart,
-            hora_fin: newEnd,
-          });
-        } else {
-          supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", resizing.id).then(({ error }) => {
-            if (error) toast.error(error.message);
-            qc.invalidateQueries({ queryKey: ["sessions"] });
-          });
+        if (resizingSession) {
+          void handleTimeChange(resizingSession, newStart, newEnd);
         }
       }
       setResizing(null);
