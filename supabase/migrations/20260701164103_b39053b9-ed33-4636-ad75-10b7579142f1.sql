@@ -1,0 +1,1 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS por_confirmar boolean NOT NULL DEFAULT false;

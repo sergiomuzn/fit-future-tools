@@ -484,6 +484,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 ? (groupNames || "Sin clientes")
                 : (client?.nombre ?? session.titulo ?? "");
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
+              const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
               return (
                 <div
                   key={session.id}
@@ -494,6 +495,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                       : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
+                    isPorConfirmar && "ring-1 ring-inset ring-white/40",
                   )}
                   style={{
                     top,
@@ -501,6 +503,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     left: `${leftPct}%`,
                     width: `${widthPct - 0.5}%`,
                     opacity: isMoving ? 0.7 : 1,
+                    backgroundImage: isPorConfirmar
+                      ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 6px, transparent 6px 12px)"
+                      : undefined,
                   }}
                   onMouseDown={(e) => {
                     if (paintTrainerId) return;

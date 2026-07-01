@@ -1,8 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
-import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
+import { useState } from "react";
+import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
 const TIPO_CLASS: Record<string, string> = {
@@ -12,7 +16,7 @@ const TIPO_CLASS: Record<string, string> = {
   prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
 };
 
-export type ClientDetailsTab = "info" | "historial";
+export type ClientDetailsTab = "info" | "historial" | "calendario";
 
 export function ClientDetailsDialog({
   client,
@@ -50,6 +54,7 @@ export function ClientDetailsDialog({
             <TabsList>
               <TabsTrigger value="info">Información</TabsTrigger>
               <TabsTrigger value="historial">Historial de bonos</TabsTrigger>
+              <TabsTrigger value="calendario">Calendario</TabsTrigger>
             </TabsList>
             <TabsContent value="info" className="pt-4">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
@@ -101,6 +106,9 @@ export function ClientDetailsDialog({
                 </Table>
               )}
             </TabsContent>
+            <TabsContent value="calendario" className="pt-4">
+              <ClientCalendar clientId={client.id} />
+            </TabsContent>
           </Tabs>
         )}
       </DialogContent>
@@ -113,6 +121,171 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
     <div>
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className="mt-0.5">{value}</dd>
+    </div>
+  );
+}
+
+const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const DOW = ["L","M","X","J","V","S","D"];
+
+const ESTADO_DOT: Record<string, string> = {
+  reservada: "bg-state-reservada",
+  realizada: "bg-state-realizada",
+  cancelada: "bg-state-cancelada",
+  prueba: "bg-state-prueba",
+  renovacion: "bg-state-renovacion",
+};
+
+function ClientCalendar({ clientId }: { clientId: string }) {
+  const today = new Date();
+  const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
+
+  const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
+  const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
+  const isoStart = `${monthStart.getFullYear()}-${String(monthStart.getMonth()+1).padStart(2,"0")}-01`;
+  const isoEnd = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth()+1).padStart(2,"0")}-${String(monthEnd.getDate()).padStart(2,"0")}`;
+
+  const { data: sessions = [] } = useQuery({
+    queryKey: ["client-sessions", clientId, isoStart, isoEnd],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("fecha", isoStart)
+        .lte("fecha", isoEnd)
+        .order("hora_inicio");
+      return (data ?? []) as Session[];
+    },
+  });
+
+  const { data: invoices = [] } = useQuery({
+    queryKey: ["client-invoices", clientId, isoStart, isoEnd],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("invoices")
+        .select("*")
+        .eq("client_id", clientId)
+        .gte("fecha", isoStart)
+        .lte("fecha", isoEnd);
+      return (data ?? []) as Invoice[];
+    },
+  });
+
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+  });
+  const catMap = new Map(catalogo.map((c) => [c.id, c]));
+
+  const sessionsByDay = new Map<number, Session[]>();
+  sessions.forEach((s) => {
+    const d = Number(s.fecha.slice(8, 10));
+    const arr = sessionsByDay.get(d) ?? [];
+    arr.push(s);
+    sessionsByDay.set(d, arr);
+  });
+  const invoicesByDay = new Map<number, Invoice[]>();
+  invoices.forEach((i) => {
+    const d = Number(i.fecha.slice(8, 10));
+    const arr = invoicesByDay.get(d) ?? [];
+    arr.push(i);
+    invoicesByDay.set(d, arr);
+  });
+
+  // grid: lunes primero
+  const firstDow = (monthStart.getDay() + 6) % 7; // Lun=0
+  const totalDays = monthEnd.getDate();
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= totalDays; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+        <div className="font-semibold capitalize">{MONTHS[cursor.getMonth()]} {cursor.getFullYear()}</div>
+        <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}>
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+      <div className="grid grid-cols-7 gap-1 text-[10px] text-muted-foreground text-center">
+        {DOW.map((d) => <div key={d}>{d}</div>)}
+      </div>
+      <div className="grid grid-cols-7 gap-1">
+        {cells.map((d, i) => {
+          if (d === null) return <div key={i} className="aspect-square" />;
+          const daySessions = sessionsByDay.get(d) ?? [];
+          const dayInvoices = invoicesByDay.get(d) ?? [];
+          const isToday = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth() && today.getDate() === d;
+          return (
+            <div
+              key={i}
+              className={cn(
+                "aspect-square rounded border p-1 text-[10px] flex flex-col gap-0.5 overflow-hidden",
+                isToday ? "border-primary bg-primary/5" : "border-border",
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <span className={cn("font-semibold", isToday && "text-primary")}>{d}</span>
+                {dayInvoices.length > 0 && (
+                  <span
+                    title={dayInvoices.map((iv) => catMap.get(iv.bono_catalogo_id)?.nombre ?? "Bono").join(", ")}
+                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-0.5 overflow-hidden">
+                {daySessions.slice(0, 3).map((s) => {
+                  const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
+                  const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
+                  const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
+                  return (
+                    <div
+                      key={s.id}
+                      title={`${s.hora_inicio.slice(0,5)} · ${s.estado}${isNC ? " (NC)" : ""}${isPorConfirmar ? " (Por confirmar)" : ""}`}
+                      className={cn(
+                        "flex items-center gap-1 rounded px-1 leading-tight text-[9px] truncate text-white",
+                        dot,
+                        isNC && "opacity-60 border border-dashed border-white/60",
+                      )}
+                      style={{
+                        backgroundImage: isPorConfirmar
+                          ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 6px)"
+                          : undefined,
+                      }}
+                    >
+                      <span className="truncate">{s.hora_inicio.slice(0,5)}{isNC ? " NC" : ""}</span>
+                    </div>
+                  );
+                })}
+                {daySessions.length > 3 && (
+                  <div className="text-[9px] text-muted-foreground">+{daySessions.length - 3}</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
+        <LegendDot color="bg-state-reservada" label="Reservada" />
+        <LegendDot color="bg-state-realizada" label="Realizada" />
+        <LegendDot color="bg-state-cancelada" label="Cancelada" />
+        <LegendDot color="bg-state-prueba" label="Prueba" />
+        <LegendDot color="bg-amber-500" label="Bono facturado" />
+      </div>
+    </div>
+  );
+}
+
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <div className="flex items-center gap-1">
+      <span className={cn("h-2 w-2 rounded-sm", color)} />
+      <span>{label}</span>
     </div>
   );
 }

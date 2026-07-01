@@ -45,6 +45,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [titulo, setTitulo] = useState("");
   const [nombreLibre, setNombreLibre] = useState("");
   const [noContabilizar, setNoContabilizar] = useState(false);
+  const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
@@ -106,6 +107,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setTitulo((session as any)?.titulo ?? "");
     setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
     setNoContabilizar(!!(session as any)?.no_contabilizar);
+    setPorConfirmar(!!(session as any)?.por_confirmar);
   }, [open, session]);
 
   // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
@@ -152,6 +154,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       incidencia: incidencia || null,
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
+      por_confirmar: estado === "reservada" ? porConfirmar : false,
     };
     // Auto-realizada si la sesión es pasada (se aplica por fecha en la serie)
     const now = new Date();
@@ -551,6 +554,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Label>Incidencia / nota</Label>
             <Textarea value={incidencia} onChange={(e) => setIncidencia(e.target.value)} rows={2} />
           </div>
+
+          {estado === "reservada" && (
+            <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
+              <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
+              <div className="space-y-0.5">
+                <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
+                <p className="text-[11px] text-muted-foreground leading-tight">Marca la sesión como provisional. En la agenda aparecerá con el color de reservada pero con un patrón diagonal sutil.</p>
+              </div>
+            </div>
+          )}
         </div>
         <DialogFooter className="gap-2">
           {!isNew && (session as any).recurrencia_id && (
