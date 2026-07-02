@@ -165,12 +165,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const estadoForDate = (fecha: string): SesionEstado => {
       const end = new Date(`${fecha}T${base.hora_fin}`);
       const isPast = end.getTime() + GRACE_MS < now.getTime();
-      if (base.estado === "reservada") {
-        if (base.por_confirmar) return "reservada";
-        return isPast ? "realizada" : "reservada";
+      // "Por confirmar" nunca se auto-convierte.
+      if (base.por_confirmar) return "reservada";
+      // Canceladas se respetan tal cual.
+      if (base.estado === "cancelada") return "cancelada";
+      // Futuro: si estaba marcada como realizada, revertir a reservada.
+      if (!isPast) {
+        if (base.estado === "realizada") return "reservada";
+        return base.estado;
       }
-      if (base.estado === "realizada" && !isPast) return "reservada";
-      return base.estado;
+      // Pasado (>15 min tras el fin): reservada / renovacion / prueba / realizada → realizada.
+      return "realizada";
     };
 
     if (isNew) {

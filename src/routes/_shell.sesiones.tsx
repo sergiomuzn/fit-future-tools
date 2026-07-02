@@ -21,8 +21,23 @@ function SesionesPage() {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-past"],
     queryFn: async () => {
-      const { data } = await supabase.from("sessions").select("*").lte("fecha", today).order("fecha", { ascending: false }).order("hora_inicio", { ascending: false }).limit(500);
-      return (data ?? []) as Session[];
+      const { data } = await supabase
+        .from("sessions")
+        .select("*")
+        .lte("fecha", today)
+        .in("estado", ["realizada", "cancelada"])
+        .order("fecha", { ascending: false })
+        .order("hora_inicio", { ascending: false })
+        .limit(500);
+      const rows = (data ?? []) as Session[];
+      // Excluir sesiones "por confirmar" y las de hoy cuyo fin + 15 min aún no ha pasado.
+      const now = new Date();
+      const GRACE_MS = 15 * 60 * 1000;
+      return rows.filter((s) => {
+        if ((s as any).por_confirmar) return false;
+        const end = new Date(`${s.fecha}T${s.hora_fin}`);
+        return end.getTime() + GRACE_MS < now.getTime();
+      });
     },
   });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
