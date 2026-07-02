@@ -156,12 +156,21 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
     };
-    // Auto-realizada si la sesión es pasada (se aplica por fecha en la serie)
+    // Auto-realizada si la sesión es pasada (con 15 min de margen tras la hora de fin).
+    // - "Por confirmar" nunca pasa automáticamente a realizada.
+    // - Si el estado guardado era "realizada" pero la nueva hora está en el futuro,
+    //   se revierte a "reservada".
     const now = new Date();
+    const GRACE_MS = 15 * 60 * 1000;
     const estadoForDate = (fecha: string): SesionEstado => {
-      if (base.estado !== "reservada") return base.estado;
       const end = new Date(`${fecha}T${base.hora_fin}`);
-      return end < now ? "realizada" : "reservada";
+      const isPast = end.getTime() + GRACE_MS < now.getTime();
+      if (base.estado === "reservada") {
+        if (base.por_confirmar) return "reservada";
+        return isPast ? "realizada" : "reservada";
+      }
+      if (base.estado === "realizada" && !isPast) return "reservada";
+      return base.estado;
     };
 
     if (isNew) {
