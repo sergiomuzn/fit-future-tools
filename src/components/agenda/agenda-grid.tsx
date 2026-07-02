@@ -230,10 +230,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }
 
   async function handleTimeChange(sess: Session, newStart: string, newEnd: string) {
+    // Si la sesión estaba "realizada" y se mueve al futuro, revertir a "reservada".
+    const newEndDate = new Date(`${sess.fecha}T${newEnd}`);
+    const revertToReservada = sess.estado === "realizada" && newEndDate > new Date();
+    const extra = revertToReservada ? { estado: "reservada" as const } : {};
     if (!sess.recurrencia_id) {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["client_bonos"] });
       return;
     }
     // Solo preguntar por el "scope" si existen hermanas futuras en la serie.
@@ -251,9 +256,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         hora_fin: newEnd,
       });
     } else {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["client_bonos"] });
     }
   }
 
@@ -342,13 +348,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     setDialogOpen(true);
   }
 
-  // Auto-realizada para sesiones pasadas en estado 'reservada'
+  // Auto-realizada para sesiones pasadas en estado 'reservada'.
+  // - Se aplica con 15 min de retraso tras la hora de fin (margen de renovación).
+  // - Las sesiones marcadas "Por confirmar" NUNCA pasan a realizada automáticamente.
   useEffect(() => {
     const now = new Date();
+    const GRACE_MS = 15 * 60 * 1000;
     for (const s of sessions) {
-      if (s.estado === "reservada") {
+      if (s.estado === "reservada" && !(s as any).por_confirmar) {
         const end = new Date(`${s.fecha}T${s.hora_fin}`);
-        if (end < now) {
+        if (end.getTime() + GRACE_MS < now.getTime()) {
           supabase.from("sessions").update({ estado: "realizada" }).eq("id", s.id).then(() => {
             qc.invalidateQueries({ queryKey: ["sessions"] });
             qc.invalidateQueries({ queryKey: ["client_bonos"] });
