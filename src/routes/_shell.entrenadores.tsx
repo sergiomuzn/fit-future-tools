@@ -89,12 +89,28 @@ function EntrenadoresPage() {
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="-1">Año completo</SelectItem>
-            {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+            {MONTHS.map((m, i) => {
+              if (year === currentYear && i > currentMonth) return null;
+              return <SelectItem key={i} value={String(i)}>{m}</SelectItem>;
+            })}
           </SelectContent>
         </Select>
-        <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
+        <Select
+          value={String(year)}
+          onValueChange={(v) => {
+            const newYear = Number(v);
+            setYear(newYear);
+            if (newYear === currentYear && month !== -1 && month > currentMonth) {
+              setMonth(currentMonth);
+            }
+          }}
+        >
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
-          <SelectContent>{[year-2, year-1, year, year+1].map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
+          <SelectContent>
+            {[currentYear - 2, currentYear - 1, currentYear]
+              .filter((y) => y <= currentYear)
+              .map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}
+          </SelectContent>
         </Select>
       </div>
       <div className="rounded-lg border bg-card">
