@@ -196,10 +196,21 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   // grid: lunes primero
   const firstDow = (monthStart.getDay() + 6) % 7; // Lun=0
   const totalDays = monthEnd.getDate();
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDow; i++) cells.push(null);
-  for (let d = 1; d <= totalDays; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
+  const prevMonthEnd = new Date(cursor.getFullYear(), cursor.getMonth(), 0).getDate();
+
+  type Cell = { day: number; isOutside: boolean };
+  const cells: Cell[] = [];
+  for (let i = 100; i < firstDow; i++) {
+    const day = prevMonthEnd - firstDow + 1 + i;
+    cells.push({ day, isOutside: true });
+  }
+  for (let d = 1; d <= totalDays; d++) {
+    cells.push({ day: d, isOutside: false });
+  }
+  while (cells.length % 7 !== 0) {
+    const day = cells.length - (firstDow + totalDays) + 1;
+    cells.push({ day, isOutside: true });
+  }
 
   return (
     <div className="space-y-3">
@@ -216,21 +227,21 @@ function ClientCalendar({ clientId }: { clientId: string }) {
         {DOW.map((d) => <div key={d}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
-        {cells.map((d, i) => {
-          if (d === null) return <div key={i} className="h-10" />;
-          const daySessions = sessionsByDay.get(d) ?? [];
-          const dayInvoices = invoicesByDay.get(d) ?? [];
-          const isToday = today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth() && today.getDate() === d;
+        {cells.map(({ day, isOutside }, i) => {
+          const daySessions = isOutside ? [] : (sessionsByDay.get(day) ?? []);
+          const dayInvoices = isOutside ? [] : (invoicesByDay.get(day) ?? []);
+          const isToday = !isOutside && today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth() && today.getDate() === day;
           return (
             <div
               key={i}
               className={cn(
                 "h-10 rounded border p-0.5 text-[10px] flex flex-col gap-0.5 overflow-hidden",
                 isToday ? "border-primary bg-primary/5" : "border-border",
+                isOutside && "bg-muted/20",
               )}
             >
               <div className="flex items-center justify-between">
-                <span className={cn("font-semibold", isToday && "text-primary")}>{d}</span>
+                <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
                 {dayInvoices.length > 0 && (
                   <span
                     title={dayInvoices.map((iv) => catMap.get(iv.bono_catalogo_id)?.nombre ?? "Bono").join(", ")}
@@ -275,7 +286,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
         <LegendDot color="bg-state-realizada" label="Realizada" />
         <LegendDot color="bg-state-cancelada" label="Cancelada" />
         <LegendDot color="bg-state-prueba" label="Prueba" />
-        <LegendDot color="bg-amber-500" label="Bono facturado" />
+        <LegendDot color="bg-amber-500" label="Renovación" />
       </div>
     </div>
   );
