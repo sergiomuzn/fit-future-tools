@@ -475,7 +475,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
               const bono = session.client_id ? bonoMap.get(session.client_id) : null;
               // Renovación: futura sin bono o con <= 1 sesión disponible
-              const isFuture = new Date(`${session.fecha}T${session.hora_fin}`) > new Date();
+              // Consideramos "aún no realizada" durante los 15 min de gracia tras
+              // el fin, para conservar el color de "renovación" en ese margen.
+              const GRACE_MS_RENEW = 15 * 60 * 1000;
+              const endDate = new Date(`${session.fecha}T${session.hora_fin}`);
+              const isFuture = endDate.getTime() + GRACE_MS_RENEW > Date.now();
               const needsRenewal =
                 isFuture &&
                 session.estado === "reservada" &&
@@ -568,7 +572,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     <div className="truncate text-[10px] opacity-90">{groupNames}</div>
                   )}
                   {session.incidencia && (
-                    <div className="truncate text-[10px] opacity-90 italic" title={session.incidencia}>
+                    <div
+                      className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
+                      title={session.incidencia}
+                    >
                       {session.incidencia}
                     </div>
                   )}
