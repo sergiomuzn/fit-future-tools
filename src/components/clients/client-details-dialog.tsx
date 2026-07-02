@@ -142,8 +142,18 @@ function ClientCalendar({ clientId }: { clientId: string }) {
 
   const monthStart = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
   const monthEnd = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0);
-  const isoStart = `${monthStart.getFullYear()}-${String(monthStart.getMonth()+1).padStart(2,"0")}-01`;
-  const isoEnd = `${monthEnd.getFullYear()}-${String(monthEnd.getMonth()+1).padStart(2,"0")}-${String(monthEnd.getDate()).padStart(2,"0")}`;
+
+  // Build grid range (lunes primero) incluyendo días fuera del mes
+  const firstDow = (monthStart.getDay() + 6) % 7;
+  const totalDays = monthEnd.getDate();
+  const gridStart = new Date(monthStart);
+  gridStart.setDate(gridStart.getDate() - firstDow);
+  const totalCells = Math.ceil((firstDow + totalDays) / 7) * 7;
+  const gridEnd = new Date(gridStart);
+  gridEnd.setDate(gridEnd.getDate() + totalCells - 1);
+  const toIso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+  const isoStart = toIso(gridStart);
+  const isoEnd = toIso(gridEnd);
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["client-sessions", clientId, isoStart, isoEnd],
@@ -178,38 +188,42 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
-  const sessionsByDay = new Map<number, Session[]>();
+  const { data: closedBonos = [] } = useQuery({
+    queryKey: ["client-bonos-closed", clientId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("client_bonos")
+        .select("*")
+        .eq("client_id", clientId)
+        .eq("activo", false);
+      return (data ?? []) as ClientBono[];
+    },
+  });
+  // map por fecha de cierre → bono cerrado (para "restantes al cerrar")
+  const closedByDate = new Map<string, ClientBono>();
+  closedBonos.forEach((b) => {
+    if (b.ultimo_bono_fecha) closedByDate.set(b.ultimo_bono_fecha, b);
+  });
+
+  const sessionsByDate = new Map<string, Session[]>();
   sessions.forEach((s) => {
-    const d = Number(s.fecha.slice(8, 10));
-    const arr = sessionsByDay.get(d) ?? [];
+    const arr = sessionsByDate.get(s.fecha) ?? [];
     arr.push(s);
-    sessionsByDay.set(d, arr);
+    sessionsByDate.set(s.fecha, arr);
   });
-  const invoicesByDay = new Map<number, Invoice[]>();
+  const invoicesByDate = new Map<string, Invoice[]>();
   invoices.forEach((i) => {
-    const d = Number(i.fecha.slice(8, 10));
-    const arr = invoicesByDay.get(d) ?? [];
+    const arr = invoicesByDate.get(i.fecha) ?? [];
     arr.push(i);
-    invoicesByDay.set(d, arr);
+    invoicesByDate.set(i.fecha, arr);
   });
 
-  // grid: lunes primero
-  const firstDow = (monthStart.getDay() + 6) % 7; // Lun=0
-  const totalDays = monthEnd.getDate();
-  const prevMonthEnd = new Date(cursor.getFullYear(), cursor.getMonth(), 0).getDate();
-
-  type Cell = { day: number; isOutside: boolean };
+  type Cell = { date: Date; iso: string; isOutside: boolean };
   const cells: Cell[] = [];
-  for (let i = 100; i < firstDow; i++) {
-    const day = prevMonthEnd - firstDow + 1 + i;
-    cells.push({ day, isOutside: true });
-  }
-  for (let d = 1; d <= totalDays; d++) {
-    cells.push({ day: d, isOutside: false });
-  }
-  while (cells.length % 7 !== 0) {
-    const day = cells.length - (firstDow + totalDays) + 1;
-    cells.push({ day, isOutside: true });
+  for (let i = 0; i < totalCells; i++) {
+    const d = new Date(gridStart);
+    d.setDate(d.getDate() + i);
+    cells.push({ date: d, iso: toIso(d), isOutside: d.getMonth() !== cursor.getMonth() });
   }
 
   return (
@@ -227,10 +241,11 @@ function ClientCalendar({ clientId }: { clientId: string }) {
         {DOW.map((d) => <div key={d}>{d}</div>)}
       </div>
       <div className="grid grid-cols-7 gap-0.5">
-        {cells.map(({ day, isOutside }, i) => {
-          const daySessions = isOutside ? [] : (sessionsByDay.get(day) ?? []);
-          const dayInvoices = isOutside ? [] : (invoicesByDay.get(day) ?? []);
-          const isToday = !isOutside && today.getFullYear() === cursor.getFullYear() && today.getMonth() === cursor.getMonth() && today.getDate() === day;
+        {cells.map(({ date, iso, isOutside }, i) => {
+          const day = date.getDate();
+          const daySessions = sessionsByDate.get(iso) ?? [];
+          const dayInvoices = invoicesByDate.get(iso) ?? [];
+          const isToday = today.getFullYear() === date.getFullYear() && today.getMonth() === date.getMonth() && today.getDate() === day;
           return (
             <div
               key={i}
@@ -238,13 +253,20 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                 "h-10 rounded border p-0.5 text-[10px] flex flex-col gap-0.5 overflow-hidden",
                 isToday ? "border-primary bg-primary/5" : "border-border",
                 isOutside && "bg-muted/20",
+                isOutside && "opacity-60",
               )}
             >
               <div className="flex items-center justify-between">
                 <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
                 {dayInvoices.length > 0 && (
                   <span
-                    title={dayInvoices.map((iv) => catMap.get(iv.bono_catalogo_id)?.nombre ?? "Bono").join(", ")}
+                    title={dayInvoices.map((iv) => {
+                      const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id)?.nombre) ?? "Bono";
+                      const cerrado = closedByDate.get(iv.fecha);
+                      return cerrado
+                        ? `${nombre} · Restantes al cerrar: ${cerrado.sesiones_disponibles}`
+                        : nombre;
+                    }).join("\n")}
                     className="h-1.5 w-1.5 rounded-full bg-amber-500"
                   />
                 )}
