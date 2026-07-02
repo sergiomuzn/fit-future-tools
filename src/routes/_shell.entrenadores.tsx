@@ -16,12 +16,12 @@ export const Route = createFileRoute("/_shell/entrenadores")({
   component: EntrenadoresPage,
 });
 
-const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function EntrenadoresPage() {
   const qc = useQueryClient();
   const now = new Date();
-  const [month, setMonth] = useState(now.getMonth());
+  const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Trainer> | null>(null);
@@ -34,9 +34,16 @@ function EntrenadoresPage() {
     },
   });
 
-  const start = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-  const endDate = new Date(year, month + 1, 0);
-  const end = `${year}-${String(month + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
+  const isYear = month === -1;
+  const start = isYear
+    ? `${year}-01-01`
+    : `${year}-${String(month + 1).padStart(2, "0")}-01`;
+  const end = isYear
+    ? `${year}-12-31`
+    : (() => {
+        const endDate = new Date(year, month + 1, 0);
+        return `${year}-${String(month + 1).padStart(2, "0")}-${String(endDate.getDate()).padStart(2, "0")}`;
+      })();
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-month", start, end],
@@ -78,7 +85,10 @@ function EntrenadoresPage() {
       <div className="flex gap-2">
         <Select value={String(month)} onValueChange={(v) => setMonth(Number(v))}>
           <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-          <SelectContent>{MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}</SelectContent>
+          <SelectContent>
+            <SelectItem value="-1">Año completo</SelectItem>
+            {MONTHS.map((m, i) => <SelectItem key={i} value={String(i)}>{m}</SelectItem>)}
+          </SelectContent>
         </Select>
         <Select value={String(year)} onValueChange={(v) => setYear(Number(v))}>
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
@@ -91,7 +101,7 @@ function EntrenadoresPage() {
             <TableRow>
               <TableHead>Iniciales</TableHead>
               <TableHead>Nombre</TableHead>
-              <TableHead>Entrenamientos {MONTHS[month]} {year}</TableHead>
+              <TableHead>Entrenamientos {isYear ? year : `${MONTHS[month]} ${year}`}</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>

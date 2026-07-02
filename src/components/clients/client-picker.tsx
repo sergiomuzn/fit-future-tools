@@ -78,7 +78,7 @@ export function ClientPicker({ value, onChange }: Props) {
             type="button"
             aria-label="Limpiar cliente"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setSearch(""); onChange(null, null); setListOpen(false); }}
+            onClick={() => { setSearch(""); onChange(null, null); setListOpen(true); }}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
