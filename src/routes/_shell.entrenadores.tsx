@@ -21,8 +21,10 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function EntrenadoresPage() {
   const qc = useQueryClient();
   const now = new Date();
-  const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
-  const [year, setYear] = useState(now.getFullYear());
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+  const [month, setMonth] = useState<number>(currentMonth); // -1 = año completo
+  const [year, setYear] = useState(currentYear);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Trainer> | null>(null);
 
