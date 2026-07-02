@@ -355,7 +355,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const now = new Date();
     const GRACE_MS = 15 * 60 * 1000;
     for (const s of sessions) {
-      if (s.estado === "reservada" && !(s as any).por_confirmar) {
+      // Cualquier estado "pendiente" (reservada / renovacion / prueba) pasa a
+      // realizada cuando la sesión ha terminado hace más de 15 min, siempre que
+      // no esté marcada como "Por confirmar".
+      const pendingStates = ["reservada", "renovacion", "prueba"] as const;
+      if ((pendingStates as readonly string[]).includes(s.estado) && !(s as any).por_confirmar) {
         const end = new Date(`${s.fecha}T${s.hora_fin}`);
         if (end.getTime() + GRACE_MS < now.getTime()) {
           supabase.from("sessions").update({ estado: "realizada" }).eq("id", s.id).then(() => {
