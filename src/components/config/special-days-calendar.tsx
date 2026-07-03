@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Paintbrush } from "lucide-react";
 import { DayEditorDialog } from "./day-editor-dialog";
-import { useCenterConfig, getDayScheduleFor, openMinutesOfDay, ymd, type SpecialDay, type HorarioBase } from "@/lib/center-schedule";
+import { useCenterConfig, getDayScheduleFor, openMinutesOfDay, ymd, type SpecialDay } from "@/lib/center-schedule";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
