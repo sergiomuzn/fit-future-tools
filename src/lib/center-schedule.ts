@@ -7,7 +7,6 @@ export type CenterConfig = Database["public"]["Tables"]["center_config"]["Row"];
 
 export type DaySlot = { open: string; close: string } | null;
 export type HorarioBase = Record<string, DaySlot>; // key 0..6 (0=domingo)
-export type Precios = { individual: number; pareja: number; grupal: number };
 export type Precios = {
   individual: number;
   pareja: number;
