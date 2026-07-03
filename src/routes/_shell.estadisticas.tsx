@@ -185,7 +185,10 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
 };
 
-function ComparisonModule({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
+function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
+  sessions: Session[]; trainers: Trainer[];
+  horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+}) {
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
@@ -204,8 +207,8 @@ function ComparisonModule({ sessions, trainers }: { sessions: Session[]; trainer
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
-    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap }),
-    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap],
+    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
+    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
   );
 
   function handleCsvExport() {
