@@ -454,8 +454,16 @@ function buildSeries(args: {
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+  clientTipoMap: Map<string, BonoTipo>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap } = args;
+  const tipoOf = (s: Session): Session["tipo"] => {
+    if (s.client_id) {
+      const t = clientTipoMap.get(s.client_id);
+      if (t) return t as Session["tipo"];
+    }
+    return s.tipo;
+  };
 
   // -------- Altas / Bajas metric (bucketed by month, independent of desglose) --------
   if (metric === "altasBajas") {
