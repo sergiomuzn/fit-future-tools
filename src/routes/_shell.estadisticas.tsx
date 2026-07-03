@@ -134,7 +134,6 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   }
   const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
 
-  const activos = clients.filter((c) => c.activo).length;
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
@@ -149,13 +148,12 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
     },
-    { label: "Clientes activos", value: String(activos), hint: `Total en ${MES_LABEL[m]} ${y}` },
     { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
     { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {kpis.map((k) => (
         <Card key={k.label}>
           <CardHeader className="pb-2">
