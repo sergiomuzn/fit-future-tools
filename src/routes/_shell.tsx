@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3 } from "lucide-react";
+import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings } from "lucide-react";
 import { MiniCalendar } from "@/components/mini-calendar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,7 @@ const NAV = [
   { to: "/sesiones", label: "Sesiones", icon: ClipboardList },
   { to: "/facturacion", label: "Facturación", icon: Receipt },
   { to: "/estadisticas", label: "Estadísticas", icon: BarChart3 },
+  { to: "/configuracion", label: "Configuración", icon: Settings },
 ] as const;
 
 function ShellLayout() {

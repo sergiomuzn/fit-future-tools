@@ -1,601 +1,351 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client } from "@/lib/db";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { supabase, type Session } from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Download, ArrowUpDown } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Download } from "lucide-react";
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line,
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend as RLegend,
 } from "recharts";
+import {
+  useCenterConfig, getPeriodCapacity, openMinutesInHour, eachDate, getDayScheduleFor, ymd,
+  type HorarioBase, type Precios,
+} from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
-// ============================================================
-// Constants
-// ============================================================
-const SLOTS = 3; // 3 espacios simultáneos disponibles
-const HORA_MIN = 7;
-const HORA_MAX = 22; // franjas 7..21 (16 slots including 22? we use 7..22 inclusive = 16)
-const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 7..22
-const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const MES_LABEL = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+type Preset = "hoy" | "semana" | "mes" | "anio" | "custom";
 
-function spacesFor(tipo: Session["tipo"]): number {
-  if (tipo === "grupal") return 2;
-  return 1; // individual, pareja, prueba, null
+function startOfWeek(d: Date): Date {
+  const day = (d.getDay() + 6) % 7; // lunes = 0
+  const r = new Date(d); r.setDate(d.getDate() - day); r.setHours(0,0,0,0); return r;
 }
+function endOfWeek(d: Date): Date {
+  const s = startOfWeek(d); const e = new Date(s); e.setDate(s.getDate() + 6); return e;
+}
+
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
-function ymd(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+function minsOf(hhmm: string): number { const [h,m] = hhmm.split(":").map(Number); return h*60 + m; }
+function isCounted(s: Session): boolean {
+  return s.estado === "realizada" || (s.estado === "cancelada" && !s.no_contabilizar);
 }
-function monthStart(y: number, m: number): Date { return new Date(y, m, 1); }
-function monthEnd(y: number, m: number): Date { return new Date(y, m + 1, 0); }
-function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDate(); }
+function isBillable(s: Session): boolean {
+  return s.estado === "realizada";
+}
+function spacesFor(tipo: Session["tipo"]): number { return tipo === "grupal" ? 2 : 1; }
+function peopleFor(s: Session): number {
+  if (s.tipo === "individual") return 1;
+  if (s.tipo === "pareja") return 2;
+  if (s.tipo === "grupal") return s.ocupacion;
+  return 1;
+}
+function priceOf(s: Session, precios: Precios): number {
+  if (s.tipo === "individual") return precios.individual;
+  if (s.tipo === "pareja") return precios.pareja;
+  if (s.tipo === "grupal") return precios.grupal * s.ocupacion;
+  return 0;
+}
 
-// ============================================================
-// Page
-// ============================================================
+function downloadCSV(filename: string, rows: (string | number)[][]) {
+  const csv = rows.map((r) => r.map((v) => {
+    const s = String(v);
+    return /[,"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  }).join(",")).join("\n");
+  const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 function StatsPage() {
+  const [preset, setPreset] = useState<Preset>("mes");
+  const today = new Date(); today.setHours(0,0,0,0);
+  const [from, setFrom] = useState<Date>(new Date(today.getFullYear(), today.getMonth(), 1));
+  const [to, setTo] = useState<Date>(new Date(today.getFullYear(), today.getMonth() + 1, 0));
+
+  function applyPreset(p: Preset) {
+    setPreset(p);
+    const now = new Date(); now.setHours(0,0,0,0);
+    if (p === "hoy") { setFrom(now); setTo(now); }
+    else if (p === "semana") { setFrom(startOfWeek(now)); setTo(endOfWeek(now)); }
+    else if (p === "mes") {
+      setFrom(new Date(now.getFullYear(), now.getMonth(), 1));
+      setTo(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+    } else if (p === "anio") {
+      setFrom(new Date(now.getFullYear(), 0, 1));
+      setTo(new Date(now.getFullYear(), 11, 31));
+    }
+  }
+
+  const { horario, precios, specialsMap } = useCenterConfig();
+
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-all"],
-    queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
-  });
-  const { data: trainers = [] } = useQuery({
-    queryKey: ["trainers"],
-    queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [],
-  });
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [],
+    queryKey: ["sessions-range", ymd(from), ymd(to)],
+    queryFn: async () => {
+      const { data } = await supabase.from("sessions").select("*")
+        .gte("fecha", ymd(from)).lte("fecha", ymd(to));
+      return (data ?? []) as Session[];
+    },
   });
 
   return (
     <div className="p-6 space-y-6 overflow-auto h-screen">
       <div>
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
-        <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
+        <p className="text-sm text-muted-foreground">Entrenamientos por franja, ocupación y facturación estimada.</p>
       </div>
 
-      <KpiPanel sessions={sessions} trainers={trainers} />
+      <Card>
+        <CardContent className="pt-6 flex flex-wrap items-end gap-3">
+          <div className="flex gap-1">
+            {(["hoy","semana","mes","anio","custom"] as Preset[]).map((p) => (
+              <Button key={p} size="sm" variant={preset === p ? "default" : "outline"} onClick={() => applyPreset(p)}>
+                {p === "hoy" ? "Hoy" : p === "semana" ? "Semana" : p === "mes" ? "Mes" : p === "anio" ? "Año" : "Personalizado"}
+              </Button>
+            ))}
+          </div>
+          <div>
+            <Label className="text-xs">Desde</Label>
+            <Input type="date" value={ymd(from)} onChange={(e) => { setPreset("custom"); setFrom(new Date(e.target.value)); }} />
+          </div>
+          <div>
+            <Label className="text-xs">Hasta</Label>
+            <Input type="date" value={ymd(to)} onChange={(e) => { setPreset("custom"); setTo(new Date(e.target.value)); }} />
+          </div>
+        </CardContent>
+      </Card>
 
-      <Tabs defaultValue="comparacion">
+      <Tabs defaultValue="franjas">
         <TabsList>
-          <TabsTrigger value="comparacion">Comparación</TabsTrigger>
-          <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
+          <TabsTrigger value="franjas">Entrenamientos por franja</TabsTrigger>
+          <TabsTrigger value="ocupacion">Ocupación %</TabsTrigger>
+          <TabsTrigger value="facturacion">Facturación</TabsTrigger>
         </TabsList>
-        <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} />
+
+        <TabsContent value="franjas" className="pt-4">
+          <FranjasTab sessions={sessions} from={from} to={to} horario={horario} specialsMap={specialsMap} />
         </TabsContent>
-        <TabsContent value="cancelaciones" className="pt-4">
-          <CancellationsPanel sessions={sessions} clients={clients} />
+        <TabsContent value="ocupacion" className="pt-4">
+          <OcupacionTab sessions={sessions} from={from} to={to} horario={horario} specialsMap={specialsMap} />
+        </TabsContent>
+        <TabsContent value="facturacion" className="pt-4">
+          <FacturacionTab sessions={sessions} precios={precios} />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
 
-// ============================================================
-// KPI Panel
-// ============================================================
-function KpiPanel({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
-  const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
-  const start = ymd(monthStart(y, m));
-  const end = ymd(monthEnd(y, m));
-
-  const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
-  const realizadas = monthSessions.filter((s) => s.estado === "realizada");
-  const canceladas = monthSessions.filter((s) => s.estado === "cancelada");
-
-  // Ocupación media: espacios ocupados / (3 * horas laborables * días del mes)
-  const spacesUsed = realizadas.reduce((acc, s) => {
-    const h = hourOf(s.hora_inicio);
-    if (h < HORA_MIN || h > HORA_MAX) return acc;
-    return acc + spacesFor(s.tipo);
-  }, 0);
-  const capacity = SLOTS * HOURS.length * daysInMonth(y, m);
-  const ocupacionMedia = capacity > 0 ? (spacesUsed / capacity) * 100 : 0;
-
-  // Entrenador con más sesiones realizadas este mes
-  const byTrainer = new Map<string, number>();
-  for (const s of realizadas) {
-    if (!s.trainer_id) continue;
-    byTrainer.set(s.trainer_id, (byTrainer.get(s.trainer_id) ?? 0) + 1);
+// ------------------------ helpers to derive open hours range for the period
+function periodHourRange(from: Date, to: Date, horario: HorarioBase, specialsMap: Map<string, any>): number[] {
+  let minH = 24, maxH = 0;
+  for (const d of eachDate(from, to)) {
+    const s = getDayScheduleFor(d, horario, specialsMap);
+    if (!s) continue;
+    minH = Math.min(minH, Math.floor(s.openMin / 60));
+    maxH = Math.max(maxH, Math.ceil(s.closeMin / 60));
   }
-  let topTrainer: { name: string; count: number } | null = null;
-  for (const [tid, c] of byTrainer) {
-    if (!topTrainer || c > topTrainer.count) {
-      const t = trainers.find((x) => x.id === tid);
-      topTrainer = { name: t?.nombre ?? t?.iniciales ?? "—", count: c };
+  if (minH > maxH) return [];
+  const out: number[] = [];
+  for (let h = minH; h < maxH; h++) out.push(h);
+  return out;
+}
+
+// ============================================================
+// Tab 1 — Entrenamientos por franja
+// ============================================================
+function FranjasTab({ sessions, from, to, horario, specialsMap }: {
+  sessions: Session[]; from: Date; to: Date;
+  horario: HorarioBase; specialsMap: Map<string, any>;
+}) {
+  const hours = periodHourRange(from, to, horario, specialsMap);
+  const data = useMemo(() => {
+    const counts = new Map<number, number>();
+    for (const s of sessions) {
+      if (!isCounted(s)) continue;
+      const h = hourOf(s.hora_inicio);
+      counts.set(h, (counts.get(h) ?? 0) + 1);
     }
-  }
+    return hours.map((h) => ({ franja: `${String(h).padStart(2,"0")}:00`, sesiones: counts.get(h) ?? 0 }));
+  }, [sessions, hours]);
 
-  const kpis = [
-    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${spacesUsed}/${capacity} espacios` },
-    { label: "Sesiones realizadas", value: String(realizadas.length), hint: `Mes de ${MES_LABEL[m]} ${y}` },
-    { label: "Cancelaciones", value: String(canceladas.length), hint: `${canceladas.filter((s) => s.no_contabilizar).length} NC` },
-    { label: "Entrenador top", value: topTrainer?.name ?? "—", hint: topTrainer ? `${topTrainer.count} sesiones` : "Sin datos" },
+  return (
+    <Card>
+      <CardHeader className="flex-row justify-between items-center">
+        <CardTitle>Sesiones iniciadas por franja horaria</CardTitle>
+        <Button size="sm" variant="outline" onClick={() => downloadCSV(
+          `franjas_${ymd(from)}_${ymd(to)}.csv`,
+          [["Franja","Sesiones"], ...data.map((d) => [d.franja, d.sesiones])],
+        )}><Download className="h-4 w-4 mr-1" />CSV</Button>
+      </CardHeader>
+      <CardContent style={{ height: 380 }}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="franja" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Bar dataKey="sesiones" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ============================================================
+// Tab 2 — Ocupación %
+// ============================================================
+function OcupacionTab({ sessions, from, to, horario, specialsMap }: {
+  sessions: Session[]; from: Date; to: Date;
+  horario: HorarioBase; specialsMap: Map<string, any>;
+}) {
+  const hours = periodHourRange(from, to, horario, specialsMap);
+
+  const { rows, kpiTotal, kpiManana, kpiTarde } = useMemo(() => {
+    // capacity per hour (across period, ×3 spaces)
+    const capHour = new Map<number, number>();
+    for (const h of hours) {
+      let cap = 0;
+      for (const d of eachDate(from, to)) cap += openMinutesInHour(d, h, horario, specialsMap);
+      capHour.set(h, cap * 3);
+    }
+    // occupied per hour
+    const occHour = new Map<number, number>();
+    let occManana = 0, occTarde = 0;
+    for (const s of sessions) {
+      if (!isCounted(s)) continue;
+      const h = hourOf(s.hora_inicio);
+      const dur = minsOf(s.hora_fin) - minsOf(s.hora_inicio);
+      const occ = dur * spacesFor(s.tipo);
+      occHour.set(h, (occHour.get(h) ?? 0) + occ);
+      if (h < 14) occManana += occ; else occTarde += occ;
+    }
+    const rows = hours.map((h) => {
+      const cap = capHour.get(h) ?? 0;
+      const occ = occHour.get(h) ?? 0;
+      return { franja: `${String(h).padStart(2,"0")}:00`, pct: cap > 0 ? +(occ / cap * 100).toFixed(1) : 0, cap, occ };
+    });
+    // shift capacity
+    let capManana = 0, capTarde = 0;
+    for (const [h, c] of capHour) {
+      if (h < 14) capManana += c; else capTarde += c;
+    }
+    const capTotal = capManana + capTarde;
+    const occTotal = occManana + occTarde;
+    return {
+      rows,
+      kpiTotal: capTotal > 0 ? (occTotal / capTotal * 100) : 0,
+      kpiManana: capManana > 0 ? (occManana / capManana * 100) : 0,
+      kpiTarde: capTarde > 0 ? (occTarde / capTarde * 100) : 0,
+    };
+  }, [sessions, from, to, horario, specialsMap, hours]);
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-3">
+        <Kpi label="Ocupación total" value={`${kpiTotal.toFixed(1)}%`} />
+        <Kpi label="Mañana (<14:00)" value={`${kpiManana.toFixed(1)}%`} />
+        <Kpi label="Tarde (≥14:00)" value={`${kpiTarde.toFixed(1)}%`} />
+      </div>
+      <Card>
+        <CardHeader className="flex-row justify-between items-center">
+          <CardTitle>Ocupación por franja horaria</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => downloadCSV(
+            `ocupacion_${ymd(from)}_${ymd(to)}.csv`,
+            [["Franja","% Ocupación","Min ocupados","Capacidad (min×3)"], ...rows.map((r) => [r.franja, r.pct, r.occ, r.cap])],
+          )}><Download className="h-4 w-4 mr-1" />CSV</Button>
+        </CardHeader>
+        <CardContent style={{ height: 380 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={rows}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="franja" />
+              <YAxis domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+              <Tooltip formatter={(v: number) => `${v}%`} />
+              <Bar dataKey="pct" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+// ============================================================
+// Tab 3 — Facturación estimada
+// ============================================================
+function FacturacionTab({ sessions, precios }: { sessions: Session[]; precios: Precios }) {
+  const { total, manana, tarde, rows } = useMemo(() => {
+    let manana = 0, tarde = 0;
+    const byDay = new Map<string, { manana: number; tarde: number }>();
+    for (const s of sessions) {
+      if (!isBillable(s)) continue;
+      const price = priceOf(s, precios);
+      const isMan = hourOf(s.hora_inicio) < 14;
+      if (isMan) manana += price; else tarde += price;
+      const cur = byDay.get(s.fecha) ?? { manana: 0, tarde: 0 };
+      if (isMan) cur.manana += price; else cur.tarde += price;
+      byDay.set(s.fecha, cur);
+    }
+    const rows = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([fecha, v]) => ({ fecha, manana: v.manana, tarde: v.tarde, total: v.manana + v.tarde }));
+    return { total: manana + tarde, manana, tarde, rows };
+  }, [sessions, precios]);
+
+  const chartData = [
+    { turno: "Mañana", euros: Math.round(manana) },
+    { turno: "Tarde", euros: Math.round(tarde) },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {kpis.map((k) => (
-        <Card key={k.label}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-display font-semibold">{k.value}</div>
-            <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-// ============================================================
-// Comparison Module
-// ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador";
-type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
-type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
-
-const METRIC_LABEL: Record<Metric, string> = {
-  ocupacion: "Ocupación del centro (%)",
-  sesiones: "Nº sesiones",
-  cancelaciones: "Cancelaciones (incl. NC)",
-  porTipo: "Sesiones por tipo",
-  porEntrenador: "Sesiones por entrenador",
-};
-const DESGLOSE_LABEL: Record<Desglose, string> = {
-  franja: "Franja horaria (7:00–22:00)",
-  turno: "Turno (mañana / tarde)",
-  dow: "Día de la semana",
-  tipoSesion: "Tipo de sesión",
-};
-const PERIOD_LABEL: Record<PeriodMode, string> = {
-  mesUnico: "Un mes concreto",
-  dosMeses: "Comparar dos meses",
-  anoVsAno: "Mismo mes en años distintos",
-  mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
-};
-
-function ComparisonModule({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
-  const [metric, setMetric] = useState<Metric>("sesiones");
-  const [desglose, setDesglose] = useState<Desglose>("franja");
-  const [period, setPeriod] = useState<PeriodMode>("mesUnico");
-
-  const now = new Date();
-  const [monthA, setMonthA] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
-  const [monthB, setMonthB] = useState(() => {
-    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  });
-  const [yearA, setYearA] = useState(String(now.getFullYear()));
-  const [yearB, setYearB] = useState(String(now.getFullYear() - 1));
-  const [monthOfYear, setMonthOfYear] = useState(String(now.getMonth() + 1).padStart(2, "0"));
-
-  const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
-
-  // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart } = useMemo(
-    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap }),
-    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap],
-  );
-
-  function handleCsvExport() {
-    if (rows.length === 0) return;
-    const headers = ["bucket", ...seriesKeys];
-    const lines = [headers.join(",")];
-    for (const r of rows) {
-      lines.push(headers.map((h) => JSON.stringify((r as Record<string, unknown>)[h] ?? "")).join(","));
-    }
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `estadisticas-${metric}-${desglose}-${period}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  const palette = ["hsl(var(--primary))", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
-
-  return (
     <div className="space-y-4">
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="space-y-1.5">
-          <Label>Métrica</Label>
-          <Select value={metric} onValueChange={(v) => setMetric(v as Metric)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(METRIC_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Desglose</Label>
-          <Select value={desglose} onValueChange={(v) => setDesglose(v as Desglose)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(DESGLOSE_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Periodo</Label>
-          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(PERIOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        <Kpi label="Facturación total" value={`${total.toFixed(0)} €`} />
+        <Kpi label="Mañana" value={`${manana.toFixed(0)} €`} />
+        <Kpi label="Tarde" value={`${tarde.toFixed(0)} €`} />
       </div>
-
-      <div className="flex flex-wrap gap-4 items-end">
-        {period === "mesUnico" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
-        )}
-        {period === "dosMeses" && (
-          <>
-            <FieldMonth label="Mes A" value={monthA} onChange={setMonthA} />
-            <FieldMonth label="Mes B" value={monthB} onChange={setMonthB} />
-          </>
-        )}
-        {period === "anoVsAno" && (
-          <>
-            <div className="space-y-1.5">
-              <Label>Mes</Label>
-              <Select value={monthOfYear} onValueChange={setMonthOfYear}>
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <FieldNumber label="Año A" value={yearA} onChange={setYearA} />
-            <FieldNumber label="Año B" value={yearB} onChange={setYearB} />
-          </>
-        )}
-        {period === "mananaVsTarde" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
-        )}
-        <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-card p-4">
-        <div className="h-[420px]">
-          {rows.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
-          ) : (
-            <ResponsiveContainer width="100%" height="100%">
-              {isLineChart ? (
-                <LineChart data={rows}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  <RLegend />
-                  {seriesKeys.map((k, i) => (
-                    <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 3 }} />
-                  ))}
-                </LineChart>
-              ) : (
-                <BarChart data={rows}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
-                  <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
-                  <RLegend />
-                  {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} />
-                  ))}
-                </BarChart>
-              )}
-            </ResponsiveContainer>
-          )}
-        </div>
-      </div>
+      <Card>
+        <CardHeader className="flex-row justify-between items-center">
+          <CardTitle>Facturación estimada por turno</CardTitle>
+          <Button size="sm" variant="outline" onClick={() => downloadCSV(
+            `facturacion.csv`,
+            [["Fecha","Mañana","Tarde","Total"], ...rows.map((r) => [r.fecha, r.manana, r.tarde, r.total])],
+          )}><Download className="h-4 w-4 mr-1" />CSV</Button>
+        </CardHeader>
+        <CardContent style={{ height: 340 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="turno" />
+              <YAxis tickFormatter={(v) => `${v}€`} />
+              <Tooltip formatter={(v: number) => `${v} €`} />
+              <RLegend />
+              <Bar dataKey="euros" name="€" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      <p className="text-xs text-muted-foreground">
+        Precios usados — Individual: {precios.individual} €, Pareja: {precios.pareja} €, Grupal: {precios.grupal} €/persona. Editables en Configuración.
+      </p>
     </div>
   );
 }
 
-function FieldMonth({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="month" value={value} onChange={(e) => onChange(e.target.value)} className="w-40" />
-    </div>
-  );
-}
-function FieldNumber({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} className="w-24" />
-    </div>
-  );
-}
-
-// ============================================================
-// Series builder
-// ============================================================
-type SeriesRow = { bucket: string; [key: string]: string | number };
-
-function buildSeries(args: {
-  sessions: Session[]; metric: Metric; desglose: Desglose; period: PeriodMode;
-  monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
-  trainerMap: Map<string, Trainer>;
-}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap } = args;
-
-  // Determine periods (label + filter fn)
-  const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
-  const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
-  const inMonth = (s: Session, y: number, m: number) => {
-    const start = ymd(monthStart(y, m));
-    const end = ymd(monthEnd(y, m));
-    return s.fecha >= start && s.fecha <= end;
-  };
-  const monthLabel = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
-
-  if (period === "mesUnico") {
-    const { y, m } = parseYm(monthA);
-    periods.push({ key: monthLabel(y, m), filter: (s) => inMonth(s, y, m), days: daysInMonth(y, m) });
-  } else if (period === "dosMeses") {
-    const a = parseYm(monthA); const b = parseYm(monthB);
-    periods.push({ key: monthLabel(a.y, a.m), filter: (s) => inMonth(s, a.y, a.m), days: daysInMonth(a.y, a.m) });
-    periods.push({ key: monthLabel(b.y, b.m), filter: (s) => inMonth(s, b.y, b.m), days: daysInMonth(b.y, b.m) });
-  } else if (period === "anoVsAno") {
-    const m = Number(monthOfYear) - 1;
-    const yA = Number(yearA); const yB = Number(yearB);
-    periods.push({ key: monthLabel(yA, m), filter: (s) => inMonth(s, yA, m), days: daysInMonth(yA, m) });
-    periods.push({ key: monthLabel(yB, m), filter: (s) => inMonth(s, yB, m), days: daysInMonth(yB, m) });
-  } else if (period === "mananaVsTarde") {
-    const { y, m } = parseYm(monthA);
-    const base = (s: Session) => inMonth(s, y, m);
-    periods.push({ key: `Mañana · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) < 14, days: daysInMonth(y, m) });
-    periods.push({ key: `Tarde · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) >= 14, days: daysInMonth(y, m) });
-  }
-
-  // Buckets
-  const bucketKeys: string[] = (() => {
-    if (desglose === "franja") return HOURS.map((h) => `${String(h).padStart(2, "0")}:00`);
-    if (desglose === "turno") return ["Mañana", "Tarde"];
-    if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-    return ["Individual", "Pareja", "Grupal", "Prueba"];
-  })();
-
-  const bucketOf = (s: Session): string | null => {
-    if (desglose === "franja") {
-      const h = hourOf(s.hora_inicio);
-      if (h < HORA_MIN || h > HORA_MAX) return null;
-      return `${String(h).padStart(2, "0")}:00`;
-    }
-    if (desglose === "turno") return hourOf(s.hora_inicio) < 14 ? "Mañana" : "Tarde";
-    if (desglose === "dow") {
-      const d = new Date(s.fecha + "T00:00:00");
-      const idx = d.getDay(); // 0=Dom
-      return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][idx];
-    }
-    // tipoSesion
-    switch (s.tipo) {
-      case "individual": return "Individual";
-      case "pareja": return "Pareja";
-      case "grupal": return "Grupal";
-      case "prueba": return "Prueba";
-      default: return null;
-    }
-  };
-
-  // For metric = porTipo / porEntrenador we produce multiple series per period.
-  // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
-  const isMultiSeries = metric === "porTipo" || metric === "porEntrenador";
-
-  const seriesKeysSet = new Set<string>();
-  const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
-  const capacityByBucketPeriod = new Map<string, number>(); // for ocupacion: bucket|period -> capacity
-
-  function addTo(bucket: string, series: string, val: number) {
-    seriesKeysSet.add(series);
-    if (!acc.has(bucket)) acc.set(bucket, new Map());
-    const m = acc.get(bucket)!;
-    m.set(series, (m.get(series) ?? 0) + val);
-  }
-
-  for (const p of periods) {
-    const periodSessions = sessions.filter(p.filter);
-
-    // Compute capacity per bucket for the period (for ocupacion metric)
-    if (metric === "ocupacion") {
-      for (const b of bucketKeys) {
-        let cap = 0;
-        if (desglose === "franja") cap = SLOTS * p.days; // one hour × days
-        else if (desglose === "turno") cap = SLOTS * (b === "Mañana" ? (14 - HORA_MIN) : (HORA_MAX - 14 + 1)) * p.days;
-        else if (desglose === "dow") {
-          // count occurrences of this dow in the period
-          const [y, m] = periodMonthOfPeriod(p, monthA, monthB, monthOfYear, yearA, yearB);
-          const idxTarget = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].indexOf(b);
-          let n = 0;
-          for (let d = 1; d <= p.days; d++) {
-            if (new Date(y, m, d).getDay() === idxTarget) n++;
-          }
-          cap = SLOTS * HOURS.length * n;
-        } else if (desglose === "tipoSesion") {
-          cap = SLOTS * HOURS.length * p.days;
-        }
-        capacityByBucketPeriod.set(`${b}||${p.key}`, cap);
-      }
-    }
-
-    for (const s of periodSessions) {
-      const b = bucketOf(s);
-      if (!b) continue;
-
-      if (metric === "sesiones") {
-        if (s.estado !== "realizada") continue;
-        addTo(b, p.key, 1);
-      } else if (metric === "cancelaciones") {
-        if (s.estado !== "cancelada") continue;
-        const key = s.no_contabilizar ? `${p.key} · NC` : `${p.key} · Cancelada`;
-        addTo(b, key, 1);
-      } else if (metric === "ocupacion") {
-        if (s.estado !== "realizada") continue;
-        addTo(b, p.key, spacesFor(s.tipo));
-      } else if (metric === "porTipo") {
-        if (s.estado !== "realizada") continue;
-        const t = s.tipo ?? "otro";
-        const label = t.charAt(0).toUpperCase() + t.slice(1);
-        const series = periods.length > 1 ? `${p.key} · ${label}` : label;
-        addTo(b, series, 1);
-      } else if (metric === "porEntrenador") {
-        if (s.estado !== "realizada") continue;
-        const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
-        const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
-        addTo(b, series, 1);
-      }
-    }
-  }
-
-  // Convert to percentages for ocupacion
-  if (metric === "ocupacion") {
-    for (const [b, m] of acc) {
-      for (const [s, v] of m) {
-        const cap = capacityByBucketPeriod.get(`${b}||${s}`) ?? 0;
-        m.set(s, cap > 0 ? Math.round((v / cap) * 1000) / 10 : 0);
-      }
-    }
-  }
-
-  const seriesKeys = Array.from(seriesKeysSet);
-  const rows: SeriesRow[] = bucketKeys.map((b) => {
-    const row: SeriesRow = { bucket: b };
-    for (const k of seriesKeys) row[k] = acc.get(b)?.get(k) ?? 0;
-    return row;
-  });
-
-  // filter rows with all zero (for tipoSesion when nothing exists)
-  const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
-
-  const isLineChart = desglose === "franja"; // evolución horaria
-  return { rows: nonZero.length ? nonZero : rows, seriesKeys: seriesKeys.length ? seriesKeys : ["value"], isLineChart };
-
-  // suppress unused
-  void isMultiSeries;
-}
-
-function periodMonthOfPeriod(_p: { key: string }, monthA: string, monthB: string, monthOfYear: string, yearA: string, yearB: string): [number, number] {
-  // Parse from period key: "MMM YYYY"
-  const parts = _p.key.split(" ");
-  const lastPart = parts[parts.length - 1];
-  const monthPart = parts[parts.length - 2];
-  const y = Number(lastPart);
-  const m = MES_LABEL.indexOf(monthPart);
-  if (!isNaN(y) && m >= 0) return [y, m];
-  // fallback
-  const [ya, ma] = monthA.split("-").map(Number);
-  void monthB; void monthOfYear; void yearA; void yearB;
-  return [ya, ma - 1];
-}
-
-// ============================================================
-// Cancellations Panel
-// ============================================================
-function CancellationsPanel({ sessions, clients }: { sessions: Session[]; clients: Client[] }) {
-  const now = new Date();
-  const [from, setFrom] = useState(ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1)));
-  const [to, setTo] = useState(ymd(monthEnd(now.getFullYear(), now.getMonth())));
-  const [sortDesc, setSortDesc] = useState(true);
-
-  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-
-  const rows = useMemo(() => {
-    const byClient = new Map<string, { name: string; normales: number; nc: number }>();
-    for (const s of sessions) {
-      if (s.estado !== "cancelada") continue;
-      if (s.fecha < from || s.fecha > to) continue;
-      const cid = s.client_id ?? "__sin__";
-      const name = cid === "__sin__" ? "— sin cliente —" : clientMap.get(cid)?.nombre ?? "—";
-      const rec = byClient.get(cid) ?? { name, normales: 0, nc: 0 };
-      if (s.no_contabilizar) rec.nc++;
-      else rec.normales++;
-      byClient.set(cid, rec);
-    }
-    const arr = Array.from(byClient.entries()).map(([cid, r]) => ({ cid, ...r, total: r.normales + r.nc }));
-    arr.sort((a, b) => sortDesc ? b.total - a.total : a.total - b.total);
-    return arr;
-  }, [sessions, clientMap, from, to, sortDesc]);
-
-  function exportCsv() {
-    const lines = ["cliente,canceladas,nc,total"];
-    for (const r of rows) lines.push(`"${r.name.replace(/"/g, '""')}",${r.normales},${r.nc},${r.total}`);
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `cancelaciones-${from}_${to}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-end">
-        <div className="space-y-1.5">
-          <Label>Desde</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Hasta</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-        </div>
-        <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-right">Canceladas</TableHead>
-              <TableHead className="text-right">NC</TableHead>
-              <TableHead className="text-right">
-                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortDesc((v) => !v)}>
-                  Total <ArrowUpDown className="h-3 w-3" />
-                </button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sin cancelaciones en el periodo.</TableCell></TableRow>
-            ) : rows.map((r) => (
-              <TableRow key={r.cid}>
-                <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{r.normales}</TableCell>
-                <TableCell className="text-right tabular-nums">{r.nc}</TableCell>
-                <TableCell className="text-right tabular-nums font-semibold">{r.total}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
+    <Card>
+      <CardContent className="pt-6">
+        <div className="text-xs text-muted-foreground">{label}</div>
+        <div className="text-2xl font-semibold font-display mt-1">{value}</div>
+      </CardContent>
+    </Card>
   );
 }

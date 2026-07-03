@@ -44,6 +44,27 @@ export type Database = {
         }
         Relationships: []
       }
+      center_config: {
+        Row: {
+          horario_base: Json
+          id: boolean
+          precios: Json
+          updated_at: string
+        }
+        Insert: {
+          horario_base?: Json
+          id?: boolean
+          precios?: Json
+          updated_at?: string
+        }
+        Update: {
+          horario_base?: Json
+          id?: boolean
+          precios?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       client_bonos: {
         Row: {
           activo: boolean
@@ -261,6 +282,36 @@ export type Database = {
           },
         ]
       }
+      special_days: {
+        Row: {
+          created_at: string
+          etiqueta: string | null
+          fecha: string
+          hora_apertura: string | null
+          hora_cierre: string | null
+          tipo: Database["public"]["Enums"]["special_day_tipo"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          etiqueta?: string | null
+          fecha: string
+          hora_apertura?: string | null
+          hora_cierre?: string | null
+          tipo: Database["public"]["Enums"]["special_day_tipo"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          etiqueta?: string | null
+          fecha?: string
+          hora_apertura?: string | null
+          hora_cierre?: string | null
+          tipo?: Database["public"]["Enums"]["special_day_tipo"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       trainers: {
         Row: {
           activo: boolean
@@ -311,6 +362,7 @@ export type Database = {
         | "cancelada"
         | "prueba"
         | "renovacion"
+      special_day_tipo: "cerrado" | "horario_especial"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -446,6 +498,7 @@ export const Constants = {
         "prueba",
         "renovacion",
       ],
+      special_day_tipo: ["cerrado", "horario_especial"],
     },
   },
 } as const
