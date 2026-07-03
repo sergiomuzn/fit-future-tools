@@ -17,6 +17,13 @@ const TIPO_LABEL: Record<string, string> = {
   prueba: "Prueba",
 };
 
+const TIPO_CLASS: Record<string, string> = {
+  prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+  individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+  pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+  grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+};
+
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
 function SesionesPage() {
