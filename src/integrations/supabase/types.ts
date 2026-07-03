@@ -122,6 +122,38 @@ export type Database = {
           },
         ]
       }
+      client_events: {
+        Row: {
+          client_id: string
+          created_at: string
+          fecha: string
+          id: string
+          tipo: Database["public"]["Enums"]["client_event_tipo"]
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          tipo: Database["public"]["Enums"]["client_event_tipo"]
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          fecha?: string
+          id?: string
+          tipo?: Database["public"]["Enums"]["client_event_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activo: boolean
@@ -345,6 +377,7 @@ export type Database = {
         Args: { p_bono_cat: string; p_client: string; p_fecha: string }
         Returns: undefined
       }
+      is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
       revert_invoice_row: {
         Args: { p_bono_cat: string; p_client: string; p_fecha: string }
         Returns: undefined
@@ -356,6 +389,7 @@ export type Database = {
     }
     Enums: {
       bono_tipo: "individual" | "pareja" | "grupal" | "prueba"
+      client_event_tipo: "alta" | "baja"
       sesion_estado:
         | "reservada"
         | "realizada"
@@ -491,6 +525,7 @@ export const Constants = {
   public: {
     Enums: {
       bono_tipo: ["individual", "pareja", "grupal", "prueba"],
+      client_event_tipo: ["alta", "baja"],
       sesion_estado: [
         "reservada",
         "realizada",
