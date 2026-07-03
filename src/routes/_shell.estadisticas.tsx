@@ -134,7 +134,6 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   }
   const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
 
-  const activos = clients.filter((c) => c.activo).length;
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
@@ -149,13 +148,12 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
     },
-    { label: "Clientes activos", value: String(activos), hint: `Total en ${MES_LABEL[m]} ${y}` },
     { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
     { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
       {kpis.map((k) => (
         <Card key={k.label}>
           <CardHeader className="pb-2">
@@ -176,7 +174,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 // ============================================================
 type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
-type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
+type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde" | "historico";
 
 const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
@@ -197,6 +195,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   dosMeses: "Comparar dos meses",
   anoVsAno: "Mismo mes en años distintos",
   mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
+  historico: "Histórico (todos los meses)",
 };
 
 function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: {
@@ -283,12 +282,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
       <div className="flex flex-wrap gap-4 items-end">
         {period === "mesUnico" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
         )}
         {period === "dosMeses" && (
           <>
-            <FieldMonth label="Mes A" value={monthA} onChange={setMonthA} />
-            <FieldMonth label="Mes B" value={monthB} onChange={setMonthB} />
+            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} />
+            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} />
           </>
         )}
         {period === "anoVsAno" && (
@@ -302,12 +301,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
                 </SelectContent>
               </Select>
             </div>
-            <FieldNumber label="Año A" value={yearA} onChange={setYearA} />
-            <FieldNumber label="Año B" value={yearB} onChange={setYearB} />
+            <YearSelect label="Año A" value={yearA} onChange={setYearA} />
+            <YearSelect label="Año B" value={yearB} onChange={setYearB} />
           </>
         )}
         {period === "mananaVsTarde" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
         )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
@@ -370,6 +369,56 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
   );
 }
 
+function yearRange(): string[] {
+  const cy = new Date().getFullYear();
+  const start = 2020;
+  const out: string[] = [];
+  for (let y = cy; y >= start; y--) out.push(String(y));
+  return out;
+}
+
+function MonthYearPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [y, m] = value.split("-");
+  const setMonth = (mm: string) => onChange(`${y}-${mm}`);
+  const setYear = (yy: string) => onChange(`${yy}-${m}`);
+  return (
+    <div className="flex gap-2 items-end">
+      <div className="space-y-1.5">
+        <Label>{label}</Label>
+        <Select value={m} onValueChange={setMonth}>
+          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label>&nbsp;</Label>
+        <Select value={y} onValueChange={setYear}>
+          <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function YearSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // ============================================================
 // Series builder
 // ============================================================
@@ -400,6 +449,21 @@ function buildSeries(args: {
       const yA = Number(yearA); const yB = Number(yearB);
       buckets.push({ key: monthLbl(yA, m), y: yA, m });
       buckets.push({ key: monthLbl(yB, m), y: yB, m });
+    } else if (period === "historico") {
+      const all = events.map((e) => e.fecha).sort();
+      if (all.length === 0) {
+        const now = new Date();
+        buckets.push({ key: monthLbl(now.getFullYear(), now.getMonth()), y: now.getFullYear(), m: now.getMonth() });
+      } else {
+        const first = new Date(all[0] + "T00:00:00");
+        const now = new Date();
+        const cur = new Date(first.getFullYear(), first.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth(), 1);
+        while (cur.getTime() <= end.getTime()) {
+          buckets.push({ key: monthLbl(cur.getFullYear(), cur.getMonth()), y: cur.getFullYear(), m: cur.getMonth() });
+          cur.setMonth(cur.getMonth() + 1);
+        }
+      }
     } else {
       const { y, m } = parseYm(monthA);
       buckets.push({ key: monthLbl(y, m), y, m });
@@ -441,6 +505,9 @@ function buildSeries(args: {
     const base = (s: Session) => inMonth(s, y, m);
     periods.push({ key: `Mañana · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) < 14, days: daysInMonth(y, m) });
     periods.push({ key: `Tarde · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) >= 14, days: daysInMonth(y, m) });
+  } else if (period === "historico") {
+    // Histórico: un único "periodo" que incluye todas las sesiones.
+    periods.push({ key: "Histórico", filter: () => true, days: 0 });
   }
 
   // Buckets
