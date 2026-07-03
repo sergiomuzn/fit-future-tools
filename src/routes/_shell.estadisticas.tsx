@@ -369,6 +369,56 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
   );
 }
 
+function yearRange(): string[] {
+  const cy = new Date().getFullYear();
+  const start = 2020;
+  const out: string[] = [];
+  for (let y = cy; y >= start; y--) out.push(String(y));
+  return out;
+}
+
+function MonthYearPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [y, m] = value.split("-");
+  const setMonth = (mm: string) => onChange(`${y}-${mm}`);
+  const setYear = (yy: string) => onChange(`${yy}-${m}`);
+  return (
+    <div className="flex gap-2 items-end">
+      <div className="space-y-1.5">
+        <Label>{label}</Label>
+        <Select value={m} onValueChange={setMonth}>
+          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="space-y-1.5">
+        <Label>&nbsp;</Label>
+        <Select value={y} onValueChange={setYear}>
+          <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
+  );
+}
+
+function YearSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={onChange}>
+        <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+        <SelectContent>
+          {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
 // ============================================================
 // Series builder
 // ============================================================
