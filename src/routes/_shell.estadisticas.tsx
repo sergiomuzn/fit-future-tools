@@ -359,8 +359,9 @@ function buildSeries(args: {
   sessions: Session[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
+  horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap } = args;
+  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
 
   // Determine periods (label + filter fn)
   const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
