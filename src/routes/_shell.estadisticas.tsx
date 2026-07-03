@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,25 @@ function StatsPage() {
     queryKey: ["client_events"],
     queryFn: async () => (await supabase.from("client_events").select("*")).data as ClientEvent[] ?? [],
   });
+  const { data: clientBonos = [] } = useQuery({
+    queryKey: ["client_bonos"],
+    queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
+  });
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+  });
+  const clientTipoMap = useMemo(() => {
+    const catMap = new Map(catalogo.map((b) => [b.id, b]));
+    const sorted = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    const m = new Map<string, BonoTipo>();
+    for (const cb of sorted) {
+      if (m.has(cb.client_id)) continue;
+      const cat = cb.bono_catalogo_id ? catMap.get(cb.bono_catalogo_id) : null;
+      if (cat?.tipo) m.set(cb.client_id, cat.tipo);
+    }
+    return m;
+  }, [clientBonos, catalogo]);
 
   return (
     <div className="p-6 space-y-6 overflow-auto h-screen">
@@ -79,7 +98,7 @@ function StatsPage() {
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
+      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} />
     </div>
   );
 }
@@ -186,9 +205,10 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   historico: "Histórico (todos los meses)",
 };
 
-function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: {
+function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap }: {
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+  clientTipoMap: Map<string, BonoTipo>;
 }) {
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
@@ -235,8 +255,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
-    [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap }),
+    [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap],
   );
 
   function handleCsvExport() {
@@ -434,8 +454,16 @@ function buildSeries(args: {
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+  clientTipoMap: Map<string, BonoTipo>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap } = args;
+  const tipoOf = (s: Session): Session["tipo"] => {
+    if (s.client_id) {
+      const t = clientTipoMap.get(s.client_id);
+      if (t) return t as Session["tipo"];
+    }
+    return s.tipo;
+  };
 
   // -------- Altas / Bajas metric (bucketed by month, independent of desglose) --------
   if (metric === "altasBajas") {
@@ -511,9 +539,10 @@ function buildSeries(args: {
     }
     const amountOf = (s: Session): number => {
       if (s.estado !== "realizada") return 0;
-      if (s.tipo === "individual") return PRECIO.individual;
-      if (s.tipo === "pareja") return PRECIO.pareja;
-      if (s.tipo === "grupal") return PRECIO.grupal;
+      const t = tipoOf(s);
+      if (t === "individual") return PRECIO.individual;
+      if (t === "pareja") return PRECIO.pareja;
+      if (t === "grupal") return PRECIO.grupal;
       return 0;
     };
     const buckets = ["Mañana", "Tarde", "Total"];
