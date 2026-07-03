@@ -367,23 +367,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
   );
 }
 
-function FieldMonth({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="month" value={value} onChange={(e) => onChange(e.target.value)} className="w-40" />
-    </div>
-  );
-}
-function FieldNumber({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} className="w-24" />
-    </div>
-  );
-}
-
 function MonthYearPicker({ label, value, onChange, years, monthsForYear }: {
   label: string; value: string; onChange: (v: string) => void;
   years: string[]; monthsForYear: (y: string) => number[];
