@@ -143,7 +143,8 @@ export function useCenterConfig() {
   });
 
   const horario: HorarioBase = (cfg.data?.horario_base as unknown as HorarioBase) ?? DEFAULT_HORARIO;
-  const precios: Precios = (cfg.data?.precios as unknown as Precios) ?? DEFAULT_PRECIOS;
+  const preciosRaw = (cfg.data?.precios as unknown as Partial<Precios>) ?? {};
+  const precios: Precios = { ...DEFAULT_PRECIOS, ...preciosRaw };
   const specialsMap = new Map<string, SpecialDay>();
   for (const s of special.data ?? []) specialsMap.set(s.fecha, s);
 
