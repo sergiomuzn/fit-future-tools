@@ -539,9 +539,10 @@ function buildSeries(args: {
     }
     const amountOf = (s: Session): number => {
       if (s.estado !== "realizada") return 0;
-      if (s.tipo === "individual") return PRECIO.individual;
-      if (s.tipo === "pareja") return PRECIO.pareja;
-      if (s.tipo === "grupal") return PRECIO.grupal;
+      const t = tipoOf(s);
+      if (t === "individual") return PRECIO.individual;
+      if (t === "pareja") return PRECIO.pareja;
+      if (t === "grupal") return PRECIO.grupal;
       return 0;
     };
     const buckets = ["Mañana", "Tarde", "Total"];
