@@ -376,12 +376,43 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
 type SeriesRow = { bucket: string; [key: string]: string | number };
 
 function buildSeries(args: {
-  sessions: Session[]; metric: Metric; desglose: Desglose; period: PeriodMode;
+  sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+
+  // -------- Altas / Bajas metric (bucketed by month, independent of desglose) --------
+  if (metric === "altasBajas") {
+    const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
+    const monthLbl = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
+    const buckets: { key: string; y: number; m: number }[] = [];
+    if (period === "mesUnico") {
+      const { y, m } = parseYm(monthA);
+      buckets.push({ key: monthLbl(y, m), y, m });
+    } else if (period === "dosMeses") {
+      const a = parseYm(monthA); const b = parseYm(monthB);
+      buckets.push({ key: monthLbl(a.y, a.m), y: a.y, m: a.m });
+      buckets.push({ key: monthLbl(b.y, b.m), y: b.y, m: b.m });
+    } else if (period === "anoVsAno") {
+      const m = Number(monthOfYear) - 1;
+      const yA = Number(yearA); const yB = Number(yearB);
+      buckets.push({ key: monthLbl(yA, m), y: yA, m });
+      buckets.push({ key: monthLbl(yB, m), y: yB, m });
+    } else {
+      const { y, m } = parseYm(monthA);
+      buckets.push({ key: monthLbl(y, m), y, m });
+    }
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const s = ymd(monthStart(y, m));
+      const e = ymd(monthEnd(y, m));
+      const altas = events.filter((ev) => ev.tipo === "alta" && ev.fecha >= s && ev.fecha <= e).length;
+      const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
+      return { bucket: key, Altas: altas, Bajas: bajas };
+    });
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
+  }
 
   // Determine periods (label + filter fn)
   const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
