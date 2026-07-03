@@ -47,6 +47,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [noContabilizar, setNoContabilizar] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
+  const [deleteAsk, setDeleteAsk] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -424,12 +425,29 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     onClose();
   }
 
-  async function remove() {
+  function requestDelete() {
+    if (isSeries) setDeleteAsk(true);
+    else void doDelete("one");
+  }
+
+  async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
-    const { error } = await supabase.from("sessions").delete().eq("id", session.id);
-    if (error) toast.error(error.message); else toast.success("Sesión eliminada");
+    if (scope === "future" && recurrenciaId && session.fecha) {
+      const { error } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("recurrencia_id", recurrenciaId)
+        .gte("fecha", session.fecha);
+      if (error) toast.error(error.message);
+      else toast.success("Sesiones futuras eliminadas");
+    } else {
+      const { error } = await supabase.from("sessions").delete().eq("id", session.id);
+      if (error) toast.error(error.message);
+      else toast.success("Sesión eliminada");
+    }
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    setDeleteAsk(false);
     onClose();
   }
 
@@ -577,10 +595,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           )}
         </div>
         <DialogFooter className="gap-2">
-          {!isNew && (session as any).recurrencia_id && (
-            <Button variant="outline" onClick={cancelFutureSeries}>Cancelar series futuras</Button>
-          )}
-          {!isNew && <Button variant="destructive" onClick={remove}>Eliminar</Button>}
+          {!isNew && <Button variant="destructive" onClick={requestDelete}>Eliminar</Button>}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={requestSave}>{isNew ? "Crear" : "Guardar"}</Button>
         </DialogFooter>
@@ -596,7 +611,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={() => doSave("one")}>Sólo esta sesión</AlertDialogAction>
-            <AlertDialogAction onClick={() => doSave("future")}>Series futuras</AlertDialogAction>
+            <AlertDialogAction onClick={() => doSave("future")}>Sesiones futuras</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={deleteAsk} onOpenChange={setDeleteAsk}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar sesión en serie</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta sesión se repite en varias semanas. ¿Quieres eliminar sólo esta sesión o también las siguientes de la serie?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => doDelete("one")}>Sólo esta sesión</AlertDialogAction>
+            <AlertDialogAction onClick={() => doDelete("future")}>Sesiones futuras</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
