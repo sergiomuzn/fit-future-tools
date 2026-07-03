@@ -81,7 +81,7 @@ export function DayEditorDialog({ open, onOpenChange, date, existing, onSaved }:
         <div className="space-y-4">
           <RadioGroup value={mode} onValueChange={(v) => setMode(v as Mode)} className="space-y-2">
             <div className="flex items-center gap-2"><RadioGroupItem value="normal" id="m-n" /><Label htmlFor="m-n">Horario normal</Label></div>
-            <div className="flex items-center gap-2"><RadioGroupItem value="cerrado" id="m-c" /><Label htmlFor="m-c">Cerrado (festivo)</Label></div>
+            <div className="flex items-center gap-2"><RadioGroupItem value="cerrado" id="m-c" /><Label htmlFor="m-c">Festivo/cerrado</Label></div>
             <div className="flex items-center gap-2"><RadioGroupItem value="horario_especial" id="m-h" /><Label htmlFor="m-h">Horario especial</Label></div>
           </RadioGroup>
           {mode === "horario_especial" && (
