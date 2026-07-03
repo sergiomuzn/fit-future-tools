@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { AgendaGrid } from "@/components/agenda/agenda-grid";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
+import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/_shell/")({
   component: AgendaPage,
@@ -18,6 +19,9 @@ const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto
 function AgendaPage() {
   const { date, setDate } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
+  const { horario, specialsMap } = useCenterConfig();
+  const sched = getDayScheduleFor(date, horario, specialsMap);
+  const special = specialsMap.get(ymd(date));
 
   const { data: trainers = [] } = useQuery({
     queryKey: ["trainers"],
@@ -68,6 +72,18 @@ function AgendaPage() {
       {paintTrainerId && (
         <div className="bg-primary/10 text-primary text-xs px-4 py-1.5 border-b">
           Modo pintar activo · pincha sobre las sesiones para asignarles este entrenador.
+        </div>
+      )}
+
+      {sched === null && (
+        <div className="bg-destructive/15 text-destructive text-xs font-medium px-4 py-1.5 border-b">
+          {special?.etiqueta ? `${special.etiqueta} · ` : ""}Festivo · Centro cerrado
+        </div>
+      )}
+      {sched && special?.tipo === "horario_especial" && (
+        <div className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs font-medium px-4 py-1.5 border-b">
+          Horario especial: {special.hora_apertura?.slice(0,5)}–{special.hora_cierre?.slice(0,5)}
+          {special.etiqueta ? ` · ${special.etiqueta}` : ""}
         </div>
       )}
 
