@@ -8,6 +8,14 @@ export type CenterConfig = Database["public"]["Tables"]["center_config"]["Row"];
 export type DaySlot = { open: string; close: string } | null;
 export type HorarioBase = Record<string, DaySlot>; // key 0..6 (0=domingo)
 export type Precios = { individual: number; pareja: number; grupal: number };
+export type Precios = {
+  individual: number;
+  pareja: number;
+  grupal: number;
+  gympass_ep: number;
+  gympass_gr: number;
+  classpass: number;
+};
 
 export const DEFAULT_HORARIO: HorarioBase = {
   "0": null,
@@ -18,7 +26,14 @@ export const DEFAULT_HORARIO: HorarioBase = {
   "5": { open: "06:45", close: "22:00" },
   "6": { open: "09:00", close: "14:00" },
 };
-export const DEFAULT_PRECIOS: Precios = { individual: 36, pareja: 49, grupal: 17 };
+export const DEFAULT_PRECIOS: Precios = {
+  individual: 36,
+  pareja: 49,
+  grupal: 17,
+  gympass_ep: 20,
+  gympass_gr: 14,
+  classpass: 12,
+};
 
 export function ymd(d: Date): string {
   const y = d.getFullYear();
