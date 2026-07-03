@@ -513,7 +513,7 @@ function buildSeries(args: {
       if (s.estado !== "realizada") return 0;
       if (s.tipo === "individual") return PRECIO.individual;
       if (s.tipo === "pareja") return PRECIO.pareja;
-      if (s.tipo === "grupal") return PRECIO.grupal * Math.max(1, s.ocupacion ?? 1);
+      if (s.tipo === "grupal") return PRECIO.grupal;
       return 0;
     };
     const buckets = ["Mañana", "Tarde", "Total"];
