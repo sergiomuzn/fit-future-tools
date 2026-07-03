@@ -1,9 +1,11 @@
 import { useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Paintbrush } from "lucide-react";
 import { DayEditorDialog } from "./day-editor-dialog";
-import { useCenterConfig, getDayScheduleFor, ymd, type SpecialDay } from "@/lib/center-schedule";
+import { useCenterConfig, getDayScheduleFor, openMinutesOfDay, ymd, type SpecialDay } from "@/lib/center-schedule";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 const DOW = ["L","M","X","J","V","S","D"]; // lunes primero
@@ -14,15 +16,44 @@ export function SpecialDaysCalendar() {
   const [month, setMonth] = useState(new Date().getMonth());
   const [dialogDate, setDialogDate] = useState<Date | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [paintMode, setPaintMode] = useState(false);
 
   const { specialsMap, horario, invalidate } = useCenterConfig();
 
-  function openDay(d: Date) {
+  async function openDay(d: Date) {
+    if (paintMode) {
+      const key = ymd(d);
+      const existing = specialsMap.get(key);
+      if (existing?.tipo === "cerrado") {
+        const { error } = await supabase.from("special_days").delete().eq("fecha", key);
+        if (error) return toast.error(error.message);
+      } else {
+        const { error } = await supabase.from("special_days").upsert({
+          fecha: key,
+          tipo: "cerrado",
+          hora_apertura: null,
+          hora_cierre: null,
+          etiqueta: "Festivo",
+        });
+        if (error) return toast.error(error.message);
+      }
+      invalidate();
+      return;
+    }
     setDialogDate(d);
     setDialogOpen(true);
   }
 
   const existing = dialogDate ? specialsMap.get(ymd(dialogDate)) ?? null : null;
+
+  const operativos = useMemo(() => {
+    const total = new Date(year, month + 1, 0).getDate();
+    let count = 0;
+    for (let d = 1; d <= total; d++) {
+      if (openMinutesOfDay(new Date(year, month, d), horario, specialsMap) > 0) count++;
+    }
+    return count;
+  }, [year, month, horario, specialsMap]);
 
   return (
     <div className="space-y-4">
@@ -30,6 +61,15 @@ export function SpecialDaysCalendar() {
         <div className="flex items-center gap-2">
           <Button variant={view === "mensual" ? "default" : "outline"} size="sm" onClick={() => setView("mensual")}>Mensual</Button>
           <Button variant={view === "anual" ? "default" : "outline"} size="sm" onClick={() => setView("anual")}>Anual</Button>
+          <Button
+            variant={paintMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setPaintMode((p) => !p)}
+            className={cn(paintMode && "bg-destructive text-destructive-foreground hover:bg-destructive/90")}
+          >
+            <Paintbrush className="h-4 w-4 mr-1" />
+            Festivo/cerrado
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           {view === "mensual" ? (
@@ -52,8 +92,19 @@ export function SpecialDaysCalendar() {
         </div>
       </div>
 
+      {paintMode && (
+        <div className="bg-destructive/10 text-destructive text-xs font-medium px-3 py-1.5 rounded-md border border-destructive/30">
+          Modo pintar festivos activo · pincha en los días para marcarlos o desmarcarlos como festivo/cerrado.
+        </div>
+      )}
+
       {view === "mensual" ? (
-        <MonthGrid year={year} month={month} onClickDay={openDay} specialsMap={specialsMap} horario={horario} />
+        <>
+          <div className="text-sm text-muted-foreground">
+            Días operativos este mes: <span className="font-semibold text-foreground">{operativos}</span>
+          </div>
+          <MonthGrid year={year} month={month} onClickDay={openDay} specialsMap={specialsMap} horario={horario} />
+        </>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {MONTHS.map((name, i) => (
