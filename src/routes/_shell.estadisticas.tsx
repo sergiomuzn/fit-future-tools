@@ -36,6 +36,12 @@ function spacesFor(tipo: Session["tipo"]): number {
   return 1; // individual, pareja, prueba, null
 }
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
+function durMin(hi?: string | null, hf?: string | null): number {
+  if (!hi || !hf) return 0;
+  const [h1, m1] = hi.split(":").map(Number);
+  const [h2, m2] = hf.split(":").map(Number);
+  return Math.max(0, (h2 * 60 + m2) - (h1 * 60 + m1));
+}
 function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
