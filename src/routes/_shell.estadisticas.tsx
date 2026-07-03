@@ -242,6 +242,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
   }
 
   const palette = ["hsl(var(--primary))", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
+  const colorForSeries = (name: string, idx: number): string => {
+    const lower = name.toLowerCase();
+    if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
+    if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
+    return palette[idx % palette.length];
+  };
 
   return (
     <div className="space-y-4">
@@ -324,7 +330,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
-                    <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 3 }} />
+                    <Line key={k} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} />
                   ))}
                 </LineChart>
               ) : (
@@ -335,7 +341,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} />
+                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
                 </BarChart>
               )}
