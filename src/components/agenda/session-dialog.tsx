@@ -451,22 +451,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     onClose();
   }
 
-  async function cancelFutureSeries() {
-    if (!session?.id) return;
-    const recId = (session as any).recurrencia_id as string | null | undefined;
-    if (!recId) { toast.error("Esta sesión no pertenece a una serie"); return; }
-    const { error } = await supabase
-      .from("sessions")
-      .delete()
-      .eq("recurrencia_id", recId)
-      .gte("fecha", session.fecha!);
-    if (error) toast.error(error.message);
-    else toast.success("Serie futura cancelada");
-    qc.invalidateQueries({ queryKey: ["sessions"] });
-    qc.invalidateQueries({ queryKey: ["client_bonos"] });
-    onClose();
-  }
-
   if (!session) return null;
 
   return (
