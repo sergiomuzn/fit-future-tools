@@ -5,11 +5,8 @@ import { supabase, type Session, type Trainer, type Client } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Download, ArrowUpDown } from "lucide-react";
+import { Download } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend as RLegend, LineChart, Line,
@@ -82,18 +79,7 @@ function StatsPage() {
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <Tabs defaultValue="comparacion">
-        <TabsList>
-          <TabsTrigger value="comparacion">Comparación</TabsTrigger>
-          <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
-        </TabsList>
-        <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
-        </TabsContent>
-        <TabsContent value="cancelaciones" className="pt-4">
-          <CancellationsPanel sessions={sessions} clients={clients} />
-        </TabsContent>
-      </Tabs>
+      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
     </div>
   );
 }
