@@ -167,7 +167,7 @@ function MonthGrid({
               key={i}
               onClick={() => onClickDay(d)}
               className={cn(
-                "border rounded-md text-left transition-colors hover:bg-accent",
+                "border rounded-md text-left transition-colors hover:bg-accent flex flex-col items-start",
                 mini ? "h-6 px-1 text-[10px]" : "min-h-14 p-1.5 text-xs",
                 closed && "bg-destructive/15 border-destructive/40",
                 sp?.tipo === "horario_especial" && "bg-amber-500/15 border-amber-500/40",
