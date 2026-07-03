@@ -10,6 +10,13 @@ import { Download, Search, X } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 
+const TIPO_LABEL: Record<string, string> = {
+  individual: "Individual",
+  pareja: "Pareja",
+  grupal: "Grupal",
+  prueba: "Prueba",
+};
+
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
 function SesionesPage() {
@@ -87,6 +94,7 @@ function SesionesPage() {
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
+          Tipo: s.tipo ? TIPO_LABEL[s.tipo] ?? s.tipo : "",
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
           Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
@@ -103,6 +111,7 @@ function SesionesPage() {
               <TableHead>Fecha</TableHead>
               <TableHead>Hora</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Entrenador</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Incidencia</TableHead>
@@ -114,6 +123,7 @@ function SesionesPage() {
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
+                <TableCell>{s.tipo ? TIPO_LABEL[s.tipo] ?? s.tipo : "—"}</TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell>
                   <span
@@ -130,7 +140,7 @@ function SesionesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin sesiones aún</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin sesiones aún</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

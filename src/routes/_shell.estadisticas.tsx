@@ -5,11 +5,8 @@ import { supabase, type Session, type Trainer, type Client } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
-import { Download, ArrowUpDown } from "lucide-react";
+import { Download } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend as RLegend, LineChart, Line,
@@ -82,18 +79,7 @@ function StatsPage() {
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <Tabs defaultValue="comparacion">
-        <TabsList>
-          <TabsTrigger value="comparacion">Comparación</TabsTrigger>
-          <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
-        </TabsList>
-        <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
-        </TabsContent>
-        <TabsContent value="cancelaciones" className="pt-4">
-          <CancellationsPanel sessions={sessions} clients={clients} />
-        </TabsContent>
-      </Tabs>
+      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
     </div>
   );
 }
@@ -381,23 +367,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
   );
 }
 
-function FieldMonth({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="month" value={value} onChange={(e) => onChange(e.target.value)} className="w-40" />
-    </div>
-  );
-}
-function FieldNumber({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="space-y-1.5">
-      <Label>{label}</Label>
-      <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} className="w-24" />
-    </div>
-  );
-}
-
 function MonthYearPicker({ label, value, onChange, years, monthsForYear }: {
   label: string; value: string; onChange: (v: string) => void;
   years: string[]; monthsForYear: (y: string) => number[];
@@ -544,7 +513,7 @@ function buildSeries(args: {
       if (s.estado !== "realizada") return 0;
       if (s.tipo === "individual") return PRECIO.individual;
       if (s.tipo === "pareja") return PRECIO.pareja;
-      if (s.tipo === "grupal") return PRECIO.grupal * Math.max(1, s.ocupacion ?? 1);
+      if (s.tipo === "grupal") return PRECIO.grupal;
       return 0;
     };
     const buckets = ["Mañana", "Tarde", "Total"];
@@ -768,90 +737,3 @@ function periodMonthOfPeriod(_p: { key: string }, monthA: string, monthB: string
   return [ya, ma - 1];
 }
 
-// ============================================================
-// Cancellations Panel
-// ============================================================
-function CancellationsPanel({ sessions, clients }: { sessions: Session[]; clients: Client[] }) {
-  const now = new Date();
-  const [from, setFrom] = useState(ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1)));
-  const [to, setTo] = useState(ymd(monthEnd(now.getFullYear(), now.getMonth())));
-  const [sortDesc, setSortDesc] = useState(true);
-
-  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
-
-  const rows = useMemo(() => {
-    const byClient = new Map<string, { name: string; normales: number; nc: number }>();
-    for (const s of sessions) {
-      if (s.estado !== "cancelada") continue;
-      if (s.fecha < from || s.fecha > to) continue;
-      const cid = s.client_id ?? "__sin__";
-      const name = cid === "__sin__" ? "— sin cliente —" : clientMap.get(cid)?.nombre ?? "—";
-      const rec = byClient.get(cid) ?? { name, normales: 0, nc: 0 };
-      if (s.no_contabilizar) rec.nc++;
-      else rec.normales++;
-      byClient.set(cid, rec);
-    }
-    const arr = Array.from(byClient.entries()).map(([cid, r]) => ({ cid, ...r, total: r.normales + r.nc }));
-    arr.sort((a, b) => sortDesc ? b.total - a.total : a.total - b.total);
-    return arr;
-  }, [sessions, clientMap, from, to, sortDesc]);
-
-  function exportCsv() {
-    const lines = ["cliente,canceladas,nc,total"];
-    for (const r of rows) lines.push(`"${r.name.replace(/"/g, '""')}",${r.normales},${r.nc},${r.total}`);
-    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `cancelaciones-${from}_${to}.csv`; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap gap-4 items-end">
-        <div className="space-y-1.5">
-          <Label>Desde</Label>
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
-        </div>
-        <div className="space-y-1.5">
-          <Label>Hasta</Label>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
-        </div>
-        <div className="ml-auto">
-          <Button variant="outline" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
-            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
-          </Button>
-        </div>
-      </div>
-
-      <div className="rounded-lg border bg-card">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Cliente</TableHead>
-              <TableHead className="text-right">Canceladas</TableHead>
-              <TableHead className="text-right">NC</TableHead>
-              <TableHead className="text-right">
-                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortDesc((v) => !v)}>
-                  Total <ArrowUpDown className="h-3 w-3" />
-                </button>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sin cancelaciones en el periodo.</TableCell></TableRow>
-            ) : rows.map((r) => (
-              <TableRow key={r.cid}>
-                <TableCell className="font-medium">{r.name}</TableCell>
-                <TableCell className="text-right tabular-nums">{r.normales}</TableCell>
-                <TableCell className="text-right tabular-nums">{r.nc}</TableCell>
-                <TableCell className="text-right tabular-nums font-semibold">{r.total}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-    </div>
-  );
-}
