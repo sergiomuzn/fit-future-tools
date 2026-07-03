@@ -174,7 +174,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 // ============================================================
 type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
-type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
+type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde" | "historico";
 
 const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
@@ -195,6 +195,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   dosMeses: "Comparar dos meses",
   anoVsAno: "Mismo mes en años distintos",
   mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
+  historico: "Histórico (todos los meses)",
 };
 
 function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: {
@@ -281,12 +282,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
       <div className="flex flex-wrap gap-4 items-end">
         {period === "mesUnico" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
         )}
         {period === "dosMeses" && (
           <>
-            <FieldMonth label="Mes A" value={monthA} onChange={setMonthA} />
-            <FieldMonth label="Mes B" value={monthB} onChange={setMonthB} />
+            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} />
+            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} />
           </>
         )}
         {period === "anoVsAno" && (
@@ -300,12 +301,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
                 </SelectContent>
               </Select>
             </div>
-            <FieldNumber label="Año A" value={yearA} onChange={setYearA} />
-            <FieldNumber label="Año B" value={yearB} onChange={setYearB} />
+            <YearSelect label="Año A" value={yearA} onChange={setYearA} />
+            <YearSelect label="Año B" value={yearB} onChange={setYearB} />
           </>
         )}
         {period === "mananaVsTarde" && (
-          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
         )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
