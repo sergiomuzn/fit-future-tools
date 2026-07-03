@@ -174,7 +174,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
 type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
 
@@ -184,9 +184,10 @@ const METRIC_LABEL: Record<Metric, string> = {
   cancelaciones: "Cancelaciones (incl. NC)",
   porTipo: "Sesiones por tipo",
   porEntrenador: "Sesiones por entrenador",
+  altasBajas: "Altas y bajas por mes",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
-  franja: "Franja horaria (7:00–22:00)",
+  franja: "Franja horaria (6:45–22:00)",
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
   tipoSesion: "Tipo de sesión",
@@ -198,8 +199,8 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
 };
 
-function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
-  sessions: Session[]; trainers: Trainer[];
+function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: {
+  sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
   const [metric, setMetric] = useState<Metric>("sesiones");
@@ -220,8 +221,8 @@ function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
-    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
-    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
+    [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
   );
 
   function handleCsvExport() {
