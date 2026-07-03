@@ -449,6 +449,21 @@ function buildSeries(args: {
       const yA = Number(yearA); const yB = Number(yearB);
       buckets.push({ key: monthLbl(yA, m), y: yA, m });
       buckets.push({ key: monthLbl(yB, m), y: yB, m });
+    } else if (period === "historico") {
+      const all = events.map((e) => e.fecha).sort();
+      if (all.length === 0) {
+        const now = new Date();
+        buckets.push({ key: monthLbl(now.getFullYear(), now.getMonth()), y: now.getFullYear(), m: now.getMonth() });
+      } else {
+        const first = new Date(all[0] + "T00:00:00");
+        const now = new Date();
+        const cur = new Date(first.getFullYear(), first.getMonth(), 1);
+        const end = new Date(now.getFullYear(), now.getMonth(), 1);
+        while (cur.getTime() <= end.getTime()) {
+          buckets.push({ key: monthLbl(cur.getFullYear(), cur.getMonth()), y: cur.getFullYear(), m: cur.getMonth() });
+          cur.setMonth(cur.getMonth() + 1);
+        }
+      }
     } else {
       const { y, m } = parseYm(monthA);
       buckets.push({ key: monthLbl(y, m), y, m });
@@ -490,6 +505,9 @@ function buildSeries(args: {
     const base = (s: Session) => inMonth(s, y, m);
     periods.push({ key: `Mañana · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) < 14, days: daysInMonth(y, m) });
     periods.push({ key: `Tarde · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) >= 14, days: daysInMonth(y, m) });
+  } else if (period === "historico") {
+    // Histórico: un único "periodo" que incluye todas las sesiones.
+    periods.push({ key: "Histórico", filter: () => true, days: 0 });
   }
 
   // Buckets
