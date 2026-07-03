@@ -172,7 +172,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "altasBajas";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "facturacion" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
 type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde" | "historico";
 
@@ -182,6 +182,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   cancelaciones: "Cancelaciones (incl. NC)",
   porTipo: "Sesiones por tipo",
   porEntrenador: "Sesiones por entrenador",
+  facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
