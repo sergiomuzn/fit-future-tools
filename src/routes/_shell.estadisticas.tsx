@@ -14,6 +14,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend as RLegend, LineChart, Line,
 } from "recharts";
+import {
+  useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
+  type HorarioBase, type SpecialDay,
+} from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
