@@ -33,7 +33,7 @@ export function SpecialDaysCalendar() {
           tipo: "cerrado",
           hora_apertura: null,
           hora_cierre: null,
-          etiqueta: "Festivo",
+          etiqueta: null,
         });
         if (error) return toast.error(error.message);
       }
@@ -179,7 +179,7 @@ function MonthGrid({
               {!mini && sp && (
                 <div className="text-[10px] leading-tight mt-0.5">
                   {sp.tipo === "cerrado"
-                    ? (sp.etiqueta ?? "Cerrado")
+                    ? (sp.etiqueta ? sp.etiqueta.trim().split(/\s+/).slice(0, 2).join(" ") : "")
                     : `${sp.hora_apertura?.slice(0,5)}–${sp.hora_cierre?.slice(0,5)}`}
                 </div>
               )}
