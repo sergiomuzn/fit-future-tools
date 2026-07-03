@@ -17,6 +17,13 @@ const TIPO_LABEL: Record<string, string> = {
   prueba: "Prueba",
 };
 
+const TIPO_CLASS: Record<string, string> = {
+  prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+  individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
+  pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
+  grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+};
+
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
 function SesionesPage() {
@@ -147,7 +154,18 @@ function SesionesPage() {
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
-                <TableCell>{(() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : "—"; })()}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const t = tipoForSession(s);
+                    return t ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t] ?? ""}`}>
+                        {TIPO_LABEL[t] ?? t}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell>
                   <span

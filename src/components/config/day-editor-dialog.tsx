@@ -51,7 +51,7 @@ export function DayEditorDialog({ open, onOpenChange, date, existing, onSaved }:
         tipo: "cerrado",
         hora_apertura: null,
         hora_cierre: null,
-        etiqueta: etiqueta || "Festivo",
+        etiqueta: etiqueta || null,
       });
       if (error) return toast.error(error.message);
     } else {
