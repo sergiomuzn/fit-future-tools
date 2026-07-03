@@ -398,26 +398,31 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
   );
 }
 
-function yearRange(): string[] {
-  const cy = new Date().getFullYear();
-  const start = 2020;
-  const out: string[] = [];
-  for (let y = cy; y >= start; y--) out.push(String(y));
-  return out;
-}
-
-function MonthYearPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function MonthYearPicker({ label, value, onChange, years, monthsForYear }: {
+  label: string; value: string; onChange: (v: string) => void;
+  years: string[]; monthsForYear: (y: string) => number[];
+}) {
   const [y, m] = value.split("-");
+  const monthOptions = monthsForYear(y);
   const setMonth = (mm: string) => onChange(`${y}-${mm}`);
-  const setYear = (yy: string) => onChange(`${yy}-${m}`);
+  const setYear = (yy: string) => {
+    const opts = monthsForYear(yy);
+    let mm = m;
+    const currentIdx = Number(m) - 1;
+    if (!opts.includes(currentIdx)) {
+      const last = opts.length ? opts[opts.length - 1] : 0;
+      mm = String(last + 1).padStart(2, "0");
+    }
+    onChange(`${yy}-${mm}`);
+  };
   return (
     <div className="flex gap-2 items-end">
       <div className="space-y-1.5">
         <Label>{label}</Label>
         <Select value={m} onValueChange={setMonth}>
-          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+            {monthOptions.map((i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{MES_FULL[i]}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -426,7 +431,7 @@ function MonthYearPicker({ label, value, onChange }: { label: string; value: str
         <Select value={y} onValueChange={setYear}>
           <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+            {years.map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -434,14 +439,16 @@ function MonthYearPicker({ label, value, onChange }: { label: string; value: str
   );
 }
 
-function YearSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function YearSelect({ label, value, onChange, years }: {
+  label: string; value: string; onChange: (v: string) => void; years: string[];
+}) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
         <SelectContent>
-          {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+          {years.map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>
