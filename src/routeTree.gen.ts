@@ -13,7 +13,6 @@ import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
-import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
@@ -36,11 +35,6 @@ const ShellSesionesRoute = ShellSesionesRouteImport.update({
 const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
   id: '/facturacion',
   path: '/facturacion',
-  getParentRoute: () => ShellRoute,
-} as any)
-const ShellEstadisticasRoute = ShellEstadisticasRouteImport.update({
-  id: '/estadisticas',
-  path: '/estadisticas',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
@@ -70,7 +64,6 @@ export interface FileRoutesByFullPath {
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
-  '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
 }
@@ -79,7 +72,6 @@ export interface FileRoutesByTo {
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
-  '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
   '/': typeof ShellIndexRoute
@@ -91,7 +83,6 @@ export interface FileRoutesById {
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/configuracion': typeof ShellConfiguracionRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
-  '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
   '/_shell/': typeof ShellIndexRoute
@@ -104,7 +95,6 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracion'
     | '/entrenadores'
-    | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
   fileRoutesByTo: FileRoutesByTo
@@ -113,7 +103,6 @@ export interface FileRouteTypes {
     | '/clientes'
     | '/configuracion'
     | '/entrenadores'
-    | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
     | '/'
@@ -124,7 +113,6 @@ export interface FileRouteTypes {
     | '/_shell/clientes'
     | '/_shell/configuracion'
     | '/_shell/entrenadores'
-    | '/_shell/estadisticas'
     | '/_shell/facturacion'
     | '/_shell/sesiones'
     | '/_shell/'
@@ -164,13 +152,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellFacturacionRouteImport
       parentRoute: typeof ShellRoute
     }
-    '/_shell/estadisticas': {
-      id: '/_shell/estadisticas'
-      path: '/estadisticas'
-      fullPath: '/estadisticas'
-      preLoaderRoute: typeof ShellEstadisticasRouteImport
-      parentRoute: typeof ShellRoute
-    }
     '/_shell/entrenadores': {
       id: '/_shell/entrenadores'
       path: '/entrenadores'
@@ -207,7 +188,6 @@ interface ShellRouteChildren {
   ShellClientesRoute: typeof ShellClientesRoute
   ShellConfiguracionRoute: typeof ShellConfiguracionRoute
   ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
-  ShellEstadisticasRoute: typeof ShellEstadisticasRoute
   ShellFacturacionRoute: typeof ShellFacturacionRoute
   ShellSesionesRoute: typeof ShellSesionesRoute
   ShellIndexRoute: typeof ShellIndexRoute
@@ -218,7 +198,6 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellClientesRoute: ShellClientesRoute,
   ShellConfiguracionRoute: ShellConfiguracionRoute,
   ShellEntrenadoresRoute: ShellEntrenadoresRoute,
-  ShellEstadisticasRoute: ShellEstadisticasRoute,
   ShellFacturacionRoute: ShellFacturacionRoute,
   ShellSesionesRoute: ShellSesionesRoute,
   ShellIndexRoute: ShellIndexRoute,
