@@ -440,26 +440,59 @@ function buildSeries(args: {
   for (const p of periods) {
     const periodSessions = sessions.filter(p.filter);
 
-    // Compute capacity per bucket for the period (for ocupacion metric)
+    // Compute capacity per bucket for the period (for ocupacion metric).
+    // Capacity is measured in "espacios·minuto" = openMinutes × SLOTS,
+    // usando el horario real del centro (días festivos y horarios especiales).
     if (metric === "ocupacion") {
-      for (const b of bucketKeys) {
-        let cap = 0;
-        if (desglose === "franja") cap = SLOTS * p.days; // one hour × days
-        else if (desglose === "turno") cap = SLOTS * (b === "Mañana" ? (14 - HORA_MIN) : (HORA_MAX - 14 + 1)) * p.days;
-        else if (desglose === "dow") {
-          // count occurrences of this dow in the period
-          const [y, m] = periodMonthOfPeriod(p, monthA, monthB, monthOfYear, yearA, yearB);
-          const idxTarget = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].indexOf(b);
-          let n = 0;
-          for (let d = 1; d <= p.days; d++) {
-            if (new Date(y, m, d).getDay() === idxTarget) n++;
+      const [py, pm] = periodMonthOfPeriod(p, monthA, monthB, monthOfYear, yearA, yearB);
+      const isMananaTurno = p.key.startsWith("Mañana ·");
+      const isTardeTurno = p.key.startsWith("Tarde ·");
+      const capByBucket = new Map<string, number>();
+      const addCap = (b: string, min: number) => capByBucket.set(b, (capByBucket.get(b) ?? 0) + min * SLOTS);
+      for (const d of eachDate(monthStart(py, pm), monthEnd(py, pm))) {
+        const dayOpen = openMinutesOfDay(d, horario, specialsMap);
+        if (dayOpen === 0) continue;
+        if (desglose === "franja") {
+          for (const b of bucketKeys) {
+            const h = Number(b.slice(0, 2));
+            if (isMananaTurno && h >= 14) continue;
+            if (isTardeTurno && h < 14) continue;
+            addCap(b, openMinutesInHour(d, h, horario, specialsMap));
           }
-          cap = SLOTS * HOURS.length * n;
+        } else if (desglose === "turno") {
+          let am = 0, pmMin = 0;
+          for (let h = 0; h < 24; h++) {
+            const om = openMinutesInHour(d, h, horario, specialsMap);
+            if (h < 14) am += om; else pmMin += om;
+          }
+          if (!isTardeTurno) addCap("Mañana", am);
+          if (!isMananaTurno) addCap("Tarde", pmMin);
+        } else if (desglose === "dow") {
+          const dowLabel = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"][d.getDay()];
+          let usable = dayOpen;
+          if (isMananaTurno || isTardeTurno) {
+            usable = 0;
+            for (let h = 0; h < 24; h++) {
+              const om = openMinutesInHour(d, h, horario, specialsMap);
+              if (isMananaTurno && h < 14) usable += om;
+              if (isTardeTurno && h >= 14) usable += om;
+            }
+          }
+          addCap(dowLabel, usable);
         } else if (desglose === "tipoSesion") {
-          cap = SLOTS * HOURS.length * p.days;
+          let usable = dayOpen;
+          if (isMananaTurno || isTardeTurno) {
+            usable = 0;
+            for (let h = 0; h < 24; h++) {
+              const om = openMinutesInHour(d, h, horario, specialsMap);
+              if (isMananaTurno && h < 14) usable += om;
+              if (isTardeTurno && h >= 14) usable += om;
+            }
+          }
+          for (const b of bucketKeys) addCap(b, usable);
         }
-        capacityByBucketPeriod.set(`${b}||${p.key}`, cap);
       }
+      for (const [b, cap] of capByBucket) capacityByBucketPeriod.set(`${b}||${p.key}`, cap);
     }
 
     for (const s of periodSessions) {
@@ -475,7 +508,7 @@ function buildSeries(args: {
         addTo(b, key, 1);
       } else if (metric === "ocupacion") {
         if (s.estado !== "realizada") continue;
-        addTo(b, p.key, spacesFor(s.tipo));
+        addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porTipo") {
         if (s.estado !== "realizada") continue;
         const t = s.tipo ?? "otro";
