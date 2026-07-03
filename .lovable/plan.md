@@ -1,54 +1,91 @@
-## Resumen
-App interna sin login, una sola cuenta compartida. Pantalla principal: agenda tipo MagicLine. Navegación lateral hacia tablas y estadísticas. Datos persistidos en Lovable Cloud (Postgres). Tema claro/oscuro con toggle, paleta Slate & Steel, tipografía Sora/Manrope.
 
-## Fases
+# Plan: Configuración del centro y Estadísticas
 
-### Fase 1 — Cimientos
-- Activar Lovable Cloud.
-- Diseño: tokens en `src/styles.css` (slate/steel + colores semánticos para estados de sesión: prueba/reservada/realizada/cancelada/renovación), fuentes Sora + Manrope vía `<link>` en `__root.tsx`, toggle de tema.
-- Layout con sidebar fijo: mini-calendario mensual + navegación (Agenda, Clientes, Entrenadores, Bonos, Sesiones, Facturación, Estadísticas).
+## 1. Base de datos (migración)
 
-### Fase 2 — Base de datos
-Tablas (todas en `public`, con GRANTs a `anon` ya que no hay auth):
+Dos tablas nuevas + una para precios editables:
 
-- `trainers` (id, nombre, iniciales, color_opcional, activo)
-- `clients` (id, nombre, telefono, fecha_inicio, cumpleaños, notas)
-- `bonos_catalogo` (id, tipo [individual/pareja/grupal], nombre, sesiones_incluidas, duracion_min, precio_base) — sembrado con tu lista de precios
-- `client_bonos` (id, client_id, bono_catalogo_id, fecha_inicio, sesiones_disponibles, sesiones_realizadas, activo)
-- `sessions` (id, client_id, trainer_id, fecha, hora_inicio, hora_fin, estado [prueba/reservada/realizada/cancelada/renovacion], ocupacion [1|2], turno [mañana/tarde — derivado], incidencia, recurrencia_id)
-- `invoices` (id, fecha, cobrador_trainer_id, client_id, bono_catalogo_id, precio_cobrado, nota)
+- `center_config` (singleton, key/value JSON): guarda horario base semanal y precios medios.
+  - `horario_base`: `{ lun:{open,close}, mar:..., ..., dom: null }` (dom cerrado por defecto).
+  - `precios`: `{ individual:36, pareja:49, grupal:17 }`.
+- `special_days`:
+  - `fecha date PK`
+  - `tipo`: enum `cerrado | horario_especial` (los "horario modificado puntual" se tratan igual que `horario_especial`; la diferencia es solo etiqueta opcional)
+  - `hora_apertura time null`, `hora_cierre time null`
+  - `etiqueta text null` (ej. "Festivo", "Puente")
+- Grants + RLS abiertas (siguiendo el patrón del resto de tablas).
 
-Triggers/funciones:
-- Al insertar `invoice` → crear/actualizar `client_bonos` sumando sesiones del bono y marcando como último bono.
-- Al marcar `session` como `realizada` → decrementar `sesiones_disponibles` y aumentar `sesiones_realizadas` del bono activo del cliente.
-- Función programada (cron job o cálculo on-read) que marca sesiones pasadas con estado `reservada` como `realizada`.
+## 2. Sidebar
 
-### Fase 3 — Agenda (vista principal)
-- Vista diaria por defecto, toggle día/semana, navegación con mini-calendario.
-- Franja 6:00–23:00, líneas cada 30 min.
-- Chips de entrenadores en barra superior con iniciales; al seleccionar uno entra en "modo pintar" y los siguientes clicks asignan ese entrenador a las sesiones.
-- Click-and-drag vertical para crear sesión nueva → popover con buscador de clientes, selector de entrenador, checkbox "repetir N semanas".
-- Drag para mover sesiones existentes a otro horario.
-- Solape: las sesiones que coinciden en tiempo se reparten el ancho, dejando ~10% libre a un lado para crear sesiones nuevas.
-- Colores por estado; sesiones de renovación (clientes con ≤1 sesión restante) en amarillo-naranja.
-- Iniciales del entrenador visibles en cada bloque.
+Añadir entrada **"Configuración"** (`/configuracion`) con icono `Settings` en `src/routes/_shell.tsx`.
 
-### Fase 4 — Tablas
-- **Clientes**: nombre, teléfono, fecha inicio, cumpleaños. CRUD básico.
-- **Entrenadores**: nombre, iniciales, entrenamientos del mes (auto, contados desde `sessions` realizadas), selector de mes/año.
-- **Bonos**: cliente, sesiones disponibles/realizadas/restantes, último bono (de `invoices`), estado activo/inactivo. Activos primero (cronológico), luego inactivos. Botón editar sesiones restantes.
-- **Sesiones**: histórico (solo pasadas), cliente, incidencia editable, estado, entrenador.
-- **Facturación**: filtro mes/año, columnas: fecha, cobrador, cliente (selector + buscador con opción "nuevo cliente"), bono (selector del catálogo), precio (auto-rellenado desde catálogo, editable), nota.
+## 3. Ruta `/configuracion`
 
-### Fase 5 — Estadísticas
-Constructor libre: elegir variable X (mes, año, franja horaria, día semana, entrenador, tipo de bono, turno) e Y (nº sesiones, facturación, ocupación). Gráficos con Recharts. Comparativas predefinidas como atajos (mañana vs tarde, año vs año, bonos top).
+Archivo `src/routes/_shell.configuracion.tsx`. Dos bloques:
 
-## Detalles técnicos
-- **Stack**: TanStack Start + Tailwind v4 + shadcn + Recharts + dnd-kit para drag de sesiones + date-fns.
-- **Sin auth**: políticas RLS abiertas a `anon` en todas las tablas (uso interno). Avisar al usuario que cualquiera con la URL puede ver/editar — si en el futuro quiere proteger, se añade contraseña compartida o login.
-- **Server functions** para lógica de bonos/sesiones; lecturas vía publishable key.
+### a) Horario base y precios
+- Formulario con 7 filas (lun-dom): checkbox "abierto" + inputs `open`/`close`.
+- Defaults: L-V 06:45-22:00, S 09:00-14:00, D cerrado.
+- Sección "Precios medios" con 3 inputs (individual, pareja, grupal). Guardado en `center_config`. Nota: cambios afectan a cálculos futuros pero no borran nada — el histórico se recalcula con los precios actuales (aceptable porque son "precios medios estimados"; documentado en la UI).
 
-## Entrega
-Construyo todo en una sola tanda y, al terminar, te resumo qué probar primero (crear cliente, cobrar bono, arrastrar sesión en la agenda, ver que se descuenta).
+### b) Calendario de días especiales
+- Toggle vista **Anual** (grid de 12 mini-meses) / **Mensual** (calendario grande).
+- Click en día abre diálogo: `Normal | Cerrado | Horario especial`; si especial, inputs de apertura/cierre + etiqueta opcional.
+- Días cerrados: badge rojo "Cerrado". Días con horario especial: badge ámbar con horas.
 
-¿Apruebas el plan?
+## 4. Helpers `src/lib/center-schedule.ts`
+
+- `getDaySchedule(date, config, specialDays)` → `{ open:Date, close:Date } | null` (null = cerrado).
+- `getPeriodCapacity(start, end, config, specialDays)` → `{ workingDays, totalOpenMinutes, capacityMinutes /* ×3 */ }`.
+- `minutesInHourSlot(date, hour, config, specialDays)` → minutos abiertos dentro de esa hora concreta (para ocupación por franja).
+- Hook `useCenterConfig()` con React Query que cachea config + special_days y expone helpers.
+
+## 5. Integración en Agenda
+
+En `src/components/agenda/agenda-grid.tsx`:
+- Si el día actual está **cerrado**: overlay grande "Festivo · Cerrado" + no permitir crear sesiones (bloquear click y drag).
+- Si tiene **horario especial**: banner arriba "Horario especial: HH:MM–HH:MM" (solo aviso visual, sesiones fuera permitidas según decisión del usuario).
+
+## 6. Rediseño de Estadísticas
+
+Reescribir `src/routes/_shell.estadisticas.tsx` con selector de periodo (fecha inicio/fin + presets: Hoy, Semana, Mes, Año, Personalizado) y 3 tabs:
+
+### Tab 1 — Entrenamientos por franja
+- Bar chart: eje X = franjas horarias del día (dinámicas según horario más amplio del periodo), Y = nº sesiones iniciadas en esa franja.
+- Sesiones cuya `hora_inicio` cae dentro de `[H:00, H+1:00)` cuentan íntegras.
+- Filtra `estado in (realizada, cancelada donde no_contabilizar=false)`.
+- Botón "Exportar CSV".
+
+### Tab 2 — Ocupación %
+- KPIs arriba: ocupación total del periodo, mañana, tarde.
+- Bar chart por franja horaria: `%` = minutos_ocupados_en_esa_franja / (minutos_abiertos_en_esa_franja × 3 × nº_días).
+- Minutos ocupados por sesión = `(fin - inicio) × espacios` donde espacios = 2 si `tipo=grupal` else 1. Sesión asignada íntegra a la franja de inicio.
+- Solo cuentan sesiones `realizada` o `cancelada no_contabilizar=false`.
+- Botón CSV.
+
+### Tab 3 — Facturación estimada
+- KPIs: total, mañana, tarde.
+- Precio = precio_tipo × asistentes (individual=1, pareja=2, grupal=`ocupacion`).
+- Turno mañana = inicio < 14:00, tarde = ≥14:00.
+- Gráfica de barras mañana vs tarde + tabla desglose por día (opcional).
+- Botón CSV.
+
+## 7. Detalles técnicos
+
+- Todas las consultas usan `supabase` cliente ya existente.
+- Reactividad: los helpers derivan todo desde React Query; al invalidar `center_config` o `special_days` se recalcula sin refrescar.
+- Precios editables: se guardan como JSON en `center_config.precios`; se aplican a cualquier cálculo posterior. No se persiste facturación histórica (siempre se recalcula).
+- Franjas horarias del gráfico: calculadas por día real (si un día abre 6:45 la franja 6 tiene 15 min de capacidad, y 60 min los demás), sumadas en el periodo.
+
+## Archivos
+
+- **Nuevos**: `src/routes/_shell.configuracion.tsx`, `src/lib/center-schedule.ts`, `src/components/config/schedule-form.tsx`, `src/components/config/special-days-calendar.tsx`, `src/components/config/day-editor-dialog.tsx`.
+- **Editados**: `src/routes/_shell.tsx` (nav), `src/routes/_shell.estadisticas.tsx` (reescrito), `src/components/agenda/agenda-grid.tsx` (bloqueo días cerrados + banner).
+- **Migración**: `center_config`, `special_days` con grants + RLS abiertas.
+
+## Confirmaciones pendientes menores
+
+Voy a asumir estos criterios salvo que digas lo contrario:
+1. Precios editables afectan al recálculo del histórico (no se congelan por sesión).
+2. Días "horario modificado puntual" ≡ "festivo con horario especial" en datos — la diferencia es la etiqueta.
+3. En la agenda de un día cerrado no se pueden crear/mover sesiones; sí se ven las ya existentes.
