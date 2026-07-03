@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, type Session, type Client, type Trainer, ESTADO_LABEL } from "@/lib/db";
+import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, ESTADO_LABEL } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -49,9 +49,33 @@ function SesionesPage() {
   });
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
+  const { data: clientBonos = [] } = useQuery({
+    queryKey: ["client_bonos"],
+    queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
+  });
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+  });
 
   const clientMap = new Map(clients.map((c) => [c.id, c]));
   const trainerMap = new Map(trainers.map((t) => [t.id, t]));
+  const catalogoMap = new Map(catalogo.map((b) => [b.id, b]));
+  // Bono activo por cliente (fallback: más reciente por created_at)
+  const clientBonoTipo = new Map<string, string>();
+  const sortedBonos = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  for (const cb of sortedBonos) {
+    if (clientBonoTipo.has(cb.client_id)) continue;
+    const cat = cb.bono_catalogo_id ? catalogoMap.get(cb.bono_catalogo_id) : null;
+    if (cat?.tipo) clientBonoTipo.set(cb.client_id, cat.tipo);
+  }
+  const tipoForSession = (s: Session): string | null => {
+    if (s.client_id) {
+      const t = clientBonoTipo.get(s.client_id);
+      if (t) return t;
+    }
+    return s.tipo ?? null;
+  };
 
   const q = search.trim().toLowerCase();
   const filtered = q
@@ -94,7 +118,7 @@ function SesionesPage() {
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
-          Tipo: s.tipo ? TIPO_LABEL[s.tipo] ?? s.tipo : "",
+          Tipo: (() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : ""; })(),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
           Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
@@ -123,7 +147,7 @@ function SesionesPage() {
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
-                <TableCell>{s.tipo ? TIPO_LABEL[s.tipo] ?? s.tipo : "—"}</TableCell>
+                <TableCell>{(() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : "—"; })()}</TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell>
                   <span
