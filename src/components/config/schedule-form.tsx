@@ -17,104 +17,124 @@ const DAY_LABELS: Record<string, string> = {
 };
 const ORDER = ["1","2","3","4","5","6","0"];
 
-export function ScheduleForm() {
+export function HorarioForm() {
   const { horario, precios, invalidate, isLoading } = useCenterConfig();
   const [local, setLocal] = useState<HorarioBase>(horario);
-  const [localPrecios, setLocalPrecios] = useState<Precios>(precios);
 
   useEffect(() => {
-    if (!isLoading) {
-      setLocal(horario);
-      setLocalPrecios(precios);
-    }
+    if (!isLoading) setLocal(horario);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
   async function save() {
     const { error } = await supabase.from("center_config").update({
       horario_base: local as unknown as never,
-      precios: localPrecios as unknown as never,
+      precios: precios as unknown as never,
     }).eq("id", true);
     if (error) return toast.error(error.message);
-    toast.success("Configuración guardada");
+    toast.success("Horario guardado");
     invalidate();
   }
 
-  function reset() {
-    setLocal(DEFAULT_HORARIO);
-    setLocalPrecios(DEFAULT_PRECIOS);
+  return (
+    <Card>
+      <CardHeader><CardTitle>Horario base semanal</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        {ORDER.map((k) => {
+          const slot = local[k];
+          const open = !!slot;
+          return (
+            <div key={k} className="flex items-center gap-3">
+              <div className="w-24 text-sm">{DAY_LABELS[k]}</div>
+              <Checkbox
+                checked={open}
+                onCheckedChange={(v) => {
+                  setLocal((prev) => ({
+                    ...prev,
+                    [k]: v ? (slot ?? { open: "09:00", close: "20:00" }) : null,
+                  }));
+                }}
+              />
+              <Input
+                type="time"
+                className="w-28"
+                disabled={!open}
+                value={slot?.open ?? ""}
+                onChange={(e) => setLocal((prev) => ({ ...prev, [k]: { open: e.target.value, close: slot?.close ?? "20:00" } }))}
+              />
+              <span className="text-muted-foreground text-xs">a</span>
+              <Input
+                type="time"
+                className="w-28"
+                disabled={!open}
+                value={slot?.close ?? ""}
+                onChange={(e) => setLocal((prev) => ({ ...prev, [k]: { open: slot?.open ?? "09:00", close: e.target.value } }))}
+              />
+            </div>
+          );
+        })}
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => setLocal(DEFAULT_HORARIO)}>Restablecer defaults</Button>
+          <Button onClick={save}>Guardar horario</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+const PRECIO_ROWS: { key: keyof Precios; label: string; hint?: string }[] = [
+  { key: "individual", label: "Individual" },
+  { key: "pareja", label: "Pareja" },
+  { key: "grupal", label: "Grupal", hint: "por persona" },
+  { key: "gympass_ep", label: "Gympass EP" },
+  { key: "gympass_gr", label: "Gympass GR" },
+  { key: "classpass", label: "Classpass" },
+];
+
+export function PreciosForm() {
+  const { horario, precios, invalidate, isLoading } = useCenterConfig();
+  const [local, setLocal] = useState<Precios>(precios);
+
+  useEffect(() => {
+    if (!isLoading) setLocal(precios);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
+  async function save() {
+    const { error } = await supabase.from("center_config").update({
+      horario_base: horario as unknown as never,
+      precios: local as unknown as never,
+    }).eq("id", true);
+    if (error) return toast.error(error.message);
+    toast.success("Precios guardados");
+    invalidate();
   }
 
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader><CardTitle>Horario base semanal</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {ORDER.map((k) => {
-            const slot = local[k];
-            const open = !!slot;
-            return (
-              <div key={k} className="flex items-center gap-3">
-                <div className="w-24 text-sm">{DAY_LABELS[k]}</div>
-                <Checkbox
-                  checked={open}
-                  onCheckedChange={(v) => {
-                    setLocal((prev) => ({
-                      ...prev,
-                      [k]: v ? (slot ?? { open: "09:00", close: "20:00" }) : null,
-                    }));
-                  }}
-                />
-                <Input
-                  type="time"
-                  className="w-28"
-                  disabled={!open}
-                  value={slot?.open ?? ""}
-                  onChange={(e) => setLocal((prev) => ({ ...prev, [k]: { open: e.target.value, close: slot?.close ?? "20:00" } }))}
-                />
-                <span className="text-muted-foreground text-xs">a</span>
-                <Input
-                  type="time"
-                  className="w-28"
-                  disabled={!open}
-                  value={slot?.close ?? ""}
-                  onChange={(e) => setLocal((prev) => ({ ...prev, [k]: { open: slot?.open ?? "09:00", close: e.target.value } }))}
-                />
-              </div>
-            );
-          })}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Precios medios (€)</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-xs text-muted-foreground">
-            Se aplican a la facturación estimada de Estadísticas. Al cambiarlos se recalcula el histórico mostrado.
-          </p>
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <Label>Individual</Label>
-              <Input type="number" min={0} value={localPrecios.individual}
-                onChange={(e) => setLocalPrecios({ ...localPrecios, individual: Number(e.target.value) })} />
+    <Card>
+      <CardHeader><CardTitle>Precios medios (€)</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Se aplican a la facturación estimada de Estadísticas. Al cambiarlos se recalcula el histórico mostrado.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {PRECIO_ROWS.map((row) => (
+            <div key={row.key}>
+              <Label>{row.label}{row.hint ? <span className="text-muted-foreground text-xs"> ({row.hint})</span> : null}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={local[row.key]}
+                onChange={(e) => setLocal({ ...local, [row.key]: Number(e.target.value) })}
+              />
             </div>
-            <div>
-              <Label>Pareja</Label>
-              <Input type="number" min={0} value={localPrecios.pareja}
-                onChange={(e) => setLocalPrecios({ ...localPrecios, pareja: Number(e.target.value) })} />
-            </div>
-            <div>
-              <Label>Grupal (por persona)</Label>
-              <Input type="number" min={0} value={localPrecios.grupal}
-                onChange={(e) => setLocalPrecios({ ...localPrecios, grupal: Number(e.target.value) })} />
-            </div>
-          </div>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" onClick={reset}>Restablecer defaults</Button>
-            <Button onClick={save}>Guardar</Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
+          <Button onClick={save}>Guardar precios</Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
