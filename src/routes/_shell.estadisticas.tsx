@@ -25,9 +25,10 @@ export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsP
 // Constants
 // ============================================================
 const SLOTS = 3; // 3 espacios simultáneos disponibles
-const HORA_MIN = 7;
-const HORA_MAX = 22; // franjas 7..21 (16 slots including 22? we use 7..22 inclusive = 16)
-const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 7..22
+// Franja horaria del centro: 6:45 – 22:00 → buckets horarios 6..21
+const HORA_MIN = 6;
+const HORA_MAX = 21;
+const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 6..21
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MES_LABEL = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
@@ -66,6 +67,10 @@ function StatsPage() {
     queryKey: ["clients"],
     queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [],
   });
+  const { data: events = [] } = useQuery({
+    queryKey: ["client_events"],
+    queryFn: async () => (await supabase.from("client_events").select("*")).data as ClientEvent[] ?? [],
+  });
 
   return (
     <div className="p-6 space-y-6 overflow-auto h-screen">
@@ -74,7 +79,7 @@ function StatsPage() {
         <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
       </div>
 
-      <KpiPanel sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
       <Tabs defaultValue="comparacion">
         <TabsList>
@@ -82,7 +87,7 @@ function StatsPage() {
           <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
         </TabsList>
         <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
+          <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
         </TabsContent>
         <TabsContent value="cancelaciones" className="pt-4">
           <CancellationsPanel sessions={sessions} clients={clients} />
@@ -91,6 +96,14 @@ function StatsPage() {
     </div>
   );
 }
+
+type ClientEvent = {
+  id: string;
+  client_id: string;
+  tipo: "alta" | "baja";
+  fecha: string;
+  created_at: string;
+};
 
 // ============================================================
 // KPI Panel
