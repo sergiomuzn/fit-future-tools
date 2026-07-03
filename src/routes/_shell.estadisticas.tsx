@@ -31,6 +31,7 @@ const HORA_MAX = 21;
 const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 6..21
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MES_LABEL = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+const MES_FULL = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function spacesFor(tipo: Session["tipo"]): number {
   if (tipo === "grupal") return 2;
@@ -219,6 +220,33 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
+  // Años y (año → meses) con datos reales, sin superar el mes actual.
+  const { availableYears, monthsByYear } = useMemo(() => {
+    const nowD = new Date();
+    const curY = nowD.getFullYear();
+    const curM = nowD.getMonth();
+    const map = new Map<number, Set<number>>();
+    const add = (dateStr: string | null | undefined) => {
+      if (!dateStr) return;
+      const [ys, ms] = dateStr.split("-");
+      const y = Number(ys); const m = Number(ms) - 1;
+      if (!Number.isFinite(y) || !Number.isFinite(m)) return;
+      if (y > curY || (y === curY && m > curM)) return;
+      if (!map.has(y)) map.set(y, new Set());
+      map.get(y)!.add(m);
+    };
+    for (const s of sessions) add(s.fecha);
+    for (const e of events) add(e.fecha);
+    if (!map.has(curY)) map.set(curY, new Set([curM]));
+    const years = Array.from(map.keys()).sort((a, b) => b - a).map(String);
+    return { availableYears: years, monthsByYear: map };
+  }, [sessions, events]);
+
+  const monthsForYear = (yStr: string): number[] => {
+    const y = Number(yStr);
+    return Array.from(monthsByYear.get(y) ?? []).sort((a, b) => a - b);
+  };
+
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
@@ -283,12 +311,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
       <div className="flex flex-wrap gap-4 items-end">
         {period === "mesUnico" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
         )}
         {period === "dosMeses" && (
           <>
-            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} />
-            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} />
+            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
+            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} years={availableYears} monthsForYear={monthsForYear} />
           </>
         )}
         {period === "anoVsAno" && (
@@ -298,16 +326,16 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
               <Select value={monthOfYear} onValueChange={setMonthOfYear}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+                  {MES_FULL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <YearSelect label="Año A" value={yearA} onChange={setYearA} />
-            <YearSelect label="Año B" value={yearB} onChange={setYearB} />
+            <YearSelect label="Año A" value={yearA} onChange={setYearA} years={availableYears} />
+            <YearSelect label="Año B" value={yearB} onChange={setYearB} years={availableYears} />
           </>
         )}
         {period === "mananaVsTarde" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
         )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
@@ -370,26 +398,31 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
   );
 }
 
-function yearRange(): string[] {
-  const cy = new Date().getFullYear();
-  const start = 2020;
-  const out: string[] = [];
-  for (let y = cy; y >= start; y--) out.push(String(y));
-  return out;
-}
-
-function MonthYearPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function MonthYearPicker({ label, value, onChange, years, monthsForYear }: {
+  label: string; value: string; onChange: (v: string) => void;
+  years: string[]; monthsForYear: (y: string) => number[];
+}) {
   const [y, m] = value.split("-");
+  const monthOptions = monthsForYear(y);
   const setMonth = (mm: string) => onChange(`${y}-${mm}`);
-  const setYear = (yy: string) => onChange(`${yy}-${m}`);
+  const setYear = (yy: string) => {
+    const opts = monthsForYear(yy);
+    let mm = m;
+    const currentIdx = Number(m) - 1;
+    if (!opts.includes(currentIdx)) {
+      const last = opts.length ? opts[opts.length - 1] : 0;
+      mm = String(last + 1).padStart(2, "0");
+    }
+    onChange(`${yy}-${mm}`);
+  };
   return (
     <div className="flex gap-2 items-end">
       <div className="space-y-1.5">
         <Label>{label}</Label>
         <Select value={m} onValueChange={setMonth}>
-          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+            {monthOptions.map((i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{MES_FULL[i]}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -398,7 +431,7 @@ function MonthYearPicker({ label, value, onChange }: { label: string; value: str
         <Select value={y} onValueChange={setYear}>
           <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+            {years.map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -406,14 +439,16 @@ function MonthYearPicker({ label, value, onChange }: { label: string; value: str
   );
 }
 
-function YearSelect({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+function YearSelect({ label, value, onChange, years }: {
+  label: string; value: string; onChange: (v: string) => void; years: string[];
+}) {
   return (
     <div className="space-y-1.5">
       <Label>{label}</Label>
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
         <SelectContent>
-          {yearRange().map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
+          {years.map((yy) => <SelectItem key={yy} value={yy}>{yy}</SelectItem>)}
         </SelectContent>
       </Select>
     </div>
