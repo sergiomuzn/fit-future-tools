@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ScheduleForm } from "@/components/config/schedule-form";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { HorarioForm, PreciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
+import { CatalogoManager } from "@/components/config/catalogo-manager";
 
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
@@ -10,17 +12,30 @@ function ConfigPage() {
     <div className="p-6 space-y-6 overflow-auto h-screen">
       <div>
         <h1 className="text-2xl font-display font-semibold">Configuración del centro</h1>
-        <p className="text-sm text-muted-foreground">Horario base, precios medios y calendario de días especiales.</p>
+        <p className="text-sm text-muted-foreground">Horario, calendario laboral, bonos y precios.</p>
       </div>
 
-      <ScheduleForm />
+      <Tabs defaultValue="calendario">
+        <TabsList>
+          <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
+          <TabsTrigger value="bonos">Tipos de bonos y precios</TabsTrigger>
+        </TabsList>
 
-      <Card>
-        <CardHeader><CardTitle>Días especiales</CardTitle></CardHeader>
-        <CardContent>
-          <SpecialDaysCalendar />
-        </CardContent>
-      </Card>
+        <TabsContent value="calendario" className="pt-4 space-y-6">
+          <HorarioForm />
+          <Card>
+            <CardHeader><CardTitle>Calendario laboral</CardTitle></CardHeader>
+            <CardContent>
+              <SpecialDaysCalendar />
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="bonos" className="pt-4 space-y-6">
+          <CatalogoManager />
+          <PreciosForm />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
