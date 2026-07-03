@@ -95,7 +95,10 @@ function StatsPage() {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
+function KpiPanel({ sessions, trainers, horario, specialsMap }: {
+  sessions: Session[]; trainers: Trainer[];
+  horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+}) {
   const now = new Date();
   const y = now.getFullYear();
   const m = now.getMonth();
@@ -106,14 +109,16 @@ function KpiPanel({ sessions, trainers }: { sessions: Session[]; trainers: Train
   const realizadas = monthSessions.filter((s) => s.estado === "realizada");
   const canceladas = monthSessions.filter((s) => s.estado === "cancelada");
 
-  // Ocupación media: espacios ocupados / (3 * horas laborables * días del mes)
-  const spacesUsed = realizadas.reduce((acc, s) => {
-    const h = hourOf(s.hora_inicio);
-    if (h < HORA_MIN || h > HORA_MAX) return acc;
-    return acc + spacesFor(s.tipo);
-  }, 0);
-  const capacity = SLOTS * HOURS.length * daysInMonth(y, m);
-  const ocupacionMedia = capacity > 0 ? (spacesUsed / capacity) * 100 : 0;
+  // Ocupación media (minutos ocupados / capacidad real del centro).
+  const occupiedMin = realizadas.reduce(
+    (acc, s) => acc + durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo),
+    0,
+  );
+  let capacityMin = 0;
+  for (const d of eachDate(monthStart(y, m), monthEnd(y, m))) {
+    capacityMin += openMinutesOfDay(d, horario, specialsMap) * SLOTS;
+  }
+  const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
 
   // Entrenador con más sesiones realizadas este mes
   const byTrainer = new Map<string, number>();
@@ -130,7 +135,7 @@ function KpiPanel({ sessions, trainers }: { sessions: Session[]; trainers: Train
   }
 
   const kpis = [
-    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${spacesUsed}/${capacity} espacios` },
+    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min` },
     { label: "Sesiones realizadas", value: String(realizadas.length), hint: `Mes de ${MES_LABEL[m]} ${y}` },
     { label: "Cancelaciones", value: String(canceladas.length), hint: `${canceladas.filter((s) => s.no_contabilizar).length} NC` },
     { label: "Entrenador top", value: topTrainer?.name ?? "—", hint: topTrainer ? `${topTrainer.count} sesiones` : "Sin datos" },
