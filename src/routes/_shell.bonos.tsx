@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Trash2, Settings2 } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,7 +22,6 @@ function BonosPage() {
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
-  const [showCatalog, setShowCatalog] = useState(false);
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
