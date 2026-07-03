@@ -25,9 +25,10 @@ export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsP
 // Constants
 // ============================================================
 const SLOTS = 3; // 3 espacios simultáneos disponibles
-const HORA_MIN = 7;
-const HORA_MAX = 22; // franjas 7..21 (16 slots including 22? we use 7..22 inclusive = 16)
-const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 7..22
+// Franja horaria del centro: 6:45 – 22:00 → buckets horarios 6..21
+const HORA_MIN = 6;
+const HORA_MAX = 21;
+const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 6..21
 const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MES_LABEL = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
@@ -66,6 +67,10 @@ function StatsPage() {
     queryKey: ["clients"],
     queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [],
   });
+  const { data: events = [] } = useQuery({
+    queryKey: ["client_events"],
+    queryFn: async () => (await supabase.from("client_events").select("*")).data as ClientEvent[] ?? [],
+  });
 
   return (
     <div className="p-6 space-y-6 overflow-auto h-screen">
@@ -74,7 +79,7 @@ function StatsPage() {
         <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
       </div>
 
-      <KpiPanel sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
       <Tabs defaultValue="comparacion">
         <TabsList>
@@ -82,7 +87,7 @@ function StatsPage() {
           <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
         </TabsList>
         <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
+          <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} />
         </TabsContent>
         <TabsContent value="cancelaciones" className="pt-4">
           <CancellationsPanel sessions={sessions} clients={clients} />
@@ -92,11 +97,19 @@ function StatsPage() {
   );
 }
 
+type ClientEvent = {
+  id: string;
+  client_id: string;
+  tipo: "alta" | "baja";
+  fecha: string;
+  created_at: string;
+};
+
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, trainers, horario, specialsMap }: {
-  sessions: Session[]; trainers: Trainer[];
+function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
+  sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
   const now = new Date();
@@ -107,7 +120,8 @@ function KpiPanel({ sessions, trainers, horario, specialsMap }: {
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
   const realizadas = monthSessions.filter((s) => s.estado === "realizada");
-  const canceladas = monthSessions.filter((s) => s.estado === "cancelada");
+  const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
+  const tardes = realizadas.length - mananas;
 
   // Ocupación media (minutos ocupados / capacidad real del centro).
   const occupiedMin = realizadas.reduce(
@@ -120,29 +134,28 @@ function KpiPanel({ sessions, trainers, horario, specialsMap }: {
   }
   const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
 
-  // Entrenador con más sesiones realizadas este mes
-  const byTrainer = new Map<string, number>();
-  for (const s of realizadas) {
-    if (!s.trainer_id) continue;
-    byTrainer.set(s.trainer_id, (byTrainer.get(s.trainer_id) ?? 0) + 1);
-  }
-  let topTrainer: { name: string; count: number } | null = null;
-  for (const [tid, c] of byTrainer) {
-    if (!topTrainer || c > topTrainer.count) {
-      const t = trainers.find((x) => x.id === tid);
-      topTrainer = { name: t?.nombre ?? t?.iniciales ?? "—", count: c };
-    }
-  }
+  const activos = clients.filter((c) => c.activo).length;
+  const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
+  const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
   const kpis = [
-    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min` },
-    { label: "Sesiones realizadas", value: String(realizadas.length), hint: `Mes de ${MES_LABEL[m]} ${y}` },
-    { label: "Cancelaciones", value: String(canceladas.length), hint: `${canceladas.filter((s) => s.no_contabilizar).length} NC` },
-    { label: "Entrenador top", value: topTrainer?.name ?? "—", hint: topTrainer ? `${topTrainer.count} sesiones` : "Sin datos" },
+    {
+      label: "Entrenamientos totales",
+      value: String(realizadas.length),
+      hint: `${mananas} mañana · ${tardes} tarde`,
+    },
+    {
+      label: "Ocupación media del centro",
+      value: `${ocupacionMedia.toFixed(1)}%`,
+      hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
+    },
+    { label: "Clientes activos", value: String(activos), hint: `Total en ${MES_LABEL[m]} ${y}` },
+    { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
+    { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
       {kpis.map((k) => (
         <Card key={k.label}>
           <CardHeader className="pb-2">
@@ -161,7 +174,7 @@ function KpiPanel({ sessions, trainers, horario, specialsMap }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
 type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
 
@@ -171,9 +184,10 @@ const METRIC_LABEL: Record<Metric, string> = {
   cancelaciones: "Cancelaciones (incl. NC)",
   porTipo: "Sesiones por tipo",
   porEntrenador: "Sesiones por entrenador",
+  altasBajas: "Altas y bajas por mes",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
-  franja: "Franja horaria (7:00–22:00)",
+  franja: "Franja horaria (6:45–22:00)",
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
   tipoSesion: "Tipo de sesión",
@@ -185,8 +199,8 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
 };
 
-function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
-  sessions: Session[]; trainers: Trainer[];
+function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: {
+  sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
   const [metric, setMetric] = useState<Metric>("sesiones");
@@ -207,8 +221,8 @@ function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
-    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
-    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
+    [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap],
   );
 
   function handleCsvExport() {
@@ -228,6 +242,12 @@ function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
   }
 
   const palette = ["hsl(var(--primary))", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
+  const colorForSeries = (name: string, idx: number): string => {
+    const lower = name.toLowerCase();
+    if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
+    if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
+    return palette[idx % palette.length];
+  };
 
   return (
     <div className="space-y-4">
@@ -310,7 +330,7 @@ function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
-                    <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 3 }} />
+                    <Line key={k} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} />
                   ))}
                 </LineChart>
               ) : (
@@ -321,7 +341,7 @@ function ComparisonModule({ sessions, trainers, horario, specialsMap }: {
                   <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} />
+                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
                 </BarChart>
               )}
@@ -356,12 +376,43 @@ function FieldNumber({ label, value, onChange }: { label: string; value: string;
 type SeriesRow = { bucket: string; [key: string]: string | number };
 
 function buildSeries(args: {
-  sessions: Session[]; metric: Metric; desglose: Desglose; period: PeriodMode;
+  sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap } = args;
+
+  // -------- Altas / Bajas metric (bucketed by month, independent of desglose) --------
+  if (metric === "altasBajas") {
+    const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
+    const monthLbl = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
+    const buckets: { key: string; y: number; m: number }[] = [];
+    if (period === "mesUnico") {
+      const { y, m } = parseYm(monthA);
+      buckets.push({ key: monthLbl(y, m), y, m });
+    } else if (period === "dosMeses") {
+      const a = parseYm(monthA); const b = parseYm(monthB);
+      buckets.push({ key: monthLbl(a.y, a.m), y: a.y, m: a.m });
+      buckets.push({ key: monthLbl(b.y, b.m), y: b.y, m: b.m });
+    } else if (period === "anoVsAno") {
+      const m = Number(monthOfYear) - 1;
+      const yA = Number(yearA); const yB = Number(yearB);
+      buckets.push({ key: monthLbl(yA, m), y: yA, m });
+      buckets.push({ key: monthLbl(yB, m), y: yB, m });
+    } else {
+      const { y, m } = parseYm(monthA);
+      buckets.push({ key: monthLbl(y, m), y, m });
+    }
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const s = ymd(monthStart(y, m));
+      const e = ymd(monthEnd(y, m));
+      const altas = events.filter((ev) => ev.tipo === "alta" && ev.fecha >= s && ev.fecha <= e).length;
+      const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
+      return { bucket: key, Altas: altas, Bajas: bajas };
+    });
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
+  }
 
   // Determine periods (label + filter fn)
   const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
