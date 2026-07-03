@@ -154,7 +154,18 @@ function SesionesPage() {
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
-                <TableCell>{(() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : "—"; })()}</TableCell>
+                <TableCell>
+                  {(() => {
+                    const t = tipoForSession(s);
+                    return t ? (
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t] ?? ""}`}>
+                        {TIPO_LABEL[t] ?? t}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell>
                   <span
