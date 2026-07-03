@@ -108,8 +108,8 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, trainers, horario, specialsMap }: {
-  sessions: Session[]; trainers: Trainer[];
+function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
+  sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
   const now = new Date();
@@ -120,7 +120,8 @@ function KpiPanel({ sessions, trainers, horario, specialsMap }: {
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
   const realizadas = monthSessions.filter((s) => s.estado === "realizada");
-  const canceladas = monthSessions.filter((s) => s.estado === "cancelada");
+  const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
+  const tardes = realizadas.length - mananas;
 
   // Ocupación media (minutos ocupados / capacidad real del centro).
   const occupiedMin = realizadas.reduce(
@@ -133,29 +134,28 @@ function KpiPanel({ sessions, trainers, horario, specialsMap }: {
   }
   const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
 
-  // Entrenador con más sesiones realizadas este mes
-  const byTrainer = new Map<string, number>();
-  for (const s of realizadas) {
-    if (!s.trainer_id) continue;
-    byTrainer.set(s.trainer_id, (byTrainer.get(s.trainer_id) ?? 0) + 1);
-  }
-  let topTrainer: { name: string; count: number } | null = null;
-  for (const [tid, c] of byTrainer) {
-    if (!topTrainer || c > topTrainer.count) {
-      const t = trainers.find((x) => x.id === tid);
-      topTrainer = { name: t?.nombre ?? t?.iniciales ?? "—", count: c };
-    }
-  }
+  const activos = clients.filter((c) => c.activo).length;
+  const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
+  const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
   const kpis = [
-    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min` },
-    { label: "Sesiones realizadas", value: String(realizadas.length), hint: `Mes de ${MES_LABEL[m]} ${y}` },
-    { label: "Cancelaciones", value: String(canceladas.length), hint: `${canceladas.filter((s) => s.no_contabilizar).length} NC` },
-    { label: "Entrenador top", value: topTrainer?.name ?? "—", hint: topTrainer ? `${topTrainer.count} sesiones` : "Sin datos" },
+    {
+      label: "Entrenamientos totales",
+      value: String(realizadas.length),
+      hint: `${mananas} mañana · ${tardes} tarde`,
+    },
+    {
+      label: "Ocupación media del centro",
+      value: `${ocupacionMedia.toFixed(1)}%`,
+      hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
+    },
+    { label: "Clientes activos", value: String(activos), hint: `Total en ${MES_LABEL[m]} ${y}` },
+    { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
+    { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
       {kpis.map((k) => (
         <Card key={k.label}>
           <CardHeader className="pb-2">
