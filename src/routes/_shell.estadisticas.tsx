@@ -1,260 +1,601 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Invoice, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend as RLegend } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Download, ArrowUpDown } from "lucide-react";
 import {
-  useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
-  type HorarioBase, type SpecialDay,
-} from "@/lib/center-schedule";
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  Legend as RLegend, LineChart, Line,
+} from "recharts";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
-type Dim = "mes" | "ano" | "dow" | "franja" | "entrenador" | "tipoBono" | "turno";
-type Metric = "sesiones" | "facturacion" | "ocupacion";
-
-const DIM_LABEL: Record<Dim, string> = {
-  mes: "Mes",
-  ano: "Año",
-  dow: "Día de la semana",
-  franja: "Franja horaria",
-  entrenador: "Entrenador",
-  tipoBono: "Tipo de bono",
-  turno: "Turno (mañana/tarde)",
-};
-
-const METRIC_LABEL: Record<Metric, string> = {
-  sesiones: "Nº sesiones realizadas",
-  facturacion: "Facturación (€)",
-  ocupacion: "Ocupación (%)",
-};
-
-const DOW_LABEL = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+// ============================================================
+// Constants
+// ============================================================
+const SLOTS = 3; // 3 espacios simultáneos disponibles
+const HORA_MIN = 7;
+const HORA_MAX = 22; // franjas 7..21 (16 slots including 22? we use 7..22 inclusive = 16)
+const HOURS = Array.from({ length: HORA_MAX - HORA_MIN + 1 }, (_, i) => HORA_MIN + i); // 7..22
+const DOW_LABEL = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const MES_LABEL = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const SPACES = 3;
 
-function spacesFor(tipo: string | null | undefined): number {
-  if (tipo === "pareja") return 2;
+function spacesFor(tipo: Session["tipo"]): number {
   if (tipo === "grupal") return 2;
-  return 1;
+  return 1; // individual, pareja, prueba, null
 }
-
-function durMin(hi?: string | null, hf?: string | null): number {
-  if (!hi || !hf) return 0;
-  const [h1, m1] = hi.split(":").map(Number);
-  const [h2, m2] = hf.split(":").map(Number);
-  return Math.max(0, (h2 * 60 + m2) - (h1 * 60 + m1));
+function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 }
+function monthStart(y: number, m: number): Date { return new Date(y, m, 1); }
+function monthEnd(y: number, m: number): Date { return new Date(y, m + 1, 0); }
+function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDate(); }
 
+// ============================================================
+// Page
+// ============================================================
 function StatsPage() {
-  const [dim, setDim] = useState<Dim>("mes");
-  const [metric, setMetric] = useState<Metric>("sesiones");
-  const { horario, specialsMap } = useCenterConfig();
-
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
-    queryFn: async () => (await supabase.from("sessions").select("*").eq("estado", "realizada")).data as Session[] ?? [],
+    queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
   });
-  const { data: invoices = [] } = useQuery({
-    queryKey: ["invoices-all"],
-    queryFn: async () => (await supabase.from("invoices").select("*")).data as Invoice[] ?? [],
+  const { data: trainers = [] } = useQuery({
+    queryKey: ["trainers"],
+    queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [],
   });
-  const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
-  const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [] });
-
-  const trainerMap = new Map(trainers.map((t) => [t.id, t]));
-  const catMap = new Map(catalogo.map((b) => [b.id, b]));
-
-  const data = useMemo(() => {
-    const buckets = new Map<string, number>();
-    function add(key: string, value: number) {
-      buckets.set(key, (buckets.get(key) ?? 0) + value);
-    }
-
-    if (metric === "facturacion") {
-      for (const i of invoices) {
-        const k = bucketKey(dim, { fecha: i.fecha, trainer_id: i.cobrador_trainer_id, bono: catMap.get(i.bono_catalogo_id)?.tipo });
-        if (k) add(k, Number(i.precio_cobrado));
-      }
-      const arr = Array.from(buckets.entries()).map(([k, v]) => ({ key: k, value: v }));
-      arr.sort((a, b) => sortKey(dim, a.key, b.key));
-      return arr.map((d) => ({ ...d, label: labelFor(dim, d.key, trainerMap) }));
-    }
-
-    if (metric === "ocupacion") {
-      // occupied minutes and capacity minutes per bucket
-      const occupied = new Map<string, number>();
-      const capacity = new Map<string, number>();
-      // determine range from sessions
-      const dates = sessions.map((s) => s.fecha).sort();
-      if (dates.length === 0) return [];
-      const from = new Date(dates[0]);
-      const to = new Date(dates[dates.length - 1]);
-
-      for (const s of sessions) {
-        const k = bucketKey(dim, { fecha: s.fecha, hora: s.hora_inicio, trainer_id: s.trainer_id, bono: s.tipo });
-        if (!k) continue;
-        const minutes = durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo);
-        occupied.set(k, (occupied.get(k) ?? 0) + minutes);
-      }
-
-      // capacity depends on dimension
-      for (const d of eachDate(from, to)) {
-        const openDay = openMinutesOfDay(d, horario, specialsMap);
-        if (openDay === 0) continue;
-        if (dim === "franja") {
-          const sched = getDaySched(d, horario, specialsMap);
-          if (!sched) continue;
-          const startH = Math.floor(sched.openMin / 60);
-          const endH = Math.ceil(sched.closeMin / 60);
-          for (let h = startH; h < endH; h++) {
-            const om = openMinutesInHour(d, h, horario, specialsMap);
-            if (om > 0) {
-              const k = `${String(h).padStart(2,"0")}h`;
-              capacity.set(k, (capacity.get(k) ?? 0) + om * SPACES);
-            }
-          }
-        } else if (dim === "turno") {
-          let am = 0, pm = 0;
-          const sched = getDaySched(d, horario, specialsMap);
-          if (!sched) continue;
-          for (let h = Math.floor(sched.openMin/60); h < Math.ceil(sched.closeMin/60); h++) {
-            const om = openMinutesInHour(d, h, horario, specialsMap);
-            if (h < 14) am += om; else pm += om;
-          }
-          if (am > 0) capacity.set("Mañana", (capacity.get("Mañana") ?? 0) + am * SPACES);
-          if (pm > 0) capacity.set("Tarde", (capacity.get("Tarde") ?? 0) + pm * SPACES);
-        } else if (dim === "mes") {
-          const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-          capacity.set(k, (capacity.get(k) ?? 0) + openDay * SPACES);
-        } else if (dim === "ano") {
-          const k = String(d.getFullYear());
-          capacity.set(k, (capacity.get(k) ?? 0) + openDay * SPACES);
-        } else if (dim === "dow") {
-          const k = String(d.getDay());
-          capacity.set(k, (capacity.get(k) ?? 0) + openDay * SPACES);
-        }
-      }
-
-      // For entrenador and tipoBono, capacity is total across range per bucket
-      if (dim === "entrenador" || dim === "tipoBono") {
-        let totalCap = 0;
-        for (const d of eachDate(from, to)) totalCap += openMinutesOfDay(d, horario, specialsMap) * SPACES;
-        for (const k of occupied.keys()) capacity.set(k, totalCap);
-      }
-
-      const arr = Array.from(occupied.entries()).map(([k, occ]) => {
-        const cap = capacity.get(k) ?? 0;
-        const pct = cap > 0 ? Math.round((occ / cap) * 1000) / 10 : 0;
-        return { key: k, value: pct };
-      });
-      arr.sort((a, b) => sortKey(dim, a.key, b.key));
-      return arr.map((d) => ({ ...d, label: labelFor(dim, d.key, trainerMap) }));
-    }
-
-    // sesiones
-    for (const s of sessions) {
-      const k = bucketKey(dim, { fecha: s.fecha, hora: s.hora_inicio, trainer_id: s.trainer_id, bono: s.tipo });
-      if (k) add(k, 1);
-    }
-    const arr = Array.from(buckets.entries()).map(([k, v]) => ({ key: k, value: v }));
-    arr.sort((a, b) => sortKey(dim, a.key, b.key));
-    return arr.map((d) => ({ ...d, label: labelFor(dim, d.key, trainerMap) }));
-  }, [dim, metric, sessions, invoices, trainerMap, catMap, horario, specialsMap]);
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [],
+  });
 
   return (
-    <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
-      <p className="text-sm text-muted-foreground">Elige libremente las variables a comparar. La ocupación se calcula en minutos ocupados frente a la capacidad real del centro.</p>
+    <div className="p-6 space-y-6 overflow-auto h-screen">
+      <div>
+        <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
+        <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
+      </div>
 
-      <div className="flex gap-4 flex-wrap">
+      <KpiPanel sessions={sessions} trainers={trainers} />
+
+      <Tabs defaultValue="comparacion">
+        <TabsList>
+          <TabsTrigger value="comparacion">Comparación</TabsTrigger>
+          <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
+        </TabsList>
+        <TabsContent value="comparacion" className="pt-4">
+          <ComparisonModule sessions={sessions} trainers={trainers} />
+        </TabsContent>
+        <TabsContent value="cancelaciones" className="pt-4">
+          <CancellationsPanel sessions={sessions} clients={clients} />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ============================================================
+// KPI Panel
+// ============================================================
+function KpiPanel({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const start = ymd(monthStart(y, m));
+  const end = ymd(monthEnd(y, m));
+
+  const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
+  const realizadas = monthSessions.filter((s) => s.estado === "realizada");
+  const canceladas = monthSessions.filter((s) => s.estado === "cancelada");
+
+  // Ocupación media: espacios ocupados / (3 * horas laborables * días del mes)
+  const spacesUsed = realizadas.reduce((acc, s) => {
+    const h = hourOf(s.hora_inicio);
+    if (h < HORA_MIN || h > HORA_MAX) return acc;
+    return acc + spacesFor(s.tipo);
+  }, 0);
+  const capacity = SLOTS * HOURS.length * daysInMonth(y, m);
+  const ocupacionMedia = capacity > 0 ? (spacesUsed / capacity) * 100 : 0;
+
+  // Entrenador con más sesiones realizadas este mes
+  const byTrainer = new Map<string, number>();
+  for (const s of realizadas) {
+    if (!s.trainer_id) continue;
+    byTrainer.set(s.trainer_id, (byTrainer.get(s.trainer_id) ?? 0) + 1);
+  }
+  let topTrainer: { name: string; count: number } | null = null;
+  for (const [tid, c] of byTrainer) {
+    if (!topTrainer || c > topTrainer.count) {
+      const t = trainers.find((x) => x.id === tid);
+      topTrainer = { name: t?.nombre ?? t?.iniciales ?? "—", count: c };
+    }
+  }
+
+  const kpis = [
+    { label: "Ocupación media del mes", value: `${ocupacionMedia.toFixed(1)}%`, hint: `${spacesUsed}/${capacity} espacios` },
+    { label: "Sesiones realizadas", value: String(realizadas.length), hint: `Mes de ${MES_LABEL[m]} ${y}` },
+    { label: "Cancelaciones", value: String(canceladas.length), hint: `${canceladas.filter((s) => s.no_contabilizar).length} NC` },
+    { label: "Entrenador top", value: topTrainer?.name ?? "—", hint: topTrainer ? `${topTrainer.count} sesiones` : "Sin datos" },
+  ];
+
+  return (
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      {kpis.map((k) => (
+        <Card key={k.label}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-display font-semibold">{k.value}</div>
+            <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
+// ============================================================
+// Comparison Module
+// ============================================================
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador";
+type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
+type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde";
+
+const METRIC_LABEL: Record<Metric, string> = {
+  ocupacion: "Ocupación del centro (%)",
+  sesiones: "Nº sesiones",
+  cancelaciones: "Cancelaciones (incl. NC)",
+  porTipo: "Sesiones por tipo",
+  porEntrenador: "Sesiones por entrenador",
+};
+const DESGLOSE_LABEL: Record<Desglose, string> = {
+  franja: "Franja horaria (7:00–22:00)",
+  turno: "Turno (mañana / tarde)",
+  dow: "Día de la semana",
+  tipoSesion: "Tipo de sesión",
+};
+const PERIOD_LABEL: Record<PeriodMode, string> = {
+  mesUnico: "Un mes concreto",
+  dosMeses: "Comparar dos meses",
+  anoVsAno: "Mismo mes en años distintos",
+  mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
+};
+
+function ComparisonModule({ sessions, trainers }: { sessions: Session[]; trainers: Trainer[] }) {
+  const [metric, setMetric] = useState<Metric>("sesiones");
+  const [desglose, setDesglose] = useState<Desglose>("franja");
+  const [period, setPeriod] = useState<PeriodMode>("mesUnico");
+
+  const now = new Date();
+  const [monthA, setMonthA] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const [monthB, setMonthB] = useState(() => {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [yearA, setYearA] = useState(String(now.getFullYear()));
+  const [yearB, setYearB] = useState(String(now.getFullYear() - 1));
+  const [monthOfYear, setMonthOfYear] = useState(String(now.getMonth() + 1).padStart(2, "0"));
+
+  const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
+
+  // Build series: [{ bucket, seriesA, seriesB?, ... }]
+  const { rows, seriesKeys, isLineChart } = useMemo(
+    () => buildSeries({ sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap }),
+    [sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap],
+  );
+
+  function handleCsvExport() {
+    if (rows.length === 0) return;
+    const headers = ["bucket", ...seriesKeys];
+    const lines = [headers.join(",")];
+    for (const r of rows) {
+      lines.push(headers.map((h) => JSON.stringify((r as Record<string, unknown>)[h] ?? "")).join(","));
+    }
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `estadisticas-${metric}-${desglose}-${period}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const palette = ["hsl(var(--primary))", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
+
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-3">
         <div className="space-y-1.5">
-          <Label>Eje X (agrupar por)</Label>
-          <Select value={dim} onValueChange={(v) => setDim(v as Dim)}>
-            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {Object.entries(DIM_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label>Métrica (eje Y)</Label>
+          <Label>Métrica</Label>
           <Select value={metric} onValueChange={(v) => setMetric(v as Metric)}>
-            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {Object.entries(METRIC_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
+        <div className="space-y-1.5">
+          <Label>Desglose</Label>
+          <Select value={desglose} onValueChange={(v) => setDesglose(v as Desglose)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(DESGLOSE_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Periodo</Label>
+          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {Object.entries(PERIOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 items-end">
+        {period === "mesUnico" && (
+          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+        )}
+        {period === "dosMeses" && (
+          <>
+            <FieldMonth label="Mes A" value={monthA} onChange={setMonthA} />
+            <FieldMonth label="Mes B" value={monthB} onChange={setMonthB} />
+          </>
+        )}
+        {period === "anoVsAno" && (
+          <>
+            <div className="space-y-1.5">
+              <Label>Mes</Label>
+              <Select value={monthOfYear} onValueChange={setMonthOfYear}>
+                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <FieldNumber label="Año A" value={yearA} onChange={setYearA} />
+            <FieldNumber label="Año B" value={yearB} onChange={setYearB} />
+          </>
+        )}
+        {period === "mananaVsTarde" && (
+          <FieldMonth label="Mes" value={monthA} onChange={setMonthA} />
+        )}
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
+            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
+          </Button>
+        </div>
       </div>
 
       <div className="rounded-lg border bg-card p-4">
         <div className="h-[420px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-              <XAxis dataKey="label" tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} />
-              <YAxis tick={{ fill: "var(--color-muted-foreground)", fontSize: 12 }} unit={metric === "ocupacion" ? "%" : undefined} />
-              <Tooltip contentStyle={{ background: "var(--color-card)", border: "1px solid var(--color-border)", borderRadius: 8 }} formatter={(v: number) => metric === "ocupacion" ? `${v}%` : v} />
-              <RLegend />
-              <Bar dataKey="value" name={METRIC_LABEL[metric]} fill="var(--color-primary)" radius={[4,4,0,0]} />
-            </BarChart>
-          </ResponsiveContainer>
+          {rows.length === 0 ? (
+            <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
+              {isLineChart ? (
+                <LineChart data={rows}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <RLegend />
+                  {seriesKeys.map((k, i) => (
+                    <Line key={k} type="monotone" dataKey={k} stroke={palette[i % palette.length]} strokeWidth={2} dot={{ r: 3 }} />
+                  ))}
+                </LineChart>
+              ) : (
+                <BarChart data={rows}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8 }} />
+                  <RLegend />
+                  {seriesKeys.map((k, i) => (
+                    <Bar key={k} dataKey={k} fill={palette[i % palette.length]} radius={[4, 4, 0, 0]} />
+                  ))}
+                </BarChart>
+              )}
+            </ResponsiveContainer>
+          )}
         </div>
-        {data.length === 0 && <p className="text-center text-sm text-muted-foreground py-8">Sin datos para esta combinación.</p>}
       </div>
     </div>
   );
 }
 
-function getDaySched(d: Date, horario: HorarioBase, specials: Map<string, SpecialDay>) {
-  // reuse helper by importing indirectly through openMinutesInHour signature is not enough;
-  // small inline replica to fetch open/close minutes for the day.
-  const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
-  const sp = specials.get(key);
-  const toMin = (hm: string) => { const [h, m] = hm.split(":").map(Number); return h * 60 + m; };
-  if (sp) {
-    if (sp.tipo === "cerrado") return null;
-    if (sp.hora_apertura && sp.hora_cierre) {
-      return { openMin: toMin(sp.hora_apertura.slice(0,5)), closeMin: toMin(sp.hora_cierre.slice(0,5)) };
-    }
-  }
-  const base = horario[String(d.getDay())];
-  if (!base) return null;
-  return { openMin: toMin(base.open), closeMin: toMin(base.close) };
+function FieldMonth({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input type="month" value={value} onChange={(e) => onChange(e.target.value)} className="w-40" />
+    </div>
+  );
+}
+function FieldNumber({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Input type="number" value={value} onChange={(e) => onChange(e.target.value)} className="w-24" />
+    </div>
+  );
 }
 
-function bucketKey(dim: Dim, ctx: { fecha: string; hora?: string; trainer_id?: string | null; bono?: string | null }): string | null {
-  const d = new Date(ctx.fecha);
-  switch (dim) {
-    case "mes": return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
-    case "ano": return String(d.getFullYear());
-    case "dow": return String(d.getDay());
-    case "franja": {
-      if (!ctx.hora) return null;
-      const h = Number(ctx.hora.split(":")[0]);
-      return `${String(h).padStart(2,"0")}h`;
+// ============================================================
+// Series builder
+// ============================================================
+type SeriesRow = { bucket: string; [key: string]: string | number };
+
+function buildSeries(args: {
+  sessions: Session[]; metric: Metric; desglose: Desglose; period: PeriodMode;
+  monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
+  trainerMap: Map<string, Trainer>;
+}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
+  const { sessions, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap } = args;
+
+  // Determine periods (label + filter fn)
+  const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
+  const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
+  const inMonth = (s: Session, y: number, m: number) => {
+    const start = ymd(monthStart(y, m));
+    const end = ymd(monthEnd(y, m));
+    return s.fecha >= start && s.fecha <= end;
+  };
+  const monthLabel = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
+
+  if (period === "mesUnico") {
+    const { y, m } = parseYm(monthA);
+    periods.push({ key: monthLabel(y, m), filter: (s) => inMonth(s, y, m), days: daysInMonth(y, m) });
+  } else if (period === "dosMeses") {
+    const a = parseYm(monthA); const b = parseYm(monthB);
+    periods.push({ key: monthLabel(a.y, a.m), filter: (s) => inMonth(s, a.y, a.m), days: daysInMonth(a.y, a.m) });
+    periods.push({ key: monthLabel(b.y, b.m), filter: (s) => inMonth(s, b.y, b.m), days: daysInMonth(b.y, b.m) });
+  } else if (period === "anoVsAno") {
+    const m = Number(monthOfYear) - 1;
+    const yA = Number(yearA); const yB = Number(yearB);
+    periods.push({ key: monthLabel(yA, m), filter: (s) => inMonth(s, yA, m), days: daysInMonth(yA, m) });
+    periods.push({ key: monthLabel(yB, m), filter: (s) => inMonth(s, yB, m), days: daysInMonth(yB, m) });
+  } else if (period === "mananaVsTarde") {
+    const { y, m } = parseYm(monthA);
+    const base = (s: Session) => inMonth(s, y, m);
+    periods.push({ key: `Mañana · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) < 14, days: daysInMonth(y, m) });
+    periods.push({ key: `Tarde · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) >= 14, days: daysInMonth(y, m) });
+  }
+
+  // Buckets
+  const bucketKeys: string[] = (() => {
+    if (desglose === "franja") return HOURS.map((h) => `${String(h).padStart(2, "0")}:00`);
+    if (desglose === "turno") return ["Mañana", "Tarde"];
+    if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    return ["Individual", "Pareja", "Grupal", "Prueba"];
+  })();
+
+  const bucketOf = (s: Session): string | null => {
+    if (desglose === "franja") {
+      const h = hourOf(s.hora_inicio);
+      if (h < HORA_MIN || h > HORA_MAX) return null;
+      return `${String(h).padStart(2, "0")}:00`;
     }
-    case "entrenador": return ctx.trainer_id ?? "—";
-    case "tipoBono": return ctx.bono ?? "—";
-    case "turno": {
-      if (!ctx.hora) return null;
-      const h = Number(ctx.hora.split(":")[0]);
-      return h < 14 ? "Mañana" : "Tarde";
+    if (desglose === "turno") return hourOf(s.hora_inicio) < 14 ? "Mañana" : "Tarde";
+    if (desglose === "dow") {
+      const d = new Date(s.fecha + "T00:00:00");
+      const idx = d.getDay(); // 0=Dom
+      return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][idx];
+    }
+    // tipoSesion
+    switch (s.tipo) {
+      case "individual": return "Individual";
+      case "pareja": return "Pareja";
+      case "grupal": return "Grupal";
+      case "prueba": return "Prueba";
+      default: return null;
+    }
+  };
+
+  // For metric = porTipo / porEntrenador we produce multiple series per period.
+  // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
+  const isMultiSeries = metric === "porTipo" || metric === "porEntrenador";
+
+  const seriesKeysSet = new Set<string>();
+  const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
+  const capacityByBucketPeriod = new Map<string, number>(); // for ocupacion: bucket|period -> capacity
+
+  function addTo(bucket: string, series: string, val: number) {
+    seriesKeysSet.add(series);
+    if (!acc.has(bucket)) acc.set(bucket, new Map());
+    const m = acc.get(bucket)!;
+    m.set(series, (m.get(series) ?? 0) + val);
+  }
+
+  for (const p of periods) {
+    const periodSessions = sessions.filter(p.filter);
+
+    // Compute capacity per bucket for the period (for ocupacion metric)
+    if (metric === "ocupacion") {
+      for (const b of bucketKeys) {
+        let cap = 0;
+        if (desglose === "franja") cap = SLOTS * p.days; // one hour × days
+        else if (desglose === "turno") cap = SLOTS * (b === "Mañana" ? (14 - HORA_MIN) : (HORA_MAX - 14 + 1)) * p.days;
+        else if (desglose === "dow") {
+          // count occurrences of this dow in the period
+          const [y, m] = periodMonthOfPeriod(p, monthA, monthB, monthOfYear, yearA, yearB);
+          const idxTarget = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"].indexOf(b);
+          let n = 0;
+          for (let d = 1; d <= p.days; d++) {
+            if (new Date(y, m, d).getDay() === idxTarget) n++;
+          }
+          cap = SLOTS * HOURS.length * n;
+        } else if (desglose === "tipoSesion") {
+          cap = SLOTS * HOURS.length * p.days;
+        }
+        capacityByBucketPeriod.set(`${b}||${p.key}`, cap);
+      }
+    }
+
+    for (const s of periodSessions) {
+      const b = bucketOf(s);
+      if (!b) continue;
+
+      if (metric === "sesiones") {
+        if (s.estado !== "realizada") continue;
+        addTo(b, p.key, 1);
+      } else if (metric === "cancelaciones") {
+        if (s.estado !== "cancelada") continue;
+        const key = s.no_contabilizar ? `${p.key} · NC` : `${p.key} · Cancelada`;
+        addTo(b, key, 1);
+      } else if (metric === "ocupacion") {
+        if (s.estado !== "realizada") continue;
+        addTo(b, p.key, spacesFor(s.tipo));
+      } else if (metric === "porTipo") {
+        if (s.estado !== "realizada") continue;
+        const t = s.tipo ?? "otro";
+        const label = t.charAt(0).toUpperCase() + t.slice(1);
+        const series = periods.length > 1 ? `${p.key} · ${label}` : label;
+        addTo(b, series, 1);
+      } else if (metric === "porEntrenador") {
+        if (s.estado !== "realizada") continue;
+        const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
+        const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
+        addTo(b, series, 1);
+      }
     }
   }
-}
-function sortKey(dim: Dim, a: string, b: string) {
-  if (dim === "dow" || dim === "ano") return Number(a) - Number(b);
-  return a.localeCompare(b);
-}
-function labelFor(dim: Dim, key: string, trainerMap: Map<string, Trainer>) {
-  switch (dim) {
-    case "mes": { const [y, m] = key.split("-"); return `${MES_LABEL[Number(m)-1]} ${y}`; }
-    case "dow": return DOW_LABEL[Number(key)];
-    case "entrenador": return trainerMap.get(key)?.iniciales ?? key;
-    default: return key;
+
+  // Convert to percentages for ocupacion
+  if (metric === "ocupacion") {
+    for (const [b, m] of acc) {
+      for (const [s, v] of m) {
+        const cap = capacityByBucketPeriod.get(`${b}||${s}`) ?? 0;
+        m.set(s, cap > 0 ? Math.round((v / cap) * 1000) / 10 : 0);
+      }
+    }
   }
+
+  const seriesKeys = Array.from(seriesKeysSet);
+  const rows: SeriesRow[] = bucketKeys.map((b) => {
+    const row: SeriesRow = { bucket: b };
+    for (const k of seriesKeys) row[k] = acc.get(b)?.get(k) ?? 0;
+    return row;
+  });
+
+  // filter rows with all zero (for tipoSesion when nothing exists)
+  const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
+
+  const isLineChart = desglose === "franja"; // evolución horaria
+  return { rows: nonZero.length ? nonZero : rows, seriesKeys: seriesKeys.length ? seriesKeys : ["value"], isLineChart };
+
+  // suppress unused
+  void isMultiSeries;
+}
+
+function periodMonthOfPeriod(_p: { key: string }, monthA: string, monthB: string, monthOfYear: string, yearA: string, yearB: string): [number, number] {
+  // Parse from period key: "MMM YYYY"
+  const parts = _p.key.split(" ");
+  const lastPart = parts[parts.length - 1];
+  const monthPart = parts[parts.length - 2];
+  const y = Number(lastPart);
+  const m = MES_LABEL.indexOf(monthPart);
+  if (!isNaN(y) && m >= 0) return [y, m];
+  // fallback
+  const [ya, ma] = monthA.split("-").map(Number);
+  void monthB; void monthOfYear; void yearA; void yearB;
+  return [ya, ma - 1];
+}
+
+// ============================================================
+// Cancellations Panel
+// ============================================================
+function CancellationsPanel({ sessions, clients }: { sessions: Session[]; clients: Client[] }) {
+  const now = new Date();
+  const [from, setFrom] = useState(ymd(new Date(now.getFullYear(), now.getMonth() - 2, 1)));
+  const [to, setTo] = useState(ymd(monthEnd(now.getFullYear(), now.getMonth())));
+  const [sortDesc, setSortDesc] = useState(true);
+
+  const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+
+  const rows = useMemo(() => {
+    const byClient = new Map<string, { name: string; normales: number; nc: number }>();
+    for (const s of sessions) {
+      if (s.estado !== "cancelada") continue;
+      if (s.fecha < from || s.fecha > to) continue;
+      const cid = s.client_id ?? "__sin__";
+      const name = cid === "__sin__" ? "— sin cliente —" : clientMap.get(cid)?.nombre ?? "—";
+      const rec = byClient.get(cid) ?? { name, normales: 0, nc: 0 };
+      if (s.no_contabilizar) rec.nc++;
+      else rec.normales++;
+      byClient.set(cid, rec);
+    }
+    const arr = Array.from(byClient.entries()).map(([cid, r]) => ({ cid, ...r, total: r.normales + r.nc }));
+    arr.sort((a, b) => sortDesc ? b.total - a.total : a.total - b.total);
+    return arr;
+  }, [sessions, clientMap, from, to, sortDesc]);
+
+  function exportCsv() {
+    const lines = ["cliente,canceladas,nc,total"];
+    for (const r of rows) lines.push(`"${r.name.replace(/"/g, '""')}",${r.normales},${r.nc},${r.total}`);
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `cancelaciones-${from}_${to}.csv`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-4 items-end">
+        <div className="space-y-1.5">
+          <Label>Desde</Label>
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+        </div>
+        <div className="space-y-1.5">
+          <Label>Hasta</Label>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+        </div>
+        <div className="ml-auto">
+          <Button variant="outline" size="sm" onClick={exportCsv} disabled={rows.length === 0}>
+            <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
+          </Button>
+        </div>
+      </div>
+
+      <div className="rounded-lg border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Cliente</TableHead>
+              <TableHead className="text-right">Canceladas</TableHead>
+              <TableHead className="text-right">NC</TableHead>
+              <TableHead className="text-right">
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortDesc((v) => !v)}>
+                  Total <ArrowUpDown className="h-3 w-3" />
+                </button>
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {rows.length === 0 ? (
+              <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-8">Sin cancelaciones en el periodo.</TableCell></TableRow>
+            ) : rows.map((r) => (
+              <TableRow key={r.cid}>
+                <TableCell className="font-medium">{r.name}</TableCell>
+                <TableCell className="text-right tabular-nums">{r.normales}</TableCell>
+                <TableCell className="text-right tabular-nums">{r.nc}</TableCell>
+                <TableCell className="text-right tabular-nums font-semibold">{r.total}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
+  );
 }
