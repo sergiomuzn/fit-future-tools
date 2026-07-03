@@ -53,6 +53,7 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 // Page
 // ============================================================
 function StatsPage() {
+  const { horario, specialsMap } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
     queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
@@ -73,7 +74,7 @@ function StatsPage() {
         <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
       </div>
 
-      <KpiPanel sessions={sessions} trainers={trainers} />
+      <KpiPanel sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
 
       <Tabs defaultValue="comparacion">
         <TabsList>
@@ -81,7 +82,7 @@ function StatsPage() {
           <TabsTrigger value="cancelaciones">Cancelaciones</TabsTrigger>
         </TabsList>
         <TabsContent value="comparacion" className="pt-4">
-          <ComparisonModule sessions={sessions} trainers={trainers} />
+          <ComparisonModule sessions={sessions} trainers={trainers} horario={horario} specialsMap={specialsMap} />
         </TabsContent>
         <TabsContent value="cancelaciones" className="pt-4">
           <CancellationsPanel sessions={sessions} clients={clients} />
