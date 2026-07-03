@@ -220,6 +220,33 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
+  // Años y (año → meses) con datos reales, sin superar el mes actual.
+  const { availableYears, monthsByYear } = useMemo(() => {
+    const nowD = new Date();
+    const curY = nowD.getFullYear();
+    const curM = nowD.getMonth();
+    const map = new Map<number, Set<number>>();
+    const add = (dateStr: string | null | undefined) => {
+      if (!dateStr) return;
+      const [ys, ms] = dateStr.split("-");
+      const y = Number(ys); const m = Number(ms) - 1;
+      if (!Number.isFinite(y) || !Number.isFinite(m)) return;
+      if (y > curY || (y === curY && m > curM)) return;
+      if (!map.has(y)) map.set(y, new Set());
+      map.get(y)!.add(m);
+    };
+    for (const s of sessions) add(s.fecha);
+    for (const e of events) add(e.fecha);
+    if (!map.has(curY)) map.set(curY, new Set([curM]));
+    const years = Array.from(map.keys()).sort((a, b) => b - a).map(String);
+    return { availableYears: years, monthsByYear: map };
+  }, [sessions, events]);
+
+  const monthsForYear = (yStr: string): number[] => {
+    const y = Number(yStr);
+    return Array.from(monthsByYear.get(y) ?? []).sort((a, b) => a - b);
+  };
+
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap }),
@@ -284,12 +311,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
 
       <div className="flex flex-wrap gap-4 items-end">
         {period === "mesUnico" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
         )}
         {period === "dosMeses" && (
           <>
-            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} />
-            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} />
+            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
+            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} years={availableYears} monthsForYear={monthsForYear} />
           </>
         )}
         {period === "anoVsAno" && (
@@ -299,16 +326,16 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap }: 
               <Select value={monthOfYear} onValueChange={setMonthOfYear}>
                 <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {MES_LABEL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
+                  {MES_FULL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <YearSelect label="Año A" value={yearA} onChange={setYearA} />
-            <YearSelect label="Año B" value={yearB} onChange={setYearB} />
+            <YearSelect label="Año A" value={yearA} onChange={setYearA} years={availableYears} />
+            <YearSelect label="Año B" value={yearB} onChange={setYearB} years={availableYears} />
           </>
         )}
         {period === "mananaVsTarde" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} />
+          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
         )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
