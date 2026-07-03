@@ -479,6 +479,55 @@ function buildSeries(args: {
     return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
   }
 
+  // -------- Facturación estimada (por turno y total, precios fijos) --------
+  if (metric === "facturacion") {
+    const PRECIO = { individual: 36, pareja: 49, grupal: 17 } as const;
+    const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
+    const monthLbl = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
+    const periodsFact: { key: string; filter: (s: Session) => boolean }[] = [];
+    const inRange = (s: Session, y: number, m: number) =>
+      s.fecha >= ymd(monthStart(y, m)) && s.fecha <= ymd(monthEnd(y, m));
+    if (period === "mesUnico") {
+      const { y, m } = parseYm(monthA);
+      periodsFact.push({ key: monthLbl(y, m), filter: (s) => inRange(s, y, m) });
+    } else if (period === "dosMeses") {
+      const a = parseYm(monthA); const b = parseYm(monthB);
+      periodsFact.push({ key: monthLbl(a.y, a.m), filter: (s) => inRange(s, a.y, a.m) });
+      periodsFact.push({ key: monthLbl(b.y, b.m), filter: (s) => inRange(s, b.y, b.m) });
+    } else if (period === "anoVsAno") {
+      const m = Number(monthOfYear) - 1;
+      const yA = Number(yearA); const yB = Number(yearB);
+      periodsFact.push({ key: monthLbl(yA, m), filter: (s) => inRange(s, yA, m) });
+      periodsFact.push({ key: monthLbl(yB, m), filter: (s) => inRange(s, yB, m) });
+    } else if (period === "mananaVsTarde") {
+      const { y, m } = parseYm(monthA);
+      periodsFact.push({ key: monthLbl(y, m), filter: (s) => inRange(s, y, m) });
+    } else if (period === "historico") {
+      periodsFact.push({ key: "Histórico", filter: () => true });
+    }
+    const amountOf = (s: Session): number => {
+      if (s.estado !== "realizada") return 0;
+      if (s.tipo === "individual") return PRECIO.individual;
+      if (s.tipo === "pareja") return PRECIO.pareja;
+      if (s.tipo === "grupal") return PRECIO.grupal * Math.max(1, s.ocupacion ?? 1);
+      return 0;
+    };
+    const buckets = ["Mañana", "Tarde", "Total"];
+    const rows: SeriesRow[] = buckets.map((b) => ({ bucket: b }));
+    for (const p of periodsFact) {
+      let mAm = 0, mPm = 0;
+      for (const s of sessions.filter(p.filter)) {
+        const amt = amountOf(s);
+        if (amt === 0) continue;
+        if (hourOf(s.hora_inicio) < 14) mAm += amt; else mPm += amt;
+      }
+      rows[0][p.key] = Math.round(mAm);
+      rows[1][p.key] = Math.round(mPm);
+      rows[2][p.key] = Math.round(mAm + mPm);
+    }
+    return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
+  }
+
   // Determine periods (label + filter fn)
   const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
   const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
