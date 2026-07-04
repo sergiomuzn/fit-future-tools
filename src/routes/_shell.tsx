@@ -62,7 +62,7 @@ function ShellInner() {
     <div className="flex min-h-screen w-full bg-background text-foreground">
       <aside className="w-64 shrink-0 border-r bg-sidebar text-sidebar-foreground flex flex-col">
         <div className="px-4 py-4 border-b flex items-center justify-between">
-          <div className="font-display font-semibold tracking-tight">PT·Studio</div>
+          <div className="font-display font-semibold tracking-tight">Fitness 360</div>
           <ThemeToggle />
         </div>
         <div className="p-3">

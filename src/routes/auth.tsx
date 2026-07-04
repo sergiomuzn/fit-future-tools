@@ -30,7 +30,7 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-display text-2xl">PT·Studio</CardTitle>
+          <CardTitle className="font-display text-2xl">Fitness 360</CardTitle>
           <CardDescription>Accede a la gestión del centro</CardDescription>
         </CardHeader>
         <CardContent>

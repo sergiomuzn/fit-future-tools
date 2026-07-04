@@ -79,9 +79,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Gestión Centro de Entrenamiento" },
+      { title: "Fitness 360 — Gestión Centro de Entrenamiento" },
       { name: "description", content: "Agenda, clientes, bonos y estadísticas para centros de entrenamiento personal." },
-      { property: "og:title", content: "Gestión Centro de Entrenamiento" },
+      { property: "og:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
       { property: "og:description", content: "Agenda, clientes, bonos y estadísticas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
