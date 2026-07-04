@@ -19,6 +19,7 @@ export function AccountForm() {
   const [newPass, setNewPass] = useState("");
   const [confirmPass, setConfirmPass] = useState("");
   const [passLoading, setPassLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -64,6 +65,17 @@ export function AccountForm() {
     if (error) return toast.error(error.message);
     toast.success("Contraseña actualizada");
     setCurrentPass(""); setNewPass(""); setConfirmPass("");
+  }
+
+  async function onSendReset() {
+    if (!currentEmail) return toast.error("No se ha detectado el email de la cuenta");
+    setResetLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(currentEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setResetLoading(false);
+    if (error) return toast.error(error.message);
+    toast.success("Te hemos enviado un enlace para restablecer la contraseña. Caduca en 1 hora.");
   }
 
   return (
@@ -112,9 +124,14 @@ export function AccountForm() {
               <Label htmlFor="confirm-pass">Confirmar nueva contraseña</Label>
               <Input id="confirm-pass" type="password" autoComplete="new-password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={passLoading}>
-              {passLoading ? "Guardando..." : "Cambiar contraseña"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button type="submit" disabled={passLoading}>
+                {passLoading ? "Guardando..." : "Cambiar contraseña"}
+              </Button>
+              <Button type="button" variant="outline" onClick={onSendReset} disabled={resetLoading}>
+                {resetLoading ? "Enviando..." : "¿Olvidaste tu contraseña?"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
