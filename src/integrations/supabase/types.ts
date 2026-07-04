@@ -368,6 +368,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -376,6 +397,13 @@ export type Database = {
       apply_invoice_row: {
         Args: { p_bono_cat: string; p_client: string; p_fecha: string }
         Returns: undefined
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
       }
       is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
       revert_invoice_row: {
@@ -388,6 +416,7 @@ export type Database = {
       }
     }
     Enums: {
+      app_role: "admin" | "entrenador"
       bono_tipo: "individual" | "pareja" | "grupal" | "prueba"
       client_event_tipo: "alta" | "baja"
       sesion_estado:
@@ -524,6 +553,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "entrenador"],
       bono_tipo: ["individual", "pareja", "grupal", "prueba"],
       client_event_tipo: ["alta", "baja"],
       sesion_estado: [
