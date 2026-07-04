@@ -82,56 +82,6 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
   );
 }
 
-function SignUpForm() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
-
-  async function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    const em = emailSchema.safeParse(email);
-    if (!em.success) return toast.error(em.error.issues[0].message);
-    const pw = passwordSchema.safeParse(password);
-    if (!pw.success) return toast.error(pw.error.issues[0].message);
-    setLoading(true);
-    const { error } = await supabase.auth.signUp({
-      email: em.data,
-      password: pw.data,
-      options: { emailRedirectTo: `${window.location.origin}/` },
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    setSent(true);
-  }
-
-  if (sent) {
-    return (
-      <div className="text-sm text-muted-foreground space-y-2">
-        <p>Te hemos enviado un email de verificación a <span className="text-foreground font-medium">{email}</span>.</p>
-        <p>Confirma tu correo para poder acceder.</p>
-      </div>
-    );
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="space-y-3">
-      <div className="space-y-1.5">
-        <Label htmlFor="su-email">Email</Label>
-        <Input id="su-email" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="su-pass">Contraseña</Label>
-        <Input id="su-pass" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-        <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
-      </div>
-      <Button type="submit" className="w-full" disabled={loading}>
-        {loading ? "Creando..." : "Crear cuenta"}
-      </Button>
-    </form>
-  );
-}
-
 function ForgotForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -162,9 +112,6 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
       <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         Volver
       </button>
-      <p className="text-xs text-muted-foreground">
-        ¿No tienes cuenta? <Link to="/auth" className="underline">Regístrate</Link>
-      </p>
     </form>
   );
 }
