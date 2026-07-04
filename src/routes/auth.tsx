@@ -17,7 +17,7 @@ const emailSchema = z.string().trim().email("Email inválido").max(255);
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "forgot" | "signup">("signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -35,8 +35,10 @@ function AuthPage() {
         <CardContent>
           {mode === "forgot" ? (
             <ForgotForm onBack={() => setMode("signin")} />
+          ) : mode === "signup" ? (
+            <SignUpForm onBack={() => setMode("signin")} />
           ) : (
-            <SignInForm onForgot={() => setMode("forgot")} />
+            <SignInForm onForgot={() => setMode("forgot")} onSignUp={() => setMode("signup")} />
           )}
         </CardContent>
       </Card>
@@ -44,7 +46,7 @@ function AuthPage() {
   );
 }
 
-function SignInForm({ onForgot }: { onForgot: () => void }) {
+function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -77,6 +79,9 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       </Button>
       <button type="button" onClick={onForgot} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         ¿Has olvidado tu contraseña?
+      </button>
+      <button type="button" onClick={onSignUp} className="text-xs text-muted-foreground hover:text-foreground w-full text-center border-t pt-3 mt-2">
+        Crear cuenta (temporal)
       </button>
     </form>
   );
