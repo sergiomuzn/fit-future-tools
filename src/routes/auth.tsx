@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -15,11 +14,10 @@ export const Route = createFileRoute("/auth")({
 });
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
-const passwordSchema = z.string().min(8, "Mínimo 8 caracteres").max(128);
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "forgot">("signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -38,18 +36,7 @@ function AuthPage() {
           {mode === "forgot" ? (
             <ForgotForm onBack={() => setMode("signin")} />
           ) : (
-            <Tabs value={mode} onValueChange={(v) => setMode(v as "signin" | "signup")}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Iniciar sesión</TabsTrigger>
-                <TabsTrigger value="signup">Crear cuenta</TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin" className="pt-4">
-                <SignInForm onForgot={() => setMode("forgot")} />
-              </TabsContent>
-              <TabsContent value="signup" className="pt-4">
-                <SignUpForm />
-              </TabsContent>
-            </Tabs>
+            <SignInForm onForgot={() => setMode("forgot")} />
           )}
         </CardContent>
       </Card>
