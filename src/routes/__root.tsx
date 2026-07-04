@@ -80,12 +80,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Fitness 360 — Gestión Centro de Entrenamiento" },
-      { name: "description", content: "Agenda, clientes, bonos y estadísticas para centros de entrenamiento personal." },
+      { name: "description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
       { property: "og:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
-      { property: "og:description", content: "Agenda, clientes, bonos y estadísticas." },
+      { property: "og:description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
+      { name: "twitter:description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3a2fc308-89fe-47eb-8ac3-90054b4a4cff/id-preview-555ce7ea--218b6b09-cd3b-4aa5-87ca-9babb5369fb1.lovable.app-1783169049517.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/3a2fc308-89fe-47eb-8ac3-90054b4a4cff/id-preview-555ce7ea--218b6b09-cd3b-4aa5-87ca-9babb5369fb1.lovable.app-1783169049517.png" },
     ],
     links: [
       {
