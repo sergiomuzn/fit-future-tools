@@ -126,6 +126,8 @@ function SignUpForm({ onBack }: { onBack: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -133,6 +135,7 @@ function SignUpForm({ onBack }: { onBack: () => void }) {
     const em = emailSchema.safeParse(email);
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("Mínimo 8 caracteres");
+    if (password !== confirm) return toast.error("Las contraseñas no coinciden");
     setLoading(true);
     const { data, error } = await supabase.auth.signUp({
       email: em.data,
@@ -158,7 +161,16 @@ function SignUpForm({ onBack }: { onBack: () => void }) {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="su-pass">Contraseña (mín. 8)</Label>
-        <Input id="su-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <div className="relative">
+          <Input id="su-pass" type={show ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+          <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={show ? "Ocultar" : "Mostrar"}>
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="su-pass2">Repetir contraseña</Label>
+        <Input id="su-pass2" type={show ? "text" : "password"} value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Creando..." : "Crear cuenta"}
