@@ -1,12 +1,20 @@
-import { createFileRoute, Outlet, Link, useRouterState, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings } from "lucide-react";
+import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
 import { MiniCalendar } from "@/components/mini-calendar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
 import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
 
 export const Route = createFileRoute("/_shell")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/auth" });
+  },
   component: ShellLayout,
 });
 
@@ -34,6 +42,14 @@ function ShellInner() {
   const { date, setDate } = useAgendaDate();
   const [month, setMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  async function handleSignOut() {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   // Mantén el mes visible del mini-calendario alineado con la fecha seleccionada
   useEffect(() => {
@@ -81,7 +97,9 @@ function ShellInner() {
           })}
         </nav>
         <div className="mt-auto p-3 text-[10px] text-muted-foreground border-t">
-          Uso interno · acceso sin login
+          <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs" onClick={handleSignOut}>
+            <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
+          </Button>
         </div>
       </aside>
       <main className="flex-1 min-w-0 overflow-hidden">
