@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { HorarioForm, PreciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { CatalogoManager } from "@/components/config/catalogo-manager";
+import { AccountForm } from "@/components/config/account-form";
 
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
@@ -19,6 +20,7 @@ function ConfigPage() {
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
           <TabsTrigger value="bonos">Tipos de bonos y precios</TabsTrigger>
+          <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
         </TabsList>
 
         <TabsContent value="calendario" className="pt-4 space-y-6">
@@ -34,6 +36,10 @@ function ConfigPage() {
         <TabsContent value="bonos" className="pt-4 space-y-6">
           <CatalogoManager />
           <PreciosForm />
+        </TabsContent>
+
+        <TabsContent value="cuenta" className="pt-4 space-y-6">
+          <AccountForm />
         </TabsContent>
       </Tabs>
     </div>
