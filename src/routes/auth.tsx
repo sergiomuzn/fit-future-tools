@@ -17,7 +17,7 @@ const emailSchema = z.string().trim().email("Email inválido").max(255);
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "forgot" | "signup">("signin");
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -35,8 +35,10 @@ function AuthPage() {
         <CardContent>
           {mode === "forgot" ? (
             <ForgotForm onBack={() => setMode("signin")} />
+          ) : mode === "signup" ? (
+            <SignUpForm onBack={() => setMode("signin")} />
           ) : (
-            <SignInForm onForgot={() => setMode("forgot")} />
+            <SignInForm onForgot={() => setMode("forgot")} onSignUp={() => setMode("signup")} />
           )}
         </CardContent>
       </Card>
@@ -44,7 +46,7 @@ function AuthPage() {
   );
 }
 
-function SignInForm({ onForgot }: { onForgot: () => void }) {
+function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -78,6 +80,9 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       <button type="button" onClick={onForgot} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         ¿Has olvidado tu contraseña?
       </button>
+      <button type="button" onClick={onSignUp} className="text-xs text-muted-foreground hover:text-foreground w-full text-center border-t pt-3 mt-2">
+        Crear cuenta (temporal)
+      </button>
     </form>
   );
 }
@@ -108,6 +113,54 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Enviando..." : "Enviar enlace de recuperación"}
+      </Button>
+      <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
+        Volver
+      </button>
+    </form>
+  );
+}
+
+function SignUpForm({ onBack }: { onBack: () => void }) {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const em = emailSchema.safeParse(email);
+    if (!em.success) return toast.error(em.error.issues[0].message);
+    if (password.length < 8) return toast.error("Mínimo 8 caracteres");
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email: em.data,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    if (data.session) {
+      toast.success("Cuenta creada");
+      navigate({ to: "/" });
+    } else {
+      toast.success("Cuenta creada. Revisa tu correo si requiere confirmación.");
+      onBack();
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="su-email">Email</Label>
+        <Input id="su-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="su-pass">Contraseña (mín. 8)</Label>
+        <Input id="su-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Creando..." : "Crear cuenta"}
       </Button>
       <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         Volver
