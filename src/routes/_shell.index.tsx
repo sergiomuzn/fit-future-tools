@@ -31,6 +31,32 @@ function AgendaPage() {
     },
   });
 
+  const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10);
+  const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().slice(0, 10);
+  const { data: monthCounts = {} } = useQuery({
+    queryKey: ["trainer-month-counts", monthStart],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("sessions")
+        .select("trainer_id")
+        .gte("fecha", monthStart)
+        .lte("fecha", monthEnd)
+        .not("trainer_id", "is", null);
+      const counts: Record<string, number> = {};
+      for (const r of (data ?? []) as { trainer_id: string | null }[]) {
+        if (!r.trainer_id) continue;
+        counts[r.trainer_id] = (counts[r.trainer_id] ?? 0) + 1;
+      }
+      return counts;
+    },
+  });
+
+  const sortedTrainers = [...trainers].sort((a, b) => {
+    const diff = (monthCounts[b.id] ?? 0) - (monthCounts[a.id] ?? 0);
+    if (diff !== 0) return diff;
+    return a.nombre.localeCompare(b.nombre);
+  });
+
   function shift(days: number) {
     const d = new Date(date);
     d.setDate(d.getDate() + days);
@@ -50,7 +76,7 @@ function AgendaPage() {
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs text-muted-foreground mr-1">Pintar entrenador:</span>
-          {trainers.map((t) => (
+          {sortedTrainers.map((t) => (
             <button
               key={t.id}
               onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
