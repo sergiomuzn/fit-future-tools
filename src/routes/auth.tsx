@@ -120,3 +120,51 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
     </form>
   );
 }
+
+function SignUpForm({ onBack }: { onBack: () => void }) {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const em = emailSchema.safeParse(email);
+    if (!em.success) return toast.error(em.error.issues[0].message);
+    if (password.length < 8) return toast.error("Mínimo 8 caracteres");
+    setLoading(true);
+    const { data, error } = await supabase.auth.signUp({
+      email: em.data,
+      password,
+      options: { emailRedirectTo: window.location.origin },
+    });
+    setLoading(false);
+    if (error) return toast.error(error.message);
+    if (data.session) {
+      toast.success("Cuenta creada");
+      navigate({ to: "/" });
+    } else {
+      toast.success("Cuenta creada. Revisa tu correo si requiere confirmación.");
+      onBack();
+    }
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <div className="space-y-1.5">
+        <Label htmlFor="su-email">Email</Label>
+        <Input id="su-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      </div>
+      <div className="space-y-1.5">
+        <Label htmlFor="su-pass">Contraseña (mín. 8)</Label>
+        <Input id="su-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Creando..." : "Crear cuenta"}
+      </Button>
+      <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
+        Volver
+      </button>
+    </form>
+  );
+}
