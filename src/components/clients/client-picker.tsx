@@ -91,7 +91,7 @@ export function ClientPicker({ value, onChange }: Props) {
           type="button"
           onMouseDown={(e) => e.preventDefault()}
           onClick={openNew}
-          className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-accent border-b border-dashed sticky top-0 bg-secondary/30 flex items-center gap-1.5"
+          className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-accent border-b border-dashed sticky top-0 bg-secondary z-10 flex items-center gap-1.5"
         >
           <Plus className="h-3.5 w-3.5" /> Nuevo cliente{search.trim() ? ` «${search.trim()}»` : ""}
         </button>
