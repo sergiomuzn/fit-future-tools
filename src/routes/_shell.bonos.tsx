@@ -61,14 +61,15 @@ function BonosPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
-  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const TIPO_CLASS: Record<string, string> = {
     prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
     individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
     pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+    gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
   };
-  const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3 };
+  const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
 
   const activeBonos = bonos.filter((b) => b.activo);
 
@@ -169,6 +170,10 @@ function BonosPage() {
           </TableHeader>
           <TableBody>
             {sorted.map((b) => (
+              (() => {
+              const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+              const isGympass = tipoBono === "gympass";
+              return (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
                   <button
@@ -184,11 +189,13 @@ function BonosPage() {
                     return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
                   })()}
                 </TableCell>
-                <TableCell>{b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
+                <TableCell>{isGympass ? "—" : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
                 <TableCell>{b.sesiones_realizadas}</TableCell>
-                <TableCell className={b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{b.sesiones_disponibles}</TableCell>
+                <TableCell className={!isGympass && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{isGympass ? "—" : b.sesiones_disponibles}</TableCell>
                 <TableCell>
-                  {b.sesiones_disponibles > 0 ? (
+                  {isGympass ? (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
+                  ) : b.sesiones_disponibles > 0 ? (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
                   ) : (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
@@ -200,6 +207,8 @@ function BonosPage() {
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                 </TableCell>
               </TableRow>
+              );
+              })()
             ))}
             {sorted.length === 0 && (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
