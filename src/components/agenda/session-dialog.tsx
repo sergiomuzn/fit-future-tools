@@ -89,11 +89,20 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
     enabled: open,
   });
+  const { data: catalogoAll = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("id,tipo")).data ?? [],
+    enabled: open,
+  });
   const activeBono = clientId
     ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
     : null;
+  const activeBonoTipo = (catalogoAll as Array<{ id: string; tipo: string }>).find(
+    (c) => c.id === activeBono?.bono_catalogo_id,
+  )?.tipo;
+  const isGympassBono = activeBonoTipo === "gympass";
   // Coincide con la columna "Restantes" del apartado Bonos.
-  const restantes = activeBono ? activeBono.sesiones_disponibles : null;
+  const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
   useEffect(() => {
     if (!open) return;
@@ -508,7 +517,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <div className="space-y-1.5">
               <Label>Cliente</Label>
               <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
-              {!grupo && clientId && (
+              {!grupo && clientId && !isGympassBono && (
                 <div className="text-[11px] text-muted-foreground">
                   Sesiones restantes:{" "}
                   <span className={`font-semibold ${restantes !== null && restantes <= 1 ? "text-state-renovacion-fg" : "text-foreground"}`}>

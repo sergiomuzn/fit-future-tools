@@ -120,6 +120,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     },
   });
 
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => {
+      const { data } = await supabase.from("bonos_catalogo").select("*");
+      return data ?? [];
+    },
+  });
+  const catTipoMap = useMemo(
+    () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
+    [catalogo],
+  );
+
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
   const bonoMap = useMemo(() => {
@@ -484,6 +496,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 isFuture &&
                 session.estado === "reservada" &&
                 session.client_id != null &&
+                catTipoMap.get(bono?.bono_catalogo_id ?? "") !== "gympass" &&
                 (!bono || bono.sesiones_disponibles <= 1);
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
               const isGroup = session.ocupacion === 2;

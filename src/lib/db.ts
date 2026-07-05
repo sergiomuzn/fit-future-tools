@@ -44,7 +44,7 @@ export function prettyBonoNombre(nombre?: string | null): string {
 
 /** Ordena catálogo: por tipo (prueba, individual, pareja, grupal), luego duración (45 antes que 60), luego orden. */
 export function sortCatalogo<T extends { tipo: BonoTipo; duracion_min: number | null; orden: number }>(items: T[]): T[] {
-  const tipoRank = { prueba: 0, individual: 1, pareja: 2, grupal: 3 } as Record<string, number>;
+  const tipoRank = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 } as Record<string, number>;
   return [...items].sort((a, b) => {
     if (a.tipo !== b.tipo) return (tipoRank[a.tipo] ?? 99) - (tipoRank[b.tipo] ?? 99);
     const da = a.duracion_min ?? 9999;
