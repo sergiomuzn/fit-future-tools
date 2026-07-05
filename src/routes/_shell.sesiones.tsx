@@ -15,6 +15,7 @@ const TIPO_LABEL: Record<string, string> = {
   pareja: "Pareja",
   grupal: "Grupal",
   prueba: "Prueba",
+  gympass: "Gympass",
 };
 
 const TIPO_CLASS: Record<string, string> = {
@@ -22,6 +23,7 @@ const TIPO_CLASS: Record<string, string> = {
   individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
   pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
   grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+  gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
 };
 
 export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });

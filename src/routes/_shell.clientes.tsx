@@ -49,12 +49,13 @@ function ClientesPage() {
       if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
     }
   }
-  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const TIPO_CLASS: Record<string, string> = {
     prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
     individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
     pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
     grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
+    gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
   };
 
     const filtered = clients
