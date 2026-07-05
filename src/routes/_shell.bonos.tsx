@@ -286,7 +286,7 @@ function BonosPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label>Sesiones</Label>
-                <Input type="number" min={1} placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
+                <Input type="number" min={0} placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
                   onChange={(e) => setNuevo({ ...nuevo, sesiones_disponibles: e.target.value.replace(/^0+(?=\d)/, "") })} />
               </div>
               <div className="space-y-1.5">
