@@ -496,6 +496,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 isFuture &&
                 session.estado === "reservada" &&
                 session.client_id != null &&
+                catTipoMap.get(bono?.bono_catalogo_id ?? "") !== "gympass" &&
                 (!bono || bono.sesiones_disponibles <= 1);
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
               const isGroup = session.ocupacion === 2;
