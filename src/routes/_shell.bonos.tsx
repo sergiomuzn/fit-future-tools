@@ -105,9 +105,10 @@ function BonosPage() {
 
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
+    if (!nuevo.bono_catalogo_id) { toast.error("Selecciona un tipo de bono"); return; }
     const sesiones = Number(nuevo.sesiones_disponibles);
     if (!Number.isFinite(sesiones) || sesiones <= 0) { toast.error("Introduce un número de sesiones válido"); return; }
-    const cat = nuevo.bono_catalogo_id ? catalogo.find((c) => c.id === nuevo.bono_catalogo_id) : null;
+    const cat = catalogo.find((c) => c.id === nuevo.bono_catalogo_id);
     // Desactivar bono activo previo del cliente
     const { error: deactErr } = await supabase
       .from("client_bonos")
