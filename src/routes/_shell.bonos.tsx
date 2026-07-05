@@ -171,7 +171,7 @@ function BonosPage() {
           <TableBody>
             {sorted.map((b) => (
               (() => {
-              const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+              const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
               const isGympass = tipoBono === "gympass";
               return (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
