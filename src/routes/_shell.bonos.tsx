@@ -237,6 +237,60 @@ function BonosPage() {
       </Dialog>
 
       <ClientDetailsDialog client={historyClient} defaultTab="historial" onOpenChange={(o) => !o && setHistoryClient(null)} />
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nuevo bono</DialogTitle></DialogHeader>
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Los bonos se añaden normalmente desde <b>Facturación</b>. Lo que añadas aquí <b>no contará como facturado</b>.</span>
+          </div>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label>Cliente</Label>
+              <ClientPicker value={nuevo.client_id} onChange={(id) => setNuevo({ ...nuevo, client_id: id })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo de bono (opcional)</Label>
+              <Select value={nuevo.bono_catalogo_id || "__none__"} onValueChange={(v) => {
+                const chosen = v === "__none__" ? "" : v;
+                const cat = chosen ? catalogo.find((c) => c.id === chosen) : null;
+                setNuevo({
+                  ...nuevo,
+                  bono_catalogo_id: chosen,
+                  sesiones_disponibles: cat && !nuevo.sesiones_disponibles
+                    ? String(cat.sesiones_incluidas ?? "")
+                    : nuevo.sesiones_disponibles,
+                });
+              }}>
+                <SelectTrigger><SelectValue placeholder="Sin bono del catálogo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin bono del catálogo (manual)</SelectItem>
+                  {sortCatalogo(catalogo).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Sesiones</Label>
+                <Input type="number" min={1} placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
+                  onChange={(e) => setNuevo({ ...nuevo, sesiones_disponibles: e.target.value.replace(/^0+(?=\d)/, "") })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fecha</Label>
+                <Input type="date" value={nuevo.fecha_inicio}
+                  onChange={(e) => setNuevo({ ...nuevo, fecha_inicio: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+            <Button onClick={addBono}>Añadir bono</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
