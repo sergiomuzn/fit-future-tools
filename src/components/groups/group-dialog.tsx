@@ -20,6 +20,10 @@ import {
 } from "@/lib/db";
 import { toast } from "sonner";
 
+const EMPTY_SCHEDULES: GroupSchedule[] = [];
+const EMPTY_MEMBERS: { client_id: string }[] = [];
+const EMPTY_SESSIONS: Session[] = [];
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -43,7 +47,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const [schedules, setSchedules] = useState<DraftSchedule[]>([]);
   const [memberIds, setMemberIds] = useState<string[]>([]);
 
-  const { data: existingSchedules = [] } = useQuery({
+  const { data: existingSchedules = EMPTY_SCHEDULES } = useQuery({
     queryKey: ["group_schedules", group?.id],
     queryFn: async () => {
       if (!group?.id) return [] as GroupSchedule[];
@@ -53,7 +57,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
     enabled: open && !!group?.id,
   });
 
-  const { data: existingMembers = [] } = useQuery({
+  const { data: existingMembers = EMPTY_MEMBERS } = useQuery({
     queryKey: ["group_members", group?.id],
     queryFn: async () => {
       if (!group?.id) return [] as { client_id: string }[];
@@ -64,7 +68,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   });
 
   // Stats data
-  const { data: statsSessions = [] } = useQuery({
+  const { data: statsSessions = EMPTY_SESSIONS } = useQuery({
     queryKey: ["group_stats_sessions", group?.id],
     queryFn: async () => {
       if (!group?.id) return [] as Session[];
