@@ -1,0 +1,1 @@
+ALTER TYPE public.bono_tipo ADD VALUE IF NOT EXISTS 'gympass';

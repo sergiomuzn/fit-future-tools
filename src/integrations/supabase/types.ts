@@ -417,7 +417,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "entrenador"
-      bono_tipo: "individual" | "pareja" | "grupal" | "prueba"
+      bono_tipo: "individual" | "pareja" | "grupal" | "prueba" | "gympass"
       client_event_tipo: "alta" | "baja"
       sesion_estado:
         | "reservada"
@@ -554,7 +554,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "entrenador"],
-      bono_tipo: ["individual", "pareja", "grupal", "prueba"],
+      bono_tipo: ["individual", "pareja", "grupal", "prueba", "gympass"],
       client_event_tipo: ["alta", "baja"],
       sesion_estado: [
         "reservada",
