@@ -100,6 +100,7 @@ function ClientesPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Clientes</h1>
+        {tab === "clientes" ? (
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
             Nombre: c.nombre,
@@ -116,7 +117,18 @@ function ClientesPage() {
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
         </div>
+        ) : (
+          <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo grupo
+          </Button>
+        )}
       </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "grupos")}>
+        <TabsList>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="grupos">Grupos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="clientes" className="space-y-4">
       <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="rounded-lg border bg-card">
         <Table>
