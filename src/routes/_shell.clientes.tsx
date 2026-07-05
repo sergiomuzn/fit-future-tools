@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Download } from "lucide-react";
-import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
+import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type GroupSchedule, type GroupMember } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { GroupDialog, scheduleSummary } from "@/components/groups/group-dialog";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -24,6 +26,9 @@ function ClientesPage() {
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<Client | null>(null);
+  const [tab, setTab] = useState<"clientes" | "grupos">("clientes");
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupEditing, setGroupEditing] = useState<Group | null>(null);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -95,6 +100,7 @@ function ClientesPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Clientes</h1>
+        {tab === "clientes" ? (
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
             Nombre: c.nombre,
@@ -111,7 +117,18 @@ function ClientesPage() {
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
         </div>
+        ) : (
+          <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo grupo
+          </Button>
+        )}
       </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "grupos")}>
+        <TabsList>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="grupos">Grupos</TabsTrigger>
+        </TabsList>
+        <TabsContent value="clientes" className="space-y-4">
       <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
       <div className="rounded-lg border bg-card">
         <Table>
@@ -156,6 +173,11 @@ function ClientesPage() {
           </TableBody>
         </Table>
       </div>
+        </TabsContent>
+        <TabsContent value="grupos" className="space-y-4">
+          <GruposPanel onEdit={(g) => { setGroupEditing(g); setGroupOpen(true); }} />
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
@@ -180,6 +202,84 @@ function ClientesPage() {
         </DialogContent>
       </Dialog>
       <ClientDetailsDialog client={viewing} defaultTab="info" onOpenChange={(o) => !o && setViewing(null)} />
+      <GroupDialog open={groupOpen} onClose={() => setGroupOpen(false)} group={groupEditing} />
+    </div>
+  );
+}
+
+function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
+  const qc = useQueryClient();
+  const { data: groups = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => (await supabase.from("groups").select("*").order("nombre")).data as Group[] ?? [],
+  });
+  const { data: allSchedules = [] } = useQuery({
+    queryKey: ["group_schedules_all"],
+    queryFn: async () => (await supabase.from("group_schedules").select("*")).data as GroupSchedule[] ?? [],
+  });
+  const { data: allMembers = [] } = useQuery({
+    queryKey: ["group_members_all"],
+    queryFn: async () => (await supabase.from("group_members").select("*")).data as GroupMember[] ?? [],
+  });
+
+  const schedulesByGroup = new Map<string, GroupSchedule[]>();
+  for (const s of allSchedules) {
+    if (!schedulesByGroup.has(s.group_id)) schedulesByGroup.set(s.group_id, []);
+    schedulesByGroup.get(s.group_id)!.push(s);
+  }
+  const membersByGroup = new Map<string, number>();
+  for (const m of allMembers) {
+    membersByGroup.set(m.group_id, (membersByGroup.get(m.group_id) ?? 0) + 1);
+  }
+
+  async function removeGroup(id: string, nombre: string) {
+    if (!confirm(`¿Eliminar grupo «${nombre}»?`)) return;
+    const { error } = await supabase.from("groups").delete().eq("id", id);
+    if (error) toast.error(error.message);
+    else { toast.success("Grupo eliminado"); qc.invalidateQueries({ queryKey: ["groups"] }); }
+  }
+
+  const sorted = [...groups].sort((a, b) => {
+    if (a.activo !== b.activo) return a.activo ? -1 : 1;
+    return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
+  });
+
+  return (
+    <div className="rounded-lg border bg-card">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Nombre</TableHead>
+            <TableHead>Franjas horarias</TableHead>
+            <TableHead>Miembros</TableHead>
+            <TableHead>Capacidad</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead className="w-24"></TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {sorted.map((g) => (
+            <TableRow key={g.id} className={g.activo ? "" : "opacity-60"}>
+              <TableCell className="font-medium">
+                <button className="hover:underline text-left" onClick={() => onEdit(g)}>{g.nombre}</button>
+              </TableCell>
+              <TableCell className="text-sm text-muted-foreground">{scheduleSummary(schedulesByGroup.get(g.id) ?? [])}</TableCell>
+              <TableCell>{membersByGroup.get(g.id) ?? 0}</TableCell>
+              <TableCell>{g.capacidad}</TableCell>
+              <TableCell>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${g.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{g.activo ? "Activo" : "Inactivo"}</span>
+              </TableCell>
+              <TableCell className="text-right">
+                <Button variant="ghost" size="icon" onClick={() => onEdit(g)}><Pencil className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => removeGroup(g.id, g.nombre)}><Trash2 className="h-4 w-4" /></Button>
+              </TableCell>
+            </TableRow>
+          ))}
+          {sorted.length === 0 && (
+            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin grupos aún</TableCell></TableRow>
+          )}
+        </TableBody>
+      </Table>
     </div>
   );
 }

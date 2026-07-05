@@ -7,8 +7,14 @@ export type BonoCatalogo = Database["public"]["Tables"]["bonos_catalogo"]["Row"]
 export type ClientBono = Database["public"]["Tables"]["client_bonos"]["Row"];
 export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type Invoice = Database["public"]["Tables"]["invoices"]["Row"];
+export type Group = Database["public"]["Tables"]["groups"]["Row"];
+export type GroupSchedule = Database["public"]["Tables"]["group_schedules"]["Row"];
+export type GroupMember = Database["public"]["Tables"]["group_members"]["Row"];
 export type SesionEstado = Database["public"]["Enums"]["sesion_estado"];
 export type BonoTipo = Database["public"]["Enums"]["bono_tipo"];
+
+export const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
+export const DIAS_SEMANA_LONG = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
 
 export { supabase };
 
