@@ -100,7 +100,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const activeBonoTipo = (catalogoAll as Array<{ id: string; tipo: string }>).find(
     (c) => c.id === activeBono?.bono_catalogo_id,
   )?.tipo;
-  const isGympassBono = activeBonoTipo === "gympass";
+  const isGympassBono = activeBonoTipo === "gympass" || activeBonoTipo === "grupal";
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
