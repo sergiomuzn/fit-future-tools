@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Download } from "lucide-react";
-import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
+import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type GroupSchedule, type GroupMember } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +13,8 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { GroupDialog, scheduleSummary } from "@/components/groups/group-dialog";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -24,6 +26,9 @@ function ClientesPage() {
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<Client | null>(null);
+  const [tab, setTab] = useState<"clientes" | "grupos">("clientes");
+  const [groupOpen, setGroupOpen] = useState(false);
+  const [groupEditing, setGroupEditing] = useState<Group | null>(null);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
