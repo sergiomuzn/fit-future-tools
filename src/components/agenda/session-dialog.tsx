@@ -535,8 +535,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           {grupo && isNew ? (
             <div className="space-y-1.5">
-              <Label>Título del grupo</Label>
-              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional avanzado" />
+              <Label>Grupo</Label>
+              <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
+              <Label className="text-xs text-muted-foreground">Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
               <ClientPicker
                   key={i}
@@ -547,8 +548,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           ) : grupo ? (
             <div className="space-y-1.5">
-              <Label>Título del grupo</Label>
-              <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional avanzado" />
+              <Label>Grupo</Label>
+              <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
               <Label>Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
                 <ClientPicker
