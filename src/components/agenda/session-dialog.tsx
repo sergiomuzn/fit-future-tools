@@ -209,6 +209,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
+      group_id: grupo ? groupId : null,
     };
     // Auto-realizada si la sesión es pasada (con 15 min de margen tras la hora de fin).
     // - "Por confirmar" nunca pasa automáticamente a realizada.
