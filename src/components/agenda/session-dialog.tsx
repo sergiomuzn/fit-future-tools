@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { GroupPicker } from "@/components/groups/group-picker";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import {
@@ -39,6 +40,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([null, null, null, null, null, null]);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
@@ -118,7 +120,49 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
     setNoContabilizar(!!(session as any)?.no_contabilizar);
     setPorConfirmar(!!(session as any)?.por_confirmar);
+    setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
   }, [open, session]);
+
+  // When a registered group is selected (in a new group session), auto-fill members and title.
+  const { data: pickedGroupMembers = [] } = useQuery({
+    queryKey: ["group_members_by_group", groupId],
+    queryFn: async () => {
+      if (!groupId) return [] as { client_id: string }[];
+      const { data } = await supabase.from("group_members").select("client_id").eq("group_id", groupId);
+      return (data ?? []) as { client_id: string }[];
+    },
+    enabled: open && !!groupId,
+  });
+  const { data: pickedGroup } = useQuery({
+    queryKey: ["group_by_id", groupId],
+    queryFn: async () => {
+      if (!groupId) return null;
+      const { data } = await supabase.from("groups").select("*").eq("id", groupId).maybeSingle();
+      return data;
+    },
+    enabled: open && !!groupId,
+  });
+  const lastAutofilledGroupIdRef = ((): { current: string | null } => {
+    // Use a stable ref stored on window to avoid an extra useRef import churn.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyGlobal: any = globalThis as any;
+    if (!anyGlobal.__sd_ref) anyGlobal.__sd_ref = { current: null };
+    return anyGlobal.__sd_ref;
+  })();
+  useEffect(() => {
+    if (!open || !groupId || !isNew) return;
+    if (lastAutofilledGroupIdRef.current === groupId) return;
+    if (pickedGroup) {
+      setTitulo(pickedGroup.nombre);
+    }
+    if (pickedGroupMembers.length > 0) {
+      const ids = pickedGroupMembers.map((m) => m.client_id);
+      const padded: (string | null)[] = [...ids];
+      while (padded.length < 6) padded.push(null);
+      setGroupClientIds(padded.slice(0, Math.max(6, ids.length)));
+      lastAutofilledGroupIdRef.current = groupId;
+    }
+  }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
 
   // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
   useEffect(() => {
