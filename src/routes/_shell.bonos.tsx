@@ -176,6 +176,7 @@ function BonosPage() {
               (() => {
               const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
               const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
+              const noBono = !b.bono_catalogo_id;
               return (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
@@ -192,11 +193,11 @@ function BonosPage() {
                     return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
                   })()}
                 </TableCell>
-                <TableCell>{isGympass ? "—" : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
+                <TableCell>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
                 <TableCell>{b.sesiones_realizadas}</TableCell>
-                <TableCell className={!isGympass && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{isGympass ? "—" : b.sesiones_disponibles}</TableCell>
+                <TableCell className={!isGympass && !noBono && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{isGympass || noBono ? "—" : b.sesiones_disponibles}</TableCell>
                 <TableCell>
-                  {isGympass ? (
+                  {isGympass || noBono ? (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
                   ) : b.sesiones_disponibles > 0 ? (
                     <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
