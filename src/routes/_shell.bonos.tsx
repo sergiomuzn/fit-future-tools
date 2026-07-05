@@ -8,11 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
+import { ClientPicker } from "@/components/clients/client-picker";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowUpDown } from "lucide-react";
+import { ArrowUpDown, Plus, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
@@ -22,6 +23,18 @@ function BonosPage() {
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
+  const [nuevo, setNuevo] = useState<{
+    client_id: string | null;
+    bono_catalogo_id: string;
+    sesiones_disponibles: string;
+    fecha_inicio: string;
+  }>({
+    client_id: null,
+    bono_catalogo_id: "",
+    sesiones_disponibles: "",
+    fecha_inicio: new Date().toISOString().slice(0, 10),
+  });
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
@@ -90,9 +103,46 @@ function BonosPage() {
     else { qc.invalidateQueries({ queryKey: ["client_bonos"] }); setOpen(false); toast.success("Bono actualizado"); }
   }
 
+  async function addBono() {
+    if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
+    const sesiones = Number(nuevo.sesiones_disponibles);
+    if (!Number.isFinite(sesiones) || sesiones <= 0) { toast.error("Introduce un número de sesiones válido"); return; }
+    const cat = nuevo.bono_catalogo_id ? catalogo.find((c) => c.id === nuevo.bono_catalogo_id) : null;
+    // Desactivar bono activo previo del cliente
+    const { error: deactErr } = await supabase
+      .from("client_bonos")
+      .update({ activo: false })
+      .eq("client_id", nuevo.client_id)
+      .eq("activo", true);
+    if (deactErr) { toast.error(deactErr.message); return; }
+    const { error } = await supabase.from("client_bonos").insert({
+      client_id: nuevo.client_id,
+      bono_catalogo_id: cat?.id ?? null,
+      fecha_inicio: nuevo.fecha_inicio || new Date().toISOString().slice(0, 10),
+      sesiones_disponibles: sesiones,
+      sesiones_realizadas: 0,
+      activo: true,
+      ultimo_bono_nombre: cat?.nombre ?? "Manual",
+      ultimo_bono_fecha: nuevo.fecha_inicio || new Date().toISOString().slice(0, 10),
+    });
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    toast.success("Bono añadido");
+    setAddOpen(false);
+    setNuevo({
+      client_id: null,
+      bono_catalogo_id: "",
+      sesiones_disponibles: "",
+      fecha_inicio: new Date().toISOString().slice(0, 10),
+    });
+  }
+
   return (
     <div className="p-6 space-y-4">
-      <h1 className="text-2xl font-display font-semibold">Bonos</h1>
+      <div className="flex items-center justify-between gap-4">
+        <h1 className="text-2xl font-display font-semibold">Bonos</h1>
+        <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
+      </div>
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -187,6 +237,60 @@ function BonosPage() {
       </Dialog>
 
       <ClientDetailsDialog client={historyClient} defaultTab="historial" onOpenChange={(o) => !o && setHistoryClient(null)} />
+
+      <Dialog open={addOpen} onOpenChange={setAddOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Nuevo bono</DialogTitle></DialogHeader>
+          <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
+            <Info className="h-4 w-4 mt-0.5 shrink-0" />
+            <span>Los bonos se añaden normalmente desde <b>Facturación</b>. Lo que añadas aquí <b>no contará como facturado</b>.</span>
+          </div>
+          <div className="grid gap-3">
+            <div className="space-y-1.5">
+              <Label>Cliente</Label>
+              <ClientPicker value={nuevo.client_id} onChange={(id) => setNuevo({ ...nuevo, client_id: id })} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Tipo de bono (opcional)</Label>
+              <Select value={nuevo.bono_catalogo_id || "__none__"} onValueChange={(v) => {
+                const chosen = v === "__none__" ? "" : v;
+                const cat = chosen ? catalogo.find((c) => c.id === chosen) : null;
+                setNuevo({
+                  ...nuevo,
+                  bono_catalogo_id: chosen,
+                  sesiones_disponibles: cat && !nuevo.sesiones_disponibles
+                    ? String(cat.sesiones_incluidas ?? "")
+                    : nuevo.sesiones_disponibles,
+                });
+              }}>
+                <SelectTrigger><SelectValue placeholder="Sin bono del catálogo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Sin bono del catálogo (manual)</SelectItem>
+                  {sortCatalogo(catalogo).map((c) => (
+                    <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Sesiones</Label>
+                <Input type="number" min={1} placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
+                  onChange={(e) => setNuevo({ ...nuevo, sesiones_disponibles: e.target.value.replace(/^0+(?=\d)/, "") })} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Fecha</Label>
+                <Input type="date" value={nuevo.fecha_inicio}
+                  onChange={(e) => setNuevo({ ...nuevo, fecha_inicio: e.target.value })} />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddOpen(false)}>Cancelar</Button>
+            <Button onClick={addBono}>Añadir bono</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
