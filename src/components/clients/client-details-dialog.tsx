@@ -8,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal" };
+const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
 const TIPO_CLASS: Record<string, string> = {
   individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
   pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
   grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
   prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
+  gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
 };
 
 export type ClientDetailsTab = "info" | "historial" | "calendario";
