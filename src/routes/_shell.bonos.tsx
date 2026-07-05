@@ -107,9 +107,12 @@ function BonosPage() {
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
     if (!nuevo.bono_catalogo_id) { toast.error("Selecciona un tipo de bono"); return; }
-    const sesiones = Number(nuevo.sesiones_disponibles);
-    if (!Number.isFinite(sesiones) || sesiones <= 0) { toast.error("Introduce un número de sesiones válido"); return; }
     const cat = catalogo.find((c) => c.id === nuevo.bono_catalogo_id);
+    const allowZero = cat?.tipo === "gympass" || cat?.tipo === "grupal";
+    const sesiones = Number(nuevo.sesiones_disponibles);
+    if (!Number.isFinite(sesiones) || sesiones < 0 || (!allowZero && sesiones <= 0)) {
+      toast.error("Introduce un número de sesiones válido"); return;
+    }
     // Desactivar bono activo previo del cliente
     const { error: deactErr } = await supabase
       .from("client_bonos")
@@ -172,7 +175,7 @@ function BonosPage() {
             {sorted.map((b) => (
               (() => {
               const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
-              const isGympass = tipoBono === "gympass";
+              const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
               return (
               <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
