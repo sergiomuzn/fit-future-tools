@@ -187,6 +187,104 @@ export type Database = {
         }
         Relationships: []
       }
+      group_members: {
+        Row: {
+          client_id: string
+          created_at: string
+          group_id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          group_id: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          group_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_schedules: {
+        Row: {
+          created_at: string
+          dia_semana: number
+          group_id: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          dia_semana: number
+          group_id: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          dia_semana?: number
+          group_id?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_schedules_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          activo: boolean
+          capacidad: number
+          created_at: string
+          id: string
+          nombre: string
+          notas: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          id?: string
+          nombre: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          id?: string
+          nombre?: string
+          notas?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoices: {
         Row: {
           bono_catalogo_id: string
@@ -248,6 +346,7 @@ export type Database = {
           created_at: string
           estado: Database["public"]["Enums"]["sesion_estado"]
           fecha: string
+          group_id: string | null
           hora_fin: string
           hora_inicio: string
           id: string
@@ -266,6 +365,7 @@ export type Database = {
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
           fecha: string
+          group_id?: string | null
           hora_fin: string
           hora_inicio: string
           id?: string
@@ -284,6 +384,7 @@ export type Database = {
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
           fecha?: string
+          group_id?: string | null
           hora_fin?: string
           hora_inicio?: string
           id?: string
@@ -303,6 +404,13 @@ export type Database = {
             columns: ["client_id"]
             isOneToOne: false
             referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
             referencedColumns: ["id"]
           },
           {
