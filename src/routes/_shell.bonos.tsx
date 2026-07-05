@@ -105,9 +105,10 @@ function BonosPage() {
 
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
+    if (!nuevo.bono_catalogo_id) { toast.error("Selecciona un tipo de bono"); return; }
     const sesiones = Number(nuevo.sesiones_disponibles);
     if (!Number.isFinite(sesiones) || sesiones <= 0) { toast.error("Introduce un número de sesiones válido"); return; }
-    const cat = nuevo.bono_catalogo_id ? catalogo.find((c) => c.id === nuevo.bono_catalogo_id) : null;
+    const cat = catalogo.find((c) => c.id === nuevo.bono_catalogo_id);
     // Desactivar bono activo previo del cliente
     const { error: deactErr } = await supabase
       .from("client_bonos")
@@ -251,21 +252,19 @@ function BonosPage() {
               <ClientPicker value={nuevo.client_id} onChange={(id) => setNuevo({ ...nuevo, client_id: id })} />
             </div>
             <div className="space-y-1.5">
-              <Label>Tipo de bono (opcional)</Label>
-              <Select value={nuevo.bono_catalogo_id || "__none__"} onValueChange={(v) => {
-                const chosen = v === "__none__" ? "" : v;
-                const cat = chosen ? catalogo.find((c) => c.id === chosen) : null;
+              <Label>Tipo de bono</Label>
+              <Select value={nuevo.bono_catalogo_id || ""} onValueChange={(v) => {
+                const cat = v ? catalogo.find((c) => c.id === v) : null;
                 setNuevo({
                   ...nuevo,
-                  bono_catalogo_id: chosen,
+                  bono_catalogo_id: v,
                   sesiones_disponibles: cat && !nuevo.sesiones_disponibles
                     ? String(cat.sesiones_incluidas ?? "")
                     : nuevo.sesiones_disponibles,
                 });
               }}>
-                <SelectTrigger><SelectValue placeholder="Sin bono del catálogo" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="__none__">Sin bono del catálogo (manual)</SelectItem>
                   {sortCatalogo(catalogo).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>
                   ))}
