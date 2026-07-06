@@ -143,9 +143,9 @@
   --sidebar-accent-foreground: oklch(0.96 0.005 247);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.6 0.03 257);
-  --state-reservada: #5ACBFF;
+  --state-reservada: #3CC0F3;
   --state-reservada-fg: #ffffff;
-  --state-realizada: #3CC0F3;
+  --state-realizada: #0491C3;
   --state-realizada-fg: oklch(1 0 0);
   --state-cancelada: oklch(0.55 0.2 25);
   --state-cancelada-fg: #ffffff;
