@@ -543,6 +543,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
                 : (formatNameUpper(client?.nombre) ?? session.titulo ?? "");
+              const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
@@ -551,7 +552,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   key={session.id}
                   data-session
                   className={cn(
-                    "absolute rounded-md px-2 py-1 text-xs shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
+                    "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
+                    isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
                     isGroup
                       ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                       : ESTADO_BG[estadoForColor],
@@ -598,17 +600,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     onClick={(e) => e.stopPropagation()}
                   />
                   {isCompact ? (
-                    <div className="flex items-center gap-1.5 h-full">
-                      <div className="shrink-0 font-semibold text-[11px] leading-none">
-                        {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
+                    <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
+                      <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
+                        {isUltraCompact
+                          ? session.hora_inicio.slice(0,5)
+                          : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
-                      <div className="font-medium text-[11px] truncate leading-none flex-1 min-w-0">
+                      <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
                           ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
-                        <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black leading-none">
+                        <div className={cn("shrink-0 rounded bg-black/15 px-1 font-semibold text-black leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
                           {trainer.iniciales}
                         </div>
                       )}
