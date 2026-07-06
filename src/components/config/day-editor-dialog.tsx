@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { enterToSave } from "@/lib/enter-to-save";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -72,7 +73,7 @@ export function DayEditorDialog({ open, onOpenChange, date, existing, onSaved }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent onKeyDown={enterToSave(save)}>
         <DialogHeader>
           <DialogTitle>
             {date ? date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : ""}
