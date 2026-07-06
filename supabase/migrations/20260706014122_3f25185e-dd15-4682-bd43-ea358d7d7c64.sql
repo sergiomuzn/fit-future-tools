@@ -1,0 +1,1 @@
+ALTER TABLE public.client_bonos ADD COLUMN IF NOT EXISTS nota text;

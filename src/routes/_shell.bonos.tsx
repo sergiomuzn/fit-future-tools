@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -29,11 +30,13 @@ function BonosPage() {
     bono_catalogo_id: string;
     sesiones_disponibles: string;
     fecha_inicio: string;
+    nota: string;
   }>({
     client_id: null,
     bono_catalogo_id: "",
     sesiones_disponibles: "",
     fecha_inicio: new Date().toISOString().slice(0, 10),
+    nota: "",
   });
 
   const { data: bonos = [] } = useQuery({
@@ -99,6 +102,7 @@ function BonosPage() {
       sesiones_realizadas: editing.sesiones_realizadas,
       activo: editing.activo,
       ultimo_bono_nombre: selectedCatalogo?.nombre ?? editing.ultimo_bono_nombre,
+      nota: editing.nota ?? null,
     }).eq("id", editing.id);
     if (error) toast.error(error.message);
     else { qc.invalidateQueries({ queryKey: ["client_bonos"] }); setOpen(false); toast.success("Bono actualizado"); }
@@ -139,6 +143,7 @@ function BonosPage() {
       activo: true,
       ultimo_bono_nombre: cat?.nombre ?? "Manual",
       ultimo_bono_fecha: nuevo.fecha_inicio || new Date().toISOString().slice(0, 10),
+      nota: nuevo.nota.trim() || null,
     });
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -149,6 +154,7 @@ function BonosPage() {
       bono_catalogo_id: "",
       sesiones_disponibles: "",
       fecha_inicio: new Date().toISOString().slice(0, 10),
+      nota: "",
     });
   }
 
@@ -251,6 +257,10 @@ function BonosPage() {
                 <div className="space-y-1.5"><Label>Realizadas</Label><Input type="number" placeholder="0" value={editing.sesiones_realizadas === 0 ? "" : editing.sesiones_realizadas} onChange={(e) => setEditing({ ...editing, sesiones_realizadas: Number(e.target.value) || 0 })} /></div>
               </div>
               <div className="flex items-center gap-2"><Switch checked={editing.activo} onCheckedChange={(c) => setEditing({ ...editing, activo: c })} /><Label>Activo</Label></div>
+              <div className="space-y-1.5">
+                <Label>Nota</Label>
+                <Textarea rows={3} placeholder="Añade una nota opcional…" value={editing.nota ?? ""} onChange={(e) => setEditing({ ...editing, nota: e.target.value })} />
+              </div>
             </div>
           )}
           <DialogFooter>
@@ -308,6 +318,11 @@ function BonosPage() {
                 <Input type="date" value={nuevo.fecha_inicio}
                   onChange={(e) => setNuevo({ ...nuevo, fecha_inicio: e.target.value })} />
               </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nota</Label>
+              <Textarea rows={3} placeholder="Añade una nota opcional…" value={nuevo.nota}
+                onChange={(e) => setNuevo({ ...nuevo, nota: e.target.value })} />
             </div>
           </div>
           <DialogFooter>
