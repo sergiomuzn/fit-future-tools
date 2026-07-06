@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type BonoCatalogo } from "@/lib/db";
+import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
