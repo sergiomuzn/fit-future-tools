@@ -891,6 +891,17 @@ function buildSeries(args: {
             }
           }
           for (const b of bucketKeys) addCap(b, usable);
+        } else if (desglose === "total") {
+          let usable = dayOpen;
+          if (isMananaTurno || isTardeTurno) {
+            usable = 0;
+            for (let h = 0; h < 24; h++) {
+              const om = openMinutesInHour(d, h, horario, specialsMap);
+              if (isMananaTurno && h < 14) usable += om;
+              if (isTardeTurno && h >= 14) usable += om;
+            }
+          }
+          addCap("Total", usable);
         }
       }
       for (const [b, cap] of capByBucket) capacityByBucketPeriod.set(`${b}||${p.key}`, cap);
