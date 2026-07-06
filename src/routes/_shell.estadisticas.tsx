@@ -527,9 +527,12 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Line key={k} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} />
                   ))}
+                  {trendKeys.map((k) => (
+                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
+                  ))}
                 </LineChart>
               ) : (
-                <BarChart data={rows}>
+                <ComposedChart data={rows}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
@@ -538,7 +541,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
-                </BarChart>
+                  {trendKeys.map((k) => (
+                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
+                  ))}
+                </ComposedChart>
               )}
             </ResponsiveContainer>
           )}
