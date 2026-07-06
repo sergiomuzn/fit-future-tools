@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -30,9 +30,25 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
   });
 
   const selected = clients.find((c) => c.id === value) ?? null;
+
+  // Keep the input text in sync with the externally selected client so the
+  // user can actually edit/delete the visible name (previously it was shown
+  // only as placeholder, so backspacing did nothing and the field felt locked).
+  useEffect(() => {
+    if (selected) setSearch(selected.nombre);
+    else setSearch("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected?.id]);
+
   const filtered = useMemo(
-    () => clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(search))),
-    [clients, search],
+    () => {
+      const q = normalizeText(search);
+      // If the current search text exactly matches the selected client name,
+      // treat it as "no filter" so the user sees the full list to switch.
+      if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
+      return clients.filter((c) => normalizeText(c.nombre).includes(q));
+    },
+    [clients, search, selected],
   );
 
   function openNew() {
@@ -64,10 +80,17 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
       <div className="relative">
         <Input
           autoFocus={autoFocus}
-          placeholder={selected ? selected.nombre : "Buscar cliente..."}
+          placeholder="Buscar cliente..."
           value={search}
           className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => {
+            const v = e.target.value;
+            setSearch(v);
+            setListOpen(true);
+            // If the user edits the text away from the selected client, clear
+            // the selection so the parent state reflects "no client picked".
+            if (selected && v !== selected.nombre) onChange(null, null);
+          }}
           onFocus={() => {
             if (blurTimer.current) window.clearTimeout(blurTimer.current);
             setListOpen(true);
