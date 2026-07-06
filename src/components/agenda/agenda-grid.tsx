@@ -31,6 +31,7 @@ interface LayoutInfo {
   session: Session;
   col: number;
   cols: number;
+  span: number;
 }
 
 function formatNameUpper(name: string | null | undefined): string {
@@ -83,7 +84,19 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     }
     const colCount = cols.length;
     for (const s of g) {
-      result.push({ session: s, col: assignments.get(s.id)!, cols: colCount });
+      const c = assignments.get(s.id)!;
+      let span = 1;
+      for (let k = c + 1; k < colCount; k++) {
+        const collides = g.some(
+          (o) =>
+            assignments.get(o.id) === k &&
+            o.hora_inicio < s.hora_fin &&
+            o.hora_fin > s.hora_inicio,
+        );
+        if (collides) break;
+        span++;
+      }
+      result.push({ session: s, col: c, cols: colCount, span });
     }
   }
   return result;
