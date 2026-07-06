@@ -648,8 +648,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
             <p className="text-[11px] text-muted-foreground leading-tight">
               {isNew
-                ? "Crea copias semanales tras esta fecha (también funciona para fechas pasadas ya realizadas)."
-                : "Añade N copias semanales tras esta sesión. Útil para series pasadas o planificar las siguientes."}
+                ? "Crea copias semanales tras esta fecha (también para grupos: se replican todos los miembros). Funciona con fechas pasadas ya realizadas."
+                : "Añade N copias semanales tras esta sesión (en grupos, con todos los miembros)."}
             </p>
           </div>
 
