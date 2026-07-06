@@ -34,7 +34,7 @@ export function ClientDetailsDialog({
   });
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
@@ -185,7 +185,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
 
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("*")).data as BonoCatalogo[] ?? [],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
