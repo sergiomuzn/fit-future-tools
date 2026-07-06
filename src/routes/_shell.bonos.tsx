@@ -277,7 +277,8 @@ function BonosPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de bono</Label>
-              <Select value={nuevo.bono_catalogo_id || ""} onValueChange={(v) => {
+              <Select value={nuevo.bono_catalogo_id || ""} onValueChange={(raw) => {
+                const v = raw === "__none__" ? "" : raw;
                 const cat = v ? catalogo.find((c) => c.id === v) : null;
                 setNuevo({
                   ...nuevo,
