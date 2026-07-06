@@ -42,7 +42,7 @@ function SesionesPage() {
         .from("sessions")
         .select("*")
         .lte("fecha", today)
-        .in("estado", ["realizada", "cancelada"])
+        .in("estado", ["realizada", "cancelada", "prueba"])
         .order("fecha", { ascending: false })
         .order("hora_inicio", { ascending: false })
         .limit(500);
