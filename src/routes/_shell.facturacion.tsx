@@ -245,10 +245,11 @@ function FacturacionPage() {
               <Label>Bono</Label>
               <Select value={form.bono_catalogo_id ?? ""} onValueChange={(v) => {
                 const b = catalogo.find((x) => x.id === v);
-                setForm({ ...form, bono_catalogo_id: v, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
+                setForm({ ...form, bono_catalogo_id: v || undefined, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Sin bono</SelectItem>
                   {sortCatalogo(catalogo).map((b) => {
                     const label = b.tipo.charAt(0).toUpperCase() + b.tipo.slice(1);
                     return (
