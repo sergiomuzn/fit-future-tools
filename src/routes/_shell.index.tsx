@@ -70,12 +70,12 @@ function AgendaPage() {
           <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
           <Button variant="ghost" size="icon" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
-          <div className="font-display text-lg font-semibold capitalize text-white">
+          <div className="font-display text-lg font-semibold capitalize">
             {DOW[date.getDay()]}, {date.getDate()} de {MONTHS[date.getMonth()]} {date.getFullYear()}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white mr-1">Pintar entrenador:</span>
+          <span className="text-xs mr-1">Pintar entrenador:</span>
           {sortedTrainers.map((t) => (
             <button
               key={t.id}
