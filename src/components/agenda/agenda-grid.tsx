@@ -416,7 +416,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       <div className="h-full overflow-y-auto">
         <div className="flex" style={{ minHeight: TOTAL_PX }}>
           {/* time gutter (scrolls with sessions) */}
-          <div className="w-14 shrink-0 border-r bg-card/40 text-xs text-muted-foreground">
+          <div className="w-14 shrink-0 border-r bg-card/40 text-xs text-white">
             <div style={{ height: TOTAL_PX, position: "relative" }}>
               {hours.map((h) => (
                 <div
@@ -479,7 +479,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {/* draft */}
             {draft && (
               <div
-                className="absolute rounded-md bg-primary/30 border border-primary pointer-events-none flex items-start justify-center text-[11px] font-semibold text-primary"
+                className="absolute rounded-md bg-primary/30 border border-primary pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
                 style={{
                   top: (draft.startMin / SLOT_MIN) * SLOT_PX,
                   height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
