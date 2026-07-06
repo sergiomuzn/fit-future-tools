@@ -247,7 +247,7 @@ function KpiMonthSelector({ value, onChange, earliestYear, now }: {
 // Comparison Module
 // ============================================================
 type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "facturacion" | "altasBajas";
-type Desglose = "franja" | "turno" | "dow" | "tipoSesion";
+type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde" | "historico";
 
 const METRIC_LABEL: Record<Metric, string> = {
@@ -264,6 +264,7 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
   tipoSesion: "Tipo de sesión",
+  total: "Total del periodo",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
   mesUnico: "Un mes concreto",
