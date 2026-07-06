@@ -613,7 +613,7 @@ function buildSeries(args: {
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
-}): { rows: SeriesRow[]; seriesKeys: string[]; trendKeys: string[]; isLineChart: boolean } {
+}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
   const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     if (s.client_id) {
@@ -666,10 +666,7 @@ function buildSeries(args: {
       const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
-    const seriesKeys = ["Altas", "Bajas"];
-    const isTimeAxis = period === "historico" && rows.length >= 3;
-    const trendKeys = addTrendLines(rows, seriesKeys, isTimeAxis);
-    return { rows, seriesKeys, trendKeys, isLineChart: false };
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
   }
 
   // -------- Facturación estimada (por turno y total, precios fijos) --------
@@ -714,7 +711,7 @@ function buildSeries(args: {
         for (const s of sessions.filter(p.filter)) sum += amountOf(s);
         rows[0][p.key] = Math.round(sum);
       }
-      return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
+      return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
     }
     const buckets = ["Mañana", "Tarde", "Total"];
     const rows: SeriesRow[] = buckets.map((b) => ({ bucket: b }));
@@ -729,7 +726,7 @@ function buildSeries(args: {
       rows[1][p.key] = Math.round(mPm);
       rows[2][p.key] = Math.round(mAm + mPm);
     }
-    return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
+    return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
@@ -932,9 +929,7 @@ function buildSeries(args: {
   const isLineChart = desglose === "franja"; // evolución horaria
   const finalRows = nonZero.length ? nonZero : rows;
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
-  const isTimeAxis = desglose === "franja" || desglose === "dow";
-  const trendKeys = addTrendLines(finalRows, finalSeries, isTimeAxis);
-  return { rows: finalRows, seriesKeys: finalSeries, trendKeys, isLineChart };
+  return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
 
   // suppress unused
   void isMultiSeries;
