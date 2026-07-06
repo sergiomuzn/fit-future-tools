@@ -568,6 +568,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 isFuture &&
                 session.estado === "reservada" &&
                 session.client_id != null &&
+                !(session as any).por_confirmar &&
                 !["gympass", "grupal"].includes(catTipoMap.get(bono?.bono_catalogo_id ?? "") ?? "") &&
                 (!bono || bono.sesiones_disponibles <= 1);
               const estadoForColor = needsRenewal ? "renovacion" : session.estado;
@@ -594,7 +595,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
-              const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
+              const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
               return (
                 <div
                   key={session.id}
