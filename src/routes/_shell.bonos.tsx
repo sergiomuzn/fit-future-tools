@@ -197,7 +197,17 @@ function BonosPage() {
       </div>
       <div className="relative max-w-sm">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-8 pr-8" />
+        {q && (
+          <button
+            type="button"
+            aria-label="Limpiar búsqueda"
+            onClick={() => setQ("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
