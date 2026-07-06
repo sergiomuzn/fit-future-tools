@@ -12,8 +12,6 @@ import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, 
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { GroupPicker } from "@/components/groups/group-picker";
-import { GroupDialog } from "@/components/groups/group-dialog";
-import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import {
@@ -44,6 +42,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [grupo, setGrupo] = useState(false);
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([null, null, null, null, null, null]);
   const [groupId, setGroupId] = useState<string | null>(null);
+  const [groupCapacidad, setGroupCapacidad] = useState<number>(6);
+  const [groupActivo, setGroupActivo] = useState<boolean>(true);
+  const [groupNotas, setGroupNotas] = useState<string>("");
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
@@ -53,7 +54,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -125,6 +125,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setNoContabilizar(!!(session as any)?.no_contabilizar);
     setPorConfirmar(!!(session as any)?.por_confirmar);
     setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
+    // Reset inline group config; will be repopulated from pickedGroup query if a
+    // group is linked, or kept as defaults for a brand-new group.
+    setGroupCapacidad(6);
+    setGroupActivo(true);
+    setGroupNotas("");
   }, [open, session]);
 
   // When a registered group is selected (in a new group session), auto-fill members and title.
@@ -168,6 +173,29 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
   }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
 
+  // Load inline group config (name / capacidad / activo / notas) from the
+  // linked group, whenever it changes (new or existing session).
+  useEffect(() => {
+    if (!open || !groupId || !pickedGroup) return;
+    setTitulo((prev) => prev || pickedGroup.nombre);
+    setGroupCapacidad(pickedGroup.capacidad ?? 6);
+    setGroupActivo(pickedGroup.activo ?? true);
+    setGroupNotas(pickedGroup.notas ?? "");
+  }, [open, groupId, pickedGroup]);
+
+  // Resize the client pickers to match capacidad while preserving any picks.
+  useEffect(() => {
+    if (!open || !grupo) return;
+    const cap = Math.max(1, groupCapacidad || 1);
+    setGroupClientIds((prev) => {
+      if (prev.length === cap) return prev;
+      if (prev.length > cap) return prev.slice(0, cap);
+      const next = [...prev];
+      while (next.length < cap) next.push(null);
+      return next;
+    });
+  }, [open, grupo, groupCapacidad]);
+
   // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
   useEffect(() => {
     if (!open) return;
@@ -201,6 +229,34 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
+    // If this is a group session, upsert the linked group with the inline
+    // config (nombre = titulo, capacidad, activo, notas). Enforce capacity on
+    // the picked members before writing anything.
+    let effectiveGroupId = groupId;
+    if (grupo) {
+      const gName = (titulo || "").trim();
+      if (!gName) { toast.error("Nombre del grupo requerido"); return; }
+      const cap = Math.max(1, groupCapacidad || 1);
+      const pickedMembers = groupClientIds.filter((id): id is string => !!id);
+      if (pickedMembers.length > cap) {
+        toast.error(`Capacidad máxima del grupo: ${cap}`);
+        return;
+      }
+      if (effectiveGroupId) {
+        const { error: gErr } = await supabase.from("groups").update({
+          nombre: gName, capacidad: cap, activo: groupActivo, notas: groupNotas || null,
+        }).eq("id", effectiveGroupId);
+        if (gErr) { toast.error(gErr.message); return; }
+      } else {
+        const { data: gRow, error: gErr } = await supabase.from("groups").insert({
+          nombre: gName, capacidad: cap, activo: groupActivo, notas: groupNotas || null,
+        }).select().single();
+        if (gErr || !gRow) { toast.error(gErr?.message ?? "No se pudo crear el grupo"); return; }
+        effectiveGroupId = gRow.id;
+        setGroupId(effectiveGroupId);
+        qc.invalidateQueries({ queryKey: ["groups"] });
+      }
+    }
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
@@ -213,7 +269,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
-      group_id: grupo ? groupId : null,
+      group_id: grupo ? effectiveGroupId : null,
     };
     // Auto-realizada si la sesión reservada es pasada (con 15 min de margen tras la hora de fin).
     // - "Prueba" se respeta siempre, aunque sea pasada.
@@ -558,9 +614,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 <div className="flex-1">
                   <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nombre del grupo</Label>
+                  <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional Lunes 18h" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Capacidad (máx. clientes)</Label>
+                  <Input type="number" min={1} value={groupCapacidad}
+                    onChange={(e) => setGroupCapacidad(Number(e.target.value) || 1)} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="grupo-activo-inline" checked={groupActivo} onCheckedChange={(v) => setGroupActivo(!!v)} />
+                <Label htmlFor="grupo-activo-inline" className="cursor-pointer">Grupo activo</Label>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notas del grupo</Label>
+                <Textarea rows={2} value={groupNotas} onChange={(e) => setGroupNotas(e.target.value)} />
               </div>
               <Label className="text-xs text-muted-foreground">Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
@@ -578,9 +650,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 <div className="flex-1">
                   <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nombre del grupo</Label>
+                  <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional Lunes 18h" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Capacidad (máx. clientes)</Label>
+                  <Input type="number" min={1} value={groupCapacidad}
+                    onChange={(e) => setGroupCapacidad(Number(e.target.value) || 1)} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="grupo-activo-inline-edit" checked={groupActivo} onCheckedChange={(v) => setGroupActivo(!!v)} />
+                <Label htmlFor="grupo-activo-inline-edit" className="cursor-pointer">Grupo activo</Label>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notas del grupo</Label>
+                <Textarea rows={2} value={groupNotas} onChange={(e) => setGroupNotas(e.target.value)} />
               </div>
               <Label>Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
@@ -704,7 +792,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-    <GroupDialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} group={null} />
     </>
   );
 }

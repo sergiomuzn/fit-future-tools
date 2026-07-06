@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Trash2, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
 import { Button } from "@/components/ui/button";
@@ -8,35 +7,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClientPicker } from "@/components/clients/client-picker";
 import {
   supabase,
   type Group,
-  type GroupSchedule,
   type Client,
   type Session,
   DIAS_SEMANA,
-  DIAS_SEMANA_LONG,
+  type GroupSchedule,
 } from "@/lib/db";
 import { toast } from "sonner";
 import { formatNameTitle } from "@/lib/utils";
 
-const EMPTY_SCHEDULES: GroupSchedule[] = [];
-const EMPTY_MEMBERS: { client_id: string }[] = [];
 const EMPTY_SESSIONS: Session[] = [];
 
 interface Props {
   open: boolean;
   onClose: () => void;
   group: Group | null; // null = new
-}
-
-interface DraftSchedule {
-  id?: string;
-  dia_semana: number;
-  hora_inicio: string;
-  hora_fin: string;
 }
 
 export function GroupDialog({ open, onClose, group }: Props) {
@@ -46,28 +33,6 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const [capacidad, setCapacidad] = useState(6);
   const [activo, setActivo] = useState(true);
   const [notas, setNotas] = useState("");
-  const [schedules, setSchedules] = useState<DraftSchedule[]>([]);
-  const [memberIds, setMemberIds] = useState<string[]>([]);
-
-  const { data: existingSchedules = EMPTY_SCHEDULES } = useQuery({
-    queryKey: ["group_schedules", group?.id],
-    queryFn: async () => {
-      if (!group?.id) return [] as GroupSchedule[];
-      const { data } = await supabase.from("group_schedules").select("*").eq("group_id", group.id).order("dia_semana");
-      return (data ?? []) as GroupSchedule[];
-    },
-    enabled: open && !!group?.id,
-  });
-
-  const { data: existingMembers = EMPTY_MEMBERS } = useQuery({
-    queryKey: ["group_members", group?.id],
-    queryFn: async () => {
-      if (!group?.id) return [] as { client_id: string }[];
-      const { data } = await supabase.from("group_members").select("client_id").eq("group_id", group.id);
-      return (data ?? []) as { client_id: string }[];
-    },
-    enabled: open && !!group?.id,
-  });
 
   // Stats data
   const { data: statsSessions = EMPTY_SESSIONS } = useQuery({
@@ -101,23 +66,6 @@ export function GroupDialog({ open, onClose, group }: Props) {
     setActivo(group?.activo ?? true);
     setNotas(group?.notas ?? "");
   }, [open, group]);
-
-  useEffect(() => {
-    if (!open) return;
-    setSchedules(
-      existingSchedules.map((s) => ({
-        id: s.id,
-        dia_semana: s.dia_semana,
-        hora_inicio: s.hora_inicio.slice(0, 5),
-        hora_fin: s.hora_fin.slice(0, 5),
-      })),
-    );
-  }, [open, existingSchedules]);
-
-  useEffect(() => {
-    if (!open) return;
-    setMemberIds(existingMembers.map((m) => m.client_id));
-  }, [open, existingMembers]);
 
   // Compute stats
   const stats = useMemo(() => {
@@ -169,59 +117,21 @@ export function GroupDialog({ open, onClose, group }: Props) {
     if (!name) { toast.error("Nombre requerido"); return; }
     if (!capacidad || capacidad < 1) { toast.error("Capacidad inválida"); return; }
 
-    let groupId = group?.id;
     if (isNew) {
-      const { data, error } = await supabase.from("groups").insert({
+      const { error } = await supabase.from("groups").insert({
         nombre: name, capacidad, activo, notas: notas || null,
-      }).select().single();
+      });
       if (error) { toast.error(error.message); return; }
-      groupId = data.id;
     } else {
       const { error } = await supabase.from("groups").update({
         nombre: name, capacidad, activo, notas: notas || null,
       }).eq("id", group!.id);
       if (error) { toast.error(error.message); return; }
     }
-    if (!groupId) return;
-
-    // Sync schedules: delete existing, insert current
-    await supabase.from("group_schedules").delete().eq("group_id", groupId);
-    const validSchedules = schedules.filter((s) => s.hora_inicio && s.hora_fin && s.hora_fin > s.hora_inicio);
-    if (validSchedules.length) {
-      await supabase.from("group_schedules").insert(
-        validSchedules.map((s) => ({
-          group_id: groupId!,
-          dia_semana: s.dia_semana,
-          hora_inicio: `${s.hora_inicio}:00`,
-          hora_fin: `${s.hora_fin}:00`,
-        })),
-      );
-    }
-
-    // Sync members: delete existing, insert current
-    await supabase.from("group_members").delete().eq("group_id", groupId);
-    if (memberIds.length) {
-      await supabase.from("group_members").insert(
-        memberIds.map((cid) => ({ group_id: groupId!, client_id: cid })),
-      );
-    }
 
     toast.success(isNew ? "Grupo creado" : "Grupo guardado");
     qc.invalidateQueries({ queryKey: ["groups"] });
-    qc.invalidateQueries({ queryKey: ["group_schedules"] });
-    qc.invalidateQueries({ queryKey: ["group_members"] });
     onClose();
-  }
-
-  function addSchedule() {
-    setSchedules((prev) => [...prev, { dia_semana: 1, hora_inicio: "18:00", hora_fin: "19:00" }]);
-  }
-
-  function addMember(id: string | null) {
-    if (!id) return;
-    if (memberIds.includes(id)) { toast.info("Ese cliente ya está en el grupo"); return; }
-    if (memberIds.length >= capacidad) { toast.error(`Capacidad máxima: ${capacidad}`); return; }
-    setMemberIds((prev) => [...prev, id]);
   }
 
   return (
@@ -237,61 +147,13 @@ export function GroupDialog({ open, onClose, group }: Props) {
               <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Ej. Funcional Lunes 18h" />
             </div>
             <div className="space-y-1.5">
-              <Label>Capacidad</Label>
+              <Label>Capacidad (máx. clientes)</Label>
               <Input type="number" min={1} value={capacidad} onChange={(e) => setCapacidad(Number(e.target.value) || 1)} />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <Label>Franjas horarias fijas</Label>
-              <Button size="sm" variant="outline" onClick={addSchedule}><Plus className="h-3.5 w-3.5 mr-1" />Añadir franja</Button>
-            </div>
-            {schedules.length === 0 && (
-              <div className="text-xs text-muted-foreground border border-dashed rounded-md p-3">Sin franjas configuradas.</div>
-            )}
-            {schedules.map((s, i) => (
-              <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
-                <div className="space-y-1">
-                  <Label className="text-xs">Día</Label>
-                  <Select value={String(s.dia_semana)} onValueChange={(v) => setSchedules((p) => p.map((x, idx) => idx === i ? { ...x, dia_semana: Number(v) } : x))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {DIAS_SEMANA_LONG.map((d, idx) => <SelectItem key={idx} value={String(idx)}>{d}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Inicio</Label>
-                  <Input type="time" step={300} value={s.hora_inicio} onChange={(e) => setSchedules((p) => p.map((x, idx) => idx === i ? { ...x, hora_inicio: e.target.value } : x))} />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs">Fin</Label>
-                  <Input type="time" step={300} value={s.hora_fin} onChange={(e) => setSchedules((p) => p.map((x, idx) => idx === i ? { ...x, hora_fin: e.target.value } : x))} />
-                </div>
-                <Button variant="ghost" size="icon" onClick={() => setSchedules((p) => p.filter((_, idx) => idx !== i))}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2">
-            <Label>Miembros ({memberIds.length}/{capacidad})</Label>
-            <ClientPicker value={null} onChange={(id) => addMember(id)} />
-            <div className="flex flex-wrap gap-1.5">
-              {memberIds.map((id) => (
-                <span key={id} className="inline-flex items-center gap-1 text-xs bg-accent rounded-full pl-2 pr-1 py-0.5">
-                  {formatNameTitle(clientMap.get(id)?.nombre) ?? "?"}
-                  <button type="button" onClick={() => setMemberIds((p) => p.filter((x) => x !== id))} className="rounded-full hover:bg-background p-0.5">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </span>
-              ))}
-              {memberIds.length === 0 && (
-                <span className="text-xs text-muted-foreground">Sin miembros aún.</span>
-              )}
-            </div>
+          <div className="text-xs text-muted-foreground border border-dashed rounded-md p-3">
+            El horario de este grupo se define en la agenda al crear o editar la sesión grupal. Los clientes se añaden también desde la agenda al asignarlos a la sesión.
           </div>
 
           {!isNew && (
