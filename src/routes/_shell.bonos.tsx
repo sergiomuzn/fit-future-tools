@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -243,7 +243,7 @@ function BonosPage() {
                     className="hover:underline text-left"
                     onClick={() => setHistoryClient(clientMap.get(b.client_id) ?? null)}
                   >
-                    {clientMap.get(b.client_id)?.nombre ?? "?"}
+                    {formatNameTitle(clientMap.get(b.client_id)?.nombre) ?? "?"}
                   </button>
                 </TableCell>
                 <TableCell>
@@ -285,7 +285,7 @@ function BonosPage() {
           <DialogHeader><DialogTitle>Editar bono</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid gap-3">
-              <div className="text-sm text-muted-foreground">{clientMap.get(editing.client_id)?.nombre}</div>
+              <div className="text-sm text-muted-foreground">{formatNameTitle(clientMap.get(editing.client_id)?.nombre)}</div>
             <div className="space-y-1.5">
                 <Label>Tipo de bono</Label>
                 <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>

@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { formatNameTitle } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -216,7 +217,7 @@ function FacturacionPage() {
                     const isAlta = altaByClient.get(i.client_id) === i.fecha;
                     return c ? (
                       <div className="flex items-center gap-2">
-                        <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                        <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{formatNameTitle(c.nombre)}</button>
                         {isAlta && (
                           <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">Alta</span>
                         )}

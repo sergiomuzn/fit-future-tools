@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatNameTitle } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
 const TIPO_CLASS: Record<string, string> = {
@@ -48,7 +48,7 @@ export function ClientDetailsDialog({
     <Dialog open={!!client} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <DialogTitle>{client?.nombre}</DialogTitle>
+          <DialogTitle>{formatNameTitle(client?.nombre)}</DialogTitle>
         </DialogHeader>
         {client && (
           <Tabs defaultValue={defaultTab} className="w-full">
@@ -59,7 +59,7 @@ export function ClientDetailsDialog({
             </TabsList>
             <TabsContent value="info" className="pt-4">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
-                <Field label="Nombre" value={client.nombre} />
+                <Field label="Nombre" value={formatNameTitle(client.nombre)} />
                 <Field label="Estado" value={
                   <span className={`text-xs px-2 py-0.5 rounded-full ${client.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
                     {client.activo ? "Activo" : "Inactivo"}

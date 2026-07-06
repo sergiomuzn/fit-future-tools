@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Search, X } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, formatNameTitle } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = {
   individual: "Individual",
@@ -98,7 +98,7 @@ function SesionesPage() {
     if (s.ocupacion === 2) {
       return (s.group_id ? groupMap.get(s.group_id)?.nombre : null) ?? s.titulo ?? "Grupo";
     }
-    return (s.client_id ? clientMap.get(s.client_id)?.nombre : s.titulo) ?? "—";
+    return (s.client_id ? formatNameTitle(clientMap.get(s.client_id)?.nombre) : s.titulo) ?? "—";
   };
 
   // Colapsar filas de una misma sesión de grupo (mismo recurrencia+fecha+hora) en una sola fila.
