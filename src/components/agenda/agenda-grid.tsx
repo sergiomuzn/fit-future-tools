@@ -543,6 +543,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
                 : (formatNameUpper(client?.nombre) ?? session.titulo ?? "");
+              const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
