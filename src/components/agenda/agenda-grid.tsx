@@ -123,7 +123,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
     queryFn: async () => {
-      const { data } = await supabase.from("bonos_catalogo").select("*");
+      const { data } = await supabase.from("bonos_catalogo").select("*").order("orden");
       return data ?? [];
     },
   });
