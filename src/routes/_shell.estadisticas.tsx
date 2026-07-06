@@ -553,6 +553,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
+                      isAnimationActive={false}
                     />
                   ))}
                 </LineChart>
@@ -963,7 +964,7 @@ function buildSeries(args: {
   const seriesKeys = Array.from(seriesKeysSet);
   const rows: SeriesRow[] = bucketKeys.map((b) => {
     const row: SeriesRow = { bucket: b };
-    for (const k of seriesKeys) row[k] = acc.get(b)?.get(k) ?? 0;
+    for (const k of seriesKeys) row[k] = Number(acc.get(b)?.get(k) ?? 0);
     return row;
   });
 
