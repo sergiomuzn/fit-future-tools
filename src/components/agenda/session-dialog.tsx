@@ -274,6 +274,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         estado: base.estado,
         titulo: base.titulo,
         no_contabilizar: base.no_contabilizar,
+        por_confirmar: base.por_confirmar,
+        group_id: base.group_id,
         incidencia: base.incidencia,
       };
 
