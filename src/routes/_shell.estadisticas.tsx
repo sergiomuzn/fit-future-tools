@@ -533,7 +533,17 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
                   {rows.length >= 2 && seriesKeys.map((k, i) => (
-                    <Line key={`ln-${k}`} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} legendType="none" isAnimationActive={false} />
+                    <Line
+                      key={`ln-${k}`}
+                      type="monotone"
+                      dataKey={k}
+                      stroke={colorForSeries(k, i)}
+                      strokeWidth={2}
+                      dot={{ r: 4, fill: colorForSeries(k, i), stroke: "hsl(var(--card))", strokeWidth: 2 }}
+                      activeDot={{ r: 6 }}
+                      legendType="none"
+                      isAnimationActive={false}
+                    />
                   ))}
                 </ComposedChart>
               )}
