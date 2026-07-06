@@ -607,36 +607,6 @@ function YearSelect({ label, value, onChange, years }: {
 // ============================================================
 type SeriesRow = { bucket: string; [key: string]: string | number };
 
-// Añade líneas de tendencia (regresión lineal simple) a cada serie
-// cuando el eje horizontal representa una progresión temporal con 3+ puntos.
-function addTrendLines(
-  rows: SeriesRow[],
-  seriesKeys: string[],
-  isTimeAxis: boolean,
-): string[] {
-  if (!isTimeAxis || rows.length < 3 || seriesKeys.length === 0) return [];
-  const trendKeys: string[] = [];
-  const single = seriesKeys.length === 1;
-  for (const k of seriesKeys) {
-    const n = rows.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    for (let i = 0; i < n; i++) {
-      const y = Number(rows[i][k]) || 0;
-      sumX += i; sumY += y; sumXY += i * y; sumX2 += i * i;
-    }
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom === 0) continue;
-    const slope = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
-    const tk = single ? "Tendencia" : `Tendencia · ${k}`;
-    trendKeys.push(tk);
-    for (let i = 0; i < n; i++) {
-      rows[i][tk] = Math.round((slope * i + intercept) * 100) / 100;
-    }
-  }
-  return trendKeys;
-}
-
 function buildSeries(args: {
   sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
