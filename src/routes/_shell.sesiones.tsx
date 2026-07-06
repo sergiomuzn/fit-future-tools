@@ -173,7 +173,7 @@ function SesionesPage() {
             <TableRow>
               <TableHead>Fecha</TableHead>
               <TableHead>Hora</TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead>Cliente / Grupo</TableHead>
               <TableHead>Tipo</TableHead>
               <TableHead>Entrenador</TableHead>
               <TableHead>Estado</TableHead>
