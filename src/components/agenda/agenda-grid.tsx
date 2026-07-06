@@ -151,6 +151,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return data ?? [];
     },
   });
+
+  const { data: groupsList = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => {
+      const { data } = await supabase.from("groups").select("id,capacidad");
+      return (data ?? []) as Array<{ id: string; capacidad: number | null }>;
+    },
+  });
+  const groupCapMap = useMemo(
+    () => new Map(groupsList.map((g) => [g.id, g.capacidad ?? 0])),
+    [groupsList],
+  );
   const catTipoMap = useMemo(
     () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
     [catalogo],
