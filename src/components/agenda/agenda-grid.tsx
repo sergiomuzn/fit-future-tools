@@ -38,7 +38,14 @@ function formatNameUpper(name: string | null | undefined): string {
 }
 
 function computeLayout(sessions: Session[]): LayoutInfo[] {
-  const sorted = [...sessions].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
+  // Orden estable: por hora_inicio y, en caso de empate, por id.
+  // Evita que las tarjetas cambien de columna al re-consultar sesiones
+  // (por ejemplo tras asignar un entrenador en modo pintar).
+  const sorted = [...sessions].sort((a, b) => {
+    const t = a.hora_inicio.localeCompare(b.hora_inicio);
+    if (t !== 0) return t;
+    return a.id.localeCompare(b.id);
+  });
   const result: LayoutInfo[] = [];
   // Greedy column assignment within overlap groups
   const groups: Session[][] = [];
@@ -378,8 +385,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     if (paintTrainerId) {
       e.stopPropagation();
-      await supabase.from("sessions").update({ trainer_id: paintTrainerId }).eq("id", s.id);
-      qc.invalidateQueries({ queryKey: ["sessions"] });
+      // Actualización optimista: refleja el cambio en la UI al instante.
+      qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
+        (old ?? []).map((x) => (x.id === s.id ? { ...x, trainer_id: paintTrainerId } : x)),
+      );
+      const { error } = await supabase.from("sessions").update({ trainer_id: paintTrainerId }).eq("id", s.id);
+      if (error) {
+        toast.error(error.message);
+        qc.invalidateQueries({ queryKey: ["sessions"] });
+      }
       return;
     }
     setDialogSession(s);
@@ -618,7 +632,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
-                        <div className={cn("shrink-0 rounded bg-black/15 px-1 font-semibold text-black leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
+                        <div className={cn("shrink-0 rounded bg-black/25 px-1 font-semibold text-white leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
                           {trainer.iniciales}
                         </div>
                       )}
@@ -630,7 +644,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
                         </div>
                         {trainer && (
-                          <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black">
+                          <div className="shrink-0 rounded bg-black/25 px-1 text-[10px] font-semibold text-white">
                             {trainer.iniciales}
                           </div>
                         )}
