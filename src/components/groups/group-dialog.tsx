@@ -20,6 +20,7 @@ import {
   DIAS_SEMANA_LONG,
 } from "@/lib/db";
 import { toast } from "sonner";
+import { formatNameTitle } from "@/lib/utils";
 
 const EMPTY_SCHEDULES: GroupSchedule[] = [];
 const EMPTY_MEMBERS: { client_id: string }[] = [];
@@ -158,7 +159,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
     const top = [...attendance.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
-      .map(([id, count]) => ({ id, nombre: clientMap.get(id)?.nombre ?? "?", count }));
+      .map(([id, count]) => ({ id, nombre: formatNameTitle(clientMap.get(id)?.nombre) ?? "?", count }));
 
     return { avgPrev, top };
   }, [statsSessions, clientMap]);
@@ -281,7 +282,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
             <div className="flex flex-wrap gap-1.5">
               {memberIds.map((id) => (
                 <span key={id} className="inline-flex items-center gap-1 text-xs bg-accent rounded-full pl-2 pr-1 py-0.5">
-                  {clientMap.get(id)?.nombre ?? "?"}
+                  {formatNameTitle(clientMap.get(id)?.nombre) ?? "?"}
                   <button type="button" onClick={() => setMemberIds((p) => p.filter((x) => x !== id))} className="rounded-full hover:bg-background p-0.5">
                     <Trash2 className="h-3 w-3" />
                   </button>
