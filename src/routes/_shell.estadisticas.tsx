@@ -555,16 +555,16 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
-                  {hasTrend && (
+                  {hasTotal && (
                     <Line
                       type="monotone"
-                      dataKey="__trend"
-                      name="Tendencia"
+                      dataKey="__total"
+                      name="Total"
                       stroke="#374151"
                       strokeWidth={2}
                       connectNulls
-                      dot={{ r: 4, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
-                      activeDot={{ r: 6, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
+                      dot={{ r: 4, fill: "#374151" }}
+                      activeDot={{ r: 6 }}
                       isAnimationActive={false}
                     />
                   )}
