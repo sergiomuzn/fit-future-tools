@@ -385,11 +385,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     if (paintTrainerId) {
       e.stopPropagation();
+      const newTrainerId = s.trainer_id === paintTrainerId ? null : paintTrainerId;
       // Actualización optimista: refleja el cambio en la UI al instante.
       qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
-        (old ?? []).map((x) => (x.id === s.id ? { ...x, trainer_id: paintTrainerId } : x)),
+        (old ?? []).map((x) => (x.id === s.id ? { ...x, trainer_id: newTrainerId } : x)),
       );
-      const { error } = await supabase.from("sessions").update({ trainer_id: paintTrainerId }).eq("id", s.id);
+      const { error } = await supabase.from("sessions").update({ trainer_id: newTrainerId }).eq("id", s.id);
       if (error) {
         toast.error(error.message);
         qc.invalidateQueries({ queryKey: ["sessions"] });
