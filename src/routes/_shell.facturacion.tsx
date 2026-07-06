@@ -118,12 +118,12 @@ function FacturacionPage() {
   async function save() {
     const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
-    if (!form.bono_catalogo_id) { toast.error("Selecciona un bono"); return; }
+    const bonoId = form.bono_catalogo_id?.trim() || null;
     const payload = {
       fecha: form.fecha!,
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
       client_id: clientId,
-      bono_catalogo_id: form.bono_catalogo_id,
+      bono_catalogo_id: bonoId,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
     };
