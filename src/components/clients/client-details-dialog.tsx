@@ -262,7 +262,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                 {dayInvoices.length > 0 && (
                   <span
                     title={dayInvoices.map((iv) => {
-                      const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id)?.nombre) ?? "Bono";
+                      const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
                       const cerrado = closedByDate.get(iv.fecha);
                       return cerrado
                         ? `${nombre} · Restantes al cerrar: ${cerrado.sesiones_disponibles}`
