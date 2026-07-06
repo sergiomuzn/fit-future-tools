@@ -401,7 +401,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, trendKeys, isLineChart } = useMemo(
+  const { rows, seriesKeys, isLineChart } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap }),
     [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap],
   );
@@ -428,12 +428,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
     return palette[idx % palette.length];
-  };
-  const trendColorFor = (name: string): string => {
-    if (trendKeys.length === 1) return "#374151";
-    const seriesName = name.replace(/^Tendencia · /, "");
-    const idx = seriesKeys.indexOf(seriesName);
-    return colorForSeries(seriesName, idx >= 0 ? idx : 0);
   };
 
   return (
@@ -527,9 +521,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Line key={k} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} />
                   ))}
-                  {trendKeys.map((k) => (
-                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
-                  ))}
                 </LineChart>
               ) : (
                 <ComposedChart data={rows}>
@@ -541,8 +532,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
-                  {trendKeys.map((k) => (
-                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
+                  {rows.length >= 2 && seriesKeys.map((k, i) => (
+                    <Line key={`ln-${k}`} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} legendType="none" isAnimationActive={false} />
                   ))}
                 </ComposedChart>
               )}
@@ -616,43 +607,13 @@ function YearSelect({ label, value, onChange, years }: {
 // ============================================================
 type SeriesRow = { bucket: string; [key: string]: string | number };
 
-// Añade líneas de tendencia (regresión lineal simple) a cada serie
-// cuando el eje horizontal representa una progresión temporal con 3+ puntos.
-function addTrendLines(
-  rows: SeriesRow[],
-  seriesKeys: string[],
-  isTimeAxis: boolean,
-): string[] {
-  if (!isTimeAxis || rows.length < 3 || seriesKeys.length === 0) return [];
-  const trendKeys: string[] = [];
-  const single = seriesKeys.length === 1;
-  for (const k of seriesKeys) {
-    const n = rows.length;
-    let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-    for (let i = 0; i < n; i++) {
-      const y = Number(rows[i][k]) || 0;
-      sumX += i; sumY += y; sumXY += i * y; sumX2 += i * i;
-    }
-    const denom = n * sumX2 - sumX * sumX;
-    if (denom === 0) continue;
-    const slope = (n * sumXY - sumX * sumY) / denom;
-    const intercept = (sumY - slope * sumX) / n;
-    const tk = single ? "Tendencia" : `Tendencia · ${k}`;
-    trendKeys.push(tk);
-    for (let i = 0; i < n; i++) {
-      rows[i][tk] = Math.round((slope * i + intercept) * 100) / 100;
-    }
-  }
-  return trendKeys;
-}
-
 function buildSeries(args: {
   sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
-}): { rows: SeriesRow[]; seriesKeys: string[]; trendKeys: string[]; isLineChart: boolean } {
+}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
   const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     if (s.client_id) {
@@ -705,10 +666,7 @@ function buildSeries(args: {
       const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
-    const seriesKeys = ["Altas", "Bajas"];
-    const isTimeAxis = period === "historico" && rows.length >= 3;
-    const trendKeys = addTrendLines(rows, seriesKeys, isTimeAxis);
-    return { rows, seriesKeys, trendKeys, isLineChart: false };
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
   }
 
   // -------- Facturación estimada (por turno y total, precios fijos) --------
@@ -753,7 +711,7 @@ function buildSeries(args: {
         for (const s of sessions.filter(p.filter)) sum += amountOf(s);
         rows[0][p.key] = Math.round(sum);
       }
-      return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
+      return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
     }
     const buckets = ["Mañana", "Tarde", "Total"];
     const rows: SeriesRow[] = buckets.map((b) => ({ bucket: b }));
@@ -768,7 +726,7 @@ function buildSeries(args: {
       rows[1][p.key] = Math.round(mPm);
       rows[2][p.key] = Math.round(mAm + mPm);
     }
-    return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
+    return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
@@ -971,9 +929,7 @@ function buildSeries(args: {
   const isLineChart = desglose === "franja"; // evolución horaria
   const finalRows = nonZero.length ? nonZero : rows;
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
-  const isTimeAxis = desglose === "franja" || desglose === "dow";
-  const trendKeys = addTrendLines(finalRows, finalSeries, isTimeAxis);
-  return { rows: finalRows, seriesKeys: finalSeries, trendKeys, isLineChart };
+  return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
 
   // suppress unused
   void isMultiSeries;
