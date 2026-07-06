@@ -78,6 +78,14 @@ function ShellInner() {
     }
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Al cambiar de ruta, sube al inicio de la página
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "auto" });
+    document.querySelectorAll<HTMLElement>("[data-shell-scroll]").forEach((el) => {
+      el.scrollTop = 0;
+    });
+  }, [pathname]);
+
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground">
       <Sidebar collapsible="icon">
@@ -149,7 +157,7 @@ function ShellInner() {
           <SidebarTrigger />
           <span className="font-display text-sm font-semibold tracking-tight md:hidden">Fitness 360</span>
         </div>
-        <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="flex-1 min-h-0 overflow-auto" data-shell-scroll>
           <Outlet />
         </div>
       </main>
