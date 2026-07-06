@@ -546,7 +546,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   ))}
                 </LineChart>
               ) : (
-                <ComposedChart data={rowsWithTrend}>
+                <ComposedChart data={rowsWithTotal}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
