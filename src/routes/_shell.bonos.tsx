@@ -23,7 +23,7 @@ function BonosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
-  const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
+  const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
   const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [addOpen, setAddOpen] = useState(false);
