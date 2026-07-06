@@ -16,7 +16,7 @@ import { ClientDetailsDialog } from "@/components/clients/client-details-dialog"
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog, scheduleSummary } from "@/components/groups/group-dialog";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, formatNameTitle } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,

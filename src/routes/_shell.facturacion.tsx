@@ -14,6 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { formatNameTitle } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 

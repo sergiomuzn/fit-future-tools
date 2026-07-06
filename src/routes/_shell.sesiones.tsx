@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Search, X } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, formatNameTitle } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = {
   individual: "Individual",
