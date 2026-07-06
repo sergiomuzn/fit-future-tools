@@ -12,8 +12,6 @@ import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, 
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { GroupPicker } from "@/components/groups/group-picker";
-import { GroupDialog } from "@/components/groups/group-dialog";
-import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import {
@@ -56,7 +54,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -795,7 +792,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-    <GroupDialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} group={null} />
     </>
   );
 }
