@@ -287,7 +287,7 @@ export type Database = {
       }
       invoices: {
         Row: {
-          bono_catalogo_id: string
+          bono_catalogo_id: string | null
           client_id: string
           cobrador_trainer_id: string | null
           created_at: string
@@ -297,7 +297,7 @@ export type Database = {
           precio_cobrado: number
         }
         Insert: {
-          bono_catalogo_id: string
+          bono_catalogo_id?: string | null
           client_id: string
           cobrador_trainer_id?: string | null
           created_at?: string
@@ -307,7 +307,7 @@ export type Database = {
           precio_cobrado: number
         }
         Update: {
-          bono_catalogo_id?: string
+          bono_catalogo_id?: string | null
           client_id?: string
           cobrador_trainer_id?: string | null
           created_at?: string

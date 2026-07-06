@@ -118,12 +118,12 @@ function FacturacionPage() {
   async function save() {
     const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
-    if (!form.bono_catalogo_id) { toast.error("Selecciona un bono"); return; }
+    const bonoId = form.bono_catalogo_id?.trim() || null;
     const payload = {
       fecha: form.fecha!,
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
       client_id: clientId,
-      bono_catalogo_id: form.bono_catalogo_id,
+      bono_catalogo_id: bonoId,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
     };
@@ -181,7 +181,7 @@ function FacturacionPage() {
           </TableHeader>
           <TableBody>
             {invoices.map((i) => {
-              const cat = catMap.get(i.bono_catalogo_id);
+              const cat = catMap.get(i.bono_catalogo_id ?? "");
               const tipo = cat?.tipo;
               const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
               const TIPO_CLASS: Record<string, string> = {
@@ -245,10 +245,11 @@ function FacturacionPage() {
               <Label>Bono</Label>
               <Select value={form.bono_catalogo_id ?? ""} onValueChange={(v) => {
                 const b = catalogo.find((x) => x.id === v);
-                setForm({ ...form, bono_catalogo_id: v, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
+                setForm({ ...form, bono_catalogo_id: v || undefined, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Sin bono</SelectItem>
                   {sortCatalogo(catalogo).map((b) => {
                     const label = b.tipo.charAt(0).toUpperCase() + b.tipo.slice(1);
                     return (
