@@ -33,6 +33,22 @@ interface LayoutInfo {
   cols: number;
 }
 
+const LOWERCASE_WORDS = new Set([
+  "y", "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
+  "con", "por", "para", "en", "a", "al", "que", "se", "sus", "tu", "su",
+]);
+
+function formatNameUpper(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((word) => {
+      const lower = word.toLowerCase();
+      return LOWERCASE_WORDS.has(lower) ? lower : word.toUpperCase();
+    })
+    .join(" ");
+}
+
 function computeLayout(sessions: Session[]): LayoutInfo[] {
   const sorted = [...sessions].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
   const result: LayoutInfo[] = [];
@@ -533,12 +549,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupNames = isGroup
                 ? (members ?? [session])
                     .filter((m) => !!m.client_id)
-                    .map((m) => clientMap.get(m.client_id ?? "")?.nombre?.toUpperCase() ?? "?")
+                    .map((m) => formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?")
                     .join(", ")
                 : "";
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
-                : (client?.nombre?.toUpperCase() ?? session.titulo ?? "");
+                : (formatNameUpper(client?.nombre) ?? session.titulo ?? "");
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
               return (
