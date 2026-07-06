@@ -151,6 +151,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return data ?? [];
     },
   });
+
+  const { data: groupsList = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => {
+      const { data } = await supabase.from("groups").select("id,capacidad");
+      return (data ?? []) as Array<{ id: string; capacidad: number | null }>;
+    },
+  });
+  const groupCapMap = useMemo(
+    () => new Map(groupsList.map((g) => [g.id, g.capacidad ?? 0])),
+    [groupsList],
+  );
   const catTipoMap = useMemo(
     () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
     [catalogo],
@@ -564,6 +576,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
+              const groupCap = isGroup
+                ? (groupCapMap.get((session as any).group_id ?? "") ?? 0)
+                : 0;
+              const groupCountLabel = isGroup
+                ? (groupCap > 0 ? `${groupMemberCount}/${groupCap}` : `${groupMemberCount}`)
+                : "";
               const groupNames = isGroup
                 ? (members ?? [session])
                     .filter((m) => !!m.client_id)
@@ -644,7 +662,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
+                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
@@ -667,7 +685,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
+                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {isGroup && groupMemberCount > 0 && (
