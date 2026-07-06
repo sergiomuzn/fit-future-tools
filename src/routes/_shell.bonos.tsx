@@ -249,7 +249,7 @@ function BonosPage() {
               );
               })()
             ))}
-            {sorted.length === 0 && (
+            {filtered.length === 0 && (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
