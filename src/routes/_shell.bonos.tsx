@@ -106,7 +106,16 @@ function BonosPage() {
     return na.localeCompare(nb, "es", { sensitivity: "base" });
   });
 
-  const filtered = sorted.filter((b) => {
+  const visible = sorted.filter((b) => {
+    if (!b.activo) return false;
+    const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+    const isGympassLike = tipoBono === "gympass" || tipoBono === "grupal";
+    const noBono = !b.bono_catalogo_id;
+    if (isGympassLike || noBono) return true;
+    return b.sesiones_disponibles > 0;
+  });
+
+  const filtered = visible.filter((b) => {
     if (!q.trim()) return true;
     const client = clientMap.get(b.client_id);
     const cat = catMap.get(b.bono_catalogo_id ?? "");
