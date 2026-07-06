@@ -617,9 +617,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 <div className="flex-1">
                   <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nombre del grupo</Label>
+                  <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional Lunes 18h" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Capacidad (máx. clientes)</Label>
+                  <Input type="number" min={1} value={groupCapacidad}
+                    onChange={(e) => setGroupCapacidad(Number(e.target.value) || 1)} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="grupo-activo-inline" checked={groupActivo} onCheckedChange={(v) => setGroupActivo(!!v)} />
+                <Label htmlFor="grupo-activo-inline" className="cursor-pointer">Grupo activo</Label>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notas del grupo</Label>
+                <Textarea rows={2} value={groupNotas} onChange={(e) => setGroupNotas(e.target.value)} />
               </div>
               <Label className="text-xs text-muted-foreground">Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
@@ -637,9 +653,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 <div className="flex-1">
                   <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
                 </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Nombre del grupo</Label>
+                  <Input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="Ej. Funcional Lunes 18h" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Capacidad (máx. clientes)</Label>
+                  <Input type="number" min={1} value={groupCapacidad}
+                    onChange={(e) => setGroupCapacidad(Number(e.target.value) || 1)} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="grupo-activo-inline-edit" checked={groupActivo} onCheckedChange={(v) => setGroupActivo(!!v)} />
+                <Label htmlFor="grupo-activo-inline-edit" className="cursor-pointer">Grupo activo</Label>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Notas del grupo</Label>
+                <Textarea rows={2} value={groupNotas} onChange={(e) => setGroupNotas(e.target.value)} />
               </div>
               <Label>Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
