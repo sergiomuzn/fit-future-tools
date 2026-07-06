@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line,
+  Legend as RLegend, LineChart, Line, ComposedChart,
 } from "recharts";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
