@@ -65,7 +65,7 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
           <Button variant="ghost" size="icon" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
