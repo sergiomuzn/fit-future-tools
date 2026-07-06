@@ -601,7 +601,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
                     </div>
                     {trainer && (
-                      <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold">
+                      <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black">
                         {trainer.iniciales}
                       </div>
                     )}
