@@ -118,11 +118,26 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
+  void clients;
   const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
+  const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const [ys, ms] = ym.split("-").map(Number);
+  const y = ys;
+  const m = ms - 1;
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
+
+  // Rango histórico ilimitado: desde el año más antiguo con datos (o hace 5 años) hasta hoy.
+  const earliestYear = useMemo(() => {
+    let min = now.getFullYear();
+    for (const s of sessions) {
+      if (s.fecha) { const yy = Number(s.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
+    }
+    for (const e of events) {
+      if (e.fecha) { const yy = Number(e.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
+    }
+    return Math.min(min, now.getFullYear() - 5);
+  }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
   const realizadas = monthSessions.filter((s) => s.estado === "realizada");
@@ -154,23 +169,76 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
     },
-    { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
-    { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
+    { label: "Altas del mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}` },
+    { label: "Bajas del mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {kpis.map((k) => (
-        <Card key={k.label}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-display font-semibold">{k.value}</div>
-            <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-3">
+      <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <Card key={k.label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-display font-semibold">{k.value}</div>
+              <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KpiMonthSelector({ value, onChange, earliestYear, now }: {
+  value: string; onChange: (v: string) => void; earliestYear: number; now: Date;
+}) {
+  const [ys, ms] = value.split("-");
+  const y = Number(ys); const m = Number(ms);
+  const curY = now.getFullYear(); const curM = now.getMonth() + 1;
+  const years: number[] = [];
+  for (let yy = curY; yy >= earliestYear; yy--) years.push(yy);
+  const maxMonth = y === curY ? curM : 12;
+  const months: number[] = [];
+  for (let mm = 1; mm <= maxMonth; mm++) months.push(mm);
+  const setYear = (yy: string) => {
+    const ny = Number(yy);
+    const nMax = ny === curY ? curM : 12;
+    const nm = Math.min(m, nMax);
+    onChange(`${yy}-${String(nm).padStart(2, "0")}`);
+  };
+  const setMonth = (mm: string) => onChange(`${ys}-${mm}`);
+  return (
+    <div className="flex items-end gap-2">
+      <div className="space-y-1.5">
+        <Label className="text-xs">Mes de los KPIs</Label>
+        <div className="flex gap-2">
+          <Select value={ms} onValueChange={setMonth}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {months.map((mm) => (
+                <SelectItem key={mm} value={String(mm).padStart(2, "0")}>{MES_FULL[mm - 1]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={ys} onValueChange={setYear}>
+            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {years.map((yy) => <SelectItem key={yy} value={String(yy)}>{yy}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <Button
+        variant="outline" size="sm"
+        onClick={() => onChange(`${curY}-${String(curM).padStart(2, "0")}`)}
+        disabled={y === curY && m === curM}
+      >
+        Mes actual
+      </Button>
     </div>
   );
 }
