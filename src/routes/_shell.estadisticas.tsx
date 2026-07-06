@@ -430,6 +430,32 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return palette[idx % palette.length];
   };
 
+  // Linear-regression trend line over the sum of all bar series per bucket.
+  // Only applied to bar charts with 3+ points (per the user's spec).
+  const trendValues = useMemo<number[] | null>(() => {
+    if (isLineChart) return null;
+    const n = rows.length;
+    if (n < 3) return null;
+    const ys = rows.map((r) =>
+      seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
+    );
+    const meanX = (n - 1) / 2;
+    const meanY = ys.reduce((a, b) => a + b, 0) / n;
+    let num = 0;
+    let den = 0;
+    for (let i = 0; i < n; i++) {
+      num += (i - meanX) * (ys[i] - meanY);
+      den += (i - meanX) * (i - meanX);
+    }
+    const slope = den === 0 ? 0 : num / den;
+    const intercept = meanY - slope * meanX;
+    return ys.map((_, i) => intercept + slope * i);
+  }, [rows, seriesKeys, isLineChart]);
+  const hasTrend = trendValues !== null;
+  const rowsWithTrend = hasTrend
+    ? rows.map((r, i) => ({ ...r, __trend: trendValues![i] }))
+    : rows;
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
