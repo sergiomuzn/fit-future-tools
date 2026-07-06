@@ -92,8 +92,8 @@ function AgendaPage() {
         </div>
       </header>
 
-      {paintTrainerId && (
-        <div className="bg-primary/10 text-white text-xs px-4 py-1.5 border-b">
+        {paintTrainerId && (
+        <div className="bg-primary/90 text-primary-foreground text-xs font-medium px-4 py-1.5 border-b">
           Modo pintar activo · pincha sobre las sesiones para asignarles este entrenador.
         </div>
       )}
