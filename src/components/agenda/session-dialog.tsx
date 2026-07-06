@@ -501,6 +501,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         .gte("fecha", session.fecha);
       if (error) toast.error(error.message);
       else toast.success("Sesiones futuras eliminadas");
+    } else if (grupo && recurrenciaId && session.fecha && session.hora_inicio) {
+      // Grupo: eliminar todos los miembros del bloque en esta fecha/hora.
+      const { error } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("recurrencia_id", recurrenciaId)
+        .eq("fecha", session.fecha)
+        .eq("hora_inicio", session.hora_inicio);
+      if (error) toast.error(error.message);
+      else toast.success("Sesión de grupo eliminada");
     } else {
       const { error } = await supabase.from("sessions").delete().eq("id", session.id);
       if (error) toast.error(error.message);
