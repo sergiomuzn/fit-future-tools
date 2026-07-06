@@ -95,6 +95,19 @@ function BonosPage() {
     return na.localeCompare(nb, "es", { sensitivity: "base" });
   });
 
+  const filtered = sorted.filter((b) => {
+    if (!q.trim()) return true;
+    const client = clientMap.get(b.client_id);
+    const cat = catMap.get(b.bono_catalogo_id ?? "");
+    const text = [
+      client?.nombre ?? "",
+      cat?.tipo ? TIPO_LABEL[cat.tipo] : "",
+      prettyBonoNombre(b.ultimo_bono_nombre),
+      b.ultimo_bono_fecha ?? "",
+    ].join(" ");
+    return normalizeText(text).includes(normalizeText(q));
+  });
+
   async function save() {
     if (!editing) return;
     const selectedCatalogo = catalogo.find((c) => c.id === editing.bono_catalogo_id);
