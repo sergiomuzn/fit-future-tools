@@ -733,6 +733,16 @@ function buildSeries(args: {
       if (t === "grupal") return PRECIO.grupal;
       return 0;
     };
+    // Desglose "Total del periodo": una única barra por periodo con la suma total.
+    if (desglose === "total") {
+      const rows: SeriesRow[] = [{ bucket: "Total" }];
+      for (const p of periodsFact) {
+        let sum = 0;
+        for (const s of sessions.filter(p.filter)) sum += amountOf(s);
+        rows[0][p.key] = Math.round(sum);
+      }
+      return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
+    }
     const buckets = ["Mañana", "Tarde", "Total"];
     const rows: SeriesRow[] = buckets.map((b) => ({ bucket: b }));
     for (const p of periodsFact) {
@@ -746,7 +756,7 @@ function buildSeries(args: {
       rows[1][p.key] = Math.round(mPm);
       rows[2][p.key] = Math.round(mAm + mPm);
     }
-    return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
+    return { rows, seriesKeys: periodsFact.map((p) => p.key), trendKeys: [], isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
