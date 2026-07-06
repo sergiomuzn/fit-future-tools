@@ -426,7 +426,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {hours.map((h) => (
               <div
                 key={h}
-                className="absolute left-0 right-0 border-t border-border/60"
+                className="absolute left-0 right-0 border-t border-border/80"
                 style={{ top: (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX }}
               />
             ))}
