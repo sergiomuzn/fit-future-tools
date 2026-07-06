@@ -117,8 +117,7 @@ function BonosPage() {
 
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
-    if (!nuevo.bono_catalogo_id) { toast.error("Selecciona un tipo de bono"); return; }
-    const cat = catalogo.find((c) => c.id === nuevo.bono_catalogo_id);
+    const cat = nuevo.bono_catalogo_id ? catalogo.find((c) => c.id === nuevo.bono_catalogo_id) : null;
     const allowZero = cat?.tipo === "gympass" || cat?.tipo === "grupal";
     const sesiones = Number(nuevo.sesiones_disponibles);
     if (!Number.isFinite(sesiones) || sesiones < 0 || (!allowZero && sesiones <= 0)) {
@@ -278,7 +277,8 @@ function BonosPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de bono</Label>
-              <Select value={nuevo.bono_catalogo_id || ""} onValueChange={(v) => {
+              <Select value={nuevo.bono_catalogo_id || ""} onValueChange={(raw) => {
+                const v = raw === "__none__" ? "" : raw;
                 const cat = v ? catalogo.find((c) => c.id === v) : null;
                 setNuevo({
                   ...nuevo,
@@ -288,9 +288,10 @@ function BonosPage() {
                     : nuevo.sesiones_disponibles,
                 });
               }}>
-                <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
-                <SelectContent>
-                  {sortCatalogo(catalogo).map((c) => (
+                 <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
+                 <SelectContent>
+                   <SelectItem value="__none__">Sin bono</SelectItem>
+                   {sortCatalogo(catalogo).map((c) => (
                     <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>
                   ))}
                 </SelectContent>
