@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, X } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -131,7 +131,19 @@ function ClientesPage() {
           <TabsTrigger value="grupos">Grupos</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
-      <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="max-w-sm" />
+      <div className="relative max-w-sm">
+        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pr-8" />
+        {q && (
+          <button
+            type="button"
+            aria-label="Limpiar búsqueda"
+            onClick={() => setQ("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>

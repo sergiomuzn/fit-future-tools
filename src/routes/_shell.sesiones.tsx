@@ -136,14 +136,24 @@ function SesionesPage() {
         <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
         <div className="flex items-center gap-2">
           {searchOpen ? (
-            <div className="flex items-center gap-1">
+            <div className="relative flex items-center gap-1">
               <Input
                 autoFocus
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Nombre o fecha (YYYY-MM-DD)…"
-                className="h-9 w-64"
+                className="h-9 w-64 pr-8"
               />
+              {search && (
+                <button
+                  type="button"
+                  aria-label="Limpiar búsqueda"
+                  onClick={() => setSearch("")}
+                  className="absolute right-10 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
               <Button variant="ghost" size="icon" onClick={() => { setSearch(""); setSearchOpen(false); }}>
                 <X className="h-4 w-4" />
               </Button>
