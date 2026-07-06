@@ -30,7 +30,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const qc = useQueryClient();
   const isNew = !group;
   const [nombre, setNombre] = useState("");
-  const [capacidad, setCapacidad] = useState(6);
+  const [capacidad, setCapacidad] = useState<number | "">(6);
   const [activo, setActivo] = useState(true);
   const [notas, setNotas] = useState("");
 
@@ -115,16 +115,17 @@ export function GroupDialog({ open, onClose, group }: Props) {
   async function save() {
     const name = nombre.trim();
     if (!name) { toast.error("Nombre requerido"); return; }
-    if (!capacidad || capacidad < 1) { toast.error("Capacidad inválida"); return; }
+    const cap = typeof capacidad === "number" ? capacidad : Number(capacidad);
+    if (!cap || cap < 1) { toast.error("Capacidad inválida"); return; }
 
     if (isNew) {
       const { error } = await supabase.from("groups").insert({
-        nombre: name, capacidad, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null,
       });
       if (error) { toast.error(error.message); return; }
     } else {
       const { error } = await supabase.from("groups").update({
-        nombre: name, capacidad, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null,
       }).eq("id", group!.id);
       if (error) { toast.error(error.message); return; }
     }
@@ -148,7 +149,20 @@ export function GroupDialog({ open, onClose, group }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Capacidad (máx. clientes)</Label>
-              <Input type="number" min={1} value={capacidad} onChange={(e) => setCapacidad(Number(e.target.value) || 1)} />
+              <Input
+                type="number"
+                min={1}
+                value={capacidad}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "") { setCapacidad(""); return; }
+                  const n = Number(v);
+                  if (Number.isFinite(n)) setCapacidad(n);
+                }}
+                onBlur={() => {
+                  if (capacidad === "" || (typeof capacidad === "number" && capacidad < 1)) setCapacidad(1);
+                }}
+              />
             </div>
           </div>
 
