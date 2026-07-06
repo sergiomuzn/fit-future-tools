@@ -261,7 +261,8 @@ function FacturacionPage() {
               <Label>Cliente</Label>
             <ClientPicker value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} />
             </div>
-            <div className="space-y-1.5">
+            <div className="flex items-end gap-3">
+              <div className="space-y-1.5 flex-1 min-w-0">
               <Label>Bono</Label>
               <Select value={form.bono_catalogo_id ?? "__none__"} onValueChange={(v) => {
                 const b = catalogo.find((x) => x.id === v);
@@ -283,19 +284,20 @@ function FacturacionPage() {
                   })}
                 </SelectContent>
               </Select>
-            </div>
-            {form.bono_catalogo_id && (
-              <div className="space-y-1.5">
-                <Label>Sesiones a añadir</Label>
-                <Input
-                  type="number"
-                  step="1"
-                  value={form.sesiones_override ?? ""}
-                  onChange={(e) => setForm({ ...form, sesiones_override: e.target.value === "" ? null : Number(e.target.value) })}
-                />
-                <p className="text-xs text-muted-foreground">Predeterminado según el bono. Puedes ajustarlo si es una factura especial.</p>
               </div>
-            )}
+              {form.bono_catalogo_id && (
+                <div className="space-y-1.5 w-20 shrink-0">
+                  <Label className="text-xs">Sesiones</Label>
+                  <Input
+                    type="number"
+                    step="1"
+                    className="h-9 text-center px-2"
+                    value={form.sesiones_override ?? ""}
+                    onChange={(e) => setForm({ ...form, sesiones_override: e.target.value === "" ? null : Number(e.target.value) })}
+                  />
+                </div>
+              )}
+            </div>
             <div className="space-y-1.5">
               <Label>Precio cobrado (€)</Label>
               <Input type="number" step="5" placeholder="0" value={form.precio_cobrado ? form.precio_cobrado : ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) || 0 })} />
