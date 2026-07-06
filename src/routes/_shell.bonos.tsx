@@ -310,7 +310,7 @@ function BonosPage() {
         </DialogContent>
       </Dialog>
 
-      <ClientDetailsDialog client={historyClient} defaultTab="info" onOpenChange={(o) => !o && setHistoryClient(null)} />
+      <ClientDetailsDialog client={historyClient} defaultTab="calendario" onOpenChange={(o) => !o && setHistoryClient(null)} />
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
         <DialogContent onKeyDown={enterToSave(addBono)}>
