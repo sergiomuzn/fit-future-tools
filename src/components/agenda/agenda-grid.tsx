@@ -549,7 +549,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupNames = isGroup
                 ? (members ?? [session])
                     .filter((m) => !!m.client_id)
-                    .map((m) => clientMap.get(m.client_id ?? "")?.nombre?.toUpperCase() ?? "?")
+                    .map((m) => formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?")
                     .join(", ")
                 : "";
               const displayName = isGroup
