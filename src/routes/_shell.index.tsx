@@ -75,7 +75,7 @@ function AgendaPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-white mr-1">Pintar entrenador:</span>
+          <span className="text-xs mr-1">Pintar entrenador:</span>
           {sortedTrainers.map((t) => (
             <button
               key={t.id}
