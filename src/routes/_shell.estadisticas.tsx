@@ -281,6 +281,8 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
     // Sin desglose real; solo periodos que agrupan por mes.
     return NON_MVT_PERIODS.includes(period);
   }
+  // "Total del periodo" es válido para cualquier métrica y periodo.
+  if (desglose === "total") return true;
   if (metric === "ocupacion" || metric === "sesiones") {
     if (desglose === "franja" || desglose === "dow") return NON_MVT_PERIODS.includes(period);
     return true; // turno / tipoSesion cualquier periodo
@@ -305,6 +307,7 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
 }
 function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
   if (metric === "altasBajas") return false;
+  if (desglose === "total") return true;
   if (metric === "porEntrenador" && desglose === "franja") return false;
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
