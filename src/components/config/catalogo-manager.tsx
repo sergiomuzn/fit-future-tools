@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ function SortableRow({
   setVal,
   saveRow,
   removeRow,
+  moveRow,
 }: {
   c: BonoCatalogo;
   i: number;
@@ -44,6 +45,7 @@ function SortableRow({
   setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
   saveRow: (c: BonoCatalogo) => Promise<void>;
   removeRow: (c: BonoCatalogo) => Promise<void>;
+  moveRow: (i: number, dir: -1 | 1) => Promise<void>;
 }) {
   const {
     attributes,
@@ -74,6 +76,30 @@ function SortableRow({
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
+        </div>
+      </TableCell>
+      <TableCell className="w-16">
+        <div className="flex items-center gap-0.5">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            disabled={i === 0}
+            onClick={() => moveRow(i, -1)}
+            title="Subir"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            disabled={i === sortedLength - 1}
+            onClick={() => moveRow(i, 1)}
+            title="Bajar"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
         </div>
       </TableCell>
       <TableCell className="w-40">
