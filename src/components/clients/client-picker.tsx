@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
-import { normalizeText } from "@/lib/utils";
+import { normalizeText, formatNameTitle } from "@/lib/utils";
 
 interface Props {
   value: string | null;
@@ -129,7 +129,7 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
             onClick={() => { onChange(c.id, c); setSearch(c.nombre); setListOpen(false); }}
             className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${value === c.id ? "bg-accent font-medium" : ""}`}
           >
-            {c.nombre}
+            {formatNameTitle(c.nombre)}
           </button>
         ))}
         {filtered.length === 0 && (

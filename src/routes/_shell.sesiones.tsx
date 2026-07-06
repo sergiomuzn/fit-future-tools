@@ -98,7 +98,7 @@ function SesionesPage() {
     if (s.ocupacion === 2) {
       return (s.group_id ? groupMap.get(s.group_id)?.nombre : null) ?? s.titulo ?? "Grupo";
     }
-    return (s.client_id ? clientMap.get(s.client_id)?.nombre : s.titulo) ?? "—";
+    return (s.client_id ? formatNameTitle(clientMap.get(s.client_id)?.nombre) : s.titulo) ?? "—";
   };
 
   // Colapsar filas de una misma sesión de grupo (mismo recurrencia+fecha+hora) en una sola fila.
