@@ -187,6 +187,7 @@ export function CatalogoManager() {
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
+    console.log("[dnd] dragEnd", { activeId: active?.id, overId: over?.id });
     if (!over || active.id === over.id) return;
 
     const oldIndex = sorted.findIndex((c) => c.id === active.id);
