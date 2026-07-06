@@ -109,11 +109,7 @@ function BonosPage() {
 
   const visible = sorted.filter((b) => {
     if (!b.activo) return false;
-    const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
-    const isGympassLike = tipoBono === "gympass" || tipoBono === "grupal";
-    const noBono = !b.bono_catalogo_id;
-    if (isGympassLike || noBono) return true;
-    return b.sesiones_disponibles > 0;
+    return true;
   });
 
   const filtered = visible.filter((b) => {
