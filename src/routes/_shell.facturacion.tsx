@@ -32,6 +32,12 @@ function FacturacionPage() {
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
 
+  const { data: altas = [] } = useQuery({
+    queryKey: ["client-altas"],
+    queryFn: async () => (await supabase.from("client_events").select("client_id, fecha").eq("tipo", "alta")).data as { client_id: string; fecha: string }[] ?? [],
+  });
+  const altaByClient = new Map(altas.map((a) => [a.client_id, a.fecha]));
+
   const { data: allFechas = [] } = useQuery({
     queryKey: ["invoices-fechas"],
     queryFn: async () => (await supabase.from("invoices").select("fecha")).data as { fecha: string }[] ?? [],
