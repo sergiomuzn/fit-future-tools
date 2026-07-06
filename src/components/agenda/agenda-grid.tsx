@@ -580,24 +580,30 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   onClick={(e) => handleSessionClick(session, e)}
                 >
                   <div
-                    className="absolute left-0 right-0 top-0 h-1.5 cursor-ns-resize z-10"
+                    className={cn(
+                      "absolute left-0 right-0 cursor-ns-resize z-10",
+                      isUltraCompact ? "top-0 h-[3px]" : "top-0 h-1.5"
+                    )}
                     onMouseDown={(e) => {
                       if (paintTrainerId) return;
                       e.stopPropagation();
                       setResizing({ id: session.id, edge: "top", startMin, endMin });
                       setResizePreview({ startMin, endMin });
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
                   <div
-                    className="absolute left-0 right-0 bottom-0 h-1.5 cursor-ns-resize z-10"
+                    className={cn(
+                      "absolute left-0 right-0 cursor-ns-resize z-10",
+                      isUltraCompact ? "bottom-0 h-[3px]" : "bottom-0 h-1.5"
+                    )}
                     onMouseDown={(e) => {
                       if (paintTrainerId) return;
                       e.stopPropagation();
                       setResizing({ id: session.id, edge: "bottom", startMin, endMin });
                       setResizePreview({ startMin, endMin });
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
                   {isCompact ? (
                     <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
