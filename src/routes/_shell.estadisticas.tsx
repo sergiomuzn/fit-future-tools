@@ -93,7 +93,6 @@ function StatsPage() {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
-        <p className="text-sm text-muted-foreground">KPIs del mes en curso y comparaciones flexibles.</p>
       </div>
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
@@ -551,6 +550,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
                       strokeWidth={2}
+                      connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                     />
@@ -573,6 +573,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       name="Tendencia"
                       stroke="#374151"
                       strokeWidth={2}
+                      connectNulls
                       dot={{ r: 4, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
