@@ -3,6 +3,7 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { normalizeText } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { ArrowUpDown, Plus, Info } from "lucide-react";
+import { ArrowUpDown, Plus, Info, Search } from "lucide-react";
 
 export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
@@ -23,6 +24,7 @@ function BonosPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
+  const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [nuevo, setNuevo] = useState<{
@@ -91,6 +93,19 @@ function BonosPage() {
     const na = clientMap.get(a.client_id)?.nombre ?? "";
     const nb = clientMap.get(b.client_id)?.nombre ?? "";
     return na.localeCompare(nb, "es", { sensitivity: "base" });
+  });
+
+  const filtered = sorted.filter((b) => {
+    if (!q.trim()) return true;
+    const client = clientMap.get(b.client_id);
+    const cat = catMap.get(b.bono_catalogo_id ?? "");
+    const text = [
+      client?.nombre ?? "",
+      cat?.tipo ? TIPO_LABEL[cat.tipo] : "",
+      prettyBonoNombre(b.ultimo_bono_nombre),
+      b.ultimo_bono_fecha ?? "",
+    ].join(" ");
+    return normalizeText(text).includes(normalizeText(q));
   });
 
   async function save() {
@@ -164,6 +179,10 @@ function BonosPage() {
         <h1 className="text-2xl font-display font-semibold">Bonos</h1>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-8" />
+      </div>
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -188,7 +207,7 @@ function BonosPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((b) => (
+            {filtered.map((b) => (
               (() => {
               const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
               const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
@@ -230,7 +249,7 @@ function BonosPage() {
               );
               })()
             ))}
-            {sorted.length === 0 && (
+            {filtered.length === 0 && (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
