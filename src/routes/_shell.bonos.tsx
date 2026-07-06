@@ -210,7 +210,11 @@ function BonosPage() {
               <TableHead>Teóricas</TableHead>
               <TableHead>Realizadas</TableHead>
               <TableHead>Restantes</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("estado")}>
+                  Estado <ArrowUpDown className={`h-3 w-3 ${sortBy === "estado" ? "text-foreground" : "opacity-40"}`} />
+                </button>
+              </TableHead>
               <TableHead>Último bono</TableHead>
               <TableHead>Última fecha</TableHead>
               <TableHead className="w-12"></TableHead>
