@@ -117,7 +117,7 @@ function AgendaPage() {
         <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
       </div>
 
-      <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-white">
+      <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
         <Legend color="bg-state-reservada" label="Reservada" />
         <Legend color="bg-state-realizada" label="Realizada" />
         <Legend color="bg-state-prueba" label="Prueba" />
@@ -131,7 +131,7 @@ function AgendaPage() {
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-white">
+    <div className="flex items-center gap-1.5">
       <span className={`h-3 w-3 rounded-sm ${color}`} />
       {label}
     </div>
