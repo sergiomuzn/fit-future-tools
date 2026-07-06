@@ -70,19 +70,19 @@ function AgendaPage() {
           <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
           <Button variant="ghost" size="icon" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
-          <div className="font-display text-lg font-semibold capitalize">
+          <div className="font-display text-lg font-semibold capitalize text-white">
             {DOW[date.getDay()]}, {date.getDate()} de {MONTHS[date.getMonth()]} {date.getFullYear()}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground mr-1">Pintar entrenador:</span>
+          <span className="text-xs text-white mr-1">Pintar entrenador:</span>
           {sortedTrainers.map((t) => (
             <button
               key={t.id}
               onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
-              className={cn(
-                "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
-                paintTrainerId === t.id ? "border-primary scale-110 bg-primary text-primary-foreground" : "border-border bg-muted",
+                className={cn(
+                "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all text-white",
+                paintTrainerId === t.id ? "border-primary scale-110 bg-primary" : "border-border bg-muted",
               )}
               title={t.nombre}
             >
@@ -96,18 +96,18 @@ function AgendaPage() {
       </header>
 
       {paintTrainerId && (
-        <div className="bg-primary/10 text-primary text-xs px-4 py-1.5 border-b">
+        <div className="bg-primary/10 text-white text-xs px-4 py-1.5 border-b">
           Modo pintar activo · pincha sobre las sesiones para asignarles este entrenador.
         </div>
       )}
 
       {sched === null && (
-        <div className="bg-destructive/15 text-destructive text-xs font-medium px-4 py-1.5 border-b">
+        <div className="bg-destructive/15 text-white text-xs font-medium px-4 py-1.5 border-b">
           {special?.etiqueta ? `${special.etiqueta} · ` : ""}Festivo · Centro cerrado
         </div>
       )}
       {sched && special?.tipo === "horario_especial" && (
-        <div className="bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs font-medium px-4 py-1.5 border-b">
+        <div className="bg-amber-500/15 text-white text-xs font-medium px-4 py-1.5 border-b">
           Horario especial: {special.hora_apertura?.slice(0,5)}–{special.hora_cierre?.slice(0,5)}
           {special.etiqueta ? ` · ${special.etiqueta}` : ""}
         </div>
@@ -117,7 +117,7 @@ function AgendaPage() {
         <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
       </div>
 
-      <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
+      <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-white">
         <Legend color="bg-state-reservada" label="Reservada" />
         <Legend color="bg-state-realizada" label="Realizada" />
         <Legend color="bg-state-prueba" label="Prueba" />
@@ -131,7 +131,7 @@ function AgendaPage() {
 
 function Legend({ color, label }: { color: string; label: string }) {
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex items-center gap-1.5 text-white">
       <span className={`h-3 w-3 rounded-sm ${color}`} />
       {label}
     </div>
