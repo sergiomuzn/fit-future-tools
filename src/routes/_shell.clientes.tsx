@@ -105,7 +105,7 @@ function ClientesPage() {
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
-            Nombre: c.nombre,
+            Nombre: formatNameTitle(c.nombre),
             "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
             Estado: c.activo ? "Activo" : "Inactivo",
             Teléfono: c.telefono ?? "",
@@ -149,7 +149,7 @@ function ClientesPage() {
             {filtered.map((c) => (
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
-                  <button className="hover:underline text-left" onClick={() => setViewing(c)}>{c.nombre}</button>
+                  <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
                 </TableCell>
                 <TableCell>
                   {(() => {
