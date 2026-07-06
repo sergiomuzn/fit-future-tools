@@ -395,7 +395,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               {hours.map((h) => (
                 <div
                   key={h}
-                  style={{ position: "absolute", top: (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6 }}
+                  style={{ position: "absolute", top: Math.max(0, (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6) }}
                   className="w-full text-right pr-2"
                 >
                   {String(h).padStart(2, "0")}:00
@@ -471,7 +471,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {layout.map(({ session, col, cols }) => {
               const startMin = timeToMin(session.hora_inicio);
               const endMin = timeToMin(session.hora_fin);
-              const widthPct = 88 / cols; // 88% total, deja 12% lateral para click-add
+              const widthPct = 96 / cols; // 96% total, deja 4% lateral para click-add
               const leftPct = 2 + col * widthPct;
               const isMoving = moving?.id === session.id;
               const isResizing = resizing?.id === session.id;
