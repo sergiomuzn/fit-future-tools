@@ -221,32 +221,20 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
-    // If this is a group session, upsert the linked group with the inline
-    // config (nombre = titulo, capacidad, activo, notas). Enforce capacity on
-    // the picked members before writing anything.
-    let effectiveGroupId = groupId;
+    // Group sessions must reference a registered group (create it via the
+    // "Nuevo grupo" button next to the picker). Enforce the group's capacity
+    // on the picked members.
+    const effectiveGroupId = groupId;
     if (grupo) {
-      const gName = (titulo || "").trim();
-      if (!gName) { toast.error("Nombre del grupo requerido"); return; }
-      const cap = Math.max(1, groupCapacidad || 1);
+      if (!effectiveGroupId) {
+        toast.error("Selecciona un grupo o crea uno nuevo");
+        return;
+      }
+      const cap = Math.max(1, pickedGroup?.capacidad ?? 6);
       const pickedMembers = groupClientIds.filter((id): id is string => !!id);
       if (pickedMembers.length > cap) {
         toast.error(`Capacidad máxima del grupo: ${cap}`);
         return;
-      }
-      if (effectiveGroupId) {
-        const { error: gErr } = await supabase.from("groups").update({
-          nombre: gName, capacidad: cap, activo: groupActivo, notas: groupNotas || null,
-        }).eq("id", effectiveGroupId);
-        if (gErr) { toast.error(gErr.message); return; }
-      } else {
-        const { data: gRow, error: gErr } = await supabase.from("groups").insert({
-          nombre: gName, capacidad: cap, activo: groupActivo, notas: groupNotas || null,
-        }).select().single();
-        if (gErr || !gRow) { toast.error(gErr?.message ?? "No se pudo crear el grupo"); return; }
-        effectiveGroupId = gRow.id;
-        setGroupId(effectiveGroupId);
-        qc.invalidateQueries({ queryKey: ["groups"] });
       }
     }
     const base = {
