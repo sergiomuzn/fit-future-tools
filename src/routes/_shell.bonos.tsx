@@ -23,7 +23,7 @@ function BonosPage() {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
-  const [sortBy, setSortBy] = useState<"nombre" | "tipo">("nombre");
+  const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
   const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -76,10 +76,21 @@ function BonosPage() {
   };
   const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
 
-  const activeBonos = bonos.filter((b) => b.activo);
+  function estadoRank(b: ClientBono): number {
+    const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+    const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
+    const noBono = !b.bono_catalogo_id;
+    if (!b.activo) return 2;
+    if (isGympass || noBono || b.sesiones_disponibles > 0) return 0;
+    return 1;
+  }
 
-  const sorted = [...activeBonos].sort((a, b) => {
-    if (a.activo !== b.activo) return a.activo ? -1 : 1;
+  const sorted = [...bonos].sort((a, b) => {
+    if (sortBy === "estado") {
+      const ra = estadoRank(a);
+      const rb = estadoRank(b);
+      if (ra !== rb) return ra - rb;
+    }
     if (sortBy === "nombre") {
       const na = clientMap.get(a.client_id)?.nombre ?? "";
       const nb = clientMap.get(b.client_id)?.nombre ?? "";
@@ -199,7 +210,11 @@ function BonosPage() {
               <TableHead>Teóricas</TableHead>
               <TableHead>Realizadas</TableHead>
               <TableHead>Restantes</TableHead>
-              <TableHead>Estado</TableHead>
+              <TableHead>
+                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("estado")}>
+                  Estado <ArrowUpDown className={`h-3 w-3 ${sortBy === "estado" ? "text-foreground" : "opacity-40"}`} />
+                </button>
+              </TableHead>
               <TableHead>Último bono</TableHead>
               <TableHead>Última fecha</TableHead>
               <TableHead className="w-12"></TableHead>
