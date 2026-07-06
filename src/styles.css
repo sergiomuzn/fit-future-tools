@@ -106,7 +106,7 @@
   --state-prueba-fg: oklch(1 0 0);
   --state-renovacion: oklch(0.78 0.16 70);
   --state-renovacion-fg: oklch(1 0 0);
-  --state-grupo: oklch(0.58 0.18 305);
+  --state-grupo: #D97EFF;
   --state-grupo-fg: oklch(1 0 0);
 }
 
