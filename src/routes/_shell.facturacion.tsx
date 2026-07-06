@@ -119,6 +119,11 @@ function FacturacionPage() {
     const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
     const bonoId = form.bono_catalogo_id?.trim() || null;
+    const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
+    const sesionesOverride =
+      overrideRaw === undefined || overrideRaw === null || (overrideRaw as unknown as string) === ""
+        ? null
+        : Number(overrideRaw);
     const payload = {
       fecha: form.fecha!,
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
@@ -126,6 +131,7 @@ function FacturacionPage() {
       bono_catalogo_id: bonoId,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
+      sesiones_override: bonoId ? sesionesOverride : null,
     };
     if (editingId) {
       const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
