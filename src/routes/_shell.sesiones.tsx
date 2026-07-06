@@ -86,10 +86,10 @@ function SesionesPage() {
     return s.tipo ?? null;
   };
 
-  const q = search.trim().toLowerCase();
+  const q = normalizeText(search.trim());
   const filtered = q
     ? sessions.filter((s) => {
-        const name = (s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? "")).toLowerCase();
+        const name = normalizeText(s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""));
         return name.includes(q) || s.fecha.includes(q);
       })
     : sessions;

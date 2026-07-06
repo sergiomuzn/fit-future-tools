@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
+import { normalizeText } from "@/lib/utils";
 
 interface Props {
   value: string | null;
@@ -29,7 +30,7 @@ export function ClientPicker({ value, onChange }: Props) {
 
   const selected = clients.find((c) => c.id === value) ?? null;
   const filtered = useMemo(
-    () => clients.filter((c) => c.nombre.toLowerCase().includes(search.toLowerCase())),
+    () => clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(search))),
     [clients, search],
   );
 
