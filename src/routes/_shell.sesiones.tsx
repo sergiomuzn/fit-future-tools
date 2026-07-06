@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, ESTADO_LABEL } from "@/lib/db";
+import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, type Group, ESTADO_LABEL } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
@@ -67,10 +67,15 @@ function SesionesPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
+  const { data: groups = [] } = useQuery({
+    queryKey: ["groups"],
+    queryFn: async () => (await supabase.from("groups").select("*")).data as Group[] ?? [],
+  });
 
   const clientMap = new Map(clients.map((c) => [c.id, c]));
   const trainerMap = new Map(trainers.map((t) => [t.id, t]));
   const catalogoMap = new Map(catalogo.map((b) => [b.id, b]));
+  const groupMap = new Map(groups.map((g) => [g.id, g]));
   // Bono activo por cliente (fallback: más reciente por created_at)
   const clientBonoTipo = new Map<string, string>();
   const sortedBonos = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
@@ -80,6 +85,7 @@ function SesionesPage() {
     if (cat?.tipo) clientBonoTipo.set(cb.client_id, cat.tipo);
   }
   const tipoForSession = (s: Session): string | null => {
+    if (s.ocupacion === 2) return "grupal";
     if (s.client_id) {
       const t = clientBonoTipo.get(s.client_id);
       if (t) return t;
@@ -87,13 +93,36 @@ function SesionesPage() {
     return s.tipo ?? null;
   };
 
+  // Nombre a mostrar: si es grupo, nombre del grupo; si no, cliente o título.
+  const nameForSession = (s: Session): string => {
+    if (s.ocupacion === 2) {
+      return (s.group_id ? groupMap.get(s.group_id)?.nombre : null) ?? s.titulo ?? "Grupo";
+    }
+    return (s.client_id ? clientMap.get(s.client_id)?.nombre : s.titulo) ?? "—";
+  };
+
+  // Colapsar filas de una misma sesión de grupo (mismo recurrencia+fecha+hora) en una sola fila.
+  const collapsed: Session[] = (() => {
+    const seen = new Set<string>();
+    const out: Session[] = [];
+    for (const s of sessions) {
+      if (s.ocupacion === 2 && s.recurrencia_id) {
+        const key = `${s.recurrencia_id}|${s.fecha}|${s.hora_inicio}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+      }
+      out.push(s);
+    }
+    return out;
+  })();
+
   const q = normalizeText(search.trim());
   const filtered = q
-    ? sessions.filter((s) => {
-        const name = normalizeText(s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""));
+    ? collapsed.filter((s) => {
+        const name = normalizeText(nameForSession(s));
         return name.includes(q) || s.fecha.includes(q);
       })
-    : sessions;
+    : collapsed;
 
   async function updateIncidencia(id: string, val: string) {
     const { error } = await supabase.from("sessions").update({ incidencia: val || null }).eq("id", id);
@@ -127,7 +156,7 @@ function SesionesPage() {
           <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
-          Cliente: s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""),
+          Cliente: nameForSession(s),
           Tipo: (() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : ""; })(),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
           Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
@@ -156,7 +185,7 @@ function SesionesPage() {
               <TableRow key={s.id}>
                 <TableCell>{s.fecha}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
-                <TableCell>{s.client_id ? clientMap.get(s.client_id)?.nombre : (s.titulo ?? "—")}</TableCell>
+                <TableCell>{nameForSession(s)}</TableCell>
                 <TableCell>
                   {(() => {
                     const t = tipoForSession(s);
