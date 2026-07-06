@@ -125,11 +125,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setNoContabilizar(!!(session as any)?.no_contabilizar);
     setPorConfirmar(!!(session as any)?.por_confirmar);
     setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
-    // Reset inline group config; will be repopulated from pickedGroup query if a
-    // group is linked, or kept as defaults for a brand-new group.
-    setGroupCapacidad(6);
-    setGroupActivo(true);
-    setGroupNotas("");
   }, [open, session]);
 
   // When a registered group is selected (in a new group session), auto-fill members and title.
@@ -173,28 +168,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
   }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
 
-  // Load inline group config (name / capacidad / activo / notas) from the
-  // linked group, whenever it changes (new or existing session).
+  // Sync titulo with linked group's name (when we don't already have one).
   useEffect(() => {
     if (!open || !groupId || !pickedGroup) return;
     setTitulo((prev) => prev || pickedGroup.nombre);
-    setGroupCapacidad(pickedGroup.capacidad ?? 6);
-    setGroupActivo(pickedGroup.activo ?? true);
-    setGroupNotas(pickedGroup.notas ?? "");
   }, [open, groupId, pickedGroup]);
 
-  // Resize the client pickers to match capacidad while preserving any picks.
+  // Resize the client pickers to match the linked group's capacidad while
+  // preserving any picks. Fallback capacity of 6 when no group is picked yet.
+  const capacityForPickers = Math.max(1, pickedGroup?.capacidad ?? 6);
   useEffect(() => {
     if (!open || !grupo) return;
-    const cap = Math.max(1, groupCapacidad || 1);
     setGroupClientIds((prev) => {
-      if (prev.length === cap) return prev;
-      if (prev.length > cap) return prev.slice(0, cap);
+      if (prev.length === capacityForPickers) return prev;
+      if (prev.length > capacityForPickers) return prev.slice(0, capacityForPickers);
       const next = [...prev];
-      while (next.length < cap) next.push(null);
+      while (next.length < capacityForPickers) next.push(null);
       return next;
     });
-  }, [open, grupo, groupCapacidad]);
+  }, [open, grupo, capacityForPickers]);
 
   // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
   useEffect(() => {
