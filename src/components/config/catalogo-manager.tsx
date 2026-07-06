@@ -246,6 +246,21 @@ export function CatalogoManager() {
     toast.success("Orden actualizado");
   }
 
+  async function moveRow(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const newSorted = arrayMove(sorted, index, target);
+    const updates = newSorted
+      .map((c, idx) => ({ id: c.id, orden: idx + 1 }))
+      .filter((u, idx) => u.orden !== sorted[idx].orden);
+    if (updates.length === 0) return;
+    const results = await Promise.all(
+      updates.map((u) => supabase.from("bonos_catalogo").update({ orden: u.orden }).eq("id", u.id))
+    );
+    if (results.some((r) => r.error)) { toast.error("Error al reordenar"); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -278,6 +293,7 @@ export function CatalogoManager() {
                     setVal={setVal}
                     saveRow={saveRow}
                     removeRow={removeRow}
+                    moveRow={moveRow}
                   />
                 ))}
               </SortableContext>
