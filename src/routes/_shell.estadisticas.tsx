@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -118,11 +118,26 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
 }) {
+  void clients;
   const now = new Date();
-  const y = now.getFullYear();
-  const m = now.getMonth();
+  const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const [ys, ms] = ym.split("-").map(Number);
+  const y = ys;
+  const m = ms - 1;
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
+
+  // Rango histórico ilimitado: desde el año más antiguo con datos (o hace 5 años) hasta hoy.
+  const earliestYear = useMemo(() => {
+    let min = now.getFullYear();
+    for (const s of sessions) {
+      if (s.fecha) { const yy = Number(s.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
+    }
+    for (const e of events) {
+      if (e.fecha) { const yy = Number(e.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
+    }
+    return Math.min(min, now.getFullYear() - 5);
+  }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
   const realizadas = monthSessions.filter((s) => s.estado === "realizada");
@@ -154,23 +169,76 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
     },
-    { label: "Altas este mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]}` },
-    { label: "Bajas este mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
+    { label: "Altas del mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}` },
+    { label: "Bajas del mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {kpis.map((k) => (
-        <Card key={k.label}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-display font-semibold">{k.value}</div>
-            <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="space-y-3">
+      <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {kpis.map((k) => (
+          <Card key={k.label}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-display font-semibold">{k.value}</div>
+              <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function KpiMonthSelector({ value, onChange, earliestYear, now }: {
+  value: string; onChange: (v: string) => void; earliestYear: number; now: Date;
+}) {
+  const [ys, ms] = value.split("-");
+  const y = Number(ys); const m = Number(ms);
+  const curY = now.getFullYear(); const curM = now.getMonth() + 1;
+  const years: number[] = [];
+  for (let yy = curY; yy >= earliestYear; yy--) years.push(yy);
+  const maxMonth = y === curY ? curM : 12;
+  const months: number[] = [];
+  for (let mm = 1; mm <= maxMonth; mm++) months.push(mm);
+  const setYear = (yy: string) => {
+    const ny = Number(yy);
+    const nMax = ny === curY ? curM : 12;
+    const nm = Math.min(m, nMax);
+    onChange(`${yy}-${String(nm).padStart(2, "0")}`);
+  };
+  const setMonth = (mm: string) => onChange(`${ys}-${mm}`);
+  return (
+    <div className="flex items-end gap-2">
+      <div className="space-y-1.5">
+        <Label className="text-xs">Mes de los KPIs</Label>
+        <div className="flex gap-2">
+          <Select value={ms} onValueChange={setMonth}>
+            <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {months.map((mm) => (
+                <SelectItem key={mm} value={String(mm).padStart(2, "0")}>{MES_FULL[mm - 1]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={ys} onValueChange={setYear}>
+            <SelectTrigger className="w-24"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {years.map((yy) => <SelectItem key={yy} value={String(yy)}>{yy}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <Button
+        variant="outline" size="sm"
+        onClick={() => onChange(`${curY}-${String(curM).padStart(2, "0")}`)}
+        disabled={y === curY && m === curM}
+      >
+        Mes actual
+      </Button>
     </div>
   );
 }
@@ -205,6 +273,57 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   historico: "Histórico (todos los meses)",
 };
 
+// Reglas de combinaciones válidas (métrica, desglose, periodo).
+const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "dosMeses", "anoVsAno", "historico"];
+function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
+  if (metric === "altasBajas") {
+    // Sin desglose real; solo periodos que agrupan por mes.
+    return NON_MVT_PERIODS.includes(period);
+  }
+  if (metric === "ocupacion" || metric === "sesiones") {
+    if (desglose === "franja" || desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    return true; // turno / tipoSesion cualquier periodo
+  }
+  if (metric === "cancelaciones") {
+    if (desglose === "franja") return period !== "mananaVsTarde";
+    return true;
+  }
+  if (metric === "porTipo") return true;
+  if (metric === "porEntrenador") {
+    if (desglose === "franja") return false; // ilegible con 13 entrenadores
+    if (desglose === "dow") return period !== "mananaVsTarde";
+    return true;
+  }
+  if (metric === "facturacion") {
+    if (desglose === "franja") return false;
+    // mañana vs tarde es en sí mismo el desglose → no combinable con otro
+    if (period === "mananaVsTarde") return false;
+    return true;
+  }
+  return true;
+}
+function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
+  if (metric === "altasBajas") return false;
+  if (metric === "porEntrenador" && desglose === "franja") return false;
+  if (metric === "facturacion" && desglose === "franja") return false;
+  return true;
+}
+function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
+  if (metric === "altasBajas") return NON_MVT_PERIODS.includes(period);
+  if (metric === "facturacion" && period === "mananaVsTarde") return false;
+  return true;
+}
+function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
+  const order: Desglose[] = ["turno", "tipoSesion", "dow", "franja"];
+  for (const d of order) if (isValidCombo(metric, d, period)) return d;
+  return "turno";
+}
+function firstValidPeriod(metric: Metric, desglose: Desglose): PeriodMode {
+  const order: PeriodMode[] = ["mesUnico", "dosMeses", "anoVsAno", "historico", "mananaVsTarde"];
+  for (const p of order) if (isValidCombo(metric, desglose, p)) return p;
+  return "mesUnico";
+}
+
 function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap }: {
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
@@ -213,6 +332,28 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
+
+  // Al cambiar métrica, corregir desglose/periodo si la combinación deja de ser válida.
+  useEffect(() => {
+    if (!isValidCombo(metric, desglose, period)) {
+      const d = isDesgloseAllowedForMetric(metric, desglose) ? desglose : firstValidDesglose(metric, period);
+      const p = isValidCombo(metric, d, period) ? period : firstValidPeriod(metric, d);
+      if (d !== desglose) setDesglose(d);
+      if (p !== period) setPeriod(p);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metric]);
+
+  const handleDesgloseChange = (v: string) => {
+    const d = v as Desglose;
+    setDesglose(d);
+    if (!isValidCombo(metric, d, period)) setPeriod(firstValidPeriod(metric, d));
+  };
+  const handlePeriodChange = (v: string) => {
+    const p = v as PeriodMode;
+    setPeriod(p);
+    if (!isValidCombo(metric, desglose, p)) setDesglose(firstValidDesglose(metric, p));
+  };
 
   const now = new Date();
   const [monthA, setMonthA] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
@@ -226,31 +367,33 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
-  // Años y (año → meses) con datos reales, sin superar el mes actual.
-  const { availableYears, monthsByYear } = useMemo(() => {
+  // Años disponibles: desde el año más antiguo con datos (o hace 5 años) hasta el año actual.
+  // Todos los meses son seleccionables (limitados al mes actual en el año en curso).
+  const availableYears = useMemo(() => {
     const nowD = new Date();
     const curY = nowD.getFullYear();
-    const curM = nowD.getMonth();
-    const map = new Map<number, Set<number>>();
-    const add = (dateStr: string | null | undefined) => {
-      if (!dateStr) return;
-      const [ys, ms] = dateStr.split("-");
-      const y = Number(ys); const m = Number(ms) - 1;
-      if (!Number.isFinite(y) || !Number.isFinite(m)) return;
-      if (y > curY || (y === curY && m > curM)) return;
-      if (!map.has(y)) map.set(y, new Set());
-      map.get(y)!.add(m);
+    let min = curY;
+    const scan = (d: string | null | undefined) => {
+      if (!d) return;
+      const yy = Number(d.slice(0, 4));
+      if (Number.isFinite(yy) && yy < min) min = yy;
     };
-    for (const s of sessions) add(s.fecha);
-    for (const e of events) add(e.fecha);
-    if (!map.has(curY)) map.set(curY, new Set([curM]));
-    const years = Array.from(map.keys()).sort((a, b) => b - a).map(String);
-    return { availableYears: years, monthsByYear: map };
+    for (const s of sessions) scan(s.fecha);
+    for (const e of events) scan(e.fecha);
+    min = Math.min(min, curY - 5);
+    const out: string[] = [];
+    for (let y = curY; y >= min; y--) out.push(String(y));
+    return out;
   }, [sessions, events]);
 
   const monthsForYear = (yStr: string): number[] => {
+    const nowD = new Date();
+    const curY = nowD.getFullYear();
     const y = Number(yStr);
-    return Array.from(monthsByYear.get(y) ?? []).sort((a, b) => a - b);
+    const max = y === curY ? nowD.getMonth() : 11;
+    const out: number[] = [];
+    for (let i = 0; i <= max; i++) out.push(i);
+    return out;
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
@@ -297,19 +440,27 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
         </div>
         <div className="space-y-1.5">
           <Label>Desglose</Label>
-          <Select value={desglose} onValueChange={(v) => setDesglose(v as Desglose)}>
-            <SelectTrigger><SelectValue /></SelectTrigger>
+          <Select
+            value={desglose}
+            onValueChange={handleDesgloseChange}
+            disabled={metric === "altasBajas"}
+          >
+            <SelectTrigger><SelectValue placeholder={metric === "altasBajas" ? "No aplica" : undefined} /></SelectTrigger>
             <SelectContent>
-              {Object.entries(DESGLOSE_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][]).map(([k, v]) => (
+                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, k, period)}>{v}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-1.5">
           <Label>Periodo</Label>
-          <Select value={period} onValueChange={(v) => setPeriod(v as PeriodMode)}>
+          <Select value={period} onValueChange={handlePeriodChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {Object.entries(PERIOD_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+              {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][]).map(([k, v]) => (
+                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, desglose, k)}>{v}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
