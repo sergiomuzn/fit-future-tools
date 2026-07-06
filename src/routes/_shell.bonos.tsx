@@ -207,7 +207,7 @@ function BonosPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((b) => (
+            {filtered.map((b) => (
               (() => {
               const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
               const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
