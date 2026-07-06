@@ -395,7 +395,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               {hours.map((h) => (
                 <div
                   key={h}
-                  style={{ position: "absolute", top: (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6 }}
+                  style={{ position: "absolute", top: Math.max(0, (h - HOUR_START) * (60 / SLOT_MIN) * SLOT_PX - 6) }}
                   className="w-full text-right pr-2"
                 >
                   {String(h).padStart(2, "0")}:00
