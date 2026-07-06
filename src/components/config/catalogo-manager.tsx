@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, GripVertical } from "lucide-react";
+import { Plus, Trash2, GripVertical, ArrowUp, ArrowDown } from "lucide-react";
 import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +35,7 @@ function SortableRow({
   setVal,
   saveRow,
   removeRow,
+  moveRow,
 }: {
   c: BonoCatalogo;
   i: number;
@@ -44,6 +45,7 @@ function SortableRow({
   setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
   saveRow: (c: BonoCatalogo) => Promise<void>;
   removeRow: (c: BonoCatalogo) => Promise<void>;
+  moveRow: (i: number, dir: -1 | 1) => Promise<void>;
 }) {
   const {
     attributes,
@@ -74,6 +76,30 @@ function SortableRow({
           >
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
+        </div>
+      </TableCell>
+      <TableCell className="w-16">
+        <div className="flex items-center gap-0.5">
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            disabled={i === 0}
+            onClick={() => moveRow(i, -1)}
+            title="Subir"
+          >
+            <ArrowUp className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7"
+            disabled={i === sortedLength - 1}
+            onClick={() => moveRow(i, 1)}
+            title="Bajar"
+          >
+            <ArrowDown className="h-4 w-4" />
+          </Button>
         </div>
       </TableCell>
       <TableCell className="w-40">
@@ -220,6 +246,21 @@ export function CatalogoManager() {
     toast.success("Orden actualizado");
   }
 
+  async function moveRow(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= sorted.length) return;
+    const newSorted = arrayMove(sorted, index, target);
+    const updates = newSorted
+      .map((c, idx) => ({ id: c.id, orden: idx + 1 }))
+      .filter((u, idx) => u.orden !== sorted[idx].orden);
+    if (updates.length === 0) return;
+    const results = await Promise.all(
+      updates.map((u) => supabase.from("bonos_catalogo").update({ orden: u.orden }).eq("id", u.id))
+    );
+    if (results.some((r) => r.error)) { toast.error("Error al reordenar"); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -232,6 +273,7 @@ export function CatalogoManager() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
+                <TableHead className="w-16"></TableHead>
                 <TableHead className="w-40">Tipo</TableHead>
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
@@ -252,12 +294,14 @@ export function CatalogoManager() {
                     setVal={setVal}
                     saveRow={saveRow}
                     removeRow={removeRow}
+                    moveRow={moveRow}
                   />
                 ))}
               </SortableContext>
               {adding && (
                 <TableRow>
                   <TableCell className="w-10"></TableCell>
+                  <TableCell className="w-16"></TableCell>
                   <TableCell className="w-40">
                     <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
