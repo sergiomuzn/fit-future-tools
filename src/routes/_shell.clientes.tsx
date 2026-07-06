@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Download } from "lucide-react";
-import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type GroupSchedule, type GroupMember } from "@/lib/db";
+import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { GroupDialog, scheduleSummary } from "@/components/groups/group-dialog";
+import { GroupDialog } from "@/components/groups/group-dialog";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/clientes")({
@@ -215,23 +215,52 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
     queryKey: ["groups"],
     queryFn: async () => (await supabase.from("groups").select("*").order("nombre")).data as Group[] ?? [],
   });
-  const { data: allSchedules = [] } = useQuery({
-    queryKey: ["group_schedules_all"],
-    queryFn: async () => (await supabase.from("group_schedules").select("*")).data as GroupSchedule[] ?? [],
-  });
-  const { data: allMembers = [] } = useQuery({
-    queryKey: ["group_members_all"],
-    queryFn: async () => (await supabase.from("group_members").select("*")).data as GroupMember[] ?? [],
+  // Derive each group's schedule from its agenda sessions. We look at the last
+  // ~90 days so recurring blocks appear even outside the current week.
+  const { data: groupSessions = [] } = useQuery({
+    queryKey: ["group_sessions_for_groups_panel"],
+    queryFn: async () => {
+      const from = new Date();
+      from.setDate(from.getDate() - 90);
+      const iso = from.toISOString().slice(0, 10);
+      const { data } = await supabase
+        .from("sessions")
+        .select("group_id,fecha,hora_inicio,client_id")
+        .not("group_id", "is", null)
+        .gte("fecha", iso);
+      return (data ?? []) as Pick<Session, "group_id" | "fecha" | "hora_inicio" | "client_id">[];
+    },
   });
 
-  const schedulesByGroup = new Map<string, GroupSchedule[]>();
-  for (const s of allSchedules) {
-    if (!schedulesByGroup.has(s.group_id)) schedulesByGroup.set(s.group_id, []);
-    schedulesByGroup.get(s.group_id)!.push(s);
+  // group_id -> map<hora "HH:MM", Set<dow>>
+  const scheduleByGroup = new Map<string, Map<string, Set<number>>>();
+  const membersByGroup = new Map<string, Set<string>>();
+  for (const s of groupSessions) {
+    if (!s.group_id) continue;
+    const hora = (s.hora_inicio ?? "").slice(0, 5);
+    const dow = new Date(`${s.fecha}T00:00:00`).getDay();
+    if (hora) {
+      if (!scheduleByGroup.has(s.group_id)) scheduleByGroup.set(s.group_id, new Map());
+      const perHora = scheduleByGroup.get(s.group_id)!;
+      if (!perHora.has(hora)) perHora.set(hora, new Set());
+      perHora.get(hora)!.add(dow);
+    }
+    if (s.client_id) {
+      if (!membersByGroup.has(s.group_id)) membersByGroup.set(s.group_id, new Set());
+      membersByGroup.get(s.group_id)!.add(s.client_id);
+    }
   }
-  const membersByGroup = new Map<string, number>();
-  for (const m of allMembers) {
-    membersByGroup.set(m.group_id, (membersByGroup.get(m.group_id) ?? 0) + 1);
+
+  function horarioSummary(groupId: string): string {
+    const perHora = scheduleByGroup.get(groupId);
+    if (!perHora || perHora.size === 0) return "—";
+    return [...perHora.entries()]
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([hora, dows]) => {
+        const days = [...dows].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+        return `${days.map((d) => DIAS_SEMANA[d]).join(", ")} ${hora}`;
+      })
+      .join(" · ");
   }
 
   async function removeGroup(id: string, nombre: string) {
@@ -252,7 +281,7 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
         <TableHeader>
           <TableRow>
             <TableHead>Nombre</TableHead>
-            <TableHead>Franjas horarias</TableHead>
+            <TableHead>Horario</TableHead>
             <TableHead>Miembros</TableHead>
             <TableHead>Capacidad</TableHead>
             <TableHead>Estado</TableHead>
@@ -265,8 +294,8 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
               <TableCell className="font-medium">
                 <button className="hover:underline text-left" onClick={() => onEdit(g)}>{g.nombre}</button>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{scheduleSummary(schedulesByGroup.get(g.id) ?? [])}</TableCell>
-              <TableCell>{membersByGroup.get(g.id) ?? 0}</TableCell>
+              <TableCell className="text-sm text-muted-foreground">{horarioSummary(g.id)}</TableCell>
+              <TableCell>{membersByGroup.get(g.id)?.size ?? 0}</TableCell>
               <TableCell>{g.capacidad}</TableCell>
               <TableCell>
                 <span className={`text-xs px-2 py-0.5 rounded-full ${g.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{g.activo ? "Activo" : "Inactivo"}</span>
