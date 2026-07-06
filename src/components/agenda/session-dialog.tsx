@@ -274,6 +274,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         estado: base.estado,
         titulo: base.titulo,
         no_contabilizar: base.no_contabilizar,
+        por_confirmar: base.por_confirmar,
+        group_id: base.group_id,
         incidencia: base.incidencia,
       };
 
@@ -499,6 +501,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         .gte("fecha", session.fecha);
       if (error) toast.error(error.message);
       else toast.success("Sesiones futuras eliminadas");
+    } else if (grupo && recurrenciaId && session.fecha && session.hora_inicio) {
+      // Grupo: eliminar todos los miembros del bloque en esta fecha/hora.
+      const { error } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("recurrencia_id", recurrenciaId)
+        .eq("fecha", session.fecha)
+        .eq("hora_inicio", session.hora_inicio);
+      if (error) toast.error(error.message);
+      else toast.success("Sesión de grupo eliminada");
     } else {
       const { error } = await supabase.from("sessions").delete().eq("id", session.id);
       if (error) toast.error(error.message);
@@ -636,8 +648,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
             <p className="text-[11px] text-muted-foreground leading-tight">
               {isNew
-                ? "Crea copias semanales tras esta fecha (también funciona para fechas pasadas ya realizadas)."
-                : "Añade N copias semanales tras esta sesión. Útil para series pasadas o planificar las siguientes."}
+                ? "Crea copias semanales tras esta fecha (también para grupos: se replican todos los miembros). Funciona con fechas pasadas ya realizadas."
+                : "Añade N copias semanales tras esta sesión (en grupos, con todos los miembros)."}
             </p>
           </div>
 
