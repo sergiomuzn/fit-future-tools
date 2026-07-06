@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase, type Group } from "@/lib/db";
+import { normalizeText } from "@/lib/utils";
 
 interface Props {
   value: string | null;
@@ -21,7 +22,7 @@ export function GroupPicker({ value, onChange }: Props) {
 
   const selected = groups.find((g) => g.id === value) ?? null;
   const filtered = useMemo(
-    () => groups.filter((g) => g.nombre.toLowerCase().includes(search.toLowerCase())),
+    () => groups.filter((g) => normalizeText(g.nombre).includes(normalizeText(search))),
     [groups, search],
   );
 

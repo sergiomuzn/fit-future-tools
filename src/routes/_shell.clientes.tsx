@@ -15,6 +15,7 @@ import { ClientDetailsDialog } from "@/components/clients/client-details-dialog"
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog, scheduleSummary } from "@/components/groups/group-dialog";
+import { normalizeText } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -64,7 +65,7 @@ function ClientesPage() {
   };
 
     const filtered = clients
-    .filter((c) => c.nombre.toLowerCase().includes(q.toLowerCase()))
+    .filter((c) => normalizeText(c.nombre).includes(normalizeText(q)))
     .sort((a, b) => {
       const aa = a.activo ? 0 : 1;
       const bb = b.activo ? 0 : 1;

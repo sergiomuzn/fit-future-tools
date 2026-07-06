@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Search, X } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
+import { normalizeText } from "@/lib/utils";
 
 const TIPO_LABEL: Record<string, string> = {
   individual: "Individual",
@@ -86,10 +87,10 @@ function SesionesPage() {
     return s.tipo ?? null;
   };
 
-  const q = search.trim().toLowerCase();
+  const q = normalizeText(search.trim());
   const filtered = q
     ? sessions.filter((s) => {
-        const name = (s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? "")).toLowerCase();
+        const name = normalizeText(s.client_id ? clientMap.get(s.client_id)?.nombre ?? "" : (s.titulo ?? ""));
         return name.includes(q) || s.fecha.includes(q);
       })
     : sessions;
