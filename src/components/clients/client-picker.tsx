@@ -13,9 +13,10 @@ import { normalizeText } from "@/lib/utils";
 interface Props {
   value: string | null;
   onChange: (clientId: string | null, client: Client | null) => void;
+  autoFocus?: boolean;
 }
 
-export function ClientPicker({ value, onChange }: Props) {
+export function ClientPicker({ value, onChange, autoFocus }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -62,6 +63,7 @@ export function ClientPicker({ value, onChange }: Props) {
     <div className="space-y-1.5">
       <div className="relative">
         <Input
+          autoFocus={autoFocus}
           placeholder={selected ? selected.nombre : "Buscar cliente..."}
           value={search}
           className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}

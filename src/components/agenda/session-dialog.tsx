@@ -592,7 +592,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           ) : (
             <div className="space-y-1.5">
               <Label>Cliente</Label>
-              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} />
+              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
               {!grupo && clientId && !isGympassBono && (
                 <div className="text-[11px] text-muted-foreground">
                   Sesiones restantes:{" "}
