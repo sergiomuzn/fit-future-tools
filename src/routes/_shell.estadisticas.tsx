@@ -693,7 +693,10 @@ function buildSeries(args: {
       const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
-    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
+    const seriesKeys = ["Altas", "Bajas"];
+    const isTimeAxis = period === "historico" && rows.length >= 3;
+    const trendKeys = addTrendLines(rows, seriesKeys, isTimeAxis);
+    return { rows, seriesKeys, trendKeys, isLineChart: false };
   }
 
   // -------- Facturación estimada (por turno y total, precios fijos) --------
