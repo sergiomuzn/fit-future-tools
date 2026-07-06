@@ -88,7 +88,18 @@ export function CatalogoManager() {
     setAdding(false);
   }
 
-  const sorted = sortCatalogo(catalogo);
+  const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
+
+  async function moveRow(c: BonoCatalogo, direction: -1 | 1) {
+    const idx = sorted.findIndex((x) => x.id === c.id);
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    const other = sorted[targetIdx];
+    const { error: e1 } = await supabase.from("bonos_catalogo").update({ orden: other.orden }).eq("id", c.id);
+    const { error: e2 } = await supabase.from("bonos_catalogo").update({ orden: c.orden }).eq("id", other.id);
+    if (e1 || e2) { toast.error("Error al reordenar"); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  }
 
   return (
     <Card>
