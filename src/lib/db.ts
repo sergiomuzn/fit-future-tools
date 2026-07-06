@@ -48,14 +48,7 @@ export function prettyBonoNombre(nombre?: string | null): string {
     .trim();
 }
 
-/** Ordena catálogo: por tipo (prueba, individual, pareja, grupal), luego duración (45 antes que 60), luego orden. */
-export function sortCatalogo<T extends { tipo: BonoTipo; duracion_min: number | null; orden: number }>(items: T[]): T[] {
-  const tipoRank = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 } as Record<string, number>;
-  return [...items].sort((a, b) => {
-    if (a.tipo !== b.tipo) return (tipoRank[a.tipo] ?? 99) - (tipoRank[b.tipo] ?? 99);
-    const da = a.duracion_min ?? 9999;
-    const db = b.duracion_min ?? 9999;
-    if (da !== db) return da - db;
-    return a.orden - b.orden;
-  });
+/** Ordena catálogo por el `orden` configurado en Configuración del centro. */
+export function sortCatalogo<T extends { orden: number }>(items: T[]): T[] {
+  return [...items].sort((a, b) => a.orden - b.orden);
 }
