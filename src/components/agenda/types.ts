@@ -1,7 +1,7 @@
 export const HOUR_START = 6;
 export const HOUR_END = 23;
 export const SLOT_MIN = 15; // minutos por slot
-export const SLOT_PX = 12;  // 12px = 15 min => 48px = 1 hora
+export const SLOT_PX = 16;  // 16px = 15 min => 64px = 1 hora (zoom)
 export const TOTAL_MIN = (HOUR_END - HOUR_START) * 60;
 export const TOTAL_PX = (TOTAL_MIN / SLOT_MIN) * SLOT_PX;
 
