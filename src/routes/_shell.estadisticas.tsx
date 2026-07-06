@@ -527,9 +527,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Line key={k} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} />
                   ))}
-                  {trendKeys.map((k) => (
-                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
-                  ))}
                 </LineChart>
               ) : (
                 <ComposedChart data={rows}>
@@ -541,8 +538,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
-                  {trendKeys.map((k) => (
-                    <Line key={k} type="linear" dataKey={k} name={k} stroke={trendColorFor(k)} strokeWidth={2} strokeDasharray="6 4" dot={false} isAnimationActive={false} />
+                  {rows.length >= 2 && seriesKeys.map((k, i) => (
+                    <Line key={`ln-${k}`} type="monotone" dataKey={k} stroke={colorForSeries(k, i)} strokeWidth={2} dot={{ r: 3 }} legendType="none" isAnimationActive={false} />
                   ))}
                 </ComposedChart>
               )}
