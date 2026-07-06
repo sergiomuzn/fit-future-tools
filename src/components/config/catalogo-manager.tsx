@@ -111,18 +111,29 @@ export function CatalogoManager() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 text-center">Orden</TableHead>
               <TableHead className="w-40">Tipo</TableHead>
               <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-28">Precio (€)</TableHead>
-              <TableHead className="w-32"></TableHead>
+              <TableHead className="w-40"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((c) => {
+            {sorted.map((c, i) => {
               const dirty = !!drafts[c.id];
               return (
                 <TableRow key={c.id}>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === 0} onClick={() => moveRow(c, -1)}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === sorted.length - 1} onClick={() => moveRow(c, 1)}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
