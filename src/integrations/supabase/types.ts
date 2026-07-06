@@ -298,6 +298,7 @@ export type Database = {
           id: string
           nota: string | null
           precio_cobrado: number
+          sesiones_override: number | null
         }
         Insert: {
           bono_catalogo_id?: string | null
@@ -308,6 +309,7 @@ export type Database = {
           id?: string
           nota?: string | null
           precio_cobrado: number
+          sesiones_override?: number | null
         }
         Update: {
           bono_catalogo_id?: string | null
@@ -318,6 +320,7 @@ export type Database = {
           id?: string
           nota?: string | null
           precio_cobrado?: number
+          sesiones_override?: number | null
         }
         Relationships: [
           {
@@ -505,10 +508,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_invoice_row: {
-        Args: { p_bono_cat: string; p_client: string; p_fecha: string }
-        Returns: undefined
-      }
+      apply_invoice_row:
+        | {
+            Args: { p_bono_cat: string; p_client: string; p_fecha: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_bono_cat: string
+              p_client: string
+              p_fecha: string
+              p_sesiones_override?: number
+            }
+            Returns: undefined
+          }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

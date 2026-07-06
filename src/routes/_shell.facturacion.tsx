@@ -119,6 +119,11 @@ function FacturacionPage() {
     const clientId = form.client_id;
     if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
     const bonoId = form.bono_catalogo_id?.trim() || null;
+    const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
+    const sesionesOverride =
+      overrideRaw === undefined || overrideRaw === null || (overrideRaw as unknown as string) === ""
+        ? null
+        : Number(overrideRaw);
     const payload = {
       fecha: form.fecha!,
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
@@ -126,6 +131,7 @@ function FacturacionPage() {
       bono_catalogo_id: bonoId,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
+      sesiones_override: bonoId ? sesionesOverride : null,
     };
     if (editingId) {
       const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
@@ -245,7 +251,12 @@ function FacturacionPage() {
               <Label>Bono</Label>
               <Select value={form.bono_catalogo_id ?? "__none__"} onValueChange={(v) => {
                 const b = catalogo.find((x) => x.id === v);
-                setForm({ ...form, bono_catalogo_id: v === "__none__" ? undefined : v, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
+                setForm({
+                  ...form,
+                  bono_catalogo_id: v === "__none__" ? undefined : v,
+                  precio_cobrado: b ? Number(b.precio) : form.precio_cobrado,
+                  sesiones_override: v === "__none__" ? null : (b ? b.sesiones_incluidas : null),
+                });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
                 <SelectContent>
@@ -259,6 +270,18 @@ function FacturacionPage() {
                 </SelectContent>
               </Select>
             </div>
+            {form.bono_catalogo_id && (
+              <div className="space-y-1.5">
+                <Label>Sesiones a añadir</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.sesiones_override ?? ""}
+                  onChange={(e) => setForm({ ...form, sesiones_override: e.target.value === "" ? null : Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Predeterminado según el bono. Puedes ajustarlo si es una factura especial.</p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Precio cobrado (€)</Label>
               <Input type="number" step="5" placeholder="0" value={form.precio_cobrado ? form.precio_cobrado : ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) || 0 })} />
