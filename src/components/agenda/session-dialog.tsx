@@ -42,7 +42,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [estado, setEstado] = useState<SesionEstado>("reservada");
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
-  const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([null, null, null, null, null, null]);
+  const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
@@ -159,11 +159,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (pickedGroup) {
       setTitulo(pickedGroup.nombre);
     }
-    if (pickedGroupMembers.length > 0) {
+    if (pickedGroup) {
+      const cap = Math.max(1, pickedGroup.capacidad ?? 1);
       const ids = pickedGroupMembers.map((m) => m.client_id);
       const padded: (string | null)[] = [...ids];
-      while (padded.length < 6) padded.push(null);
-      setGroupClientIds(padded.slice(0, Math.max(6, ids.length)));
+      while (padded.length < cap) padded.push(null);
+      setGroupClientIds(padded.slice(0, cap));
       lastAutofilledGroupIdRef.current = groupId;
     }
   }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
@@ -175,8 +176,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   }, [open, groupId, pickedGroup]);
 
   // Resize the client pickers to match the linked group's capacidad while
-  // preserving any picks. Fallback capacity of 6 when no group is picked yet.
-  const capacityForPickers = Math.max(1, pickedGroup?.capacidad ?? 6);
+  // preserving any picks. Without a picked group there are no client slots.
+  const capacityForPickers = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
   useEffect(() => {
     if (!open || !grupo) return;
     setGroupClientIds((prev) => {
@@ -193,16 +194,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open) return;
     if (session?.ocupacion !== 2) return;
     if (isNew) {
-      setGroupClientIds([session?.client_id ?? null, null, null, null, null, null]);
+      // Slots aparecerán al elegir un grupo (según su capacidad).
+      setGroupClientIds(session?.client_id ? [session.client_id] : []);
       return;
     }
     if (!groupMembersData) return;
     const ids = groupMembersData
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
-    const padded: (string | null)[] = [...ids];
-    while (padded.length < 6) padded.push(null);
-    setGroupClientIds(padded.slice(0, 6));
+    setGroupClientIds(ids);
   }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData]);
 
   function requestSave() {
@@ -230,7 +230,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         toast.error("Selecciona un grupo o crea uno nuevo");
         return;
       }
-      const cap = Math.max(1, pickedGroup?.capacidad ?? 6);
+      const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
       const pickedMembers = groupClientIds.filter((id): id is string => !!id);
       if (pickedMembers.length > cap) {
         toast.error(`Capacidad máxima del grupo: ${cap}`);
