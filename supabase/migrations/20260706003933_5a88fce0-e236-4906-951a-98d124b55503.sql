@@ -1,0 +1,1 @@
+ALTER TABLE public.invoices ALTER COLUMN bono_catalogo_id DROP NOT NULL;
