@@ -421,10 +421,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const now = new Date();
     const GRACE_MS = 15 * 60 * 1000;
     for (const s of sessions) {
-      // Cualquier estado "pendiente" (reservada / renovacion / prueba) pasa a
+      // Cualquier estado "pendiente" (reservada / renovacion) pasa a
       // realizada cuando la sesión ha terminado hace más de 15 min, siempre que
-      // no esté marcada como "Por confirmar".
-      const pendingStates = ["reservada", "renovacion", "prueba"] as const;
+      // no esté marcada como "Por confirmar". Las pruebas se mantienen siempre
+      // como prueba aunque ya hayan pasado.
+      const pendingStates = ["reservada", "renovacion"] as const;
       if ((pendingStates as readonly string[]).includes(s.estado) && !(s as any).por_confirmar) {
         const end = new Date(`${s.fecha}T${s.hora_fin}`);
         if (end.getTime() + GRACE_MS < now.getTime()) {

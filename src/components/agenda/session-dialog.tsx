@@ -215,7 +215,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       por_confirmar: estado === "reservada" ? porConfirmar : false,
       group_id: grupo ? groupId : null,
     };
-    // Auto-realizada si la sesión es pasada (con 15 min de margen tras la hora de fin).
+    // Auto-realizada si la sesión reservada es pasada (con 15 min de margen tras la hora de fin).
+    // - "Prueba" se respeta siempre, aunque sea pasada.
     // - "Por confirmar" nunca pasa automáticamente a realizada.
     // - Si el estado guardado era "realizada" pero la nueva hora está en el futuro,
     //   se revierte a "reservada".
@@ -226,14 +227,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const isPast = end.getTime() + GRACE_MS < now.getTime();
       // "Por confirmar" nunca se auto-convierte.
       if (base.por_confirmar) return "reservada";
-      // Canceladas se respetan tal cual.
-      if (base.estado === "cancelada") return "cancelada";
+      // Canceladas y pruebas se respetan tal cual.
+      if (base.estado === "cancelada" || base.estado === "prueba") return base.estado;
       // Futuro: si estaba marcada como realizada, revertir a reservada.
       if (!isPast) {
         if (base.estado === "realizada") return "reservada";
         return base.estado;
       }
-      // Pasado (>15 min tras el fin): reservada / renovacion / prueba / realizada → realizada.
+      // Pasado (>15 min tras el fin): reservada / renovacion / realizada → realizada.
       return "realizada";
     };
 
