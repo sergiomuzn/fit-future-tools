@@ -11,6 +11,8 @@ import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, 
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { GroupPicker } from "@/components/groups/group-picker";
+import { GroupDialog } from "@/components/groups/group-dialog";
+import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import {
@@ -50,6 +52,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
+  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -510,6 +513,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   if (!session) return null;
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -536,7 +540,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           {grupo && isNew ? (
             <div className="space-y-1.5">
               <Label>Grupo</Label>
-              <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
+                </Button>
+              </div>
               <Label className="text-xs text-muted-foreground">Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
               <ClientPicker
@@ -549,7 +560,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           ) : grupo ? (
             <div className="space-y-1.5">
               <Label>Grupo</Label>
-              <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
+                </div>
+                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
+                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
+                </Button>
+              </div>
               <Label>Clientes del grupo</Label>
               {groupClientIds.map((cid, i) => (
                 <ClientPicker
@@ -672,5 +690,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
+    <GroupDialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} group={null} />
+    </>
   );
 }
