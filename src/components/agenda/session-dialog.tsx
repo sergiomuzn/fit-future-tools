@@ -689,5 +689,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
+    <GroupDialog open={createGroupOpen} onClose={() => setCreateGroupOpen(false)} group={null} />
+    </>
   );
 }
