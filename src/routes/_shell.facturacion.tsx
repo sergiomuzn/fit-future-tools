@@ -210,8 +210,14 @@ function FacturacionPage() {
                 <TableCell className="font-medium">
                   {(() => {
                     const c = clientMap.get(i.client_id);
+                    const isAlta = altaByClient.get(i.client_id) === i.fecha;
                     return c ? (
-                      <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                      <div className="flex items-center gap-2">
+                        <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                        {isAlta && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">Alta</span>
+                        )}
+                      </div>
                     ) : "?";
                   })()}
                 </TableCell>
