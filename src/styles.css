@@ -96,9 +96,9 @@
   --sidebar-border: oklch(0.9 0.01 250);
   --sidebar-ring: oklch(0.55 0.04 257);
   /* Session state colors */
-  --state-reservada: #5ACBFF;
+  --state-reservada: #3CC0F3;
   --state-reservada-fg: #ffffff;
-  --state-realizada: #3CC0F3;
+  --state-realizada: #0491C3;
   --state-realizada-fg: oklch(1 0 0);
   --state-cancelada: oklch(0.6 0.21 25);
   --state-cancelada-fg: #ffffff;
