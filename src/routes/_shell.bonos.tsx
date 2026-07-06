@@ -137,9 +137,8 @@ function BonosPage() {
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
     const cat = nuevo.bono_catalogo_id ? catalogo.find((c) => c.id === nuevo.bono_catalogo_id) : null;
-    const allowZero = cat?.tipo === "gympass" || cat?.tipo === "grupal";
     const sesiones = Number(nuevo.sesiones_disponibles);
-    if (!Number.isFinite(sesiones) || sesiones < 0 || (!allowZero && sesiones <= 0)) {
+    if (nuevo.sesiones_disponibles.trim() === "" || !Number.isFinite(sesiones)) {
       toast.error("Introduce un número de sesiones válido"); return;
     }
     // Desactivar bono activo previo del cliente
@@ -328,9 +327,9 @@ function BonosPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label>Sesiones</Label>
-                <Input type="number" min={0} placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
-                  onChange={(e) => setNuevo({ ...nuevo, sesiones_disponibles: e.target.value.replace(/^0+(?=\d)/, "") })} />
+                <Label>Sesiones teóricas</Label>
+                <Input type="number" placeholder="Ej. 10" value={nuevo.sesiones_disponibles}
+                  onChange={(e) => setNuevo({ ...nuevo, sesiones_disponibles: e.target.value })} />
               </div>
               <div className="space-y-1.5">
                 <Label>Fecha</Label>
