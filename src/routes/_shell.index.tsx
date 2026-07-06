@@ -70,7 +70,7 @@ function AgendaPage() {
           <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
           <Button variant="ghost" size="icon" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
           <Button variant="ghost" size="icon" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
-          <div className="font-display text-lg font-semibold capitalize text-white">
+          <div className="font-display text-lg font-semibold capitalize">
             {DOW[date.getDay()]}, {date.getDate()} de {MONTHS[date.getMonth()]} {date.getFullYear()}
           </div>
         </div>
