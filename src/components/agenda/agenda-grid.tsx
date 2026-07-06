@@ -33,6 +33,22 @@ interface LayoutInfo {
   cols: number;
 }
 
+const LOWERCASE_WORDS = new Set([
+  "y", "de", "del", "la", "el", "los", "las", "un", "una", "unos", "unas",
+  "con", "por", "para", "en", "a", "al", "que", "se", "sus", "tu", "su",
+]);
+
+function formatNameUpper(name: string | null | undefined): string {
+  if (!name) return "";
+  return name
+    .split(" ")
+    .map((word) => {
+      const lower = word.toLowerCase();
+      return LOWERCASE_WORDS.has(lower) ? lower : word.toUpperCase();
+    })
+    .join(" ");
+}
+
 function computeLayout(sessions: Session[]): LayoutInfo[] {
   const sorted = [...sessions].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
   const result: LayoutInfo[] = [];
