@@ -181,7 +181,7 @@ function FacturacionPage() {
           </TableHeader>
           <TableBody>
             {invoices.map((i) => {
-              const cat = catMap.get(i.bono_catalogo_id);
+              const cat = catMap.get(i.bono_catalogo_id ?? "");
               const tipo = cat?.tipo;
               const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
               const TIPO_CLASS: Record<string, string> = {
