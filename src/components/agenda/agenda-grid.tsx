@@ -543,6 +543,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
                 : (formatNameUpper(client?.nombre) ?? session.titulo ?? "");
+              const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
               return (
@@ -596,31 +597,51 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     }}
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <div className="flex items-center justify-between gap-1">
-                    <div className="font-semibold text-xs leading-tight">
-                      {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
-                    </div>
-                    {trainer && (
-                      <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black">
-                        {trainer.iniciales}
+                  {isCompact ? (
+                    <div className="flex items-center gap-1.5 h-full">
+                      <div className="shrink-0 font-semibold text-[11px] leading-none">
+                        {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
                       </div>
-                    )}
-                  </div>
-                  <div className="font-medium text-xs truncate leading-tight">
-                    {isGroup
-                      ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
-                      : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
-                  </div>
-                  {isGroup && groupMemberCount > 0 && (
-                    <div className="truncate text-[10px] opacity-90">{groupNames}</div>
-                  )}
-                  {session.incidencia && (
-                    <div
-                      className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
-                      title={session.incidencia}
-                    >
-                      {session.incidencia}
+                      <div className="font-medium text-[11px] truncate leading-none flex-1 min-w-0">
+                        {isGroup
+                          ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
+                          : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
+                      </div>
+                      {trainer && (
+                        <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black leading-none">
+                          {trainer.iniciales}
+                        </div>
+                      )}
                     </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between gap-1">
+                        <div className="font-semibold text-xs leading-tight">
+                          {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
+                        </div>
+                        {trainer && (
+                          <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black">
+                            {trainer.iniciales}
+                          </div>
+                        )}
+                      </div>
+                      <div className="font-medium text-xs truncate leading-tight">
+                        {isGroup
+                          ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
+                          : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
+                      </div>
+                      {isGroup && groupMemberCount > 0 && (
+                        <div className="truncate text-[10px] opacity-90">{groupNames}</div>
+                      )}
+                      {session.incidencia && (
+                        <div
+                          className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
+                          title={session.incidencia}
+                        >
+                          {session.incidencia}
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               );
