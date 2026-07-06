@@ -522,11 +522,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             )}
 
             {/* sessions */}
-            {layout.map(({ session, col, cols }) => {
+            {layout.map(({ session, col, cols, span }) => {
               const startMin = timeToMin(session.hora_inicio);
               const endMin = timeToMin(session.hora_fin);
-              const widthPct = 96 / cols; // 96% total, deja 4% lateral para click-add
-              const leftPct = 2 + col * widthPct;
+              const colWidthPct = 96 / cols; // 96% total, deja 4% lateral para click-add
+              const widthPct = colWidthPct * span;
+              const leftPct = 2 + col * colWidthPct;
               const isMoving = moving?.id === session.id;
               const isResizing = resizing?.id === session.id;
               const effStart = isResizing && resizePreview ? resizePreview.startMin
