@@ -796,10 +796,12 @@ function buildSeries(args: {
     if (desglose === "franja") return HOURS.map((h) => `${String(h).padStart(2, "0")}:00`);
     if (desglose === "turno") return ["Mañana", "Tarde"];
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+    if (desglose === "total") return ["Total"];
     return ["Individual", "Pareja", "Grupal", "Prueba"];
   })();
 
   const bucketOf = (s: Session): string | null => {
+    if (desglose === "total") return "Total";
     if (desglose === "franja") {
       const h = hourOf(s.hora_inicio);
       if (h < HORA_MIN || h > HORA_MAX) return null;
