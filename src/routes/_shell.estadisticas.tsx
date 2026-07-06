@@ -963,7 +963,7 @@ function buildSeries(args: {
   const seriesKeys = Array.from(seriesKeysSet);
   const rows: SeriesRow[] = bucketKeys.map((b) => {
     const row: SeriesRow = { bucket: b };
-    for (const k of seriesKeys) row[k] = acc.get(b)?.get(k) ?? 0;
+    for (const k of seriesKeys) row[k] = Number(acc.get(b)?.get(k) ?? 0);
     return row;
   });
 
