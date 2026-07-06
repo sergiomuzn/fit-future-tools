@@ -149,8 +149,8 @@
   --state-realizada-fg: #ffffff;
   --state-cancelada: oklch(0.55 0.2 25);
   --state-cancelada-fg: #ffffff;
-  --state-prueba: oklch(0.6 0.16 150);
-  --state-prueba-fg: oklch(1 0 0);
+  --state-prueba: #1CDB14;
+  --state-prueba-fg: #ffffff;
   --state-renovacion: oklch(0.7 0.16 70);
   --state-renovacion-fg: oklch(1 0 0);
   --state-grupo: #E959DE;
