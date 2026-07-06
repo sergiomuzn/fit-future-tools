@@ -600,17 +600,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     onClick={(e) => e.stopPropagation()}
                   />
                   {isCompact ? (
-                    <div className="flex items-center gap-1.5 h-full">
-                      <div className="shrink-0 font-semibold text-[11px] leading-none">
-                        {session.hora_inicio.slice(0,5)}–{session.hora_fin.slice(0,5)}
+                    <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
+                      <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
+                        {isUltraCompact
+                          ? session.hora_inicio.slice(0,5)
+                          : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
-                      <div className="font-medium text-[11px] truncate leading-none flex-1 min-w-0">
+                      <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
                           ? `${session.titulo || "Grupo"} (${groupMemberCount}/6)`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
-                        <div className="shrink-0 rounded bg-black/15 px-1 text-[10px] font-semibold text-black leading-none">
+                        <div className={cn("shrink-0 rounded bg-black/15 px-1 font-semibold text-black leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
                           {trainer.iniciales}
                         </div>
                       )}
