@@ -171,22 +171,25 @@ export function GroupDialog({ open, onClose, group }: Props) {
           </div>
 
           {!isNew && (
-            <div className="rounded-md border bg-card/50 p-3 space-y-2">
-              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Estadísticas</div>
-              <div className="text-sm">
-                Integrantes medios (mes anterior):{" "}
-                <span className="font-semibold">{stats.avgPrev.toFixed(1)}</span>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-md border bg-card p-3 flex flex-col items-center justify-center text-center min-h-[120px]">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Integrantes medios</div>
+                <div className="text-3xl font-bold">{stats.avgPrev.toFixed(1)}</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">mes anterior</div>
               </div>
-              <div className="text-sm">
-                <div className="mb-1">Asistentes más frecuentes (últimos 2 meses):</div>
-                {stats.top.length === 0 && <div className="text-xs text-muted-foreground">Sin datos aún.</div>}
+              <div className="rounded-md border bg-card p-3 flex flex-col min-h-[120px]">
+                <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2 text-center">Asistentes más frecuentes</div>
+                {stats.top.length === 0 && (
+                  <div className="flex-1 flex items-center justify-center text-xs text-muted-foreground">Sin datos aún.</div>
+                )}
                 {stats.top.length > 0 && (
-                  <ol className="space-y-0.5 pl-4 list-decimal">
+                  <ol className="space-y-1 pl-4 list-decimal text-sm flex-1">
                     {stats.top.map((t) => (
-                      <li key={t.id} className="text-sm">{t.nombre} <span className="text-muted-foreground text-xs">· {t.count} sesiones</span></li>
+                      <li key={t.id}>{t.nombre} <span className="text-muted-foreground text-xs">· {t.count} sesiones</span></li>
                     ))}
                   </ol>
                 )}
+                <div className="text-[10px] text-muted-foreground text-center mt-1">últimos 2 meses</div>
               </div>
             </div>
           )}
