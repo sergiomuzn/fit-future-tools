@@ -481,8 +481,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const effEnd = isResizing && resizePreview ? resizePreview.endMin
                 : isMoving && movePreview !== null ? movePreview + (moving!.dur)
                 : endMin;
-              const top = (effStart / SLOT_MIN) * SLOT_PX;
-              const height = ((effEnd - effStart) / SLOT_MIN) * SLOT_PX;
+              const rawTop = (effStart / SLOT_MIN) * SLOT_PX;
+              const rawHeight = ((effEnd - effStart) / SLOT_MIN) * SLOT_PX;
+              // Pequeño margen para que sesiones contiguas (verticales y horizontales) no se toquen.
+              const V_GAP = 2;
+              const top = rawTop + V_GAP / 2;
+              const height = Math.max(rawHeight - V_GAP, 8);
               const client = session.client_id ? clientMap.get(session.client_id) : null;
               const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
               const bono = session.client_id ? bonoMap.get(session.client_id) : null;
@@ -530,8 +534,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   style={{
                     top,
                     height,
-                    left: `${leftPct}%`,
-                    width: `${widthPct - 0.5}%`,
+                    left: `calc(${leftPct}% + 1px)`,
+                    width: `calc(${widthPct}% - 3px)`,
                     opacity: isMoving ? 0.7 : 1,
                     backgroundImage: isPorConfirmar
                       ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 6px, transparent 6px 12px)"
