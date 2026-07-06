@@ -957,7 +957,11 @@ function buildSeries(args: {
   const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
 
   const isLineChart = desglose === "franja"; // evolución horaria
-  return { rows: nonZero.length ? nonZero : rows, seriesKeys: seriesKeys.length ? seriesKeys : ["value"], isLineChart };
+  const finalRows = nonZero.length ? nonZero : rows;
+  const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
+  const isTimeAxis = desglose === "franja" || desglose === "dow";
+  const trendKeys = addTrendLines(finalRows, finalSeries, isTimeAxis);
+  return { rows: finalRows, seriesKeys: finalSeries, trendKeys, isLineChart };
 
   // suppress unused
   void isMultiSeries;
