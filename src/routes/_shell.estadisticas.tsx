@@ -429,30 +429,18 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return palette[idx % palette.length];
   };
 
-  // Linear-regression trend line over the sum of all bar series per bucket.
-  // Only applied to bar charts with 3+ points (per the user's spec).
-  const trendValues = useMemo<number[] | null>(() => {
+  // Total of real bar values per bucket to draw as a connected line.
+  const totalValues = useMemo<number[] | null>(() => {
     if (isLineChart) return null;
     const n = rows.length;
-    if (n < 3) return null;
-    const ys = rows.map((r) =>
+    if (n < 2) return null;
+    return rows.map((r) =>
       seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
     );
-    const meanX = (n - 1) / 2;
-    const meanY = ys.reduce((a, b) => a + b, 0) / n;
-    let num = 0;
-    let den = 0;
-    for (let i = 0; i < n; i++) {
-      num += (i - meanX) * (ys[i] - meanY);
-      den += (i - meanX) * (i - meanX);
-    }
-    const slope = den === 0 ? 0 : num / den;
-    const intercept = meanY - slope * meanX;
-    return ys.map((_, i) => intercept + slope * i);
   }, [rows, seriesKeys, isLineChart]);
-  const hasTrend = trendValues !== null;
-  const rowsWithTrend = hasTrend
-    ? rows.map((r, i) => ({ ...r, __trend: trendValues![i] }))
+  const hasTotal = totalValues !== null;
+  const rowsWithTotal = hasTotal
+    ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
     : rows;
 
   return (
@@ -558,7 +546,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   ))}
                 </LineChart>
               ) : (
-                <ComposedChart data={rowsWithTrend}>
+                <ComposedChart data={rowsWithTotal}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
@@ -567,16 +555,16 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
                   ))}
-                  {hasTrend && (
+                  {hasTotal && (
                     <Line
                       type="monotone"
-                      dataKey="__trend"
-                      name="Tendencia"
+                      dataKey="__total"
+                      name="Total"
                       stroke="#374151"
                       strokeWidth={2}
                       connectNulls
-                      dot={{ r: 4, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
-                      activeDot={{ r: 6, fill: "#374151", stroke: "#ffffff", strokeWidth: 2 }}
+                      dot={{ r: 4, fill: "#374151" }}
+                      activeDot={{ r: 6 }}
                       isAnimationActive={false}
                     />
                   )}
