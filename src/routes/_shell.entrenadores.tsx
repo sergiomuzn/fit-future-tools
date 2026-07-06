@@ -51,7 +51,7 @@ function EntrenadoresPage() {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-month", start, end],
     queryFn: async () => {
-      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).eq("estado", "realizada");
+      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).in("estado", ["realizada", "prueba"]);
       return (data ?? []) as Session[];
     },
   });
