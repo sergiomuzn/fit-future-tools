@@ -32,6 +32,12 @@ function FacturacionPage() {
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
 
+  const { data: altas = [] } = useQuery({
+    queryKey: ["client-altas"],
+    queryFn: async () => (await supabase.from("client_events").select("client_id, fecha").eq("tipo", "alta")).data as { client_id: string; fecha: string }[] ?? [],
+  });
+  const altaByClient = new Map(altas.map((a) => [a.client_id, a.fecha]));
+
   const { data: allFechas = [] } = useQuery({
     queryKey: ["invoices-fechas"],
     queryFn: async () => (await supabase.from("invoices").select("fecha")).data as { fecha: string }[] ?? [],
@@ -113,6 +119,7 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.invalidateQueries({ queryKey: ["client-altas"] });
   }
 
   async function save() {
@@ -145,6 +152,7 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.invalidateQueries({ queryKey: ["client-altas"] });
     setOpen(false);
   }
 
@@ -204,8 +212,14 @@ function FacturacionPage() {
                 <TableCell className="font-medium">
                   {(() => {
                     const c = clientMap.get(i.client_id);
+                    const isAlta = altaByClient.get(i.client_id) === i.fecha;
                     return c ? (
-                      <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                      <div className="flex items-center gap-2">
+                        <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{c.nombre}</button>
+                        {isAlta && (
+                          <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">Alta</span>
+                        )}
+                      </div>
                     ) : "?";
                   })()}
                 </TableCell>
