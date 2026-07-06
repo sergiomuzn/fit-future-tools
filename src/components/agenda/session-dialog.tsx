@@ -595,9 +595,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label>Cliente</Label>
               <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
               {!grupo && clientId && !isGympassBono && (
-                <div className="text-[11px] text-muted-foreground">
+              <div className="text-[11px] text-muted-foreground">
                   Sesiones restantes:{" "}
-                  <span className={`font-semibold ${restantes !== null && restantes <= 1 ? "text-state-renovacion-fg" : "text-foreground"}`}>
+                  <span className="font-semibold">
                     {restantes ?? "Sin bono"}
                   </span>
                 </div>
