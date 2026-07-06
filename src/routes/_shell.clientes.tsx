@@ -234,7 +234,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
 
   // group_id -> map<hora "HH:MM", Set<dow>>
   const scheduleByGroup = new Map<string, Map<string, Set<number>>>();
-  const membersByGroup = new Map<string, Set<string>>();
   for (const s of groupSessions) {
     if (!s.group_id) continue;
     const hora = (s.hora_inicio ?? "").slice(0, 5);
@@ -244,10 +243,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
       const perHora = scheduleByGroup.get(s.group_id)!;
       if (!perHora.has(hora)) perHora.set(hora, new Set());
       perHora.get(hora)!.add(dow);
-    }
-    if (s.client_id) {
-      if (!membersByGroup.has(s.group_id)) membersByGroup.set(s.group_id, new Set());
-      membersByGroup.get(s.group_id)!.add(s.client_id);
     }
   }
 
@@ -276,41 +271,42 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
   });
 
   return (
-    <div className="rounded-lg border bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nombre</TableHead>
-            <TableHead>Horario</TableHead>
-            <TableHead>Miembros</TableHead>
-            <TableHead>Capacidad</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="w-24"></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((g) => (
-            <TableRow key={g.id} className={g.activo ? "" : "opacity-60"}>
-              <TableCell className="font-medium">
-                <button className="hover:underline text-left" onClick={() => onEdit(g)}>{g.nombre}</button>
-              </TableCell>
-              <TableCell className="text-sm text-muted-foreground">{horarioSummary(g.id)}</TableCell>
-              <TableCell>{membersByGroup.get(g.id)?.size ?? 0}</TableCell>
-              <TableCell>{g.capacidad}</TableCell>
-              <TableCell>
-                <span className={`text-xs px-2 py-0.5 rounded-full ${g.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{g.activo ? "Activo" : "Inactivo"}</span>
-              </TableCell>
-              <TableCell className="text-right">
-                <Button variant="ghost" size="icon" onClick={() => onEdit(g)}><Pencil className="h-4 w-4" /></Button>
-                <Button variant="ghost" size="icon" onClick={() => removeGroup(g.id, g.nombre)}><Trash2 className="h-4 w-4" /></Button>
-              </TableCell>
-            </TableRow>
-          ))}
-          {sorted.length === 0 && (
-            <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin grupos aún</TableCell></TableRow>
-          )}
-        </TableBody>
-      </Table>
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      {sorted.map((g) => (
+        <div
+          key={g.id}
+          onClick={() => onEdit(g)}
+          className={`group relative rounded-lg border bg-card p-3 cursor-pointer hover:border-primary/50 hover:shadow-sm transition ${g.activo ? "" : "opacity-60"}`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="font-medium truncate">{g.nombre}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">Capacidad {g.capacidad}</div>
+            </div>
+            <span
+              className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${g.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}
+            >
+              {g.activo ? "Activo" : "Inactivo"}
+            </span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-2 line-clamp-2">
+            {horarioSummary(g.id)}
+          </div>
+          <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={(e) => { e.stopPropagation(); removeGroup(g.id, g.nombre); }}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
+      ))}
+      {sorted.length === 0 && (
+        <div className="col-span-full text-center text-muted-foreground py-8 border rounded-lg bg-card">Sin grupos aún</div>
+      )}
     </div>
   );
 }
