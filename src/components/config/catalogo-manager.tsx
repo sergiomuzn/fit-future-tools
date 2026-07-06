@@ -187,25 +187,19 @@ export function CatalogoManager() {
 
   async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    console.log("[dnd] dragEnd", JSON.stringify({ activeId: active?.id, overId: over?.id, sameId: active?.id === over?.id, tA: typeof active?.id, tO: typeof over?.id }));
     if (!over || active.id === over.id) return;
 
     const oldIndex = sorted.findIndex((c) => c.id === active.id);
     const newIndex = sorted.findIndex((c) => c.id === over.id);
-    console.log("[dnd] idx", { oldIndex, newIndex, sortedLen: sorted.length, sample: sorted[0]?.id });
     if (oldIndex === -1 || newIndex === -1) return;
 
     const newSorted = arrayMove(sorted, oldIndex, newIndex);
 
-    // Reasignar orden = índice + 1 para todo el array
-    const updates = newSorted.map((c, idx) => ({
-      id: c.id,
-      orden: idx + 1,
-    }));
-
-    // Solo actualizar los que cambiaron de orden
-    const changed = updates.filter((u, idx) => u.orden !== sorted[idx].orden);
-    console.log("[dnd] changed", changed.length);
+    // Reasignar orden = índice + 1 y filtrar los que cambiaron (comparando por id)
+    const prevOrden = new Map(sorted.map((c) => [c.id, c.orden]));
+    const changed = newSorted
+      .map((c, idx) => ({ id: c.id, orden: idx + 1 }))
+      .filter((u) => prevOrden.get(u.id) !== u.orden);
     if (changed.length === 0) return;
 
     const results = await Promise.all(
@@ -215,7 +209,6 @@ export function CatalogoManager() {
     );
 
     const errors = results.filter((r) => r.error);
-    console.log("[dnd] done errors:", errors.length);
     if (errors.length > 0) {
       toast.error("Error al reordenar");
       return;
