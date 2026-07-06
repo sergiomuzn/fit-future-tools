@@ -553,6 +553,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
+                      isAnimationActive={false}
                     />
                   ))}
                 </LineChart>
