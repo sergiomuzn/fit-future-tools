@@ -89,9 +89,6 @@ function AgendaPage() {
               {t.iniciales}
             </button>
           ))}
-          {paintTrainerId && (
-            <Button variant="ghost" size="sm" onClick={() => setPaintTrainerId(null)}>Salir</Button>
-          )}
         </div>
       </header>
 
