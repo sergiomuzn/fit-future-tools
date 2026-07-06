@@ -98,8 +98,8 @@
   /* Session state colors */
   --state-reservada: #3CC0F3;
   --state-reservada-fg: #ffffff;
-  --state-realizada: #0491C3;
-  --state-realizada-fg: oklch(1 0 0);
+  --state-realizada: #00ADE2;
+  --state-realizada-fg: #ffffff;
   --state-cancelada: oklch(0.6 0.21 25);
   --state-cancelada-fg: #ffffff;
   --state-prueba: oklch(0.68 0.16 150);
@@ -145,8 +145,8 @@
   --sidebar-ring: oklch(0.6 0.03 257);
   --state-reservada: #3CC0F3;
   --state-reservada-fg: #ffffff;
-  --state-realizada: #0491C3;
-  --state-realizada-fg: oklch(1 0 0);
+  --state-realizada: #00ADE2;
+  --state-realizada-fg: #ffffff;
   --state-cancelada: oklch(0.55 0.2 25);
   --state-cancelada-fg: #ffffff;
   --state-prueba: oklch(0.6 0.16 150);
