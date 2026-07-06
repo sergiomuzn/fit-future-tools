@@ -202,8 +202,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const ids = groupMembersData
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
-    setGroupClientIds(ids);
-  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData]);
+    const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : ids.length;
+    const padded: (string | null)[] = [...ids];
+    while (padded.length < cap) padded.push(null);
+    setGroupClientIds(padded.slice(0, Math.max(cap, ids.length)));
+  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, pickedGroup]);
 
   function requestSave() {
     if (isSeries) {
