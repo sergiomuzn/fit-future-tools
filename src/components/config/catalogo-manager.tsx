@@ -273,6 +273,7 @@ export function CatalogoManager() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
+                <TableHead className="w-16"></TableHead>
                 <TableHead className="w-40">Tipo</TableHead>
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
@@ -300,6 +301,7 @@ export function CatalogoManager() {
               {adding && (
                 <TableRow>
                   <TableCell className="w-10"></TableCell>
+                  <TableCell className="w-16"></TableCell>
                   <TableCell className="w-40">
                     <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
