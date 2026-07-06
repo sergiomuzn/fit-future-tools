@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type BonoCatalogo } from "@/lib/db";
+import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -88,7 +88,18 @@ export function CatalogoManager() {
     setAdding(false);
   }
 
-  const sorted = sortCatalogo(catalogo);
+  const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
+
+  async function moveRow(c: BonoCatalogo, direction: -1 | 1) {
+    const idx = sorted.findIndex((x) => x.id === c.id);
+    const targetIdx = idx + direction;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    const other = sorted[targetIdx];
+    const { error: e1 } = await supabase.from("bonos_catalogo").update({ orden: other.orden }).eq("id", c.id);
+    const { error: e2 } = await supabase.from("bonos_catalogo").update({ orden: c.orden }).eq("id", other.id);
+    if (e1 || e2) { toast.error("Error al reordenar"); return; }
+    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  }
 
   return (
     <Card>
@@ -100,18 +111,29 @@ export function CatalogoManager() {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-12 text-center">Orden</TableHead>
               <TableHead className="w-40">Tipo</TableHead>
               <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-28">Precio (€)</TableHead>
-              <TableHead className="w-32"></TableHead>
+              <TableHead className="w-40"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {sorted.map((c) => {
+            {sorted.map((c, i) => {
               const dirty = !!drafts[c.id];
               return (
                 <TableRow key={c.id}>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-0.5">
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === 0} onClick={() => moveRow(c, -1)}>
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === sorted.length - 1} onClick={() => moveRow(c, 1)}>
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                   <TableCell>
                     <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
