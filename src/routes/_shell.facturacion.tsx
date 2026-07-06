@@ -251,7 +251,12 @@ function FacturacionPage() {
               <Label>Bono</Label>
               <Select value={form.bono_catalogo_id ?? "__none__"} onValueChange={(v) => {
                 const b = catalogo.find((x) => x.id === v);
-                setForm({ ...form, bono_catalogo_id: v === "__none__" ? undefined : v, precio_cobrado: b ? Number(b.precio) : form.precio_cobrado });
+                setForm({
+                  ...form,
+                  bono_catalogo_id: v === "__none__" ? undefined : v,
+                  precio_cobrado: b ? Number(b.precio) : form.precio_cobrado,
+                  sesiones_override: v === "__none__" ? null : (b ? b.sesiones_incluidas : null),
+                });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
                 <SelectContent>
@@ -265,6 +270,18 @@ function FacturacionPage() {
                 </SelectContent>
               </Select>
             </div>
+            {form.bono_catalogo_id && (
+              <div className="space-y-1.5">
+                <Label>Sesiones a añadir</Label>
+                <Input
+                  type="number"
+                  step="1"
+                  value={form.sesiones_override ?? ""}
+                  onChange={(e) => setForm({ ...form, sesiones_override: e.target.value === "" ? null : Number(e.target.value) })}
+                />
+                <p className="text-xs text-muted-foreground">Predeterminado según el bono. Puedes ajustarlo si es una factura especial.</p>
+              </div>
+            )}
             <div className="space-y-1.5">
               <Label>Precio cobrado (€)</Label>
               <Input type="number" step="5" placeholder="0" value={form.precio_cobrado ? form.precio_cobrado : ""} onChange={(e) => setForm({ ...form, precio_cobrado: Number(e.target.value) || 0 })} />
