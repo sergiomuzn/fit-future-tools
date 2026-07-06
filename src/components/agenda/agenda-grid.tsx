@@ -165,8 +165,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     return { displaySessions: display, groupMembers: members };
   }, [sessions]);
 
-  const layout = useMemo(() => computeLayout(displaySessions), [displaySessions]);
-
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
   const dragStartRef = useRef<number | null>(null);
@@ -213,6 +211,30 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Resize existing
   const [resizing, setResizing] = useState<{ id: string; edge: "top" | "bottom"; startMin: number; endMin: number } | null>(null);
   const [resizePreview, setResizePreview] = useState<{ startMin: number; endMin: number } | null>(null);
+
+  // Layout recomputed live so that a session being dragged/resized adapts its
+  // width to whatever slot it is hovering over.
+  const layout = useMemo(() => {
+    let sessionsForLayout = displaySessions;
+    if (moving && movePreview !== null) {
+      sessionsForLayout = displaySessions.map((s) => {
+        if (s.id !== moving.id) return s;
+        const newStart = minToTime(movePreview);
+        const newEnd = minToTime(movePreview + moving.dur);
+        return { ...s, hora_inicio: newStart, hora_fin: newEnd };
+      });
+    } else if (resizing && resizePreview) {
+      sessionsForLayout = displaySessions.map((s) => {
+        if (s.id !== resizing.id) return s;
+        return {
+          ...s,
+          hora_inicio: minToTime(resizePreview.startMin),
+          hora_fin: minToTime(resizePreview.endMin),
+        };
+      });
+    }
+    return computeLayout(sessionsForLayout);
+  }, [displaySessions, moving, movePreview, resizing, resizePreview]);
 
   // Pending time-change on a series → ask scope (this / future).
   const [pendingTimeEdit, setPendingTimeEdit] = useState<{
