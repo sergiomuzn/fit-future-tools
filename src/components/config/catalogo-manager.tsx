@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Trash2, GripVertical } from "lucide-react";
 import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,98 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
+
+function SortableRow({
+  c,
+  i,
+  sortedLength,
+  drafts,
+  getVal,
+  setVal,
+  saveRow,
+  removeRow,
+}: {
+  c: BonoCatalogo;
+  i: number;
+  sortedLength: number;
+  drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
+  getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
+  setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
+  saveRow: (c: BonoCatalogo) => Promise<void>;
+  removeRow: (c: BonoCatalogo) => Promise<void>;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: c.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const dirty = !!drafts[c.id];
+
+  return (
+    <TableRow ref={setNodeRef} style={style}>
+      <TableCell className="w-10 text-center">
+        <div className="flex items-center justify-center">
+          <button
+            {...attributes}
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted transition-colors"
+            title="Arrastrar para reordenar"
+          >
+            <GripVertical className="h-4 w-4 text-muted-foreground" />
+          </button>
+        </div>
+      </TableCell>
+      <TableCell className="w-40">
+        <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
+          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </TableCell>
+      <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
+      <TableCell className="w-24">
+        <Input type="number" className="h-8" value={getVal(c, "sesiones")}
+          onChange={(e) => setVal(c, "sesiones", e.target.value)} />
+      </TableCell>
+      <TableCell className="w-28">
+        <Input type="number" step="5" className="h-8" value={getVal(c, "precio")}
+          onChange={(e) => setVal(c, "precio", e.target.value)} />
+      </TableCell>
+      <TableCell className="w-40 text-right space-x-1">
+        <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
+        <Button size="icon" variant="ghost" onClick={() => removeRow(c)}><Trash2 className="h-4 w-4" /></Button>
+      </TableCell>
+    </TableRow>
+  );
+}
 
 export function CatalogoManager() {
   const qc = useQueryClient();
@@ -90,15 +180,44 @@ export function CatalogoManager() {
 
   const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
 
-  async function moveRow(c: BonoCatalogo, direction: -1 | 1) {
-    const idx = sorted.findIndex((x) => x.id === c.id);
-    const targetIdx = idx + direction;
-    if (targetIdx < 0 || targetIdx >= sorted.length) return;
-    const other = sorted[targetIdx];
-    const { error: e1 } = await supabase.from("bonos_catalogo").update({ orden: other.orden }).eq("id", c.id);
-    const { error: e2 } = await supabase.from("bonos_catalogo").update({ orden: c.orden }).eq("id", other.id);
-    if (e1 || e2) { toast.error("Error al reordenar"); return; }
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = sorted.findIndex((c) => c.id === active.id);
+    const newIndex = sorted.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newSorted = arrayMove(sorted, oldIndex, newIndex);
+
+    // Reasignar orden = índice + 1 para todo el array
+    const updates = newSorted.map((c, idx) => ({
+      id: c.id,
+      orden: idx + 1,
+    }));
+
+    // Solo actualizar los que cambiaron de orden
+    const changed = updates.filter((u, idx) => u.orden !== sorted[idx].orden);
+    if (changed.length === 0) return;
+
+    const results = await Promise.all(
+      changed.map((u) =>
+        supabase.from("bonos_catalogo").update({ orden: u.orden }).eq("id", u.id)
+      )
+    );
+
+    const errors = results.filter((r) => r.error);
+    if (errors.length > 0) {
+      toast.error("Error al reordenar");
+      return;
+    }
+
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+    toast.success("Orden actualizado");
   }
 
   return (
@@ -108,86 +227,66 @@ export function CatalogoManager() {
         <p className="text-xs text-muted-foreground">Los cambios afectan a Facturación y Bonos.</p>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12 text-center">Orden</TableHead>
-              <TableHead className="w-40">Tipo</TableHead>
-              <TableHead>Bono</TableHead>
-              <TableHead className="w-24">Sesiones</TableHead>
-              <TableHead className="w-28">Precio (€)</TableHead>
-              <TableHead className="w-40"></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {sorted.map((c, i) => {
-              const dirty = !!drafts[c.id];
-              return (
-                <TableRow key={c.id}>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center gap-0.5">
-                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === 0} onClick={() => moveRow(c, -1)}>
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button size="icon" variant="ghost" className="h-6 w-6" disabled={i === sorted.length - 1} onClick={() => moveRow(c, 1)}>
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-10"></TableHead>
+                <TableHead className="w-40">Tipo</TableHead>
+                <TableHead>Bono</TableHead>
+                <TableHead className="w-24">Sesiones</TableHead>
+                <TableHead className="w-28">Precio (€)</TableHead>
+                <TableHead className="w-40"></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SortableContext items={sorted.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+                {sorted.map((c, i) => (
+                  <SortableRow
+                    key={c.id}
+                    c={c}
+                    i={i}
+                    sortedLength={sorted.length}
+                    drafts={drafts}
+                    getVal={getVal}
+                    setVal={setVal}
+                    saveRow={saveRow}
+                    removeRow={removeRow}
+                  />
+                ))}
+              </SortableContext>
+              {adding && (
+                <TableRow>
+                  <TableCell className="w-10"></TableCell>
+                  <TableCell className="w-40">
+                    <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
                       <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
                   <TableCell>
-                    <Input type="number" className="h-8" value={getVal(c, "sesiones")}
-                      onChange={(e) => setVal(c, "sesiones", e.target.value)} />
+                    <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre}
+                      onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
                   </TableCell>
-                  <TableCell>
-                    <Input type="number" step="5" className="h-8" value={getVal(c, "precio")}
-                      onChange={(e) => setVal(c, "precio", e.target.value)} />
+                  <TableCell className="w-24">
+                    <Input className="h-8" type="number" value={nuevo.sesiones_incluidas}
+                      onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
-                  <TableCell className="text-right space-x-1">
-                    <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
-                    <Button size="icon" variant="ghost" onClick={() => removeRow(c)}><Trash2 className="h-4 w-4" /></Button>
+                  <TableCell className="w-28">
+                    <Input className="h-8" type="number" step="5" value={nuevo.precio}
+                      onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
+                  </TableCell>
+                  <TableCell className="w-40 text-right space-x-1">
+                    <Button size="sm" onClick={addRow}>Añadir</Button>
+                    <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancelar</Button>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {adding && (
-              <TableRow>
-                <TableCell>
-                  <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
-                    <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre}
-                    onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })} />
-                </TableCell>
-                <TableCell>
-                  <Input className="h-8" type="number" value={nuevo.sesiones_incluidas}
-                    onChange={(e) => setNuevo({ ...nuevo, sesiones_incluidas: e.target.value.replace(/^0+(?=\d)/, "") })} />
-                </TableCell>
-                <TableCell>
-                  <Input className="h-8" type="number" step="5" value={nuevo.precio}
-                    onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
-                </TableCell>
-                <TableCell className="text-right space-x-1">
-                  <Button size="sm" onClick={addRow}>Añadir</Button>
-                  <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancelar</Button>
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </DndContext>
         {!adding && (
           <div className="pt-3">
             <Button variant="outline" onClick={() => setAdding(true)}>
