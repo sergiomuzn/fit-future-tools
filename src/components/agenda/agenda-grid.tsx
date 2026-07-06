@@ -554,7 +554,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : "";
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
-                : (client?.nombre?.toUpperCase() ?? session.titulo ?? "");
+                : (formatNameUpper(client?.nombre) ?? session.titulo ?? "");
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar && !needsRenewal;
               return (
