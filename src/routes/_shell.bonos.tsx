@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { enterToSave } from "@/lib/enter-to-save";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { Textarea } from "@/components/ui/textarea";
@@ -280,7 +281,7 @@ function BonosPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent onKeyDown={enterToSave(save)}>
           <DialogHeader><DialogTitle>Editar bono</DialogTitle></DialogHeader>
           {editing && (
             <div className="grid gap-3">
@@ -316,7 +317,7 @@ function BonosPage() {
       <ClientDetailsDialog client={historyClient} defaultTab="historial" onOpenChange={(o) => !o && setHistoryClient(null)} />
 
       <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <DialogContent>
+        <DialogContent onKeyDown={enterToSave(addBono)}>
           <DialogHeader><DialogTitle>Nuevo bono</DialogTitle></DialogHeader>
           <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-700 dark:text-amber-300">
             <Info className="h-4 w-4 mt-0.5 shrink-0" />
