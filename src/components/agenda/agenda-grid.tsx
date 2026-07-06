@@ -479,7 +479,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {/* draft */}
             {draft && (
               <div
-                className="absolute rounded-md bg-primary/30 border border-primary pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
+                className="absolute rounded-md bg-primary/20 border border-white/80 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
                 style={{
                   top: (draft.startMin / SLOT_MIN) * SLOT_PX,
                   height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
