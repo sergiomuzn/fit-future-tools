@@ -401,7 +401,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, trendKeys, isLineChart } = useMemo(
+  const { rows, seriesKeys, isLineChart } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap }),
     [sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap],
   );
@@ -428,12 +428,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
     return palette[idx % palette.length];
-  };
-  const trendColorFor = (name: string): string => {
-    if (trendKeys.length === 1) return "#374151";
-    const seriesName = name.replace(/^Tendencia · /, "");
-    const idx = seriesKeys.indexOf(seriesName);
-    return colorForSeries(seriesName, idx >= 0 ? idx : 0);
   };
 
   return (
