@@ -104,6 +104,17 @@ function BonosPage() {
     else { qc.invalidateQueries({ queryKey: ["client_bonos"] }); setOpen(false); toast.success("Bono actualizado"); }
   }
 
+  async function removeBono() {
+    if (!editing) return;
+    if (!confirm("¿Eliminar este bono? Esta acción no se puede deshacer.")) return;
+    const { error } = await supabase.from("client_bonos").delete().eq("id", editing.id);
+    if (error) { toast.error(error.message); return; }
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    setOpen(false);
+    setEditing(null);
+    toast.success("Bono eliminado");
+  }
+
   async function addBono() {
     if (!nuevo.client_id) { toast.error("Selecciona un cliente"); return; }
     if (!nuevo.bono_catalogo_id) { toast.error("Selecciona un tipo de bono"); return; }
@@ -244,6 +255,7 @@ function BonosPage() {
             </div>
           )}
           <DialogFooter>
+            <Button variant="destructive" onClick={removeBono} className="mr-auto">Eliminar</Button>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button onClick={save}>Guardar</Button>
           </DialogFooter>
