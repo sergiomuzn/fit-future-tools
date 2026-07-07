@@ -426,29 +426,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     setDialogOpen(true);
   }
 
-  // Auto-realizada para sesiones pasadas en estado 'reservada'.
-  // - Se aplica con 15 min de retraso tras la hora de fin (margen de renovación).
-  // - Las sesiones marcadas "Por confirmar" NUNCA pasan a realizada automáticamente.
-  useEffect(() => {
-    const now = new Date();
-    const GRACE_MS = 15 * 60 * 1000;
-    for (const s of sessions) {
-      // Cualquier estado "pendiente" (reservada / renovacion) pasa a
-      // realizada cuando la sesión ha terminado hace más de 15 min, siempre que
-      // no esté marcada como "Por confirmar". Las pruebas se mantienen siempre
-      // como prueba aunque ya hayan pasado.
-      const pendingStates = ["reservada", "renovacion"] as const;
-      if ((pendingStates as readonly string[]).includes(s.estado) && !(s as any).por_confirmar) {
-        const end = new Date(`${s.fecha}T${s.hora_fin}`);
-        if (end.getTime() + GRACE_MS < now.getTime()) {
-          supabase.from("sessions").update({ estado: "realizada" }).eq("id", s.id).then(() => {
-            qc.invalidateQueries({ queryKey: ["sessions"] });
-            qc.invalidateQueries({ queryKey: ["client_bonos"] });
-          });
-        }
-      }
-    }
-  }, [sessions, qc]);
+  // Antes había un auto-paso a "realizada" para las sesiones pasadas, pero
+  // eso modificaba sesiones sin intervención del usuario (y, en la práctica,
+  // podía tocar tanto sesiones ya pasadas como próximas dentro del margen de
+  // gracia). El estado ahora se cambia únicamente cuando el usuario lo
+  // guarda manualmente desde el diálogo de sesión.
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
 
@@ -577,9 +559,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
-              const groupCap = isGroup
-                ? (groupCapMap.get((session as any).group_id ?? "") ?? 0)
-                : 0;
+              // Buscar la capacidad del grupo mirando al primary y, si no
+              // tiene group_id, a cualquiera de los miembros. Así el
+              // contador (x/6) se mantiene aunque la sesión ya esté
+              // "realizada" o el group_id se haya perdido en el primary.
+              const groupIdForCap = isGroup
+                ? (((session as any).group_id as string | null | undefined)
+                    ?? (members ?? []).map((m) => (m as any).group_id as string | null | undefined).find((g) => !!g)
+                    ?? null)
+                : null;
+              const groupCap = groupIdForCap ? (groupCapMap.get(groupIdForCap) ?? 0) : 0;
               const groupCountLabel = isGroup
                 ? (groupCap > 0 ? `${groupMemberCount}/${groupCap}` : `${groupMemberCount}`)
                 : "";
