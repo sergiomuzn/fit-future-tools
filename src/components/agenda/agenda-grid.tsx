@@ -426,11 +426,30 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     setDialogOpen(true);
   }
 
-  // Antes había un auto-paso a "realizada" para las sesiones pasadas, pero
-  // eso modificaba sesiones sin intervención del usuario (y, en la práctica,
-  // podía tocar tanto sesiones ya pasadas como próximas dentro del margen de
-  // gracia). El estado ahora se cambia únicamente cuando el usuario lo
-  // guarda manualmente desde el diálogo de sesión.
+  // Auto-paso a "realizada" para las sesiones individuales pasadas
+  // (los grupos se excluyen para no tocar sus futuras ocurrencias).
+  useEffect(() => {
+    const GRACE_MS = 15 * 60 * 1000;
+    const now = Date.now();
+    const toUpdate = sessions.filter((s) => {
+      if (s.estado !== "reservada") return false;
+      if (s.ocupacion === 2) return false;
+      if ((s as any).por_confirmar) return false;
+      const end = new Date(`${s.fecha}T${s.hora_fin}`).getTime();
+      return end + GRACE_MS < now;
+    });
+    if (toUpdate.length === 0) return;
+    (async () => {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ estado: "realizada" })
+        .in("id", toUpdate.map((s) => s.id));
+      if (!error) {
+        qc.invalidateQueries({ queryKey: ["sessions"] });
+        qc.invalidateQueries({ queryKey: ["sessions-past"] });
+      }
+    })();
+  }, [sessions, qc]);
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
 
