@@ -342,6 +342,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         const toAdd = desiredIds.filter((id) => !existingIds.has(id));
         const placeholder = existing.find((m) => !m.client_id);
 
+        // Aplicar campos compartidos (incluida la nota/incidencia) a TODOS los
+        // miembros existentes del bloque para que la nota quede persistida
+        // aunque la sesión clicada sea el placeholder o vaya a ser eliminada.
+        if (existing.length) {
+          await supabase.from("sessions").update({
+            ...sharedGroupFields,
+            estado: estadoForDate(session.fecha!),
+            ocupacion: 2,
+          }).in("id", existing.map((m) => m.id));
+        }
+
         // Actualizar miembros existentes que se mantienen (campos compartidos).
         const keepIds = existingWithClient.filter((m) => desiredSet.has(m.client_id as string)).map((m) => m.id);
         if (keepIds.length) {
