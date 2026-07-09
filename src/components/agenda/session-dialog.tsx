@@ -302,7 +302,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         : null;
       const inserts = dates.flatMap((fecha) => {
         const ids = grupo && memberIds.length === 0 ? [null] : memberIds;
-        return ids.map((cid) => ({ ...base, fecha, estado: estadoForDate(fecha), client_id: cid, recurrencia_id: seriesId }));
+        const isRepeat = fecha !== session.fecha;
+        return ids.map((cid) => ({
+          ...base,
+          fecha,
+          estado: estadoForDate(fecha),
+          client_id: cid,
+          recurrencia_id: seriesId,
+          // Las repeticiones futuras nacen sin entrenador asignado.
+          trainer_id: isRepeat ? null : base.trainer_id,
+        }));
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
@@ -518,7 +527,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           const existingDates = new Set((existingSeries ?? []).map((r: any) => r.fecha));
           const newDates = extraDates.filter((f) => !existingDates.has(f));
           const inserts = newDates.flatMap((fecha) =>
-            ids.map((cid) => ({ ...base, fecha, estado: estadoForDate(fecha), client_id: cid, recurrencia_id: seriesId }))
+            ids.map((cid) => ({
+              ...base,
+              fecha,
+              estado: estadoForDate(fecha),
+              client_id: cid,
+              recurrencia_id: seriesId,
+              // Las repeticiones futuras nacen sin entrenador asignado.
+              trainer_id: null,
+            }))
           );
           if (inserts.length) {
             const { error: e2 } = await supabase.from("sessions").insert(inserts);
