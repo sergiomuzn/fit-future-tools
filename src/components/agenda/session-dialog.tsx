@@ -508,14 +508,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             d.setDate(d.getDate() + 7 * w);
             extraDates.push(formatDateISO(d));
           }
-          const inserts = extraDates.flatMap((fecha) =>
+          // Excluir fechas que ya existan en la serie (misma hora) para no duplicar.
+          const { data: existingSeries } = await supabase
+            .from("sessions")
+            .select("fecha")
+            .eq("recurrencia_id", seriesId)
+            .eq("hora_inicio", base.hora_inicio!)
+            .in("fecha", extraDates);
+          const existingDates = new Set((existingSeries ?? []).map((r: any) => r.fecha));
+          const newDates = extraDates.filter((f) => !existingDates.has(f));
+          const inserts = newDates.flatMap((fecha) =>
             ids.map((cid) => ({ ...base, fecha, estado: estadoForDate(fecha), client_id: cid, recurrencia_id: seriesId }))
           );
           if (inserts.length) {
             const { error: e2 } = await supabase.from("sessions").insert(inserts);
             if (e2) toast.error(e2.message);
           }
-          toast.success(`Sesión actualizada (+${repeatWeeks} repeticiones)`);
+          const added = newDates.length;
+          toast.success(added > 0 ? `Sesión actualizada (+${added} repeticiones)` : "Sesión actualizada (sin repeticiones nuevas)");
         } else {
           toast.success(scope === "future" ? "Series futuras actualizadas" : "Sesión actualizada");
         }
