@@ -261,7 +261,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Cliente</Label>
-            <ClientPicker value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} />
+            <ClientPicker autoFocus value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} />
             </div>
             <div className="flex items-end gap-3">
               <div className="space-y-1.5 flex-1 min-w-0">
