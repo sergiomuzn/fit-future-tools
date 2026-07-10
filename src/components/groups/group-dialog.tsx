@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   supabase,
   type Group,
@@ -48,6 +49,21 @@ export function GroupDialog({ open, onClose, group }: Props) {
         .select("*")
         .eq("group_id", group.id)
         .gte("fecha", iso);
+      return (data ?? []) as Session[];
+    },
+    enabled: open && !!group?.id,
+  });
+
+  // All past sessions for history tab (fetch broad window)
+  const { data: historySessions = EMPTY_SESSIONS } = useQuery({
+    queryKey: ["group_history_sessions", group?.id],
+    queryFn: async () => {
+      if (!group?.id) return [] as Session[];
+      const { data } = await supabase
+        .from("sessions")
+        .select("*")
+        .eq("group_id", group.id)
+        .order("fecha", { ascending: false });
       return (data ?? []) as Session[];
     },
     enabled: open && !!group?.id,
@@ -112,6 +128,23 @@ export function GroupDialog({ open, onClose, group }: Props) {
     return { avgPrev, top };
   }, [statsSessions, clientMap]);
 
+  // Build history: group by fecha+hora_inicio, past dates only, newest first (leftmost is most recent — we render in a row and user scrolls left for older)
+  const historyBlocks = useMemo(() => {
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const map = new Map<string, { fecha: string; hora: string; clientIds: string[] }>();
+    for (const s of historySessions as Session[]) {
+      if (!s.fecha || s.fecha >= todayIso) continue;
+      const hora = (s.hora_inicio ?? "").slice(0, 5);
+      const key = `${s.fecha}|${hora}`;
+      if (!map.has(key)) map.set(key, { fecha: s.fecha, hora, clientIds: [] });
+      if (s.client_id) map.get(key)!.clientIds.push(s.client_id);
+    }
+    return [...map.values()].sort((a, b) => {
+      if (a.fecha !== b.fecha) return b.fecha.localeCompare(a.fecha);
+      return b.hora.localeCompare(a.hora);
+    });
+  }, [historySessions]);
+
   async function save() {
     const name = nombre.trim();
     if (!name) { toast.error("Nombre requerido"); return; }
@@ -141,6 +174,58 @@ export function GroupDialog({ open, onClose, group }: Props) {
         <DialogHeader>
           <DialogTitle>{isNew ? "Nuevo grupo" : `Editar grupo · ${group?.nombre}`}</DialogTitle>
         </DialogHeader>
+        {isNew ? (
+          <GroupForm
+            nombre={nombre} setNombre={setNombre}
+            capacidad={capacidad} setCapacidad={setCapacidad}
+            notas={notas} setNotas={setNotas}
+            activo={activo} setActivo={setActivo}
+            isNew={isNew} stats={stats}
+          />
+        ) : (
+          <Tabs defaultValue="datos">
+            <TabsList>
+              <TabsTrigger value="datos">Datos</TabsTrigger>
+              <TabsTrigger value="historial">Historial</TabsTrigger>
+            </TabsList>
+            <TabsContent value="datos" className="mt-4">
+              <GroupForm
+                nombre={nombre} setNombre={setNombre}
+                capacidad={capacidad} setCapacidad={setCapacidad}
+                notas={notas} setNotas={setNotas}
+                activo={activo} setActivo={setActivo}
+                isNew={isNew} stats={stats}
+              />
+            </TabsContent>
+            <TabsContent value="historial" className="mt-4">
+              <GroupHistory
+                blocks={historyBlocks}
+                capacidad={typeof capacidad === "number" ? capacidad : Number(capacidad) || 6}
+                clientMap={clientMap}
+              />
+            </TabsContent>
+          </Tabs>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={save}>Guardar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function GroupForm({
+  nombre, setNombre, capacidad, setCapacidad, notas, setNotas, activo, setActivo, isNew, stats,
+}: {
+  nombre: string; setNombre: (v: string) => void;
+  capacidad: number | ""; setCapacidad: (v: number | "") => void;
+  notas: string; setNotas: (v: string) => void;
+  activo: boolean; setActivo: (v: boolean) => void;
+  isNew: boolean;
+  stats: { avgPrev: number; top: { id: string; nombre: string; count: number }[] };
+}) {
+  return (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -203,12 +288,48 @@ export function GroupDialog({ open, onClose, group }: Props) {
             <Label htmlFor="grupo-activo" className="cursor-pointer">Activo</Label>
           </div>
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save}>Guardar</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+  );
+}
+
+function GroupHistory({
+  blocks,
+  capacidad,
+  clientMap,
+}: {
+  blocks: { fecha: string; hora: string; clientIds: string[] }[];
+  capacidad: number;
+  clientMap: Map<string, Client>;
+}) {
+  if (blocks.length === 0) {
+    return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
+  }
+  // Render newest on the right so user swipes/scrolls LEFT to see older ones.
+  const ordered = [...blocks].reverse();
+  return (
+    <div className="overflow-x-auto -mx-1 px-1 pb-2">
+      <div className="flex gap-2 min-w-min">
+        {ordered.map((b) => {
+          const d = new Date(`${b.fecha}T00:00:00`);
+          const dow = DIAS_SEMANA[d.getDay()];
+          const fechaStr = d.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "2-digit" });
+          return (
+            <div key={`${b.fecha}|${b.hora}`} className="shrink-0 w-40 rounded-md border bg-card p-2 flex flex-col">
+              <div className="text-[11px] text-muted-foreground uppercase tracking-wide">{dow}</div>
+              <div className="text-sm font-medium">{fechaStr}</div>
+              <div className="text-[11px] text-muted-foreground mb-1.5">{b.hora} · {b.clientIds.length}/{capacidad}</div>
+              <ul className="space-y-0.5 text-xs">
+                {b.clientIds.map((cid, i) => (
+                  <li key={`${cid}-${i}`} className="truncate">
+                    {formatNameTitle(clientMap.get(cid)?.nombre) ?? "—"}
+                  </li>
+                ))}
+                {b.clientIds.length === 0 && <li className="text-muted-foreground italic">Sin integrantes</li>}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
