@@ -155,12 +155,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const { data: groupsList = [] } = useQuery({
     queryKey: ["groups"],
     queryFn: async () => {
-      const { data } = await supabase.from("groups").select("id,capacidad");
-      return (data ?? []) as Array<{ id: string; capacidad: number | null }>;
+      const { data } = await supabase.from("groups").select("id,capacidad,nombre");
+      return (data ?? []) as Array<{ id: string; capacidad: number | null; nombre: string }>;
     },
   });
   const groupCapMap = useMemo(
     () => new Map(groupsList.map((g) => [g.id, g.capacidad ?? 0])),
+    [groupsList],
+  );
+  const groupNameMap = useMemo(
+    () => new Map(groupsList.map((g) => [g.id, g.nombre])),
     [groupsList],
   );
   const catTipoMap = useMemo(
@@ -433,7 +437,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const now = Date.now();
     const toUpdate = sessions.filter((s) => {
       if (s.estado !== "reservada") return false;
-      if (s.ocupacion === 2) return false;
       if ((s as any).por_confirmar) return false;
       const end = new Date(`${s.fecha}T${s.hora_fin}`).getTime();
       return end + GRACE_MS < now;
@@ -588,6 +591,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     ?? null)
                 : null;
               const groupCap = groupIdForCap ? (groupCapMap.get(groupIdForCap) ?? 0) : 0;
+              const groupDisplayName = isGroup
+                ? ((groupIdForCap ? groupNameMap.get(groupIdForCap) : null) ?? session.titulo ?? "Grupo")
+                : "";
               const groupCountLabel = isGroup
                 ? (groupCap > 0 ? `${groupMemberCount}/${groupCap}` : `${groupMemberCount}`)
                 : "";
@@ -671,7 +677,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
+                          ? `${groupDisplayName} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
@@ -694,7 +700,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
+                          ? `${groupDisplayName} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {isGroup && groupMemberCount > 0 && (
