@@ -155,12 +155,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const { data: groupsList = [] } = useQuery({
     queryKey: ["groups"],
     queryFn: async () => {
-      const { data } = await supabase.from("groups").select("id,capacidad");
-      return (data ?? []) as Array<{ id: string; capacidad: number | null }>;
+      const { data } = await supabase.from("groups").select("id,capacidad,nombre");
+      return (data ?? []) as Array<{ id: string; capacidad: number | null; nombre: string }>;
     },
   });
   const groupCapMap = useMemo(
     () => new Map(groupsList.map((g) => [g.id, g.capacidad ?? 0])),
+    [groupsList],
+  );
+  const groupNameMap = useMemo(
+    () => new Map(groupsList.map((g) => [g.id, g.nombre])),
     [groupsList],
   );
   const catTipoMap = useMemo(
@@ -433,7 +437,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const now = Date.now();
     const toUpdate = sessions.filter((s) => {
       if (s.estado !== "reservada") return false;
-      if (s.ocupacion === 2) return false;
       if ((s as any).por_confirmar) return false;
       const end = new Date(`${s.fecha}T${s.hora_fin}`).getTime();
       return end + GRACE_MS < now;
