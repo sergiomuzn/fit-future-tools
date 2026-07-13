@@ -591,6 +591,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     ?? null)
                 : null;
               const groupCap = groupIdForCap ? (groupCapMap.get(groupIdForCap) ?? 0) : 0;
+              const groupDisplayName = isGroup
+                ? ((groupIdForCap ? groupNameMap.get(groupIdForCap) : null) ?? session.titulo ?? "Grupo")
+                : "";
               const groupCountLabel = isGroup
                 ? (groupCap > 0 ? `${groupMemberCount}/${groupCap}` : `${groupMemberCount}`)
                 : "";
@@ -674,7 +677,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
+                          ? `${groupDisplayName} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {trainer && (
@@ -697,7 +700,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
                         {isGroup
-                          ? `${session.titulo || "Grupo"} (${groupCountLabel})`
+                          ? `${groupDisplayName} (${groupCountLabel})`
                           : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
                       </div>
                       {isGroup && groupMemberCount > 0 && (
