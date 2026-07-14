@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Download, Info } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend as RLegend, LineChart, Line, ComposedChart,
@@ -200,23 +200,23 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   return (
     <div className="space-y-3">
       <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
-      <TooltipProvider delayDuration={150}>
+      <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
                 <span>{k.label}</span>
-                <Tooltip>
-                  <TooltipTrigger asChild>
+                <UITooltip>
+                  <UITooltipTrigger asChild>
                     <button type="button" className="inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring" aria-label="Explicación">
                       <Info className="h-3.5 w-3.5" />
                     </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="max-w-xs whitespace-pre-line text-xs normal-case tracking-normal font-normal">
+                  </UITooltipTrigger>
+                  <UITooltipContent side="top" className="max-w-xs whitespace-pre-line text-xs normal-case tracking-normal font-normal">
                     {k.info}
-                  </TooltipContent>
-                </Tooltip>
+                  </UITooltipContent>
+                </UITooltip>
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -226,7 +226,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
           </Card>
         ))}
       </div>
-      </TooltipProvider>
+      </UITooltipProvider>
     </div>
   );
 }
