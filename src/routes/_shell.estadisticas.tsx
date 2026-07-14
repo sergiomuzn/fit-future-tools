@@ -147,8 +147,9 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   // (ocupación real acumulada vs. capacidad disponible transcurrida).
   const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
   const capEnd = isCurrentMonth ? now : monthEnd(y, m);
+  const capEndStr = ymd(capEnd);
   const occupiedMin = realizadas
-    .filter((s) => s.fecha <= ymdLocal(capEnd))
+    .filter((s) => s.fecha <= capEndStr)
     .reduce((acc, s) => acc + durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo), 0);
   let capacityMin = 0;
   for (const d of eachDate(monthStart(y, m), capEnd)) {
