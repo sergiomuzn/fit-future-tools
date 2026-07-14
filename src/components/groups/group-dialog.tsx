@@ -251,10 +251,6 @@ function GroupForm({
             </div>
           </div>
 
-          <div className="text-xs text-muted-foreground border border-dashed rounded-md p-3">
-            El horario de este grupo se define en la agenda al crear o editar la sesión grupal. Los clientes se añaden también desde la agenda al asignarlos a la sesión.
-          </div>
-
           {!isNew && (
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-md border bg-card p-3 flex flex-col items-center justify-center text-center min-h-[120px]">
