@@ -23,6 +23,8 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
   const [draft, setDraft] = useState<Partial<Client>>({});
   const [listOpen, setListOpen] = useState(false);
   const blurTimer = useRef<number | null>(null);
+  const [highlight, setHighlight] = useState(0);
+  const listRef = useRef<HTMLDivElement | null>(null);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -50,6 +52,16 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
     },
     [clients, search, selected],
   );
+
+  useEffect(() => {
+    setHighlight(0);
+  }, [search, listOpen]);
+
+  useEffect(() => {
+    if (!listOpen) return;
+    const el = listRef.current?.querySelector<HTMLElement>(`[data-idx="${highlight}"]`);
+    el?.scrollIntoView({ block: "nearest" });
+  }, [highlight, listOpen]);
 
   function openNew() {
     setDraft({ nombre: search.trim(), fecha_inicio: new Date().toISOString().slice(0, 10) });
@@ -91,6 +103,28 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
             // the selection so the parent state reflects "no client picked".
             if (selected && v !== selected.nombre) onChange(null, null);
           }}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowDown") {
+              e.preventDefault();
+              setListOpen(true);
+              setHighlight((h) => Math.min(h + 1, filtered.length - 1));
+            } else if (e.key === "ArrowUp") {
+              e.preventDefault();
+              setListOpen(true);
+              setHighlight((h) => Math.max(h - 1, 0));
+            } else if (e.key === "Enter") {
+              if (listOpen && filtered[highlight]) {
+                e.preventDefault();
+                e.stopPropagation();
+                const c = filtered[highlight];
+                onChange(c.id, c);
+                setSearch(c.nombre);
+                setListOpen(false);
+              }
+            } else if (e.key === "Escape") {
+              setListOpen(false);
+            }
+          }}
           onFocus={() => {
             if (blurTimer.current) window.clearTimeout(blurTimer.current);
             setListOpen(true);
@@ -112,7 +146,7 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
         )}
       </div>
       {listOpen && (
-      <div className="max-h-40 overflow-y-auto rounded-md border">
+      <div ref={listRef} className="max-h-40 overflow-y-auto rounded-md border">
         <button
           type="button"
           onMouseDown={(e) => e.preventDefault()}
@@ -121,13 +155,15 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
         >
           <Plus className="h-3.5 w-3.5" /> Nuevo cliente{search.trim() ? ` «${search.trim()}»` : ""}
         </button>
-        {filtered.map((c) => (
+        {filtered.map((c, idx) => (
           <button
             key={c.id}
             type="button"
+            data-idx={idx}
             onMouseDown={(e) => e.preventDefault()}
+            onMouseEnter={() => setHighlight(idx)}
             onClick={() => { onChange(c.id, c); setSearch(c.nombre); setListOpen(false); }}
-            className={`w-full text-left px-2 py-1.5 text-sm hover:bg-accent ${value === c.id ? "bg-accent font-medium" : ""}`}
+            className={`w-full text-left px-2 py-1.5 text-sm ${idx === highlight ? "bg-accent" : ""} ${value === c.id ? "font-medium" : ""}`}
           >
             {formatNameTitle(c.nombre)}
           </button>
