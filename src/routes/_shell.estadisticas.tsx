@@ -143,13 +143,16 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
   const tardes = realizadas.length - mananas;
 
-  // Ocupación media (minutos ocupados / capacidad real del centro).
-  const occupiedMin = realizadas.reduce(
-    (acc, s) => acc + durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo),
-    0,
-  );
+  // Ocupación media: sólo cuenta hasta hoy si el mes seleccionado es el actual
+  // (ocupación real acumulada vs. capacidad disponible transcurrida).
+  const isCurrentMonth = y === now.getFullYear() && m === now.getMonth();
+  const capEnd = isCurrentMonth ? now : monthEnd(y, m);
+  const capEndStr = ymd(capEnd);
+  const occupiedMin = realizadas
+    .filter((s) => s.fecha <= capEndStr)
+    .reduce((acc, s) => acc + durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo), 0);
   let capacityMin = 0;
-  for (const d of eachDate(monthStart(y, m), monthEnd(y, m))) {
+  for (const d of eachDate(monthStart(y, m), capEnd)) {
     capacityMin += openMinutesOfDay(d, horario, specialsMap) * SLOTS;
   }
   const ocupacionMedia = capacityMin > 0 ? (occupiedMin / capacityMin) * 100 : 0;
