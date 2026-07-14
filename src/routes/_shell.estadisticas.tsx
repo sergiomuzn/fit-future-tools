@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download } from "lucide-react";
+import { Download, Info } from "lucide-react";
+import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   Legend as RLegend, LineChart, Line, ComposedChart,
@@ -165,24 +166,58 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       label: "Entrenamientos totales",
       value: String(realizadas.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
+      info: "Suma de sesiones en estado 'realizada' dentro del mes seleccionado. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
       label: "Ocupación media del centro",
       value: `${ocupacionMedia.toFixed(1)}%`,
-      hint: `${Math.round(occupiedMin)}/${Math.round(capacityMin)} min`,
+      hint: isCurrentMonth ? "Acumulado hasta hoy" : `${MES_LABEL[m]} ${y}`,
+      info:
+        `Minutos ocupados ÷ minutos disponibles del centro × 100.\n\n` +
+        `• Minutos ocupados: duración de cada sesión realizada × espacios que usa ` +
+        `(individual/pareja/prueba = 1 espacio, grupal = 2 espacios).\n` +
+        `• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, ` +
+        `sumando todos los días del periodo.\n` +
+        (isCurrentMonth
+          ? `• Al ser el mes en curso, sólo se cuenta hasta hoy (ocupación real, no proyectada).\n\n`
+          : `\n`) +
+        `Actual: ${Math.round(occupiedMin)} min ocupados de ${Math.round(capacityMin)} min disponibles.`,
     },
-    { label: "Altas del mes", value: String(altasMes), hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}` },
-    { label: "Bajas del mes", value: String(bajasMes), hint: `Clientes que pasaron a inactivo` },
+    {
+      label: "Altas del mes",
+      value: String(altasMes),
+      hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}`,
+      info: "Número de clientes cuyo primer bono (individual, pareja o grupal) se ha registrado dentro del mes seleccionado. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).",
+    },
+    {
+      label: "Bajas del mes",
+      value: String(bajasMes),
+      hint: `Clientes que pasaron a inactivo`,
+      info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
+    },
   ];
 
   return (
     <div className="space-y-3">
       <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
+      <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
           <Card key={k.label}>
             <CardHeader className="pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{k.label}</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide flex items-center gap-1.5">
+                <span>{k.label}</span>
+                <UITooltip>
+                  <UITooltipTrigger asChild>
+                    <button type="button" className="inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring" aria-label="Explicación">
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </UITooltipTrigger>
+                  <UITooltipContent side="top" className="max-w-xs whitespace-pre-line text-xs normal-case tracking-normal font-normal">
+                    {k.info}
+                  </UITooltipContent>
+                </UITooltip>
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-display font-semibold">{k.value}</div>
@@ -191,6 +226,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
           </Card>
         ))}
       </div>
+      </UITooltipProvider>
     </div>
   );
 }
