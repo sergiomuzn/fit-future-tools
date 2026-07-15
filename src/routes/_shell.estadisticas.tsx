@@ -714,12 +714,12 @@ type SeriesRow = { bucket: string; [key: string]: string | number };
 
 function buildSeries(args: {
   sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
-  monthA: string; monthB: string; yearA: string; yearB: string; monthOfYear: string;
+  monthA: string; compareMonths: string[];
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
-  const { sessions, events, metric, desglose, period, monthA, monthB, yearA, yearB, monthOfYear, trainerMap, horario, specialsMap, clientTipoMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     if (s.client_id) {
       const t = clientTipoMap.get(s.client_id);
@@ -728,42 +728,41 @@ function buildSeries(args: {
     return s.tipo;
   };
 
+  // Lista cronológica de meses según el modo de periodo.
+  const parseYmTop = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
+  const monthLblTop = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
+  const collectMonthList = (source: "sessions" | "events" | "both"): { y: number; m: number; key: string }[] => {
+    if (period === "mesUnico") {
+      const { y, m } = parseYmTop(monthA);
+      return [{ y, m, key: monthLblTop(y, m) }];
+    }
+    if (period === "comparar") {
+      const seen = new Set<string>();
+      return [...compareMonths]
+        .filter((mm) => { if (seen.has(mm)) return false; seen.add(mm); return true; })
+        .sort()
+        .map((mm) => { const { y, m } = parseYmTop(mm); return { y, m, key: monthLblTop(y, m) }; });
+    }
+    // historico: rango desde el mes más antiguo con datos hasta el mes actual
+    const all: string[] = [];
+    if (source !== "events") for (const s of sessions) if (s.fecha) all.push(s.fecha);
+    if (source !== "sessions") for (const e of events) if (e.fecha) all.push(e.fecha);
+    all.sort();
+    const now = new Date();
+    const start = all[0] ? new Date(all[0] + "T00:00:00") : new Date(now.getFullYear(), now.getMonth(), 1);
+    const out: { y: number; m: number; key: string }[] = [];
+    const cur = new Date(start.getFullYear(), start.getMonth(), 1);
+    const endD = new Date(now.getFullYear(), now.getMonth(), 1);
+    while (cur.getTime() <= endD.getTime()) {
+      out.push({ y: cur.getFullYear(), m: cur.getMonth(), key: monthLblTop(cur.getFullYear(), cur.getMonth()) });
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    return out;
+  };
+
   // -------- Altas / Bajas metric (bucketed by month, independent of desglose) --------
   if (metric === "altasBajas") {
-    const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
-    const monthLbl = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
-    const buckets: { key: string; y: number; m: number }[] = [];
-    if (period === "mesUnico") {
-      const { y, m } = parseYm(monthA);
-      buckets.push({ key: monthLbl(y, m), y, m });
-    } else if (period === "dosMeses") {
-      const a = parseYm(monthA); const b = parseYm(monthB);
-      buckets.push({ key: monthLbl(a.y, a.m), y: a.y, m: a.m });
-      buckets.push({ key: monthLbl(b.y, b.m), y: b.y, m: b.m });
-    } else if (period === "anoVsAno") {
-      const m = Number(monthOfYear) - 1;
-      const yA = Number(yearA); const yB = Number(yearB);
-      buckets.push({ key: monthLbl(yA, m), y: yA, m });
-      buckets.push({ key: monthLbl(yB, m), y: yB, m });
-    } else if (period === "historico") {
-      const all = events.map((e) => e.fecha).sort();
-      if (all.length === 0) {
-        const now = new Date();
-        buckets.push({ key: monthLbl(now.getFullYear(), now.getMonth()), y: now.getFullYear(), m: now.getMonth() });
-      } else {
-        const first = new Date(all[0] + "T00:00:00");
-        const now = new Date();
-        const cur = new Date(first.getFullYear(), first.getMonth(), 1);
-        const end = new Date(now.getFullYear(), now.getMonth(), 1);
-        while (cur.getTime() <= end.getTime()) {
-          buckets.push({ key: monthLbl(cur.getFullYear(), cur.getMonth()), y: cur.getFullYear(), m: cur.getMonth() });
-          cur.setMonth(cur.getMonth() + 1);
-        }
-      }
-    } else {
-      const { y, m } = parseYm(monthA);
-      buckets.push({ key: monthLbl(y, m), y, m });
-    }
+    const buckets = collectMonthList("events");
     const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
       const s = ymd(monthStart(y, m));
       const e = ymd(monthEnd(y, m));
@@ -777,29 +776,12 @@ function buildSeries(args: {
   // -------- Facturación estimada (por turno y total, precios fijos) --------
   if (metric === "facturacion") {
     const PRECIO = { individual: 36, pareja: 49, grupal: 17 } as const;
-    const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
-    const monthLbl = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
-    const periodsFact: { key: string; filter: (s: Session) => boolean }[] = [];
+    const monthsFact = collectMonthList("sessions");
     const inRange = (s: Session, y: number, m: number) =>
       s.fecha >= ymd(monthStart(y, m)) && s.fecha <= ymd(monthEnd(y, m));
-    if (period === "mesUnico") {
-      const { y, m } = parseYm(monthA);
-      periodsFact.push({ key: monthLbl(y, m), filter: (s) => inRange(s, y, m) });
-    } else if (period === "dosMeses") {
-      const a = parseYm(monthA); const b = parseYm(monthB);
-      periodsFact.push({ key: monthLbl(a.y, a.m), filter: (s) => inRange(s, a.y, a.m) });
-      periodsFact.push({ key: monthLbl(b.y, b.m), filter: (s) => inRange(s, b.y, b.m) });
-    } else if (period === "anoVsAno") {
-      const m = Number(monthOfYear) - 1;
-      const yA = Number(yearA); const yB = Number(yearB);
-      periodsFact.push({ key: monthLbl(yA, m), filter: (s) => inRange(s, yA, m) });
-      periodsFact.push({ key: monthLbl(yB, m), filter: (s) => inRange(s, yB, m) });
-    } else if (period === "mananaVsTarde") {
-      const { y, m } = parseYm(monthA);
-      periodsFact.push({ key: monthLbl(y, m), filter: (s) => inRange(s, y, m) });
-    } else if (period === "historico") {
-      periodsFact.push({ key: "Histórico", filter: () => true });
-    }
+    const periodsFact = monthsFact.map(({ y, m, key }) => ({
+      key, y, m, filter: (s: Session) => inRange(s, y, m),
+    }));
     const amountOf = (s: Session): number => {
       if (s.estado !== "realizada") return 0;
       const t = tipoOf(s);
@@ -808,62 +790,56 @@ function buildSeries(args: {
       if (t === "grupal") return PRECIO.grupal;
       return 0;
     };
-    // Desglose "Total del periodo": una única barra por periodo con la suma total.
-    if (desglose === "total") {
-      const rows: SeriesRow[] = [{ bucket: "Total" }];
-      for (const p of periodsFact) {
-        let sum = 0;
-        for (const s of sessions.filter(p.filter)) sum += amountOf(s);
-        rows[0][p.key] = Math.round(sum);
-      }
-      return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
-    }
-    const buckets = ["Mañana", "Tarde", "Total"];
-    const rows: SeriesRow[] = buckets.map((b) => ({ bucket: b }));
-    for (const p of periodsFact) {
-      let mAm = 0, mPm = 0;
+    if (period === "mesUnico") {
+      // Un único mes: X = Mañana / Tarde / Total (o solo Total)
+      const p = periodsFact[0];
+      let am = 0, pm = 0;
       for (const s of sessions.filter(p.filter)) {
         const amt = amountOf(s);
         if (amt === 0) continue;
-        if (hourOf(s.hora_inicio) < 14) mAm += amt; else mPm += amt;
+        if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
       }
-      rows[0][p.key] = Math.round(mAm);
-      rows[1][p.key] = Math.round(mPm);
-      rows[2][p.key] = Math.round(mAm + mPm);
+      if (desglose === "total") {
+        return { rows: [{ bucket: "Total", [p.key]: Math.round(am + pm) }], seriesKeys: [p.key], isLineChart: false };
+      }
+      const rows: SeriesRow[] = [
+        { bucket: "Mañana", [p.key]: Math.round(am) },
+        { bucket: "Tarde", [p.key]: Math.round(pm) },
+        { bucket: "Total", [p.key]: Math.round(am + pm) },
+      ];
+      return { rows, seriesKeys: [p.key], isLineChart: false };
     }
-    return { rows, seriesKeys: periodsFact.map((p) => p.key), isLineChart: false };
+    // comparar / historico: X = meses, series = Mañana/Tarde (o Total)
+    const rows: SeriesRow[] = [];
+    for (const p of periodsFact) {
+      let am = 0, pm = 0;
+      for (const s of sessions.filter(p.filter)) {
+        const amt = amountOf(s);
+        if (amt === 0) continue;
+        if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
+      }
+      const row: SeriesRow = { bucket: p.key };
+      if (desglose === "turno") {
+        row["Mañana"] = Math.round(am);
+        row["Tarde"] = Math.round(pm);
+      } else {
+        row["Total"] = Math.round(am + pm);
+      }
+      rows.push(row);
+    }
+    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
   const periods: { key: string; filter: (s: Session) => boolean; days: number }[] = [];
-  const parseYm = (ym: string) => { const [y, m] = ym.split("-").map(Number); return { y, m: m - 1 }; };
   const inMonth = (s: Session, y: number, m: number) => {
     const start = ymd(monthStart(y, m));
     const end = ymd(monthEnd(y, m));
     return s.fecha >= start && s.fecha <= end;
   };
-  const monthLabel = (y: number, m: number) => `${MES_LABEL[m]} ${y}`;
-
-  if (period === "mesUnico") {
-    const { y, m } = parseYm(monthA);
-    periods.push({ key: monthLabel(y, m), filter: (s) => inMonth(s, y, m), days: daysInMonth(y, m) });
-  } else if (period === "dosMeses") {
-    const a = parseYm(monthA); const b = parseYm(monthB);
-    periods.push({ key: monthLabel(a.y, a.m), filter: (s) => inMonth(s, a.y, a.m), days: daysInMonth(a.y, a.m) });
-    periods.push({ key: monthLabel(b.y, b.m), filter: (s) => inMonth(s, b.y, b.m), days: daysInMonth(b.y, b.m) });
-  } else if (period === "anoVsAno") {
-    const m = Number(monthOfYear) - 1;
-    const yA = Number(yearA); const yB = Number(yearB);
-    periods.push({ key: monthLabel(yA, m), filter: (s) => inMonth(s, yA, m), days: daysInMonth(yA, m) });
-    periods.push({ key: monthLabel(yB, m), filter: (s) => inMonth(s, yB, m), days: daysInMonth(yB, m) });
-  } else if (period === "mananaVsTarde") {
-    const { y, m } = parseYm(monthA);
-    const base = (s: Session) => inMonth(s, y, m);
-    periods.push({ key: `Mañana · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) < 14, days: daysInMonth(y, m) });
-    periods.push({ key: `Tarde · ${monthLabel(y, m)}`, filter: (s) => base(s) && hourOf(s.hora_inicio) >= 14, days: daysInMonth(y, m) });
-  } else if (period === "historico") {
-    // Histórico: un único "periodo" que incluye todas las sesiones.
-    periods.push({ key: "Histórico", filter: () => true, days: 0 });
+  const monthsForPeriods = collectMonthList("sessions");
+  for (const { y, m, key } of monthsForPeriods) {
+    periods.push({ key, filter: (s: Session) => inMonth(s, y, m), days: daysInMonth(y, m) });
   }
 
   // Buckets
