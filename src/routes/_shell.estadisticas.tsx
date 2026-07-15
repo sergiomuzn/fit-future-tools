@@ -220,7 +220,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-display font-semibold">{k.value}</div>
+              <div className="text-3xl font-display font-semibold">{k.value}</div>
               <div className="text-xs text-muted-foreground mt-1">{k.hint}</div>
             </CardContent>
           </Card>
@@ -286,7 +286,7 @@ function KpiMonthSelector({ value, onChange, earliestYear, now }: {
 // ============================================================
 type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "facturacion" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
-type PeriodMode = "mesUnico" | "dosMeses" | "anoVsAno" | "mananaVsTarde" | "historico";
+type PeriodMode = "mesUnico" | "comparar" | "historico";
 
 const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
@@ -305,50 +305,44 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   total: "Sin desglosar",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
-  mesUnico: "Un mes concreto",
-  dosMeses: "Comparar dos meses",
-  anoVsAno: "Mismo mes en años distintos",
-  mananaVsTarde: "Mañanas vs Tardes (mismo periodo)",
+  mesUnico: "Mes actual/pasado",
+  comparar: "Comparar meses",
   historico: "Histórico (todos los meses)",
 };
 
 // Reglas de combinaciones válidas (métrica, desglose, periodo).
-const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "dosMeses", "anoVsAno", "historico"];
+const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
   if (metric === "altasBajas") {
-    // Sin desglose real; solo periodos que agrupan por mes.
-    return NON_MVT_PERIODS.includes(period);
+    return true;
   }
-  // "Total del periodo" es válido para cualquier métrica y periodo.
+  // "Sin desglosar" es válido para cualquier métrica y periodo.
   if (desglose === "total") return true;
   if (metric === "ocupacion") {
-    // Solo turno, dow y total permitidos
-    if (desglose === "turno") return true;
-    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    if (desglose === "turno" || desglose === "dow") return true;
     return false;
   }
   if (metric === "sesiones") {
-    if (desglose === "franja" || desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    if (desglose === "franja") return period === "mesUnico";
     return true;
   }
   if (metric === "cancelaciones") {
-    if (desglose === "franja") return period !== "mananaVsTarde";
+    if (desglose === "franja") return period === "mesUnico";
     return true;
   }
   if (metric === "porTipo") {
-    if (desglose === "turno") return true;
-    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    // solo permitir descgloses distintos a "total" en un único mes
+    if (period !== "mesUnico") return false;
+    if (desglose === "turno" || desglose === "dow") return true;
     return false;
   }
   if (metric === "porEntrenador") {
-    if (desglose === "turno") return true;
-    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    if (period !== "mesUnico") return false;
+    if (desglose === "turno" || desglose === "dow") return true;
     return false;
   }
   if (metric === "facturacion") {
     if (desglose === "franja") return false;
-    // mañana vs tarde es en sí mismo el desglose → no combinable con otro
-    if (period === "mananaVsTarde") return false;
     return true;
   }
   return true;
@@ -363,17 +357,17 @@ function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean
   return true;
 }
 function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
-  if (metric === "altasBajas") return NON_MVT_PERIODS.includes(period);
-  if (metric === "facturacion" && period === "mananaVsTarde") return false;
+  void metric;
+  void period;
   return true;
 }
 function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
   const order: Desglose[] = ["turno", "tipoSesion", "dow", "franja"];
   for (const d of order) if (isValidCombo(metric, d, period)) return d;
-  return "turno";
+  return "total";
 }
 function firstValidPeriod(metric: Metric, desglose: Desglose): PeriodMode {
-  const order: PeriodMode[] = ["mesUnico", "dosMeses", "anoVsAno", "historico", "mananaVsTarde"];
+  const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
   for (const p of order) if (isValidCombo(metric, desglose, p)) return p;
   return "mesUnico";
 }
