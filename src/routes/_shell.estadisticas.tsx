@@ -1016,7 +1016,7 @@ function buildSeries(args: {
   void isMultiSeries;
 }
 
-function periodMonthOfPeriod(_p: { key: string }, monthA: string, monthB: string, monthOfYear: string, yearA: string, yearB: string): [number, number] {
+function periodMonthOfPeriod(_p: { key: string }, monthA: string): [number, number] {
   // Parse from period key: "MMM YYYY"
   const parts = _p.key.split(" ");
   const lastPart = parts[parts.length - 1];
@@ -1026,7 +1026,6 @@ function periodMonthOfPeriod(_p: { key: string }, monthA: string, monthB: string
   if (!isNaN(y) && m >= 0) return [y, m];
   // fallback
   const [ya, ma] = monthA.split("-").map(Number);
-  void monthB; void monthOfYear; void yearA; void yearB;
   return [ya, ma - 1];
 }
 
