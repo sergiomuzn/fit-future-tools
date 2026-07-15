@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line, ComposedChart,
+  Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
+  Legend as RLegend, LineChart, Line, ComposedChart, LabelList,
 } from "recharts";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
@@ -580,7 +580,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} itemStyle={{ color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--foreground))" }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
                     <Line
@@ -593,7 +592,9 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
-                    />
+                    >
+                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                    </Line>
                   ))}
                 </LineChart>
               ) : (
@@ -601,10 +602,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} />
-                  <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, color: "hsl(var(--foreground))" }} itemStyle={{ color: "hsl(var(--foreground))" }} labelStyle={{ color: "hsl(var(--foreground))" }} />
                   <RLegend />
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} />
+                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                    </Bar>
                   ))}
                   {hasTotal && (
                     <Line
@@ -617,7 +619,9 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       dot={{ r: 4, fill: "#374151" }}
                       activeDot={{ r: 6 }}
                       isAnimationActive={false}
-                    />
+                    >
+                      <LabelList dataKey="__total" position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 700 }} />
+                    </Line>
                   )}
                 </ComposedChart>
               )}
