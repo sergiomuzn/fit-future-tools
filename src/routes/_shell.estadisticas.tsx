@@ -533,29 +533,46 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
         {period === "mesUnico" && (
           <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
         )}
-        {period === "dosMeses" && (
-          <>
-            <MonthYearPicker label="Mes A" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
-            <MonthYearPicker label="Mes B" value={monthB} onChange={setMonthB} years={availableYears} monthsForYear={monthsForYear} />
-          </>
-        )}
-        {period === "anoVsAno" && (
-          <>
-            <div className="space-y-1.5">
-              <Label>Mes</Label>
-              <Select value={monthOfYear} onValueChange={setMonthOfYear}>
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {MES_FULL.map((n, i) => <SelectItem key={i} value={String(i + 1).padStart(2, "0")}>{n}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <YearSelect label="Año A" value={yearA} onChange={setYearA} years={availableYears} />
-            <YearSelect label="Año B" value={yearB} onChange={setYearB} years={availableYears} />
-          </>
-        )}
-        {period === "mananaVsTarde" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
+        {period === "comparar" && (
+          <div className="flex flex-wrap gap-2 items-end">
+            {[...compareMonths]
+              .map((mm, i) => ({ mm, i }))
+              .sort((a, b) => a.mm.localeCompare(b.mm))
+              .map(({ mm, i }, orderIdx) => (
+                <div key={i} className="flex items-end gap-1">
+                  <MonthYearPicker
+                    label={`Mes ${orderIdx + 1}`}
+                    value={mm}
+                    onChange={(v) => setCompareMonths((cm) => cm.map((x, idx) => (idx === i ? v : x)))}
+                    years={availableYears}
+                    monthsForYear={monthsForYear}
+                  />
+                  {compareMonths.length > 1 && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => setCompareMonths((cm) => cm.filter((_, idx) => idx !== i))}
+                      aria-label="Quitar mes"
+                    >×</Button>
+                  )}
+                </div>
+              ))}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                const sorted = [...compareMonths].sort();
+                const earliest = sorted[0] ?? `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+                const [ey, em] = earliest.split("-").map(Number);
+                const d = new Date(ey, em - 2, 1);
+                const next = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+                setCompareMonths((cm) => (cm.includes(next) ? cm : [...cm, next]));
+              }}
+            >
+              + Añadir mes
+            </Button>
+          </div>
         )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
@@ -565,7 +582,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
       </div>
 
       <div className="rounded-lg border bg-card p-4">
-        <div className="h-[420px]">
+        <div className="h-[420px] overflow-x-auto">
+          <div
+            className="h-full"
+            style={{ minWidth: Math.max(rows.length * 80, 400) }}
+          >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
@@ -622,6 +643,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
               )}
             </ResponsiveContainer>
           )}
+          </div>
         </div>
       </div>
     </div>
