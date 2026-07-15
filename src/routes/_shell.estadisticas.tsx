@@ -1004,6 +1004,36 @@ function buildSeries(args: {
     return row;
   });
 
+  // Para comparar/histórico: transponer para que X = meses y series = slots de desglose.
+  if (period !== "mesUnico") {
+    const monthOrder = periods.map((p) => p.key);
+    const slotOrder = bucketKeys.filter((b) => seriesKeys.some((k) => k === b || k.endsWith(` · ${b}`)) || acc.get(b));
+    // Recolectar todas las "series" reales: bucketKeys que aparecen como bucket.
+    const usedSlots = bucketKeys.filter((b) => (acc.get(b)?.size ?? 0) > 0);
+    const slots = usedSlots.length ? usedSlots : bucketKeys;
+    const trows: SeriesRow[] = monthOrder.map((mk) => {
+      const row: SeriesRow = { bucket: mk };
+      for (const slot of slots) {
+        // Serie puede llamarse tal cual mk (caso general) o `${mk} · X` (porTipo/porEntrenador con multiples periodos)
+        let val = Number(acc.get(slot)?.get(mk) ?? 0);
+        if (!val) {
+          // sumar variantes con prefijo del mes
+          let sum = 0;
+          for (const [k, v] of (acc.get(slot) ?? new Map())) {
+            if (typeof k === "string" && k.startsWith(`${mk} · `)) sum += Number(v);
+          }
+          val = sum;
+        }
+        row[slot] = val;
+      }
+      return row;
+    });
+    // filtrar meses todo cero para evitar ruido en histórico
+    const nzT = trows.filter((r) => slots.some((k) => Number(r[k]) !== 0));
+    void slotOrder;
+    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: false };
+  }
+
   // filter rows with all zero (for tipoSesion when nothing exists)
   const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
 
