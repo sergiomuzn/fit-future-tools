@@ -896,7 +896,7 @@ function buildSeries(args: {
     // Capacity is measured in "espacios·minuto" = openMinutes × SLOTS,
     // usando el horario real del centro (días festivos y horarios especiales).
     if (metric === "ocupacion") {
-      const [py, pm] = periodMonthOfPeriod(p, monthA, monthB, monthOfYear, yearA, yearB);
+      const [py, pm] = periodMonthOfPeriod(p, monthA);
       const isMananaTurno = p.key.startsWith("Mañana ·");
       const isTardeTurno = p.key.startsWith("Tarde ·");
       const capByBucket = new Map<string, number>();
