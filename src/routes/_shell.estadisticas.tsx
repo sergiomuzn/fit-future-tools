@@ -292,7 +292,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
   sesiones: "Nº sesiones",
   cancelaciones: "Cancelaciones (incl. NC)",
-  porTipo: "Sesiones por tipo",
+  porTipo: "Tipo de sesión",
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
@@ -302,7 +302,7 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
   tipoSesion: "Tipo de sesión",
-  total: "Total del periodo",
+  total: "Sin desglosar",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
   mesUnico: "Un mes concreto",
@@ -321,19 +321,29 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
   }
   // "Total del periodo" es válido para cualquier métrica y periodo.
   if (desglose === "total") return true;
-  if (metric === "ocupacion" || metric === "sesiones") {
+  if (metric === "ocupacion") {
+    // Solo turno, dow y total permitidos
+    if (desglose === "turno") return true;
+    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    return false;
+  }
+  if (metric === "sesiones") {
     if (desglose === "franja" || desglose === "dow") return NON_MVT_PERIODS.includes(period);
-    return true; // turno / tipoSesion cualquier periodo
+    return true;
   }
   if (metric === "cancelaciones") {
     if (desglose === "franja") return period !== "mananaVsTarde";
     return true;
   }
-  if (metric === "porTipo") return true;
+  if (metric === "porTipo") {
+    if (desglose === "turno") return true;
+    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    return false;
+  }
   if (metric === "porEntrenador") {
-    if (desglose === "franja") return false; // ilegible con 13 entrenadores
-    if (desglose === "dow") return period !== "mananaVsTarde";
-    return true;
+    if (desglose === "turno") return true;
+    if (desglose === "dow") return NON_MVT_PERIODS.includes(period);
+    return false;
   }
   if (metric === "facturacion") {
     if (desglose === "franja") return false;
@@ -346,7 +356,9 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
 function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
   if (metric === "altasBajas") return false;
   if (desglose === "total") return true;
-  if (metric === "porEntrenador" && desglose === "franja") return false;
+  if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
+  if (metric === "porTipo") return desglose === "turno" || desglose === "dow";
+  if (metric === "porEntrenador") return desglose === "turno" || desglose === "dow";
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
 }
