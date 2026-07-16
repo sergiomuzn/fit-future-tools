@@ -773,7 +773,7 @@ function buildSeries(args: {
       const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
-    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
   }
 
   // -------- Facturación estimada (por turno y total, precios fijos) --------
@@ -830,7 +830,7 @@ function buildSeries(args: {
       }
       rows.push(row);
     }
-    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: false };
+    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: period === "historico" };
   }
 
   // Determine periods (label + filter fn)
@@ -1034,13 +1034,17 @@ function buildSeries(args: {
     // filtrar meses todo cero para evitar ruido en histórico
     const nzT = trows.filter((r) => slots.some((k) => Number(r[k]) !== 0));
     void slotOrder;
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: false };
+    // Histórico (meses cronológicos consecutivos) → línea con puntos.
+    // Comparar meses (selección puntual en paralelo) → barras.
+    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico" };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
   const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
 
-  const isLineChart = desglose === "franja"; // evolución horaria
+  // En mesUnico ninguna vista es puramente lineal: franja/dow se dibujan como
+  // barras con línea de puntos superpuesta; el resto son barras.
+  const isLineChart = false;
   const finalRows = nonZero.length ? nonZero : rows;
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
   return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
