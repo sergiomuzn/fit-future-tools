@@ -475,15 +475,18 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return palette[idx % palette.length];
   };
 
-  // Total of real bar values per bucket to draw as a connected line.
+  // Línea superpuesta sobre barras: sólo para categorías con orden natural
+  // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
+  // ni cuando se comparan meses en paralelo.
+  const showOverlayLine = !isLineChart && (desglose === "franja" || desglose === "dow");
   const totalValues = useMemo<number[] | null>(() => {
-    if (isLineChart) return null;
+    if (!showOverlayLine) return null;
     const n = rows.length;
     if (n < 2) return null;
     return rows.map((r) =>
       seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
     );
-  }, [rows, seriesKeys, isLineChart]);
+  }, [rows, seriesKeys, showOverlayLine]);
   const hasTotal = totalValues !== null;
   const rowsWithTotal = hasTotal
     ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
@@ -770,7 +773,7 @@ function buildSeries(args: {
       const bajas = events.filter((ev) => ev.tipo === "baja" && ev.fecha >= s && ev.fecha <= e).length;
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
-    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: false };
+    return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
   }
 
   // -------- Facturación estimada (por turno y total, precios fijos) --------
@@ -827,7 +830,7 @@ function buildSeries(args: {
       }
       rows.push(row);
     }
-    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: false };
+    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: period === "historico" };
   }
 
   // Determine periods (label + filter fn)
@@ -1031,13 +1034,17 @@ function buildSeries(args: {
     // filtrar meses todo cero para evitar ruido en histórico
     const nzT = trows.filter((r) => slots.some((k) => Number(r[k]) !== 0));
     void slotOrder;
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: false };
+    // Histórico (meses cronológicos consecutivos) → línea con puntos.
+    // Comparar meses (selección puntual en paralelo) → barras.
+    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico" };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
   const nonZero = rows.filter((r) => seriesKeys.some((k) => Number(r[k]) !== 0));
 
-  const isLineChart = desglose === "franja"; // evolución horaria
+  // En mesUnico ninguna vista es puramente lineal: franja/dow se dibujan como
+  // barras con línea de puntos superpuesta; el resto son barras.
+  const isLineChart = false;
   const finalRows = nonZero.length ? nonZero : rows;
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
   return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
