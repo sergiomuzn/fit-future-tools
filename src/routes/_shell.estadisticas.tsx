@@ -475,15 +475,18 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return palette[idx % palette.length];
   };
 
-  // Total of real bar values per bucket to draw as a connected line.
+  // Línea superpuesta sobre barras: sólo para categorías con orden natural
+  // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
+  // ni cuando se comparan meses en paralelo.
+  const showOverlayLine = !isLineChart && (desglose === "franja" || desglose === "dow");
   const totalValues = useMemo<number[] | null>(() => {
-    if (isLineChart) return null;
+    if (!showOverlayLine) return null;
     const n = rows.length;
     if (n < 2) return null;
     return rows.map((r) =>
       seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
     );
-  }, [rows, seriesKeys, isLineChart]);
+  }, [rows, seriesKeys, showOverlayLine]);
   const hasTotal = totalValues !== null;
   const rowsWithTotal = hasTotal
     ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
