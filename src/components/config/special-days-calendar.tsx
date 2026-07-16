@@ -72,6 +72,17 @@ export function SpecialDaysCalendar() {
           </Button>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const now = new Date();
+              setMonth(now.getMonth());
+              setYear(now.getFullYear());
+            }}
+          >
+            Hoy
+          </Button>
           {view === "mensual" ? (
             <>
               <Button variant="ghost" size="icon" onClick={() => {
