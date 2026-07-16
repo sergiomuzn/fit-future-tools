@@ -632,11 +632,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                       type="monotone"
                       dataKey="__total"
                       name="Total"
-                      stroke="#374151"
-                      strokeWidth={2}
+                      stroke="#f59e0b"
+                      strokeWidth={3}
                       connectNulls
-                      dot={{ r: 4, fill: "#374151" }}
-                      activeDot={{ r: 6 }}
+                      dot={{ r: 5, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
+                      activeDot={{ r: 7, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
                     >
                       <LabelList dataKey="__total" position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 700 }} />
