@@ -867,9 +867,9 @@ function buildSeries(args: {
     }
   };
 
-  // For metric = porTipo / porEntrenador we produce multiple series per period.
+  // For metric = porEntrenador we produce multiple series per period.
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
-  const isMultiSeries = metric === "porTipo" || metric === "porEntrenador";
+  const isMultiSeries = metric === "porEntrenador";
 
   const seriesKeysSet = new Set<string>();
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
@@ -965,13 +965,6 @@ function buildSeries(args: {
       } else if (metric === "ocupacion") {
         if (s.estado !== "realizada") continue;
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
-      } else if (metric === "porTipo") {
-        if (s.estado !== "realizada") continue;
-        const t = tipoOf(s);
-        if (!t || t === "prueba") continue;
-        const label = t.charAt(0).toUpperCase() + t.slice(1);
-        const series = periods.length > 1 ? `${p.key} · ${label}` : label;
-        addTo(b, series, 1);
       } else if (metric === "porEntrenador") {
         if (s.estado !== "realizada") continue;
         const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
