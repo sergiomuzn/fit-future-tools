@@ -502,9 +502,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           >
             <SelectTrigger><SelectValue placeholder={metric === "altasBajas" ? "No aplica" : undefined} /></SelectTrigger>
             <SelectContent>
-              {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][]).map(([k, v]) => (
-                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, k, period)}>{v}</SelectItem>
-              ))}
+              {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][])
+                .filter(([k]) => isDesgloseAllowedForMetric(metric, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -513,9 +515,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           <Select value={period} onValueChange={handlePeriodChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][]).map(([k, v]) => (
-                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, desglose, k)}>{v}</SelectItem>
-              ))}
+              {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][])
+                .filter(([k]) => isValidCombo(metric, desglose, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
