@@ -284,7 +284,7 @@ function KpiMonthSelector({ value, onChange, earliestYear, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "facturacion" | "altasBajas";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -292,7 +292,6 @@ const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
   sesiones: "Nº sesiones",
   cancelaciones: "Cancelaciones (incl. NC)",
-  porTipo: "Tipo de sesión",
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
@@ -314,7 +313,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
   if (metric === "altasBajas") {
-    return true;
+    return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
   if (desglose === "total") return true;
@@ -328,13 +327,8 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
   }
   if (metric === "cancelaciones") {
     if (desglose === "franja") return period === "mesUnico";
+    if (desglose === "tipoSesion") return false;
     return true;
-  }
-  if (metric === "porTipo") {
-    // solo permitir descgloses distintos a "total" en un único mes
-    if (period !== "mesUnico") return false;
-    if (desglose === "turno" || desglose === "dow") return true;
-    return false;
   }
   if (metric === "porEntrenador") {
     if (period !== "mesUnico") return false;
@@ -342,23 +336,18 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
     return false;
   }
   if (metric === "facturacion") {
-    if (desglose === "franja") return false;
+    if (desglose === "franja" || desglose === "tipoSesion") return false;
     return true;
   }
   return true;
 }
 function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas") return false;
+  if (metric === "altasBajas") return desglose === "total";
   if (desglose === "total") return true;
+  if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
-  if (metric === "porTipo") return desglose === "turno" || desglose === "dow";
   if (metric === "porEntrenador") return desglose === "turno" || desglose === "dow";
   if (metric === "facturacion" && desglose === "franja") return false;
-  return true;
-}
-function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
-  void metric;
-  void period;
   return true;
 }
 function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
@@ -513,9 +502,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           >
             <SelectTrigger><SelectValue placeholder={metric === "altasBajas" ? "No aplica" : undefined} /></SelectTrigger>
             <SelectContent>
-              {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][]).map(([k, v]) => (
-                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, k, period)}>{v}</SelectItem>
-              ))}
+              {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][])
+                .filter(([k]) => isDesgloseAllowedForMetric(metric, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -524,9 +515,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           <Select value={period} onValueChange={handlePeriodChange}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][]).map(([k, v]) => (
-                <SelectItem key={k} value={k} disabled={!isValidCombo(metric, desglose, k)}>{v}</SelectItem>
-              ))}
+              {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][])
+                .filter(([k]) => isValidCombo(metric, desglose, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
@@ -878,9 +871,9 @@ function buildSeries(args: {
     }
   };
 
-  // For metric = porTipo / porEntrenador we produce multiple series per period.
+  // For metric = porEntrenador we produce multiple series per period.
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
-  const isMultiSeries = metric === "porTipo" || metric === "porEntrenador";
+  const isMultiSeries = metric === "porEntrenador";
 
   const seriesKeysSet = new Set<string>();
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
@@ -976,13 +969,6 @@ function buildSeries(args: {
       } else if (metric === "ocupacion") {
         if (s.estado !== "realizada") continue;
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
-      } else if (metric === "porTipo") {
-        if (s.estado !== "realizada") continue;
-        const t = tipoOf(s);
-        if (!t || t === "prueba") continue;
-        const label = t.charAt(0).toUpperCase() + t.slice(1);
-        const series = periods.length > 1 ? `${p.key} · ${label}` : label;
-        addTo(b, series, 1);
       } else if (metric === "porEntrenador") {
         if (s.estado !== "realizada") continue;
         const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
