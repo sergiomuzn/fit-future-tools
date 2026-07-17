@@ -851,7 +851,7 @@ function buildSeries(args: {
     if (desglose === "turno") return ["Mañana", "Tarde"];
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
-    return ["Individual", "Pareja", "Grupal", "Prueba"];
+    return ["Individual", "Pareja", "Grupal", "Gympass"];
   })();
 
   const bucketOf = (s: Session): string | null => {
@@ -867,12 +867,13 @@ function buildSeries(args: {
       const idx = d.getDay(); // 0=Dom
       return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][idx];
     }
-    // tipoSesion
-    switch (s.tipo) {
+    // tipoSesion → tipo de bono del cliente
+    const t = tipoOf(s);
+    switch (t) {
       case "individual": return "Individual";
       case "pareja": return "Pareja";
       case "grupal": return "Grupal";
-      case "prueba": return "Prueba";
+      case "gympass": return "Gympass";
       default: return null;
     }
   };
@@ -977,7 +978,8 @@ function buildSeries(args: {
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porTipo") {
         if (s.estado !== "realizada") continue;
-        const t = s.tipo ?? "otro";
+        const t = tipoOf(s);
+        if (!t || t === "prueba") continue;
         const label = t.charAt(0).toUpperCase() + t.slice(1);
         const series = periods.length > 1 ? `${p.key} · ${label}` : label;
         addTo(b, series, 1);
