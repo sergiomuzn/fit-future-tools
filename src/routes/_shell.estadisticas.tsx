@@ -284,7 +284,7 @@ function KpiMonthSelector({ value, onChange, earliestYear, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porTipo" | "porEntrenador" | "facturacion" | "altasBajas";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -292,7 +292,6 @@ const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
   sesiones: "Nº sesiones",
   cancelaciones: "Cancelaciones (incl. NC)",
-  porTipo: "Tipo de sesión",
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
@@ -314,7 +313,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
   if (metric === "altasBajas") {
-    return true;
+    return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
   if (desglose === "total") return true;
@@ -328,13 +327,8 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
   }
   if (metric === "cancelaciones") {
     if (desglose === "franja") return period === "mesUnico";
+    if (desglose === "tipoSesion") return false;
     return true;
-  }
-  if (metric === "porTipo") {
-    // solo permitir descgloses distintos a "total" en un único mes
-    if (period !== "mesUnico") return false;
-    if (desglose === "turno" || desglose === "dow") return true;
-    return false;
   }
   if (metric === "porEntrenador") {
     if (period !== "mesUnico") return false;
@@ -342,23 +336,18 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
     return false;
   }
   if (metric === "facturacion") {
-    if (desglose === "franja") return false;
+    if (desglose === "franja" || desglose === "tipoSesion") return false;
     return true;
   }
   return true;
 }
 function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas") return false;
+  if (metric === "altasBajas") return desglose === "total";
   if (desglose === "total") return true;
+  if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
-  if (metric === "porTipo") return desglose === "turno" || desglose === "dow";
   if (metric === "porEntrenador") return desglose === "turno" || desglose === "dow";
   if (metric === "facturacion" && desglose === "franja") return false;
-  return true;
-}
-function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
-  void metric;
-  void period;
   return true;
 }
 function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
