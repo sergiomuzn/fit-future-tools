@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ function FacturacionPage() {
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState<Partial<Invoice>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
