@@ -102,6 +102,15 @@ function FacturacionPage() {
 
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
+  const searchNorm = search.trim().toLowerCase();
+  const filteredInvoices = searchNorm
+    ? invoices.filter((i) => {
+        const c = clientMap.get(i.client_id);
+        return c?.nombre.toLowerCase().includes(searchNorm) ?? false;
+      })
+    : invoices;
+  const filteredTotal = filteredInvoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
+
   function openNew() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
     setEditingId(null);
