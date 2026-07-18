@@ -225,7 +225,7 @@ function FacturacionPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((i) => {
+            {filteredInvoices.map((i) => {
               const cat = catMap.get(i.bono_catalogo_id ?? "");
               const tipo = cat?.tipo;
               const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
@@ -267,8 +267,8 @@ function FacturacionPage() {
               </TableRow>
               );
             })}
-            {invoices.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
+            {filteredInvoices.length === 0 && (
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{searchNorm ? "Sin resultados" : "Sin facturas este mes"}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
