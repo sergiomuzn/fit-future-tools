@@ -304,7 +304,7 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   total: "Sin desglosar",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
-  mesUnico: "Mes actual/pasado",
+  mesUnico: "Mes actual",
   comparar: "Comparar meses",
   historico: "Histórico (todos los meses)",
 };
@@ -461,6 +461,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     const lower = name.toLowerCase();
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
+    if (lower === "individual") return "#3b82f6";
+    if (lower === "pareja") return "#a855f7";
+    if (lower === "grupal") return "#f59e0b";
+    if (lower === "gympass") return "#ec4899";
     return palette[idx % palette.length];
   };
 
