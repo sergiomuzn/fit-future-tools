@@ -187,9 +187,28 @@ function FacturacionPage() {
           <SelectContent>{availableYears.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
         <div className="ml-auto rounded-lg border bg-card px-4 py-2">
-          <span className="text-xs text-muted-foreground">{isYear ? "Total año: " : "Total mes: "}</span>
-          <span className="font-semibold">{total.toFixed(2)} €</span>
+          <span className="text-xs text-muted-foreground">{searchNorm ? "Total filtrado: " : isYear ? "Total año: " : "Total mes: "}</span>
+          <span className="font-semibold">{(searchNorm ? filteredTotal : total).toFixed(2)} €</span>
         </div>
+      </div>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Buscar factura por cliente..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 pr-8"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpiar búsqueda"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
