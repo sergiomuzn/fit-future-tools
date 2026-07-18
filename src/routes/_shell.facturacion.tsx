@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ function FacturacionPage() {
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   const [form, setForm] = useState<Partial<Invoice>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
@@ -100,6 +101,15 @@ function FacturacionPage() {
   const catMap = new Map(catalogo.map((b) => [b.id, b]));
 
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
+
+  const searchNorm = search.trim().toLowerCase();
+  const filteredInvoices = searchNorm
+    ? invoices.filter((i) => {
+        const c = clientMap.get(i.client_id);
+        return c?.nombre.toLowerCase().includes(searchNorm) ?? false;
+      })
+    : invoices;
+  const filteredTotal = filteredInvoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   function openNew() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
@@ -177,9 +187,28 @@ function FacturacionPage() {
           <SelectContent>{availableYears.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
         <div className="ml-auto rounded-lg border bg-card px-4 py-2">
-          <span className="text-xs text-muted-foreground">{isYear ? "Total año: " : "Total mes: "}</span>
-          <span className="font-semibold">{total.toFixed(2)} €</span>
+          <span className="text-xs text-muted-foreground">{searchNorm ? "Total filtrado: " : isYear ? "Total año: " : "Total mes: "}</span>
+          <span className="font-semibold">{(searchNorm ? filteredTotal : total).toFixed(2)} €</span>
         </div>
+      </div>
+      <div className="relative max-w-sm">
+        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+        <Input
+          placeholder="Buscar factura por cliente..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="pl-8 pr-8"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch("")}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Limpiar búsqueda"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
@@ -196,7 +225,7 @@ function FacturacionPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {invoices.map((i) => {
+            {filteredInvoices.map((i) => {
               const cat = catMap.get(i.bono_catalogo_id ?? "");
               const tipo = cat?.tipo;
               const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
@@ -238,8 +267,8 @@ function FacturacionPage() {
               </TableRow>
               );
             })}
-            {invoices.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin facturas este mes</TableCell></TableRow>
+            {filteredInvoices.length === 0 && (
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">{searchNorm ? "Sin resultados" : "Sin facturas este mes"}</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
