@@ -51,6 +51,7 @@ function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: ()
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
@@ -73,7 +74,12 @@ function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: ()
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="si-pass">Contraseña</Label>
-        <Input id="si-pass" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        <div className="relative">
+          <Input id="si-pass" type={show ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required className="pr-10" />
+          <button type="button" onClick={() => setShow((s) => !s)} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label={show ? "Ocultar contraseña" : "Mostrar contraseña"}>
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
       </div>
       <Button type="submit" className="w-full" disabled={loading}>
         {loading ? "Entrando..." : "Iniciar sesión"}
