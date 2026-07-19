@@ -1037,7 +1037,8 @@ function buildSeries(args: {
 
   // En mesUnico ninguna vista es puramente lineal: franja/dow se dibujan como
   // barras con línea de puntos superpuesta; el resto son barras.
-  const isLineChart = false;
+  // Franja horaria: siempre líneas con puntos conectados.
+  const isLineChart = desglose === "franja";
   const finalRows = nonZero.length ? nonZero : rows;
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
   return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
