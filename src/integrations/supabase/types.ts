@@ -46,18 +46,21 @@ export type Database = {
       }
       center_config: {
         Row: {
+          colores: Json
           horario_base: Json
           id: boolean
           precios: Json
           updated_at: string
         }
         Insert: {
+          colores?: Json
           horario_base?: Json
           id?: boolean
           precios?: Json
           updated_at?: string
         }
         Update: {
+          colores?: Json
           horario_base?: Json
           id?: boolean
           precios?: Json
