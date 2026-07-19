@@ -16,6 +16,13 @@ export type Precios = {
   classpass: number;
 };
 
+export type TipoColores = {
+  individual: string;
+  pareja: string;
+  grupal: string;
+  gympass: string;
+};
+
 export const DEFAULT_HORARIO: HorarioBase = {
   "0": null,
   "1": { open: "06:45", close: "22:00" },
@@ -32,6 +39,13 @@ export const DEFAULT_PRECIOS: Precios = {
   gympass_ep: 20,
   gympass_gr: 14,
   classpass: 12,
+};
+
+export const DEFAULT_TIPO_COLORES: TipoColores = {
+  individual: "#3b82f6",
+  pareja: "#a855f7",
+  grupal: "#f59e0b",
+  gympass: "#ec4899",
 };
 
 export function ymd(d: Date): string {
@@ -145,12 +159,15 @@ export function useCenterConfig() {
   const horario: HorarioBase = (cfg.data?.horario_base as unknown as HorarioBase) ?? DEFAULT_HORARIO;
   const preciosRaw = (cfg.data?.precios as unknown as Partial<Precios>) ?? {};
   const precios: Precios = { ...DEFAULT_PRECIOS, ...preciosRaw };
+  const coloresRaw = ((cfg.data as unknown as { colores?: Partial<TipoColores> } | null)?.colores) ?? {};
+  const colores: TipoColores = { ...DEFAULT_TIPO_COLORES, ...coloresRaw };
   const specialsMap = new Map<string, SpecialDay>();
   for (const s of special.data ?? []) specialsMap.set(s.fecha, s);
 
   return {
     horario,
     precios,
+    colores,
     specials: special.data ?? [],
     specialsMap,
     isLoading: cfg.isLoading || special.isLoading,
