@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   useCenterConfig, DEFAULT_HORARIO, DEFAULT_PRECIOS,
-  type HorarioBase, type Precios,
+  DEFAULT_TIPO_COLORES,
+  type HorarioBase, type Precios, type TipoColores,
 } from "@/lib/center-schedule";
 
 const DAY_LABELS: Record<string, string> = {
@@ -92,11 +93,15 @@ const PRECIO_ROWS: { key: keyof Precios; label: string; hint?: string }[] = [
 ];
 
 export function PreciosForm() {
-  const { horario, precios, invalidate, isLoading } = useCenterConfig();
+  const { horario, precios, colores, invalidate, isLoading } = useCenterConfig();
   const [local, setLocal] = useState<Precios>(precios);
+  const [localColores, setLocalColores] = useState<TipoColores>(colores);
 
   useEffect(() => {
-    if (!isLoading) setLocal(precios);
+    if (!isLoading) {
+      setLocal(precios);
+      setLocalColores(colores);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
@@ -104,15 +109,23 @@ export function PreciosForm() {
     const { error } = await supabase.from("center_config").update({
       horario_base: horario as unknown as never,
       precios: local as unknown as never,
+      colores: localColores as unknown as never,
     }).eq("id", true);
     if (error) return toast.error(error.message);
-    toast.success("Precios guardados");
+    toast.success("Precios y colores guardados");
     invalidate();
   }
 
+  const COLOR_ROWS: { key: keyof TipoColores; label: string }[] = [
+    { key: "individual", label: "Individual" },
+    { key: "pareja", label: "Pareja" },
+    { key: "grupal", label: "Grupal" },
+    { key: "gympass", label: "Gympass" },
+  ];
+
   return (
     <Card>
-      <CardHeader><CardTitle>Precios medios (€)</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Precios medios y colores</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
           Se aplican a la facturación estimada de Estadísticas. Al cambiarlos se recalcula el histórico mostrado.
@@ -130,9 +143,35 @@ export function PreciosForm() {
             </div>
           ))}
         </div>
+        <div className="pt-4">
+          <div className="text-sm font-medium mb-1">Colores por tipo de sesión</div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Se usan en el desglose "Tipo de sesión" de Estadísticas.
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {COLOR_ROWS.map((row) => (
+              <div key={row.key}>
+                <Label>{row.label}</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="color"
+                    className="h-9 w-12 rounded border border-input bg-background cursor-pointer"
+                    value={localColores[row.key]}
+                    onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
+                  />
+                  <Input
+                    className="font-mono uppercase"
+                    value={localColores[row.key]}
+                    onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar precios</Button>
+          <Button variant="outline" onClick={() => { setLocal(DEFAULT_PRECIOS); setLocalColores(DEFAULT_TIPO_COLORES); }}>Restablecer defaults</Button>
+          <Button onClick={save}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
