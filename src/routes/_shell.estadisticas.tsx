@@ -53,7 +53,7 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 // Page
 // ============================================================
 function StatsPage() {
-  const { horario, specialsMap, colores: tipoColores } = useCenterConfig();
+  const { horario, specialsMap } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
     queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
