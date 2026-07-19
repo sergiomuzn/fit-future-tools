@@ -366,6 +366,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
 }) {
+  const { colores: tipoColores } = useCenterConfig();
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
