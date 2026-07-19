@@ -1,0 +1,1 @@
+ALTER TABLE public.center_config ADD COLUMN IF NOT EXISTS colores jsonb NOT NULL DEFAULT '{"individual":"#3b82f6","pareja":"#a855f7","grupal":"#f59e0b","gympass":"#ec4899"}'::jsonb;

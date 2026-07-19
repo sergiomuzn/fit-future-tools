@@ -366,6 +366,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
 }) {
+  const { colores: tipoColores } = useCenterConfig();
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
@@ -461,10 +462,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     const lower = name.toLowerCase();
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    if (lower === "individual") return "#3b82f6";
-    if (lower === "pareja") return "#a855f7";
-    if (lower === "grupal") return "#f59e0b";
-    if (lower === "gympass") return "#ec4899";
+    if (lower === "individual") return tipoColores.individual;
+    if (lower === "pareja") return tipoColores.pareja;
+    if (lower === "grupal") return tipoColores.grupal;
+    if (lower === "gympass") return tipoColores.gympass;
     return palette[idx % palette.length];
   };
 
