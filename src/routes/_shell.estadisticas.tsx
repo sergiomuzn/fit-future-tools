@@ -53,7 +53,7 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 // Page
 // ============================================================
 function StatsPage() {
-  const { horario, specialsMap } = useCenterConfig();
+  const { horario, specialsMap, colores: tipoColores } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
     queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
@@ -461,10 +461,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     const lower = name.toLowerCase();
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    if (lower === "individual") return "#3b82f6";
-    if (lower === "pareja") return "#a855f7";
-    if (lower === "grupal") return "#f59e0b";
-    if (lower === "gympass") return "#ec4899";
+    if (lower === "individual") return tipoColores.individual;
+    if (lower === "pareja") return tipoColores.pareja;
+    if (lower === "grupal") return tipoColores.grupal;
+    if (lower === "gympass") return tipoColores.gympass;
     return palette[idx % palette.length];
   };
 
