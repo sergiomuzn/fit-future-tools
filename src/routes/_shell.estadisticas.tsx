@@ -457,7 +457,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     URL.revokeObjectURL(url);
   }
 
-  const palette = ["hsl(var(--primary))", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
+  const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
