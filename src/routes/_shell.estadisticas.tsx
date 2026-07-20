@@ -1039,7 +1039,9 @@ function buildSeries(args: {
   // barras con línea de puntos superpuesta; el resto son barras.
   // Franja horaria: siempre líneas con puntos conectados.
   const isLineChart = desglose === "franja";
-  const finalRows = nonZero.length ? nonZero : rows;
+  // Para franja horaria mantenemos TODAS las horas (aunque valgan 0) para que
+  // la línea sea continua de izquierda a derecha sin huecos.
+  const finalRows = isLineChart ? rows : (nonZero.length ? nonZero : rows);
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
   return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
 
