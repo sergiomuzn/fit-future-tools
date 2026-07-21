@@ -9,6 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import { enterToSave } from "@/lib/enter-to-save";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -30,6 +40,7 @@ function FacturacionPage() {
   const [form, setForm] = useState<Partial<Invoice>>({});
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
+  const [confirmNoClient, setConfirmNoClient] = useState(false);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -135,10 +146,15 @@ function FacturacionPage() {
   }
 
   async function save() {
-    const clientId = form.client_id ?? null;
-    if (!clientId) {
-      if (!confirm("No has seleccionado ningún cliente. ¿Registrar la factura sin cliente asociado?")) return;
+    if (!form.client_id) {
+      setConfirmNoClient(true);
+      return;
     }
+    await persist();
+  }
+
+  async function persist() {
+    const clientId = form.client_id ?? null;
     const bonoId = form.bono_catalogo_id?.trim() || null;
     const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
     const sesionesOverride =
@@ -347,6 +363,22 @@ function FacturacionPage() {
         </DialogContent>
       </Dialog>
       <ClientDetailsDialog client={viewingClient} defaultTab="historial" onOpenChange={(o) => !o && setViewingClient(null)} />
+      <AlertDialog open={confirmNoClient} onOpenChange={setConfirmNoClient}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Factura sin cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              No has seleccionado ningún cliente. ¿Quieres registrar la factura sin cliente asociado?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmNoClient(false); void persist(); }}>
+              Registrar sin cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
