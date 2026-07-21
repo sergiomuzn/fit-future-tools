@@ -105,7 +105,7 @@ function FacturacionPage() {
   const searchNorm = search.trim().toLowerCase();
   const filteredInvoices = searchNorm
     ? invoices.filter((i) => {
-        const c = clientMap.get(i.client_id);
+        const c = i.client_id ? clientMap.get(i.client_id) : null;
         return c?.nombre.toLowerCase().includes(searchNorm) ?? false;
       })
     : invoices;
@@ -135,8 +135,10 @@ function FacturacionPage() {
   }
 
   async function save() {
-    const clientId = form.client_id;
-    if (!clientId) { toast.error("Selecciona o crea un cliente"); return; }
+    const clientId = form.client_id ?? null;
+    if (!clientId) {
+      if (!confirm("No has seleccionado ningún cliente. ¿Registrar la factura sin cliente asociado?")) return;
+    }
     const bonoId = form.bono_catalogo_id?.trim() || null;
     const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
     const sesionesOverride =
@@ -150,7 +152,7 @@ function FacturacionPage() {
       bono_catalogo_id: bonoId,
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
-      sesiones_override: bonoId ? sesionesOverride : null,
+      sesiones_override: bonoId && clientId ? sesionesOverride : null,
     };
     if (editingId) {
       const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
