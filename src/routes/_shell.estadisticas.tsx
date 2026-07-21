@@ -10,7 +10,7 @@ import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line, ComposedChart, LabelList,
+  Legend as RLegend, LineChart, Line, ComposedChart, LabelList, Cell,
 } from "recharts";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
@@ -622,6 +622,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <RLegend />
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                      {desglose === "tipoSesion" && seriesKeys.length === 1 &&
+                        rowsWithTotal.map((r, idx) => (
+                          <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
+                        ))}
                       <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
                     </Bar>
                   ))}
