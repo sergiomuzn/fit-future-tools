@@ -244,8 +244,8 @@ function FacturacionPage() {
                 <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell className="font-medium">
                   {(() => {
-                    const c = clientMap.get(i.client_id);
-                    const isAlta = altaByClient.get(i.client_id) === i.fecha;
+                    const c = i.client_id ? clientMap.get(i.client_id) : null;
+                    const isAlta = i.client_id ? altaByClient.get(i.client_id) === i.fecha : false;
                     return c ? (
                       <div className="flex items-center gap-2">
                         <button className="hover:underline text-left" onClick={() => setViewingClient(c)}>{formatNameTitle(c.nombre)}</button>
@@ -253,7 +253,7 @@ function FacturacionPage() {
                           <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">Alta</span>
                         )}
                       </div>
-                    ) : "?";
+                    ) : <span className="text-muted-foreground italic">Sin cliente</span>;
                   })()}
                 </TableCell>
                 <TableCell>{tipo ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[tipo]}`}>{TIPO_LABEL[tipo]}</span> : <span className="text-muted-foreground">—</span>}</TableCell>
