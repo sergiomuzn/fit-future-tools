@@ -363,6 +363,22 @@ function FacturacionPage() {
         </DialogContent>
       </Dialog>
       <ClientDetailsDialog client={viewingClient} defaultTab="historial" onOpenChange={(o) => !o && setViewingClient(null)} />
+      <AlertDialog open={confirmNoClient} onOpenChange={setConfirmNoClient}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Factura sin cliente</AlertDialogTitle>
+            <AlertDialogDescription>
+              No has seleccionado ningún cliente. ¿Quieres registrar la factura sin cliente asociado?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmNoClient(false); void persist(); }}>
+              Registrar sin cliente
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
