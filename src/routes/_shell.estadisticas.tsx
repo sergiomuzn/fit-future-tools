@@ -486,6 +486,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
     : rows;
 
+  const chartInfo = getChartInfo(metric, desglose, period);
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
@@ -583,6 +585,31 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
       </div>
 
       <div className="rounded-lg border bg-card p-4">
+        <UITooltipProvider delayDuration={150}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <h3 className="text-sm font-semibold">{METRIC_LABEL[metric]}</h3>
+            <span className="text-xs text-muted-foreground">
+              · {DESGLOSE_LABEL[desglose]} · {PERIOD_LABEL[period]}
+            </span>
+            <UITooltip>
+              <UITooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="Explicación de la gráfica"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </UITooltipTrigger>
+              <UITooltipContent
+                side="top"
+                className="max-w-sm whitespace-pre-line text-xs normal-case tracking-normal font-normal"
+              >
+                {chartInfo}
+              </UITooltipContent>
+            </UITooltip>
+          </div>
+        </UITooltipProvider>
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
