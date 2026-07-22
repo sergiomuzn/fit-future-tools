@@ -361,6 +361,47 @@ function firstValidPeriod(metric: Metric, desglose: Desglose): PeriodMode {
   return "mesUnico";
 }
 
+function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): string {
+  const metricInfo: Record<Metric, string> = {
+    ocupacion:
+      "Ocupación del centro (%): minutos ocupados ÷ minutos disponibles × 100.\n" +
+      "• Minutos ocupados: duración de cada sesión realizada × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
+      "• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, sumando los días del periodo.",
+    sesiones:
+      "Nº de sesiones: total de sesiones en estado 'realizada' dentro del periodo. No incluye reservadas, canceladas, pruebas ni renovaciones.",
+    cancelaciones:
+      "Cancelaciones: total de sesiones en estado 'cancelada' dentro del periodo, incluyendo las marcadas como 'No contabilizar' (NC).",
+    porEntrenador:
+      "Sesiones por entrenador: número de sesiones realizadas asignadas a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
+    facturacion:
+      "Facturación estimada (€): suma del importe de las facturas emitidas dentro del periodo.",
+    altasBajas:
+      "Altas y bajas por mes:\n" +
+      "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
+      "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
+  };
+  const desgloseInfo: Partial<Record<Desglose, string>> = {
+    franja: "Desglose por franja horaria: cada punto agrupa las sesiones que empiezan en esa hora (6:00–21:00).",
+    turno: "Desglose por turno: mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
+    dow: "Desglose por día de la semana: se suma en cada día (Lun–Dom) el total del periodo.",
+    tipoSesion:
+      "Desglose por tipo de sesión: se agrupa por el tipo del bono activo del cliente al momento de la sesión (Individual, Pareja, Grupal, Gympass). Los colores se configuran en Configuración → Tipos de bonos y precios.",
+    total: "Sin desglosar: se muestra el valor total del periodo sin subdivisiones.",
+  };
+  const periodInfo: Record<PeriodMode, string> = {
+    mesUnico: "Periodo: mes actual seleccionado.",
+    comparar: "Periodo: comparación entre los meses elegidos, mostrados en paralelo.",
+    historico: "Periodo: histórico cronológico de todos los meses con datos.",
+  };
+  return [
+    metricInfo[metric],
+    desgloseInfo[desglose],
+    periodInfo[period],
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+}
+
 function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap }: {
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
@@ -486,6 +527,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
     : rows;
 
+  const chartInfo = getChartInfo(metric, desglose, period);
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
@@ -583,6 +626,31 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
       </div>
 
       <div className="rounded-lg border bg-card p-4">
+        <UITooltipProvider delayDuration={150}>
+          <div className="flex items-center gap-1.5 mb-3">
+            <h3 className="text-sm font-semibold">{METRIC_LABEL[metric]}</h3>
+            <span className="text-xs text-muted-foreground">
+              · {DESGLOSE_LABEL[desglose]} · {PERIOD_LABEL[period]}
+            </span>
+            <UITooltip>
+              <UITooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex items-center justify-center rounded-full text-muted-foreground/70 hover:text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+                  aria-label="Explicación de la gráfica"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </UITooltipTrigger>
+              <UITooltipContent
+                side="top"
+                className="max-w-sm whitespace-pre-line text-xs normal-case tracking-normal font-normal"
+              >
+                {chartInfo}
+              </UITooltipContent>
+            </UITooltip>
+          </div>
+        </UITooltipProvider>
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
