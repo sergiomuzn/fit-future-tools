@@ -35,6 +35,12 @@ function spacesFor(tipo: Session["tipo"]): number {
   if (tipo === "grupal") return 2;
   return 1; // individual, pareja, prueba, null
 }
+// Una sesión cuenta como entrenamiento si está realizada o cancelada (sin marcar "No contabilizar").
+function countsAsTraining(s: Session): boolean {
+  if (s.estado === "realizada") return true;
+  if (s.estado === "cancelada" && !s.no_contabilizar) return true;
+  return false;
+}
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
 function durMin(hi?: string | null, hf?: string | null): number {
   if (!hi || !hf) return 0;
@@ -140,7 +146,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
-  const realizadas = monthSessions.filter((s) => s.estado === "realizada");
+  const realizadas = monthSessions.filter(countsAsTraining);
   const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
   const tardes = realizadas.length - mananas;
 
@@ -166,7 +172,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       label: "Entrenamientos totales",
       value: String(realizadas.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
-      info: "Suma de sesiones en estado 'realizada' dentro del mes seleccionado. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
+      info: "Suma de sesiones que cuentan como entrenamiento (realizadas + canceladas contabilizadas) dentro del mes seleccionado. Las canceladas marcadas como 'No contabilizar' (NC) quedan excluidas. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
       label: "Ocupación media del centro",
@@ -174,7 +180,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       hint: isCurrentMonth ? "Acumulado hasta hoy" : `${MES_LABEL[m]} ${y}`,
       info:
         `Minutos ocupados ÷ minutos disponibles del centro × 100.\n\n` +
-        `• Minutos ocupados: duración de cada sesión realizada × espacios que usa ` +
+        `• Minutos ocupados: duración de cada sesión que cuenta como entrenamiento (realizada o cancelada contabilizada) × espacios que usa ` +
         `(individual/pareja/prueba = 1 espacio, grupal = 2 espacios).\n` +
         `• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, ` +
         `sumando todos los días del periodo.\n` +
@@ -371,14 +377,14 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
   const metricInfo: Record<Metric, string> = {
     ocupacion:
       "Ocupación del centro (%): minutos ocupados ÷ minutos disponibles × 100.\n" +
-      "• Minutos ocupados: duración de cada sesión realizada × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
+      "• Minutos ocupados: duración de cada sesión que cuenta como entrenamiento (realizada o cancelada contabilizada; NC excluida) × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
       "• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, sumando los días del periodo.",
     sesiones:
-      "Nº de sesiones: total de sesiones en estado 'realizada' dentro del periodo. No incluye reservadas, canceladas, pruebas ni renovaciones.",
+      "Nº de sesiones: total de entrenamientos dentro del periodo. Cuenta las realizadas y las canceladas contabilizadas (las canceladas marcadas como 'No contabilizar' quedan excluidas). No incluye reservadas ni renovaciones.",
     cancelaciones:
       "Cancelaciones: total de sesiones en estado 'cancelada' dentro del periodo, incluyendo las marcadas como 'No contabilizar' (NC).",
     porEntrenador:
-      "Sesiones por entrenador: número de sesiones realizadas asignadas a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
+      "Sesiones por entrenador: número de entrenamientos (realizadas + canceladas contabilizadas, NC excluidas) asignados a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
     facturacion:
       "Facturación estimada (€): suma del importe de las facturas emitidas dentro del periodo.",
     altasBajas:
@@ -1088,7 +1094,7 @@ function buildSeries(args: {
     for (const s of periodSessions) {
       const b = bucketOf(s);
       if (!b) {
-        if (trackUnclassified && s.estado === "realizada") {
+        if (trackUnclassified && countsAsTraining(s)) {
           unclassified.count += 1;
           let reason: string;
           if (!s.client_id && !s.group_id) {
@@ -1109,17 +1115,17 @@ function buildSeries(args: {
       }
 
       if (metric === "sesiones") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         addTo(b, p.key, 1);
       } else if (metric === "cancelaciones") {
         if (s.estado !== "cancelada") continue;
         const key = s.no_contabilizar ? `${p.key} · NC` : `${p.key} · Cancelada`;
         addTo(b, key, 1);
       } else if (metric === "ocupacion") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porEntrenador") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
         const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
         addTo(b, series, 1);
