@@ -1094,7 +1094,7 @@ function buildSeries(args: {
     for (const s of periodSessions) {
       const b = bucketOf(s);
       if (!b) {
-        if (trackUnclassified && s.estado === "realizada") {
+        if (trackUnclassified && countsAsTraining(s)) {
           unclassified.count += 1;
           let reason: string;
           if (!s.client_id && !s.group_id) {
@@ -1115,17 +1115,17 @@ function buildSeries(args: {
       }
 
       if (metric === "sesiones") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         addTo(b, p.key, 1);
       } else if (metric === "cancelaciones") {
         if (s.estado !== "cancelada") continue;
         const key = s.no_contabilizar ? `${p.key} · NC` : `${p.key} · Cancelada`;
         addTo(b, key, 1);
       } else if (metric === "ocupacion") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porEntrenador") {
-        if (s.estado !== "realizada") continue;
+        if (!countsAsTraining(s)) continue;
         const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
         const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
         addTo(b, series, 1);
