@@ -288,6 +288,12 @@ type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "fa
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
+type UnclassifiedInfo = {
+  count: number;
+  reasons: { sinCliente: number; tipoPrueba: number; otro: number };
+  samples: { id: string; fecha: string; hora: string; reason: string }[];
+};
+
 const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
   sesiones: "Nº sesiones",
@@ -477,7 +483,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap],
   );
@@ -651,6 +657,43 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </UITooltip>
           </div>
         </UITooltipProvider>
+        {unclassified && unclassified.count > 0 && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="space-y-1">
+                <div className="font-semibold text-amber-900 dark:text-amber-200">
+                  {unclassified.count} {unclassified.count === 1 ? "sesión realizada sin clasificar" : "sesiones realizadas sin clasificar"}
+                </div>
+                <ul className="list-disc pl-4 text-amber-900/90 dark:text-amber-100/90 space-y-0.5">
+                  {unclassified.reasons.sinCliente > 0 && (
+                    <li>{unclassified.reasons.sinCliente} sin cliente ni grupo asignado.</li>
+                  )}
+                  {unclassified.reasons.tipoPrueba > 0 && (
+                    <li>{unclassified.reasons.tipoPrueba} de tipo "prueba" (no se cuentan en tipos de bono).</li>
+                  )}
+                  {unclassified.reasons.otro > 0 && (
+                    <li>{unclassified.reasons.otro} con cliente sin bono activo válido.</li>
+                  )}
+                </ul>
+                {unclassified.samples.length > 0 && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-amber-800 dark:text-amber-200 hover:underline">
+                      Ver ejemplos ({unclassified.samples.length}{unclassified.count > unclassified.samples.length ? ` de ${unclassified.count}` : ""})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-1">
+                      {unclassified.samples.map((s) => (
+                        <li key={s.id} className="font-mono text-[11px]">
+                          {s.fecha} {s.hora} — {s.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
@@ -791,9 +834,12 @@ function buildSeries(args: {
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
-}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
+}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
+    // Cualquier sesión con grupo cuenta siempre como "grupal",
+    // aunque no tenga clientes asignados.
+    if (s.group_id) return "grupal";
     if (s.client_id) {
       const t = clientTipoMap.get(s.client_id);
       if (t) return t as Session["tipo"];
@@ -956,6 +1002,13 @@ function buildSeries(args: {
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
   const capacityByBucketPeriod = new Map<string, number>(); // for ocupacion: bucket|period -> capacity
 
+  const trackUnclassified = metric === "sesiones" && desglose === "tipoSesion";
+  const unclassified: UnclassifiedInfo = {
+    count: 0,
+    reasons: { sinCliente: 0, tipoPrueba: 0, otro: 0 },
+    samples: [],
+  };
+
   function addTo(bucket: string, series: string, val: number) {
     seriesKeysSet.add(series);
     if (!acc.has(bucket)) acc.set(bucket, new Map());
@@ -1034,7 +1087,26 @@ function buildSeries(args: {
 
     for (const s of periodSessions) {
       const b = bucketOf(s);
-      if (!b) continue;
+      if (!b) {
+        if (trackUnclassified && s.estado === "realizada") {
+          unclassified.count += 1;
+          let reason: string;
+          if (!s.client_id && !s.group_id) {
+            unclassified.reasons.sinCliente += 1;
+            reason = "Sin cliente ni grupo asignado";
+          } else if (s.tipo === "prueba") {
+            unclassified.reasons.tipoPrueba += 1;
+            reason = "Sesión de prueba (no cuenta en tipos)";
+          } else {
+            unclassified.reasons.otro += 1;
+            reason = "Cliente sin bono activo válido";
+          }
+          if (unclassified.samples.length < 20) {
+            unclassified.samples.push({ id: s.id, fecha: s.fecha, hora: s.hora_inicio, reason });
+          }
+        }
+        continue;
+      }
 
       if (metric === "sesiones") {
         if (s.estado !== "realizada") continue;
@@ -1101,7 +1173,7 @@ function buildSeries(args: {
     void slotOrder;
     // Histórico (meses cronológicos consecutivos) → línea con puntos.
     // Comparar meses (selección puntual en paralelo) → barras.
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico" };
+    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
@@ -1115,7 +1187,7 @@ function buildSeries(args: {
   // la línea sea continua de izquierda a derecha sin huecos.
   const finalRows = isLineChart ? rows : (nonZero.length ? nonZero : rows);
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
-  return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
+  return { rows: finalRows, seriesKeys: finalSeries, isLineChart, unclassified: trackUnclassified ? unclassified : undefined };
 
   // suppress unused
   void isMultiSeries;
