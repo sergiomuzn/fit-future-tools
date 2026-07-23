@@ -1050,7 +1050,26 @@ function buildSeries(args: {
 
     for (const s of periodSessions) {
       const b = bucketOf(s);
-      if (!b) continue;
+      if (!b) {
+        if (trackUnclassified && s.estado === "realizada") {
+          unclassified.count += 1;
+          let reason: string;
+          if (!s.client_id && !s.group_id) {
+            unclassified.reasons.sinCliente += 1;
+            reason = "Sin cliente ni grupo asignado";
+          } else if (s.tipo === "prueba") {
+            unclassified.reasons.tipoPrueba += 1;
+            reason = "Sesión de prueba (no cuenta en tipos)";
+          } else {
+            unclassified.reasons.otro += 1;
+            reason = "Cliente sin bono activo válido";
+          }
+          if (unclassified.samples.length < 20) {
+            unclassified.samples.push({ id: s.id, fecha: s.fecha, hora: s.hora_inicio, reason });
+          }
+        }
+        continue;
+      }
 
       if (metric === "sesiones") {
         if (s.estado !== "realizada") continue;
