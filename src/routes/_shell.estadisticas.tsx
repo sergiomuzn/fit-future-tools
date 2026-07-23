@@ -288,6 +288,12 @@ type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "fa
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
+type UnclassifiedInfo = {
+  count: number;
+  reasons: { sinCliente: number; tipoPrueba: number; otro: number };
+  samples: { id: string; fecha: string; hora: string; reason: string }[];
+};
+
 const METRIC_LABEL: Record<Metric, string> = {
   ocupacion: "Ocupación del centro (%)",
   sesiones: "Nº sesiones",
