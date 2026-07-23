@@ -657,6 +657,43 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </UITooltip>
           </div>
         </UITooltipProvider>
+        {unclassified && unclassified.count > 0 && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="space-y-1">
+                <div className="font-semibold text-amber-900 dark:text-amber-200">
+                  {unclassified.count} {unclassified.count === 1 ? "sesión realizada sin clasificar" : "sesiones realizadas sin clasificar"}
+                </div>
+                <ul className="list-disc pl-4 text-amber-900/90 dark:text-amber-100/90 space-y-0.5">
+                  {unclassified.reasons.sinCliente > 0 && (
+                    <li>{unclassified.reasons.sinCliente} sin cliente ni grupo asignado.</li>
+                  )}
+                  {unclassified.reasons.tipoPrueba > 0 && (
+                    <li>{unclassified.reasons.tipoPrueba} de tipo "prueba" (no se cuentan en tipos de bono).</li>
+                  )}
+                  {unclassified.reasons.otro > 0 && (
+                    <li>{unclassified.reasons.otro} con cliente sin bono activo válido.</li>
+                  )}
+                </ul>
+                {unclassified.samples.length > 0 && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-amber-800 dark:text-amber-200 hover:underline">
+                      Ver ejemplos ({unclassified.samples.length}{unclassified.count > unclassified.samples.length ? ` de ${unclassified.count}` : ""})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-1">
+                      {unclassified.samples.map((s) => (
+                        <li key={s.id} className="font-mono text-[11px]">
+                          {s.fecha} {s.hora} — {s.reason}
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
