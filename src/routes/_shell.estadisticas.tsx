@@ -1136,7 +1136,7 @@ function buildSeries(args: {
     void slotOrder;
     // Histórico (meses cronológicos consecutivos) → línea con puntos.
     // Comparar meses (selección puntual en paralelo) → barras.
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico" };
+    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
@@ -1150,7 +1150,7 @@ function buildSeries(args: {
   // la línea sea continua de izquierda a derecha sin huecos.
   const finalRows = isLineChart ? rows : (nonZero.length ? nonZero : rows);
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
-  return { rows: finalRows, seriesKeys: finalSeries, isLineChart };
+  return { rows: finalRows, seriesKeys: finalSeries, isLineChart, unclassified: trackUnclassified ? unclassified : undefined };
 
   // suppress unused
   void isMultiSeries;
