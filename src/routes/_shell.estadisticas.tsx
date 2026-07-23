@@ -35,6 +35,12 @@ function spacesFor(tipo: Session["tipo"]): number {
   if (tipo === "grupal") return 2;
   return 1; // individual, pareja, prueba, null
 }
+// Una sesión cuenta como entrenamiento si está realizada o cancelada (sin marcar "No contabilizar").
+function countsAsTraining(s: Session): boolean {
+  if (s.estado === "realizada") return true;
+  if (s.estado === "cancelada" && !s.no_contabilizar) return true;
+  return false;
+}
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
 function durMin(hi?: string | null, hf?: string | null): number {
   if (!hi || !hf) return 0;
