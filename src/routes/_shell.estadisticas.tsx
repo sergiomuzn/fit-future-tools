@@ -965,6 +965,13 @@ function buildSeries(args: {
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
   const capacityByBucketPeriod = new Map<string, number>(); // for ocupacion: bucket|period -> capacity
 
+  const trackUnclassified = metric === "sesiones" && desglose === "tipoSesion";
+  const unclassified: UnclassifiedInfo = {
+    count: 0,
+    reasons: { sinCliente: 0, tipoPrueba: 0, otro: 0 },
+    samples: [],
+  };
+
   function addTo(bucket: string, series: string, val: number) {
     seriesKeysSet.add(series);
     if (!acc.has(bucket)) acc.set(bucket, new Map());
