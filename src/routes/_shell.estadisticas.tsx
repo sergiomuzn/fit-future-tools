@@ -483,7 +483,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap],
   );
