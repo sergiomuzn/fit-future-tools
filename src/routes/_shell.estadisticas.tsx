@@ -146,7 +146,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
-  const realizadas = monthSessions.filter((s) => s.estado === "realizada");
+  const realizadas = monthSessions.filter(countsAsTraining);
   const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
   const tardes = realizadas.length - mananas;
 
@@ -172,7 +172,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       label: "Entrenamientos totales",
       value: String(realizadas.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
-      info: "Suma de sesiones en estado 'realizada' dentro del mes seleccionado. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
+      info: "Suma de sesiones que cuentan como entrenamiento (realizadas + canceladas contabilizadas) dentro del mes seleccionado. Las canceladas marcadas como 'No contabilizar' (NC) quedan excluidas. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
       label: "Ocupación media del centro",
@@ -180,7 +180,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       hint: isCurrentMonth ? "Acumulado hasta hoy" : `${MES_LABEL[m]} ${y}`,
       info:
         `Minutos ocupados ÷ minutos disponibles del centro × 100.\n\n` +
-        `• Minutos ocupados: duración de cada sesión realizada × espacios que usa ` +
+        `• Minutos ocupados: duración de cada sesión que cuenta como entrenamiento (realizada o cancelada contabilizada) × espacios que usa ` +
         `(individual/pareja/prueba = 1 espacio, grupal = 2 espacios).\n` +
         `• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, ` +
         `sumando todos los días del periodo.\n` +
