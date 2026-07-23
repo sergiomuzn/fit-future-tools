@@ -794,6 +794,9 @@ function buildSeries(args: {
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
+    // Cualquier sesión con grupo cuenta siempre como "grupal",
+    // aunque no tenga clientes asignados.
+    if (s.group_id) return "grupal";
     if (s.client_id) {
       const t = clientTipoMap.get(s.client_id);
       if (t) return t as Session["tipo"];
