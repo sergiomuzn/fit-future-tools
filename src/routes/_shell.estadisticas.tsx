@@ -791,7 +791,7 @@ function buildSeries(args: {
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
-}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean } {
+}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     // Cualquier sesión con grupo cuenta siempre como "grupal",
