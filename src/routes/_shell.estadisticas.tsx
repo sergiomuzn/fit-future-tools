@@ -377,14 +377,14 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
   const metricInfo: Record<Metric, string> = {
     ocupacion:
       "Ocupación del centro (%): minutos ocupados ÷ minutos disponibles × 100.\n" +
-      "• Minutos ocupados: duración de cada sesión realizada × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
+      "• Minutos ocupados: duración de cada sesión que cuenta como entrenamiento (realizada o cancelada contabilizada; NC excluida) × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
       "• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, sumando los días del periodo.",
     sesiones:
-      "Nº de sesiones: total de sesiones en estado 'realizada' dentro del periodo. No incluye reservadas, canceladas, pruebas ni renovaciones.",
+      "Nº de sesiones: total de entrenamientos dentro del periodo. Cuenta las realizadas y las canceladas contabilizadas (las canceladas marcadas como 'No contabilizar' quedan excluidas). No incluye reservadas ni renovaciones.",
     cancelaciones:
       "Cancelaciones: total de sesiones en estado 'cancelada' dentro del periodo, incluyendo las marcadas como 'No contabilizar' (NC).",
     porEntrenador:
-      "Sesiones por entrenador: número de sesiones realizadas asignadas a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
+      "Sesiones por entrenador: número de entrenamientos (realizadas + canceladas contabilizadas, NC excluidas) asignados a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
     facturacion:
       "Facturación estimada (€): suma del importe de las facturas emitidas dentro del periodo.",
     altasBajas:
