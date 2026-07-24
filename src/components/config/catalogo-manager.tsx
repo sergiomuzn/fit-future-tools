@@ -243,7 +243,7 @@ export function CatalogoManager() {
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
                 <TableHead className="w-28">Precio (€)</TableHead>
-                <TableHead className="w-40"></TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -293,13 +293,16 @@ export function CatalogoManager() {
             </TableBody>
           </Table>
         </DndContext>
-        {!adding && (
-          <div className="pt-3">
+        <div className="pt-3 flex items-center justify-between gap-2">
+          {!adding ? (
             <Button variant="outline" onClick={() => setAdding(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nuevo tipo de bono
             </Button>
-          </div>
-        )}
+          ) : <span />}
+          <Button onClick={saveAll} disabled={dirtyCount === 0}>
+            Guardar cambios{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
