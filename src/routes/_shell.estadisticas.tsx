@@ -16,6 +16,8 @@ import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
   type HorarioBase, type SpecialDay,
 } from "@/lib/center-schedule";
+import { trainerColor } from "@/lib/trainer-colors";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
