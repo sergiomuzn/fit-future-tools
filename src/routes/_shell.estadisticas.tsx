@@ -1161,9 +1161,16 @@ function buildSeries(args: {
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porEntrenador") {
         if (!countsAsTraining(s)) continue;
-        const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
-        const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
-        addTo(b, series, 1);
+        if (selectedTrainerIds.length === 0) {
+          // Sin selección → total global neutro en una sola serie "Total".
+          const series = periods.length > 1 ? `${p.key} · Total` : "Total";
+          addTo(b, series, 1);
+        } else {
+          if (!s.trainer_id || !selectedTrainerIds.includes(s.trainer_id)) continue;
+          const tname = trainerMap.get(s.trainer_id)?.iniciales ?? "—";
+          const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
+          addTo(b, series, 1);
+        }
       }
     }
   }
