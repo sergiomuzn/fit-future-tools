@@ -734,6 +734,44 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </div>
           </div>
         )}
+        {metric === "porEntrenador" && (
+          <div className="mb-3 space-y-1.5">
+            <div className="text-xs text-muted-foreground">
+              Selecciona hasta 3 entrenadores para comparar. Sin selección se muestra el total global.
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {trainers.map((t) => {
+                const active = selectedTrainerIds.includes(t.id);
+                const disabled = !active && selectedTrainerIds.length >= 3;
+                const color = trainerColor(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTrainer(t.id)}
+                    disabled={disabled}
+                    title={t.nombre}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      active
+                        ? "text-white border-transparent"
+                        : "bg-muted text-foreground border-border hover:bg-muted/70",
+                      disabled && "opacity-40 cursor-not-allowed hover:bg-muted",
+                    )}
+                    style={active ? { backgroundColor: color, borderColor: color } : undefined}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full border border-white/40"
+                      style={{ backgroundColor: color }}
+                    />
+                    {t.iniciales}
+                    <span className="opacity-80 font-normal">· {t.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
