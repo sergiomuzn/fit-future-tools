@@ -131,21 +131,29 @@ export function CatalogoManager() {
       },
     }));
   }
-  async function saveRow(c: BonoCatalogo) {
-    const d = drafts[c.id];
-    if (!d) return;
-    const precio = Number(d.precio);
-    const sesiones = Number(d.sesiones);
-    if (Number.isNaN(precio) || Number.isNaN(sesiones)) { toast.error("Valores numéricos inválidos"); return; }
-    const { error } = await supabase.from("bonos_catalogo").update({
-      precio,
-      tipo: d.tipo as BonoCatalogo["tipo"],
-      sesiones_incluidas: sesiones,
-    }).eq("id", c.id);
-    if (error) { toast.error(error.message); return; }
-    setDrafts((prev) => { const { [c.id]: _, ...rest } = prev; return rest; });
+  async function saveAll() {
+    const entries = Object.entries(drafts);
+    if (entries.length === 0) return;
+    for (const [, d] of entries) {
+      if (Number.isNaN(Number(d.precio)) || Number.isNaN(Number(d.sesiones))) {
+        toast.error("Valores numéricos inválidos");
+        return;
+      }
+    }
+    const results = await Promise.all(
+      entries.map(([id, d]) =>
+        supabase.from("bonos_catalogo").update({
+          precio: Number(d.precio),
+          tipo: d.tipo as BonoCatalogo["tipo"],
+          sesiones_incluidas: Number(d.sesiones),
+        }).eq("id", id)
+      )
+    );
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    setDrafts({});
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
-    toast.success("Bono actualizado");
+    toast.success("Cambios guardados");
   }
   async function removeRow(c: BonoCatalogo) {
     if (!confirm(`¿Eliminar "${prettyBonoNombre(c.nombre)}"?`)) return;
@@ -175,6 +183,7 @@ export function CatalogoManager() {
   }
 
   const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
+  const dirtyCount = Object.keys(drafts).length;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
