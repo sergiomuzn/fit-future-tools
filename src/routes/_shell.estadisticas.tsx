@@ -16,6 +16,8 @@ import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
   type HorarioBase, type SpecialDay,
 } from "@/lib/center-schedule";
+import { trainerColor } from "@/lib/trainer-colors";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
@@ -423,6 +425,30 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
+  const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
+
+  // Al cambiar de métrica limpiamos la selección para evitar estados raros.
+  useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
+
+  function toggleTrainer(id: string) {
+    setSelectedTrainerIds((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      if (cur.length >= 3) return cur; // máximo 3
+      return [...cur, id];
+    });
+  }
+  const selectedTrainers = useMemo(
+    () => selectedTrainerIds
+      .map((id) => trainers.find((t) => t.id === id))
+      .filter((t): t is Trainer => !!t),
+    [selectedTrainerIds, trainers],
+  );
+  // Iniciales del entrenador seleccionado → color fijo. Se pasa al chart.
+  const trainerColorByInitials = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of selectedTrainers) m.set(t.iniciales, trainerColor(t.id));
+    return m;
+  }, [selectedTrainers]);
 
   // Al cambiar métrica, corregir desglose/periodo si la combinación deja de ser válida.
   useEffect(() => {
@@ -490,8 +516,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds],
   );
 
   function handleCsvExport() {
@@ -513,6 +539,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (metric === "porEntrenador") {
+      if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
+      const c = trainerColorByInitials.get(name);
+      if (c) return c;
+    }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
     if (lower === "individual") return tipoColores.individual;
@@ -525,7 +556,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   // Línea superpuesta sobre barras: sólo para categorías con orden natural
   // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
   // ni cuando se comparan meses en paralelo.
-  const showOverlayLine = !isLineChart && (desglose === "franja" || desglose === "dow");
+  const showOverlayLine =
+    !isLineChart &&
+    metric !== "porEntrenador" &&
+    (desglose === "franja" || desglose === "dow");
   const totalValues = useMemo<number[] | null>(() => {
     if (!showOverlayLine) return null;
     const n = rows.length;
@@ -700,6 +734,44 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </div>
           </div>
         )}
+        {metric === "porEntrenador" && (
+          <div className="mb-3 space-y-1.5">
+            <div className="text-xs text-muted-foreground">
+              Selecciona hasta 3 entrenadores para comparar. Sin selección se muestra el total global.
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {trainers.map((t) => {
+                const active = selectedTrainerIds.includes(t.id);
+                const disabled = !active && selectedTrainerIds.length >= 3;
+                const color = trainerColor(t.id);
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => toggleTrainer(t.id)}
+                    disabled={disabled}
+                    title={t.nombre}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors",
+                      active
+                        ? "text-white border-transparent"
+                        : "bg-muted text-foreground border-border hover:bg-muted/70",
+                      disabled && "opacity-40 cursor-not-allowed hover:bg-muted",
+                    )}
+                    style={active ? { backgroundColor: color, borderColor: color } : undefined}
+                  >
+                    <span
+                      className="h-2.5 w-2.5 rounded-full border border-white/40"
+                      style={{ backgroundColor: color }}
+                    />
+                    {t.iniciales}
+                    <span className="opacity-80 font-normal">· {t.nombre}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
@@ -714,8 +786,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  <RLegend />
-                  {seriesKeys.map((k, i) => (
+                   {metric !== "porEntrenador" && <RLegend />}
+                   {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
                       type="monotone"
@@ -736,7 +808,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  <RLegend />
+                  {metric !== "porEntrenador" && <RLegend />}
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
@@ -767,6 +839,24 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           )}
           </div>
         </div>
+        {metric === "porEntrenador" && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            {selectedTrainers.length === 0 ? (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: "#94a3b8" }} />
+                Total global (sin entrenador seleccionado)
+              </div>
+            ) : (
+              selectedTrainers.map((t) => (
+                <div key={t.id} className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: trainerColor(t.id) }} />
+                  <span className="font-medium">{t.iniciales}</span>
+                  <span className="text-muted-foreground">{t.nombre}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -840,8 +930,9 @@ function buildSeries(args: {
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
+  selectedTrainerIds?: string[];
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds = [] } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     // Cualquier sesión con grupo cuenta siempre como "grupal",
     // aunque no tenga clientes asignados.
@@ -1126,9 +1217,16 @@ function buildSeries(args: {
         addTo(b, p.key, durMin(s.hora_inicio, s.hora_fin) * spacesFor(s.tipo));
       } else if (metric === "porEntrenador") {
         if (!countsAsTraining(s)) continue;
-        const tname = s.trainer_id ? (trainerMap.get(s.trainer_id)?.iniciales ?? "—") : "—";
-        const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
-        addTo(b, series, 1);
+        if (selectedTrainerIds.length === 0) {
+          // Sin selección → total global neutro en una sola serie "Total".
+          const series = periods.length > 1 ? `${p.key} · Total` : "Total";
+          addTo(b, series, 1);
+        } else {
+          if (!s.trainer_id || !selectedTrainerIds.includes(s.trainer_id)) continue;
+          const tname = trainerMap.get(s.trainer_id)?.iniciales ?? "—";
+          const series = periods.length > 1 ? `${p.key} · ${tname}` : tname;
+          addTo(b, series, 1);
+        }
       }
     }
   }
