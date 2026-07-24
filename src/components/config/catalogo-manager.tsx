@@ -34,7 +34,6 @@ function SortableRow({
   drafts,
   getVal,
   setVal,
-  saveRow,
   removeRow,
 }: {
   c: BonoCatalogo;
@@ -43,7 +42,6 @@ function SortableRow({
   drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
   getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
   setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
-  saveRow: (c: BonoCatalogo) => Promise<void>;
   removeRow: (c: BonoCatalogo) => Promise<void>;
 }) {
   const {
@@ -60,8 +58,6 @@ function SortableRow({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  const dirty = !!drafts[c.id];
 
   return (
     <TableRow ref={setNodeRef} style={style}>
@@ -94,8 +90,7 @@ function SortableRow({
         <Input type="number" step="5" className="h-8" value={getVal(c, "precio")}
           onChange={(e) => setVal(c, "precio", e.target.value)} />
       </TableCell>
-      <TableCell className="w-40 text-right space-x-1">
-        <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
+      <TableCell className="w-16 text-right">
         <Button size="icon" variant="ghost" onClick={() => removeRow(c)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
     </TableRow>
