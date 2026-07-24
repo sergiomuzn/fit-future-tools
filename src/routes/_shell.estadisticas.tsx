@@ -425,6 +425,30 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
+  const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
+
+  // Al cambiar de métrica limpiamos la selección para evitar estados raros.
+  useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
+
+  function toggleTrainer(id: string) {
+    setSelectedTrainerIds((cur) => {
+      if (cur.includes(id)) return cur.filter((x) => x !== id);
+      if (cur.length >= 3) return cur; // máximo 3
+      return [...cur, id];
+    });
+  }
+  const selectedTrainers = useMemo(
+    () => selectedTrainerIds
+      .map((id) => trainers.find((t) => t.id === id))
+      .filter((t): t is Trainer => !!t),
+    [selectedTrainerIds, trainers],
+  );
+  // Iniciales del entrenador seleccionado → color fijo. Se pasa al chart.
+  const trainerColorByInitials = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const t of selectedTrainers) m.set(t.iniciales, trainerColor(t.id));
+    return m;
+  }, [selectedTrainers]);
 
   // Al cambiar métrica, corregir desglose/periodo si la combinación deja de ser válida.
   useEffect(() => {
@@ -492,8 +516,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds],
   );
 
   function handleCsvExport() {
@@ -515,6 +539,11 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (metric === "porEntrenador") {
+      if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
+      const c = trainerColorByInitials.get(name);
+      if (c) return c;
+    }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
     if (lower === "individual") return tipoColores.individual;
@@ -527,7 +556,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   // Línea superpuesta sobre barras: sólo para categorías con orden natural
   // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
   // ni cuando se comparan meses en paralelo.
-  const showOverlayLine = !isLineChart && (desglose === "franja" || desglose === "dow");
+  const showOverlayLine =
+    !isLineChart &&
+    metric !== "porEntrenador" &&
+    (desglose === "franja" || desglose === "dow");
   const totalValues = useMemo<number[] | null>(() => {
     if (!showOverlayLine) return null;
     const n = rows.length;
