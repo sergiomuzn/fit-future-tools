@@ -248,7 +248,6 @@ export function CatalogoManager() {
                     drafts={drafts}
                     getVal={getVal}
                     setVal={setVal}
-                    saveRow={saveRow}
                     removeRow={removeRow}
                   />
                 ))}
@@ -276,7 +275,7 @@ export function CatalogoManager() {
                     <Input className="h-8" type="number" step="5" value={nuevo.precio}
                       onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
-                  <TableCell className="w-40 text-right space-x-1">
+                  <TableCell className="w-16 text-right space-x-1">
                     <Button size="sm" onClick={addRow}>Añadir</Button>
                     <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancelar</Button>
                   </TableCell>
