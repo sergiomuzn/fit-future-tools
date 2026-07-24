@@ -786,8 +786,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  <RLegend />
-                  {seriesKeys.map((k, i) => (
+                   {metric !== "porEntrenador" && <RLegend />}
+                   {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
                       type="monotone"
@@ -808,7 +808,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  <RLegend />
+                  {metric !== "porEntrenador" && <RLegend />}
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
