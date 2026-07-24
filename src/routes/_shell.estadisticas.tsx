@@ -839,6 +839,24 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           )}
           </div>
         </div>
+        {metric === "porEntrenador" && (
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            {selectedTrainers.length === 0 ? (
+              <div className="flex items-center gap-1.5 text-muted-foreground">
+                <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: "#94a3b8" }} />
+                Total global (sin entrenador seleccionado)
+              </div>
+            ) : (
+              selectedTrainers.map((t) => (
+                <div key={t.id} className="flex items-center gap-1.5">
+                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: trainerColor(t.id) }} />
+                  <span className="font-medium">{t.iniciales}</span>
+                  <span className="text-muted-foreground">{t.nombre}</span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
