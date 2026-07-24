@@ -34,7 +34,6 @@ function SortableRow({
   drafts,
   getVal,
   setVal,
-  saveRow,
   removeRow,
 }: {
   c: BonoCatalogo;
@@ -43,7 +42,6 @@ function SortableRow({
   drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
   getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
   setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
-  saveRow: (c: BonoCatalogo) => Promise<void>;
   removeRow: (c: BonoCatalogo) => Promise<void>;
 }) {
   const {
@@ -60,8 +58,6 @@ function SortableRow({
     transition,
     opacity: isDragging ? 0.5 : 1,
   };
-
-  const dirty = !!drafts[c.id];
 
   return (
     <TableRow ref={setNodeRef} style={style}>
@@ -94,8 +90,7 @@ function SortableRow({
         <Input type="number" step="5" className="h-8" value={getVal(c, "precio")}
           onChange={(e) => setVal(c, "precio", e.target.value)} />
       </TableCell>
-      <TableCell className="w-40 text-right space-x-1">
-        <Button size="sm" disabled={!dirty} onClick={() => saveRow(c)}>Guardar</Button>
+      <TableCell className="w-16 text-right">
         <Button size="icon" variant="ghost" onClick={() => removeRow(c)}><Trash2 className="h-4 w-4" /></Button>
       </TableCell>
     </TableRow>
@@ -136,21 +131,29 @@ export function CatalogoManager() {
       },
     }));
   }
-  async function saveRow(c: BonoCatalogo) {
-    const d = drafts[c.id];
-    if (!d) return;
-    const precio = Number(d.precio);
-    const sesiones = Number(d.sesiones);
-    if (Number.isNaN(precio) || Number.isNaN(sesiones)) { toast.error("Valores numéricos inválidos"); return; }
-    const { error } = await supabase.from("bonos_catalogo").update({
-      precio,
-      tipo: d.tipo as BonoCatalogo["tipo"],
-      sesiones_incluidas: sesiones,
-    }).eq("id", c.id);
-    if (error) { toast.error(error.message); return; }
-    setDrafts((prev) => { const { [c.id]: _, ...rest } = prev; return rest; });
+  async function saveAll() {
+    const entries = Object.entries(drafts);
+    if (entries.length === 0) return;
+    for (const [, d] of entries) {
+      if (Number.isNaN(Number(d.precio)) || Number.isNaN(Number(d.sesiones))) {
+        toast.error("Valores numéricos inválidos");
+        return;
+      }
+    }
+    const results = await Promise.all(
+      entries.map(([id, d]) =>
+        supabase.from("bonos_catalogo").update({
+          precio: Number(d.precio),
+          tipo: d.tipo as BonoCatalogo["tipo"],
+          sesiones_incluidas: Number(d.sesiones),
+        }).eq("id", id)
+      )
+    );
+    const err = results.find((r) => r.error);
+    if (err?.error) { toast.error(err.error.message); return; }
+    setDrafts({});
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
-    toast.success("Bono actualizado");
+    toast.success("Cambios guardados");
   }
   async function removeRow(c: BonoCatalogo) {
     if (!confirm(`¿Eliminar "${prettyBonoNombre(c.nombre)}"?`)) return;
@@ -180,6 +183,7 @@ export function CatalogoManager() {
   }
 
   const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
+  const dirtyCount = Object.keys(drafts).length;
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -239,7 +243,7 @@ export function CatalogoManager() {
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
                 <TableHead className="w-28">Precio (€)</TableHead>
-                <TableHead className="w-40"></TableHead>
+                <TableHead className="w-16"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -253,7 +257,6 @@ export function CatalogoManager() {
                     drafts={drafts}
                     getVal={getVal}
                     setVal={setVal}
-                    saveRow={saveRow}
                     removeRow={removeRow}
                   />
                 ))}
@@ -281,7 +284,7 @@ export function CatalogoManager() {
                     <Input className="h-8" type="number" step="5" value={nuevo.precio}
                       onChange={(e) => setNuevo({ ...nuevo, precio: e.target.value.replace(/^0+(?=\d)/, "") })} />
                   </TableCell>
-                  <TableCell className="w-40 text-right space-x-1">
+                  <TableCell className="w-16 text-right space-x-1">
                     <Button size="sm" onClick={addRow}>Añadir</Button>
                     <Button size="sm" variant="ghost" onClick={() => setAdding(false)}>Cancelar</Button>
                   </TableCell>
@@ -290,13 +293,16 @@ export function CatalogoManager() {
             </TableBody>
           </Table>
         </DndContext>
-        {!adding && (
-          <div className="pt-3">
+        <div className="pt-3 flex items-center justify-between gap-2">
+          {!adding ? (
             <Button variant="outline" onClick={() => setAdding(true)}>
               <Plus className="h-4 w-4 mr-1" /> Nuevo tipo de bono
             </Button>
-          </div>
-        )}
+          ) : <span />}
+          <Button onClick={saveAll} disabled={dirtyCount === 0}>
+            Guardar cambios{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
