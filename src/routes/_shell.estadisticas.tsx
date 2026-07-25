@@ -457,10 +457,12 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap }: {
+function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
+  clientPricePerSessionMap: Map<string, number>;
+  groupClientsMap: Map<string, string[]>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const [metric, setMetric] = useState<Metric>("sesiones");
@@ -557,8 +559,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds],
   );
 
   function handleCsvExport() {
