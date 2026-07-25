@@ -1034,9 +1034,13 @@ function buildSeries(args: {
     return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
   }
 
-  // -------- Facturación estimada (por turno y total, precios fijos) --------
+  // -------- Facturación estimada (por turno, día de la semana o total) --------
+  // Precio por sesión derivado del bono real del cliente:
+  //   • Individual / Pareja / Grupal / Prueba → precio del bono / sesiones incluidas.
+  //   • Gympass (EP/GR) y ClassPass → precios configurados en Configuración.
+  // Para sesiones grupales sin cliente asignado se suman los precios por sesión
+  // de todos los miembros del grupo.
   if (metric === "facturacion") {
-    const PRECIO = { individual: 36, pareja: 49, grupal: 17 } as const;
     const monthsFact = collectMonthList("sessions");
     const inRange = (s: Session, y: number, m: number) =>
       s.fecha >= ymd(monthStart(y, m)) && s.fecha <= ymd(monthEnd(y, m));
@@ -1044,24 +1048,42 @@ function buildSeries(args: {
       key, y, m, filter: (s: Session) => inRange(s, y, m),
     }));
     const amountOf = (s: Session): number => {
-      if (s.estado !== "realizada") return 0;
-      const t = tipoOf(s);
-      if (t === "individual") return PRECIO.individual;
-      if (t === "pareja") return PRECIO.pareja;
-      if (t === "grupal") return PRECIO.grupal;
+      if (!countsAsTraining(s)) return 0;
+      if (s.client_id) return clientPricePerSessionMap.get(s.client_id) ?? 0;
+      if (s.group_id) {
+        const members = groupClientsMap.get(s.group_id) ?? [];
+        let total = 0;
+        for (const cid of members) total += clientPricePerSessionMap.get(cid) ?? 0;
+        return total;
+      }
       return 0;
     };
+    const DOW_KEYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+    const dowIdx = (s: Session) => {
+      const d = new Date(s.fecha + "T00:00:00").getDay(); // 0=Dom
+      return d === 0 ? 6 : d - 1;
+    };
     if (period === "mesUnico") {
-      // Un único mes: X = Mañana / Tarde / Total (o solo Total)
       const p = periodsFact[0];
+      if (!p) return { rows: [], seriesKeys: [], isLineChart: false };
+      const filtered = sessions.filter(p.filter);
+      if (desglose === "total") {
+        let total = 0;
+        for (const s of filtered) total += amountOf(s);
+        return { rows: [{ bucket: "Total", [p.key]: Math.round(total) }], seriesKeys: [p.key], isLineChart: false };
+      }
+      if (desglose === "dow") {
+        const acc = new Array(7).fill(0) as number[];
+        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
+        const rows: SeriesRow[] = DOW_KEYS.map((k, i) => ({ bucket: k, [p.key]: Math.round(acc[i]) }));
+        return { rows, seriesKeys: [p.key], isLineChart: false };
+      }
+      // turno
       let am = 0, pm = 0;
-      for (const s of sessions.filter(p.filter)) {
+      for (const s of filtered) {
         const amt = amountOf(s);
         if (amt === 0) continue;
         if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
-      }
-      if (desglose === "total") {
-        return { rows: [{ bucket: "Total", [p.key]: Math.round(am + pm) }], seriesKeys: [p.key], isLineChart: false };
       }
       const rows: SeriesRow[] = [
         { bucket: "Mañana", [p.key]: Math.round(am) },
@@ -1070,25 +1092,36 @@ function buildSeries(args: {
       ];
       return { rows, seriesKeys: [p.key], isLineChart: false };
     }
-    // comparar / historico: X = meses, series = Mañana/Tarde (o Total)
+    // comparar / historico: X = meses; series según desglose
     const rows: SeriesRow[] = [];
     for (const p of periodsFact) {
-      let am = 0, pm = 0;
-      for (const s of sessions.filter(p.filter)) {
-        const amt = amountOf(s);
-        if (amt === 0) continue;
-        if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
-      }
+      const filtered = sessions.filter(p.filter);
       const row: SeriesRow = { bucket: p.key };
       if (desglose === "turno") {
+        let am = 0, pm = 0;
+        for (const s of filtered) {
+          const amt = amountOf(s);
+          if (amt === 0) continue;
+          if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
+        }
         row["Mañana"] = Math.round(am);
         row["Tarde"] = Math.round(pm);
+      } else if (desglose === "dow") {
+        const acc = new Array(7).fill(0) as number[];
+        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
+        for (let i = 0; i < 7; i++) row[DOW_KEYS[i]] = Math.round(acc[i]);
       } else {
-        row["Total"] = Math.round(am + pm);
+        let total = 0;
+        for (const s of filtered) total += amountOf(s);
+        row["Total"] = Math.round(total);
       }
       rows.push(row);
     }
-    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: period === "historico" };
+    const seriesKeys =
+      desglose === "turno" ? ["Mañana", "Tarde"] :
+      desglose === "dow" ? [...DOW_KEYS] :
+      ["Total"];
+    return { rows, seriesKeys, isLineChart: period === "historico" };
   }
 
   // Determine periods (label + filter fn)
