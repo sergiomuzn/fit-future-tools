@@ -61,7 +61,7 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 // Page
 // ============================================================
 function StatsPage() {
-  const { horario, specialsMap } = useCenterConfig();
+  const { horario, specialsMap, precios } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
     queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
@@ -86,6 +86,10 @@ function StatsPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
+  const { data: groupMembers = [] } = useQuery({
+    queryKey: ["group_members"],
+    queryFn: async () => (await supabase.from("group_members").select("*")).data as { group_id: string; client_id: string }[] ?? [],
+  });
   const clientTipoMap = useMemo(() => {
     const catMap = new Map(catalogo.map((b) => [b.id, b]));
     const sorted = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
@@ -97,6 +101,43 @@ function StatsPage() {
     }
     return m;
   }, [clientBonos, catalogo]);
+  // Precio por sesión por cliente, según su bono más reciente.
+  // - Individual/Pareja/Grupal/Prueba: precio del bono / sesiones incluidas.
+  // - Gympass: se toma de Configuración → precios (gympass_ep / gympass_gr).
+  // - Clientes genéricos ClassPass: precios.classpass.
+  const clientPricePerSessionMap = useMemo(() => {
+    const catMap = new Map(catalogo.map((b) => [b.id, b]));
+    const nameById = new Map(clients.map((c) => [c.id, c.nombre]));
+    const sorted = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    const m = new Map<string, number>();
+    for (const cb of sorted) {
+      if (m.has(cb.client_id)) continue;
+      const cat = cb.bono_catalogo_id ? catMap.get(cb.bono_catalogo_id) : null;
+      const nombreCli = (nameById.get(cb.client_id) ?? "").toLowerCase();
+      const isClassPass = /classpass|claspas/.test(nombreCli);
+      if (isClassPass) { m.set(cb.client_id, precios.classpass); continue; }
+      if (!cat) continue;
+      if (cat.tipo === "gympass") {
+        const n = (cat.nombre ?? "").toLowerCase();
+        const isGr = /\bgr\b|grup/.test(n);
+        m.set(cb.client_id, isGr ? precios.gympass_gr : precios.gympass_ep);
+        continue;
+      }
+      const ses = cat.sesiones_incluidas ?? 0;
+      const price = ses > 0 ? (Number(cat.precio) || 0) / ses : 0;
+      m.set(cb.client_id, price);
+    }
+    return m;
+  }, [clientBonos, catalogo, clients, precios]);
+  const groupClientsMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const gm of groupMembers) {
+      const arr = m.get(gm.group_id) ?? [];
+      arr.push(gm.client_id);
+      m.set(gm.group_id, arr);
+    }
+    return m;
+  }, [groupMembers]);
 
   return (
     <div className="p-6 space-y-6">
@@ -106,7 +147,7 @@ function StatsPage() {
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} />
+      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }
