@@ -61,7 +61,7 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 // Page
 // ============================================================
 function StatsPage() {
-  const { horario, specialsMap } = useCenterConfig();
+  const { horario, specialsMap, precios } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-all"],
     queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
@@ -86,6 +86,10 @@ function StatsPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
+  const { data: groupMembers = [] } = useQuery({
+    queryKey: ["group_members"],
+    queryFn: async () => (await supabase.from("group_members").select("*")).data as { group_id: string; client_id: string }[] ?? [],
+  });
   const clientTipoMap = useMemo(() => {
     const catMap = new Map(catalogo.map((b) => [b.id, b]));
     const sorted = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
@@ -97,6 +101,43 @@ function StatsPage() {
     }
     return m;
   }, [clientBonos, catalogo]);
+  // Precio por sesión por cliente, según su bono más reciente.
+  // - Individual/Pareja/Grupal/Prueba: precio del bono / sesiones incluidas.
+  // - Gympass: se toma de Configuración → precios (gympass_ep / gympass_gr).
+  // - Clientes genéricos ClassPass: precios.classpass.
+  const clientPricePerSessionMap = useMemo(() => {
+    const catMap = new Map(catalogo.map((b) => [b.id, b]));
+    const nameById = new Map(clients.map((c) => [c.id, c.nombre]));
+    const sorted = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+    const m = new Map<string, number>();
+    for (const cb of sorted) {
+      if (m.has(cb.client_id)) continue;
+      const cat = cb.bono_catalogo_id ? catMap.get(cb.bono_catalogo_id) : null;
+      const nombreCli = (nameById.get(cb.client_id) ?? "").toLowerCase();
+      const isClassPass = /classpass|claspas/.test(nombreCli);
+      if (isClassPass) { m.set(cb.client_id, precios.classpass); continue; }
+      if (!cat) continue;
+      if (cat.tipo === "gympass") {
+        const n = (cat.nombre ?? "").toLowerCase();
+        const isGr = /\bgr\b|grup/.test(n);
+        m.set(cb.client_id, isGr ? precios.gympass_gr : precios.gympass_ep);
+        continue;
+      }
+      const ses = cat.sesiones_incluidas ?? 0;
+      const price = ses > 0 ? (Number(cat.precio) || 0) / ses : 0;
+      m.set(cb.client_id, price);
+    }
+    return m;
+  }, [clientBonos, catalogo, clients, precios]);
+  const groupClientsMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const gm of groupMembers) {
+      const arr = m.get(gm.group_id) ?? [];
+      arr.push(gm.client_id);
+      m.set(gm.group_id, arr);
+    }
+    return m;
+  }, [groupMembers]);
 
   return (
     <div className="p-6 space-y-6">
@@ -106,7 +147,7 @@ function StatsPage() {
 
       <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} />
+      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }
@@ -388,7 +429,10 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     porEntrenador:
       "Sesiones por entrenador: número de entrenamientos (realizadas + canceladas contabilizadas, NC excluidas) asignados a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
     facturacion:
-      "Facturación estimada (€): suma del importe de las facturas emitidas dentro del periodo.",
+      "Facturación estimada (€): suma, para cada sesión contabilizada (realizada o cancelada contabilizada) del periodo, del precio por sesión del bono del cliente.\n" +
+      "• Precio por sesión = precio del bono ÷ sesiones incluidas (Individual, Pareja, Grupal, Prueba).\n" +
+      "• Bonos Gympass (EP/GR) y ClassPass usan el precio fijado en Configuración → Precios.\n" +
+      "• Sesiones grupales sin cliente asignado suman el precio por sesión de todos los miembros del grupo.",
     altasBajas:
       "Altas y bajas por mes:\n" +
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
@@ -416,10 +460,12 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap }: {
+function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
+  clientPricePerSessionMap: Map<string, number>;
+  groupClientsMap: Map<string, string[]>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const [metric, setMetric] = useState<Metric>("sesiones");
@@ -516,8 +562,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds],
   );
 
   function handleCsvExport() {
@@ -930,9 +976,11 @@ function buildSeries(args: {
   trainerMap: Map<string, Trainer>;
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
+  clientPricePerSessionMap: Map<string, number>;
+  groupClientsMap: Map<string, string[]>;
   selectedTrainerIds?: string[];
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, selectedTrainerIds = [] } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [] } = args;
   const tipoOf = (s: Session): Session["tipo"] => {
     // Cualquier sesión con grupo cuenta siempre como "grupal",
     // aunque no tenga clientes asignados.
@@ -989,9 +1037,13 @@ function buildSeries(args: {
     return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
   }
 
-  // -------- Facturación estimada (por turno y total, precios fijos) --------
+  // -------- Facturación estimada (por turno, día de la semana o total) --------
+  // Precio por sesión derivado del bono real del cliente:
+  //   • Individual / Pareja / Grupal / Prueba → precio del bono / sesiones incluidas.
+  //   • Gympass (EP/GR) y ClassPass → precios configurados en Configuración.
+  // Para sesiones grupales sin cliente asignado se suman los precios por sesión
+  // de todos los miembros del grupo.
   if (metric === "facturacion") {
-    const PRECIO = { individual: 36, pareja: 49, grupal: 17 } as const;
     const monthsFact = collectMonthList("sessions");
     const inRange = (s: Session, y: number, m: number) =>
       s.fecha >= ymd(monthStart(y, m)) && s.fecha <= ymd(monthEnd(y, m));
@@ -999,24 +1051,42 @@ function buildSeries(args: {
       key, y, m, filter: (s: Session) => inRange(s, y, m),
     }));
     const amountOf = (s: Session): number => {
-      if (s.estado !== "realizada") return 0;
-      const t = tipoOf(s);
-      if (t === "individual") return PRECIO.individual;
-      if (t === "pareja") return PRECIO.pareja;
-      if (t === "grupal") return PRECIO.grupal;
+      if (!countsAsTraining(s)) return 0;
+      if (s.client_id) return clientPricePerSessionMap.get(s.client_id) ?? 0;
+      if (s.group_id) {
+        const members = groupClientsMap.get(s.group_id) ?? [];
+        let total = 0;
+        for (const cid of members) total += clientPricePerSessionMap.get(cid) ?? 0;
+        return total;
+      }
       return 0;
     };
+    const DOW_KEYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+    const dowIdx = (s: Session) => {
+      const d = new Date(s.fecha + "T00:00:00").getDay(); // 0=Dom
+      return d === 0 ? 6 : d - 1;
+    };
     if (period === "mesUnico") {
-      // Un único mes: X = Mañana / Tarde / Total (o solo Total)
       const p = periodsFact[0];
+      if (!p) return { rows: [], seriesKeys: [], isLineChart: false };
+      const filtered = sessions.filter(p.filter);
+      if (desglose === "total") {
+        let total = 0;
+        for (const s of filtered) total += amountOf(s);
+        return { rows: [{ bucket: "Total", [p.key]: Math.round(total) }], seriesKeys: [p.key], isLineChart: false };
+      }
+      if (desglose === "dow") {
+        const acc = new Array(7).fill(0) as number[];
+        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
+        const rows: SeriesRow[] = DOW_KEYS.map((k, i) => ({ bucket: k, [p.key]: Math.round(acc[i]) }));
+        return { rows, seriesKeys: [p.key], isLineChart: false };
+      }
+      // turno
       let am = 0, pm = 0;
-      for (const s of sessions.filter(p.filter)) {
+      for (const s of filtered) {
         const amt = amountOf(s);
         if (amt === 0) continue;
         if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
-      }
-      if (desglose === "total") {
-        return { rows: [{ bucket: "Total", [p.key]: Math.round(am + pm) }], seriesKeys: [p.key], isLineChart: false };
       }
       const rows: SeriesRow[] = [
         { bucket: "Mañana", [p.key]: Math.round(am) },
@@ -1025,25 +1095,36 @@ function buildSeries(args: {
       ];
       return { rows, seriesKeys: [p.key], isLineChart: false };
     }
-    // comparar / historico: X = meses, series = Mañana/Tarde (o Total)
+    // comparar / historico: X = meses; series según desglose
     const rows: SeriesRow[] = [];
     for (const p of periodsFact) {
-      let am = 0, pm = 0;
-      for (const s of sessions.filter(p.filter)) {
-        const amt = amountOf(s);
-        if (amt === 0) continue;
-        if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
-      }
+      const filtered = sessions.filter(p.filter);
       const row: SeriesRow = { bucket: p.key };
       if (desglose === "turno") {
+        let am = 0, pm = 0;
+        for (const s of filtered) {
+          const amt = amountOf(s);
+          if (amt === 0) continue;
+          if (hourOf(s.hora_inicio) < 14) am += amt; else pm += amt;
+        }
         row["Mañana"] = Math.round(am);
         row["Tarde"] = Math.round(pm);
+      } else if (desglose === "dow") {
+        const acc = new Array(7).fill(0) as number[];
+        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
+        for (let i = 0; i < 7; i++) row[DOW_KEYS[i]] = Math.round(acc[i]);
       } else {
-        row["Total"] = Math.round(am + pm);
+        let total = 0;
+        for (const s of filtered) total += amountOf(s);
+        row["Total"] = Math.round(total);
       }
       rows.push(row);
     }
-    return { rows, seriesKeys: desglose === "turno" ? ["Mañana", "Tarde"] : ["Total"], isLineChart: period === "historico" };
+    const seriesKeys =
+      desglose === "turno" ? ["Mañana", "Tarde"] :
+      desglose === "dow" ? [...DOW_KEYS] :
+      ["Total"];
+    return { rows, seriesKeys, isLineChart: period === "historico" };
   }
 
   // Determine periods (label + filter fn)
