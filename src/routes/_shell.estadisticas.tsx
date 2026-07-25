@@ -429,7 +429,10 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     porEntrenador:
       "Sesiones por entrenador: número de entrenamientos (realizadas + canceladas contabilizadas, NC excluidas) asignados a cada entrenador dentro del periodo. Sólo se muestra el mes actual.",
     facturacion:
-      "Facturación estimada (€): suma del importe de las facturas emitidas dentro del periodo.",
+      "Facturación estimada (€): suma, para cada sesión contabilizada (realizada o cancelada contabilizada) del periodo, del precio por sesión del bono del cliente.\n" +
+      "• Precio por sesión = precio del bono ÷ sesiones incluidas (Individual, Pareja, Grupal, Prueba).\n" +
+      "• Bonos Gympass (EP/GR) y ClassPass usan el precio fijado en Configuración → Precios.\n" +
+      "• Sesiones grupales sin cliente asignado suman el precio por sesión de todos los miembros del grupo.",
     altasBajas:
       "Altas y bajas por mes:\n" +
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
