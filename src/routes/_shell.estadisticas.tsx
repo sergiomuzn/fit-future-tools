@@ -1061,10 +1061,11 @@ function buildSeries(args: {
       }
       return 0;
     };
-    const DOW_KEYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+    const DOW_KEYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
+    // Devuelve el índice 0..5 (Lun..Sáb) o -1 si es domingo (se omite).
     const dowIdx = (s: Session) => {
       const d = new Date(s.fecha + "T00:00:00").getDay(); // 0=Dom
-      return d === 0 ? 6 : d - 1;
+      return d === 0 ? -1 : d - 1;
     };
     if (period === "mesUnico") {
       const p = periodsFact[0];
@@ -1076,8 +1077,12 @@ function buildSeries(args: {
         return { rows: [{ bucket: "Total", [p.key]: Math.round(total) }], seriesKeys: [p.key], isLineChart: false };
       }
       if (desglose === "dow") {
-        const acc = new Array(7).fill(0) as number[];
-        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
+        const acc = new Array(6).fill(0) as number[];
+        for (const s of filtered) {
+          const i = dowIdx(s);
+          if (i < 0) continue;
+          acc[i] += amountOf(s);
+        }
         const rows: SeriesRow[] = DOW_KEYS.map((k, i) => ({ bucket: k, [p.key]: Math.round(acc[i]) }));
         return { rows, seriesKeys: [p.key], isLineChart: false };
       }
@@ -1110,9 +1115,13 @@ function buildSeries(args: {
         row["Mañana"] = Math.round(am);
         row["Tarde"] = Math.round(pm);
       } else if (desglose === "dow") {
-        const acc = new Array(7).fill(0) as number[];
-        for (const s of filtered) acc[dowIdx(s)] += amountOf(s);
-        for (let i = 0; i < 7; i++) row[DOW_KEYS[i]] = Math.round(acc[i]);
+        const acc = new Array(6).fill(0) as number[];
+        for (const s of filtered) {
+          const i = dowIdx(s);
+          if (i < 0) continue;
+          acc[i] += amountOf(s);
+        }
+        for (let i = 0; i < 6; i++) row[DOW_KEYS[i]] = Math.round(acc[i]);
       } else {
         let total = 0;
         for (const s of filtered) total += amountOf(s);
