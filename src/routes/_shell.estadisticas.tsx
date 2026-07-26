@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
+import { supabase, formatTipoBono, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -468,6 +468,13 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   groupClientsMap: Map<string, string[]>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
+  const { data: catalogoTiposList = [] } = useQuery({
+    queryKey: ["bonos_catalogo_tipos"],
+    queryFn: async () => {
+      const { data } = await supabase.from("bonos_catalogo").select("tipo");
+      return Array.from(new Set(((data ?? []) as { tipo: string }[]).map((r) => r.tipo)));
+    },
+  });
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
@@ -562,8 +569,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList],
   );
 
   function handleCsvExport() {
@@ -592,10 +599,10 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    if (lower === "individual") return tipoColores.individual;
-    if (lower === "pareja") return tipoColores.pareja;
-    if (lower === "grupal") return tipoColores.grupal;
-    if (lower === "gympass") return tipoColores.gympass;
+    // Buscar el color por tipo de bono a partir del label (formatTipoBono).
+    for (const [tipoKey, hex] of Object.entries(tipoColores)) {
+      if (formatTipoBono(tipoKey).toLowerCase() === lower) return hex;
+    }
     return palette[idx % palette.length];
   };
 
@@ -979,8 +986,13 @@ function buildSeries(args: {
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
   selectedTrainerIds?: string[];
+  catalogoTipos?: string[];
 }): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [] } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
+  const knownTipos = Array.from(new Set<string>([
+    "individual", "pareja", "grupal", "gympass", "prueba",
+    ...catalogoTipos,
+  ]));
   const tipoOf = (s: Session): Session["tipo"] => {
     // Cualquier sesión con grupo cuenta siempre como "grupal",
     // aunque no tenga clientes asignados.
@@ -1154,7 +1166,7 @@ function buildSeries(args: {
     if (desglose === "turno") return ["Mañana", "Tarde"];
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
-    return ["Individual", "Pareja", "Grupal", "Gympass"];
+    return knownTipos.map((t) => formatTipoBono(t));
   })();
 
   const bucketOf = (s: Session): string | null => {
@@ -1172,13 +1184,9 @@ function buildSeries(args: {
     }
     // tipoSesion → tipo de bono del cliente
     const t = tipoOf(s);
-    switch (t) {
-      case "individual": return "Individual";
-      case "pareja": return "Pareja";
-      case "grupal": return "Grupal";
-      case "gympass": return "Gympass";
-      default: return null;
-    }
+    if (!t) return null;
+    if (!knownTipos.includes(t as string)) return null;
+    return formatTipoBono(t as string);
   };
 
   // For metric = porEntrenador we produce multiple series per period.

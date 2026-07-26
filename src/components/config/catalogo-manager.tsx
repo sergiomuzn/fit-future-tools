@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, GripVertical } from "lucide-react";
-import { supabase, prettyBonoNombre, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, formatTipoBono, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,13 +25,62 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 
-const TIPO_LABEL: Record<string, string> = { individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
+const NEW_TIPO_SENTINEL = "__nuevo__";
+const BUILTIN_TIPOS = ["individual", "pareja", "grupal", "gympass", "prueba"];
+
+function TipoSelect({
+  value,
+  onChange,
+  options,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  options: string[];
+}) {
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState("");
+  const isKnown = options.includes(value);
+  if (creating) {
+    return (
+      <div className="flex gap-1">
+        <Input
+          autoFocus
+          className="h-8"
+          placeholder="nuevo tipo"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ""))}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && draft.trim()) { onChange(draft.trim()); setCreating(false); setDraft(""); }
+            if (e.key === "Escape") { setCreating(false); setDraft(""); }
+          }}
+          onBlur={() => { if (draft.trim()) { onChange(draft.trim()); } setCreating(false); setDraft(""); }}
+        />
+      </div>
+    );
+  }
+  return (
+    <Select
+      value={isKnown ? value : NEW_TIPO_SENTINEL}
+      onValueChange={(v) => {
+        if (v === NEW_TIPO_SENTINEL) { setCreating(true); return; }
+        onChange(v);
+      }}
+    >
+      <SelectTrigger className="h-8"><SelectValue>{formatTipoBono(value) || "—"}</SelectValue></SelectTrigger>
+      <SelectContent>
+        {options.map((t) => <SelectItem key={t} value={t}>{formatTipoBono(t)}</SelectItem>)}
+        <SelectItem value={NEW_TIPO_SENTINEL}>+ Nuevo tipo…</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
 
 function SortableRow({
   c,
   i,
   sortedLength,
   drafts,
+  tipoOptions,
   getVal,
   setVal,
   removeRow,
@@ -40,6 +89,7 @@ function SortableRow({
   i: number;
   sortedLength: number;
   drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
+  tipoOptions: string[];
   getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
   setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
   removeRow: (c: BonoCatalogo) => Promise<void>;
@@ -74,12 +124,11 @@ function SortableRow({
         </div>
       </TableCell>
       <TableCell className="w-40">
-        <Select value={getVal(c, "tipo")} onValueChange={(v) => setVal(c, "tipo", v)}>
-          <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <TipoSelect
+          value={getVal(c, "tipo")}
+          onChange={(v) => setVal(c, "tipo", v)}
+          options={tipoOptions}
+        />
       </TableCell>
       <TableCell className="font-medium">{prettyBonoNombre(c.nombre)}</TableCell>
       <TableCell className="w-24">
@@ -184,6 +233,11 @@ export function CatalogoManager() {
 
   const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
   const dirtyCount = Object.keys(drafts).length;
+  const tipoOptions = useMemo(() => {
+    const s = new Set<string>(BUILTIN_TIPOS);
+    for (const c of catalogo) if (c.tipo) s.add(c.tipo);
+    return Array.from(s);
+  }, [catalogo]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
@@ -255,6 +309,7 @@ export function CatalogoManager() {
                     i={i}
                     sortedLength={sorted.length}
                     drafts={drafts}
+                    tipoOptions={tipoOptions}
                     getVal={getVal}
                     setVal={setVal}
                     removeRow={removeRow}
@@ -265,12 +320,11 @@ export function CatalogoManager() {
                 <TableRow>
                   <TableCell className="w-10"></TableCell>
                   <TableCell className="w-40">
-                    <Select value={nuevo.tipo} onValueChange={(v) => setNuevo({ ...nuevo, tipo: v })}>
-                      <SelectTrigger className="h-8"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(TIPO_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
+                    <TipoSelect
+                      value={nuevo.tipo}
+                      onChange={(v) => setNuevo({ ...nuevo, tipo: v })}
+                      options={tipoOptions}
+                    />
                   </TableCell>
                   <TableCell>
                     <Input className="h-8" placeholder="Nombre (p. ej. 10 ses 45')" value={nuevo.nombre}

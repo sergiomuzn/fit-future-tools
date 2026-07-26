@@ -22,7 +22,7 @@ export type Database = {
           orden: number
           precio: number
           sesiones_incluidas: number
-          tipo: Database["public"]["Enums"]["bono_tipo"]
+          tipo: string
         }
         Insert: {
           duracion_min?: number | null
@@ -31,7 +31,7 @@ export type Database = {
           orden?: number
           precio: number
           sesiones_incluidas: number
-          tipo: Database["public"]["Enums"]["bono_tipo"]
+          tipo: string
         }
         Update: {
           duracion_min?: number | null
@@ -40,7 +40,7 @@ export type Database = {
           orden?: number
           precio?: number
           sesiones_incluidas?: number
-          tipo?: Database["public"]["Enums"]["bono_tipo"]
+          tipo?: string
         }
         Relationships: []
       }
@@ -364,7 +364,7 @@ export type Database = {
           ocupacion: number
           por_confirmar: boolean
           recurrencia_id: string | null
-          tipo: Database["public"]["Enums"]["bono_tipo"] | null
+          tipo: string | null
           titulo: string | null
           trainer_id: string | null
           updated_at: string
@@ -383,7 +383,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
-          tipo?: Database["public"]["Enums"]["bono_tipo"] | null
+          tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
           updated_at?: string
@@ -402,7 +402,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
-          tipo?: Database["public"]["Enums"]["bono_tipo"] | null
+          tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
           updated_at?: string
@@ -511,20 +511,20 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      apply_invoice_row:
-        | {
-            Args: { p_bono_cat: string; p_client: string; p_fecha: string }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_bono_cat: string
-              p_client: string
-              p_fecha: string
-              p_sesiones_override?: number
-            }
-            Returns: undefined
-          }
+      apply_invoice_row: {
+        Args: {
+          p_bono_cat: string
+          p_client: string
+          p_fecha: string
+          p_sesiones_override?: number
+        }
+        Returns: undefined
+      }
+      auto_deactivate_prueba_clients: { Args: never; Returns: number }
+      ensure_prueba_bono: {
+        Args: { p_client: string; p_fecha: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

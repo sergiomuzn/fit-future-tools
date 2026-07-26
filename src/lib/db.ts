@@ -11,7 +11,9 @@ export type Group = Database["public"]["Tables"]["groups"]["Row"];
 export type GroupSchedule = Database["public"]["Tables"]["group_schedules"]["Row"];
 export type GroupMember = Database["public"]["Tables"]["group_members"]["Row"];
 export type SesionEstado = Database["public"]["Enums"]["sesion_estado"];
-export type BonoTipo = Database["public"]["Enums"]["bono_tipo"];
+// `bono_tipo` era un enum; ahora es texto libre para permitir crear tipos nuevos
+// desde Configuración. Mantenemos el alias por compatibilidad.
+export type BonoTipo = string;
 
 export const DIAS_SEMANA = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"] as const;
 export const DIAS_SEMANA_LONG = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"] as const;
@@ -51,4 +53,18 @@ export function prettyBonoNombre(nombre?: string | null): string {
 /** Ordena catálogo por el `orden` configurado en Configuración del centro. */
 export function sortCatalogo<T extends { orden: number }>(items: T[]): T[] {
   return [...items].sort((a, b) => a.orden - b.orden);
+}
+
+/** Etiqueta legible para un tipo de bono (soporta tipos creados por el usuario). */
+export function formatTipoBono(tipo?: string | null): string {
+  if (!tipo) return "";
+  const known: Record<string, string> = {
+    individual: "Individual",
+    pareja: "Pareja",
+    grupal: "Grupal",
+    gympass: "Gympass",
+    prueba: "Prueba",
+  };
+  if (known[tipo]) return known[tipo];
+  return tipo.charAt(0).toUpperCase() + tipo.slice(1);
 }

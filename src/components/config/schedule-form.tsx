@@ -1,10 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from "@tanstack/react-query";
+import { formatTipoBono, type BonoCatalogo } from "@/lib/db";
 import { toast } from "sonner";
 import {
   useCenterConfig, DEFAULT_HORARIO, DEFAULT_PRECIOS,
@@ -96,6 +98,15 @@ export function PreciosForm() {
   const { horario, precios, colores, invalidate, isLoading } = useCenterConfig();
   const [local, setLocal] = useState<Precios>(precios);
   const [localColores, setLocalColores] = useState<TipoColores>(colores);
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("tipo").order("orden")).data as { tipo: string }[] ?? [],
+  });
+  const tipoKeys = useMemo(() => {
+    const s = new Set<string>(["individual", "pareja", "grupal", "gympass", "prueba"]);
+    for (const c of catalogo) if (c.tipo) s.add(c.tipo);
+    return Array.from(s);
+  }, [catalogo]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -116,12 +127,7 @@ export function PreciosForm() {
     invalidate();
   }
 
-  const COLOR_ROWS: { key: keyof TipoColores; label: string }[] = [
-    { key: "individual", label: "Individual" },
-    { key: "pareja", label: "Pareja" },
-    { key: "grupal", label: "Grupal" },
-    { key: "gympass", label: "Gympass" },
-  ];
+  const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
 
   return (
     <Card>
@@ -156,12 +162,12 @@ export function PreciosForm() {
                   <input
                     type="color"
                     className="h-9 w-12 rounded border border-input bg-background cursor-pointer"
-                    value={localColores[row.key]}
+                    value={localColores[row.key] ?? "#888888"}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                   <Input
                     className="font-mono uppercase"
-                    value={localColores[row.key]}
+                    value={localColores[row.key] ?? "#888888"}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                 </div>

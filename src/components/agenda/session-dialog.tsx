@@ -315,6 +315,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
+      // Si es una sesión de prueba con un cliente asignado, aseguramos que el
+      // cliente quede registrado con un bono "Prueba" activo (sin factura).
+      if (!error && !grupo && clientId && base.estado === "prueba") {
+        await supabase.rpc("ensure_prueba_bono" as never, {
+          p_client: clientId,
+          p_fecha: session.fecha!,
+        } as never);
+        qc.invalidateQueries({ queryKey: ["client_bonos"] });
+        qc.invalidateQueries({ queryKey: ["clients"] });
+      }
     } else {
       // Campos compartidos entre miembros de un grupo (mismo día).
       const sharedGroupFields = {
