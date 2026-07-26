@@ -16,12 +16,7 @@ export type Precios = {
   classpass: number;
 };
 
-export type TipoColores = {
-  individual: string;
-  pareja: string;
-  grupal: string;
-  gympass: string;
-};
+export type TipoColores = Record<string, string>;
 
 export const DEFAULT_HORARIO: HorarioBase = {
   "0": null,
@@ -46,6 +41,7 @@ export const DEFAULT_TIPO_COLORES: TipoColores = {
   pareja: "#a855f7",
   grupal: "#f59e0b",
   gympass: "#ec4899",
+  prueba: "#1CDB14",
 };
 
 export function ymd(d: Date): string {
@@ -159,7 +155,7 @@ export function useCenterConfig() {
   const horario: HorarioBase = (cfg.data?.horario_base as unknown as HorarioBase) ?? DEFAULT_HORARIO;
   const preciosRaw = (cfg.data?.precios as unknown as Partial<Precios>) ?? {};
   const precios: Precios = { ...DEFAULT_PRECIOS, ...preciosRaw };
-  const coloresRaw = ((cfg.data as unknown as { colores?: Partial<TipoColores> } | null)?.colores) ?? {};
+  const coloresRaw = ((cfg.data as unknown as { colores?: Record<string, string> } | null)?.colores) ?? {};
   const colores: TipoColores = { ...DEFAULT_TIPO_COLORES, ...coloresRaw };
   const specialsMap = new Map<string, SpecialDay>();
   for (const s of special.data ?? []) specialsMap.set(s.fecha, s);

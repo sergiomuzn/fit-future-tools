@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, X, Info } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,8 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog } from "@/components/groups/group-dialog";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { useEffect } from "react";
+import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -31,6 +33,17 @@ function ClientesPage() {
   const [tab, setTab] = useState<"clientes" | "grupos">("clientes");
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupEditing, setGroupEditing] = useState<Group | null>(null);
+
+  // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
+  useEffect(() => {
+    (async () => {
+      const { error } = await supabase.rpc("auto_deactivate_prueba_clients" as never);
+      if (!error) {
+        qc.invalidateQueries({ queryKey: ["clients"] });
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -101,7 +114,25 @@ function ClientesPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-semibold">Clientes</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-display font-semibold">Clientes</h1>
+          <TooltipProvider>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button type="button" className="text-muted-foreground hover:text-foreground">
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm text-xs leading-relaxed">
+                Cuando se registra por primera vez una sesión de <b>Prueba</b> con un cliente,
+                se le asigna automáticamente el bono <b>Prueba</b> y pasa a estar <b>Activo</b>.
+                Si transcurre <b>1 mes</b> sin que ese cliente reciba un nuevo bono (facturación),
+                su estado pasa a <b>Inactivo</b> automáticamente, pero conserva el bono de prueba
+                como su último tipo, igual que ocurre con el resto de clientes.
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
+        </div>
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({

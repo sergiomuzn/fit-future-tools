@@ -1,91 +1,50 @@
 
-# Plan: Configuración del centro y Estadísticas
+## 1. Migración de base de datos
 
-## 1. Base de datos (migración)
+- **`bono_tipo` enum → `text`**: convertir `bonos_catalogo.tipo` y `sessions.tipo` a texto libre. Se conservan los valores existentes. Se recrean las funciones (`apply_invoice_row`, `log_client_alta`, `revert_invoice_row`) para comparar `= 'prueba'` en texto.
+- **Bono "Prueba" en catálogo**: si no existe ya, insertar `nombre='Prueba'`, `tipo='prueba'`, `sesiones_incluidas=1`, `precio=10`.
+- **Función `auto_deactivate_prueba_clients()`**: marca `clients.activo = false` para clientes cuyo único bono activo sea tipo `prueba` y cuya `fecha_inicio` sea > 30 días. Se llama desde el frontend al abrir la pestaña Clientes (idempotente).
+- **Función `ensure_prueba_bono(p_client uuid, p_fecha date)`**: crea un `client_bonos` de tipo prueba (1 sesión, activo) para el cliente si no tiene ninguno todavía. Se llama al crear una sesión de estado "prueba" desde el frontend.
 
-Dos tablas nuevas + una para precios editables:
+## 2. Configuración → Tipos de bono
 
-- `center_config` (singleton, key/value JSON): guarda horario base semanal y precios medios.
-  - `horario_base`: `{ lun:{open,close}, mar:..., ..., dom: null }` (dom cerrado por defecto).
-  - `precios`: `{ individual:36, pareja:49, grupal:17 }`.
-- `special_days`:
-  - `fecha date PK`
-  - `tipo`: enum `cerrado | horario_especial` (los "horario modificado puntual" se tratan igual que `horario_especial`; la diferencia es solo etiqueta opcional)
-  - `hora_apertura time null`, `hora_cierre time null`
-  - `etiqueta text null` (ej. "Festivo", "Puente")
-- Grants + RLS abiertas (siguiendo el patrón del resto de tablas).
+`src/components/config/catalogo-manager.tsx`:
+- Sustituir el `Select` cerrado (`individual/pareja/grupal/gympass`) por un **Combobox**: muestra los tipos ya usados en el catálogo (incluido `prueba` ahora) + opción "Nuevo tipo…" que abre un input libre.
+- Al guardar, el `tipo` se envía tal cual como texto.
 
-## 2. Sidebar
+`src/components/config/schedule-form.tsx` (PreciosForm):
+- Lista dinámica de tipos leídos del catálogo, en vez de las 4 filas fijas. Cada tipo tiene su input de color (persistido en `center_config.colores` por clave).
 
-Añadir entrada **"Configuración"** (`/configuracion`) con icono `Settings` en `src/routes/_shell.tsx`.
+## 3. Sesión de prueba → bono automático
 
-## 3. Ruta `/configuracion`
+`src/components/agenda/session-dialog.tsx`:
+- Al guardar una sesión nueva individual con `estado='prueba'` y `clientId` asignado: llamar `supabase.rpc('ensure_prueba_bono', ...)` para dar de alta al cliente con bono prueba (activo).
+- No se crea factura.
 
-Archivo `src/routes/_shell.configuracion.tsx`. Dos bloques:
+## 4. Estadísticas — "Prueba" como tipo real
 
-### a) Horario base y precios
-- Formulario con 7 filas (lun-dom): checkbox "abierto" + inputs `open`/`close`.
-- Defaults: L-V 06:45-22:00, S 09:00-14:00, D cerrado.
-- Sección "Precios medios" con 3 inputs (individual, pareja, grupal). Guardado en `center_config`. Nota: cambios afectan a cálculos futuros pero no borran nada — el histórico se recalcula con los precios actuales (aceptable porque son "precios medios estimados"; documentado en la UI).
+`src/routes/_shell.estadisticas.tsx`:
+- `tipoOf` deja de descartar `prueba`: devuelve `'prueba'` cuando el bono activo del cliente es de ese tipo (o la sesión es `estado='prueba'` sin bono).
+- Color por defecto de `prueba` sale de `center_config.colores.prueba` con fallback verde (`#1CDB14`, ya existe).
+- Se elimina la razón "Sesión de prueba" del banner de sin clasificar (ya no aplica).
 
-### b) Calendario de días especiales
-- Toggle vista **Anual** (grid de 12 mini-meses) / **Mensual** (calendario grande).
-- Click en día abre diálogo: `Normal | Cerrado | Horario especial`; si especial, inputs de apertura/cierre + etiqueta opcional.
-- Días cerrados: badge rojo "Cerrado". Días con horario especial: badge ámbar con horas.
+## 5. Clientes — icono de información y auto-inactivo
 
-## 4. Helpers `src/lib/center-schedule.ts`
+`src/routes/_shell.clientes.tsx`:
+- Al montar, invocar `supabase.rpc('auto_deactivate_prueba_clients')` y luego invalidar la query de clientes.
+- Añadir `Info` con `Tooltip` en el header de la lista explicando:
+  > "Un cliente con bono de prueba pasa automáticamente a **inactivo** un mes después de la sesión de prueba si no se registra un bono nuevo en Facturación. El tipo de bono se conserva."
 
-- `getDaySchedule(date, config, specialDays)` → `{ open:Date, close:Date } | null` (null = cerrado).
-- `getPeriodCapacity(start, end, config, specialDays)` → `{ workingDays, totalOpenMinutes, capacityMinutes /* ×3 */ }`.
-- `minutesInHourSlot(date, hour, config, specialDays)` → minutos abiertos dentro de esa hora concreta (para ocupación por franja).
-- Hook `useCenterConfig()` con React Query que cachea config + special_days y expone helpers.
+## 6. Labels dinámicos
 
-## 5. Integración en Agenda
-
-En `src/components/agenda/agenda-grid.tsx`:
-- Si el día actual está **cerrado**: overlay grande "Festivo · Cerrado" + no permitir crear sesiones (bloquear click y drag).
-- Si tiene **horario especial**: banner arriba "Horario especial: HH:MM–HH:MM" (solo aviso visual, sesiones fuera permitidas según decisión del usuario).
-
-## 6. Rediseño de Estadísticas
-
-Reescribir `src/routes/_shell.estadisticas.tsx` con selector de periodo (fecha inicio/fin + presets: Hoy, Semana, Mes, Año, Personalizado) y 3 tabs:
-
-### Tab 1 — Entrenamientos por franja
-- Bar chart: eje X = franjas horarias del día (dinámicas según horario más amplio del periodo), Y = nº sesiones iniciadas en esa franja.
-- Sesiones cuya `hora_inicio` cae dentro de `[H:00, H+1:00)` cuentan íntegras.
-- Filtra `estado in (realizada, cancelada donde no_contabilizar=false)`.
-- Botón "Exportar CSV".
-
-### Tab 2 — Ocupación %
-- KPIs arriba: ocupación total del periodo, mañana, tarde.
-- Bar chart por franja horaria: `%` = minutos_ocupados_en_esa_franja / (minutos_abiertos_en_esa_franja × 3 × nº_días).
-- Minutos ocupados por sesión = `(fin - inicio) × espacios` donde espacios = 2 si `tipo=grupal` else 1. Sesión asignada íntegra a la franja de inicio.
-- Solo cuentan sesiones `realizada` o `cancelada no_contabilizar=false`.
-- Botón CSV.
-
-### Tab 3 — Facturación estimada
-- KPIs: total, mañana, tarde.
-- Precio = precio_tipo × asistentes (individual=1, pareja=2, grupal=`ocupacion`).
-- Turno mañana = inicio < 14:00, tarde = ≥14:00.
-- Gráfica de barras mañana vs tarde + tabla desglose por día (opcional).
-- Botón CSV.
-
-## 7. Detalles técnicos
-
-- Todas las consultas usan `supabase` cliente ya existente.
-- Reactividad: los helpers derivan todo desde React Query; al invalidar `center_config` o `special_days` se recalcula sin refrescar.
-- Precios editables: se guardan como JSON en `center_config.precios`; se aplican a cualquier cálculo posterior. No se persiste facturación histórica (siempre se recalcula).
-- Franjas horarias del gráfico: calculadas por día real (si un día abre 6:45 la franja 6 tiene 15 min de capacidad, y 60 min los demás), sumadas en el periodo.
+Reemplazar los `TIPO_LABEL` fijos en `_shell.bonos.tsx`, `_shell.clientes.tsx`, `_shell.facturacion.tsx`, `_shell.sesiones.tsx`, `client-details-dialog.tsx` por una función pequeña `formatTipoBono(t)` (capitaliza) que aparte reconozca `prueba` → "Prueba".
 
 ## Archivos
 
-- **Nuevos**: `src/routes/_shell.configuracion.tsx`, `src/lib/center-schedule.ts`, `src/components/config/schedule-form.tsx`, `src/components/config/special-days-calendar.tsx`, `src/components/config/day-editor-dialog.tsx`.
-- **Editados**: `src/routes/_shell.tsx` (nav), `src/routes/_shell.estadisticas.tsx` (reescrito), `src/components/agenda/agenda-grid.tsx` (bloqueo días cerrados + banner).
-- **Migración**: `center_config`, `special_days` con grants + RLS abiertas.
+- **Migración nueva** (un solo call): conversión de enum, catálogo prueba, funciones RPC.
+- **Editados**: `catalogo-manager.tsx`, `schedule-form.tsx`, `session-dialog.tsx`, `_shell.estadisticas.tsx`, `_shell.clientes.tsx`, `db.ts` (tipo `BonoTipo = string`), y helpers de label en los 4-5 ficheros arriba.
 
-## Confirmaciones pendientes menores
+## Notas
 
-Voy a asumir estos criterios salvo que digas lo contrario:
-1. Precios editables afectan al recálculo del histórico (no se congelan por sesión).
-2. Días "horario modificado puntual" ≡ "festivo con horario especial" en datos — la diferencia es la etiqueta.
-3. En la agenda de un día cerrado no se pueden crear/mover sesiones; sí se ven las ya existentes.
+- Los colores de tipos existentes (Individual, Pareja, Grupal, Gympass) se conservan. Un tipo nuevo empieza con un color neutro y se puede ajustar desde Configuración → Precios/Colores.
+- Regenerar `src/integrations/supabase/types.ts` es automático tras aprobar la migración.
