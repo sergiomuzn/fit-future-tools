@@ -778,10 +778,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </UITooltip>
           </div>
         </UITooltipProvider>
-        {unclassified && unclassified.count > 0 && (
-        <>
-        </>
-        )}
         {isCurrentComboNonDefault && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
             <div className="flex items-start gap-2">
