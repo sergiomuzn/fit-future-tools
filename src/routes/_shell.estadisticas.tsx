@@ -477,6 +477,30 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
+  const statsConfig = useStatsConfig();
+
+  // Compatibilidad efectiva: la del usuario (Config → Estadísticas), acotada
+  // por las reglas de periodo definidas por el negocio.
+  const isDesgloseAllowedForMetric = (mm: Metric, dd: Desglose): boolean =>
+    !!statsConfig.compat[mm]?.[dd];
+  const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
+    isDesgloseAllowedForMetric(mm, dd) && isPeriodAllowedForMetric(mm, pp);
+  const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
+    const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
+    for (const d of order) if (isValidCombo(mm, d, pp)) return d;
+    return "total";
+  };
+  const firstValidPeriod = (mm: Metric, dd: Desglose): PeriodMode => {
+    const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
+    for (const p of order) if (isValidCombo(mm, dd, p)) return p;
+    return "mesUnico";
+  };
+
+  // ¿La combinación seleccionada es "no recomendada" (activada por el usuario
+  // pero fuera de las combinaciones por defecto)?
+  const isCurrentComboNonDefault =
+    !isValidComboDefault(metric, desglose, period) &&
+    isValidCombo(metric, desglose, period);
 
   // Al cambiar de métrica limpiamos la selección para evitar estados raros.
   useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
