@@ -365,9 +365,11 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   historico: "Histórico (todos los meses)",
 };
 
-// Reglas de combinaciones válidas (métrica, desglose, periodo).
+// Reglas de combinaciones válidas (métrica, desglose, periodo) por DEFECTO.
+// La compatibilidad métrica × desglose puede ampliarse/restringirse desde
+// Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
-function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
+function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
   if (metric === "altasBajas") {
     return desglose === "total";
   }
@@ -397,7 +399,7 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
   }
   return true;
 }
-function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
+function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
   if (metric === "altasBajas") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
@@ -406,15 +408,10 @@ function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
 }
-function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
-  const order: Desglose[] = ["turno", "tipoSesion", "dow", "franja"];
-  for (const d of order) if (isValidCombo(metric, d, period)) return d;
-  return "total";
-}
-function firstValidPeriod(metric: Metric, desglose: Desglose): PeriodMode {
-  const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
-  for (const p of order) if (isValidCombo(metric, desglose, p)) return p;
-  return "mesUnico";
+/** Restricciones de periodo por métrica, independientes de la configuración. */
+function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
+  if (metric === "porEntrenador") return period === "mesUnico";
+  return true;
 }
 
 function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): string {
