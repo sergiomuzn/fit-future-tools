@@ -779,6 +779,25 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           </div>
         </UITooltipProvider>
         {unclassified && unclassified.count > 0 && (
+        <>
+        </>
+        )}
+        {isCurrentComboNonDefault && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="text-amber-900 dark:text-amber-100">
+                <div className="font-semibold">Combinación no recomendada</div>
+                <div className="opacity-90">
+                  Esta métrica y desglose no forman parte de las combinaciones recomendadas por defecto.
+                  Los resultados podrían no ser representativos. Puedes gestionar las combinaciones activas
+                  desde Configuración → Estadísticas.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {unclassified && unclassified.count > 0 && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
             <div className="flex items-start gap-2">
               <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
