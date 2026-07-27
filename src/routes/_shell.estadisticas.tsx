@@ -211,14 +211,17 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
-  const kpis = [
+  const statsConfig = useStatsConfig();
+  const allKpis: { id: StatsKpiKey; label: string; value: string; hint: string; info: string }[] = [
     {
+      id: "entrenamientos",
       label: "Entrenamientos totales",
       value: String(realizadas.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
       info: "Suma de sesiones que cuentan como entrenamiento (realizadas + canceladas contabilizadas) dentro del mes seleccionado. Las canceladas marcadas como 'No contabilizar' (NC) quedan excluidas. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
+      id: "ocupacion",
       label: "Ocupación media del centro",
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: isCurrentMonth ? "Acumulado hasta hoy" : `${MES_LABEL[m]} ${y}`,
@@ -234,18 +237,21 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
         `Actual: ${Math.round(occupiedMin)} min ocupados de ${Math.round(capacityMin)} min disponibles.`,
     },
     {
+      id: "altas",
       label: "Altas del mes",
       value: String(altasMes),
       hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}`,
       info: "Número de clientes cuyo primer bono (individual, pareja o grupal) se ha registrado dentro del mes seleccionado. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).",
     },
     {
+      id: "bajas",
       label: "Bajas del mes",
       value: String(bajasMes),
       hint: `Clientes que pasaron a inactivo`,
       info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
     },
   ];
+  const kpis = allKpis.filter((k) => statsConfig.kpis[k.id]);
 
   return (
     <div className="space-y-3">
