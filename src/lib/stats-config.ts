@@ -88,10 +88,11 @@ const EVENT_NAME = "stats-config-changed";
 function mergeCompat(saved: Partial<StatsCompatMatrix> | undefined): StatsCompatMatrix {
   const out = {} as StatsCompatMatrix;
   for (const m of STATS_METRICS) {
-    const savedRow = saved?.[m] ?? {};
+    const savedRow = (saved?.[m] ?? {}) as Partial<Record<StatsDesglose, boolean>>;
     const row = {} as Record<StatsDesglose, boolean>;
     for (const d of STATS_DESGLOSES) {
-      row[d] = typeof savedRow[d] === "boolean" ? (savedRow[d] as boolean) : DEFAULT_COMPAT[m][d];
+      const v = savedRow[d];
+      row[d] = typeof v === "boolean" ? v : DEFAULT_COMPAT[m][d];
     }
     out[m] = row;
   }
