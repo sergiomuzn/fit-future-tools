@@ -18,6 +18,7 @@ import {
 } from "@/lib/center-schedule";
 import { trainerColor } from "@/lib/trainer-colors";
 import { cn } from "@/lib/utils";
+import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
@@ -210,14 +211,17 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
 
-  const kpis = [
+  const statsConfig = useStatsConfig();
+  const allKpis: { id: StatsKpiKey; label: string; value: string; hint: string; info: string }[] = [
     {
+      id: "entrenamientos",
       label: "Entrenamientos totales",
       value: String(realizadas.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
       info: "Suma de sesiones que cuentan como entrenamiento (realizadas + canceladas contabilizadas) dentro del mes seleccionado. Las canceladas marcadas como 'No contabilizar' (NC) quedan excluidas. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
+      id: "ocupacion",
       label: "Ocupación media del centro",
       value: `${ocupacionMedia.toFixed(1)}%`,
       hint: isCurrentMonth ? "Acumulado hasta hoy" : `${MES_LABEL[m]} ${y}`,
@@ -233,18 +237,21 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
         `Actual: ${Math.round(occupiedMin)} min ocupados de ${Math.round(capacityMin)} min disponibles.`,
     },
     {
+      id: "altas",
       label: "Altas del mes",
       value: String(altasMes),
       hint: `Nuevos clientes en ${MES_LABEL[m]} ${y}`,
       info: "Número de clientes cuyo primer bono (individual, pareja o grupal) se ha registrado dentro del mes seleccionado. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).",
     },
     {
+      id: "bajas",
       label: "Bajas del mes",
       value: String(bajasMes),
       hint: `Clientes que pasaron a inactivo`,
       info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
     },
   ];
+  const kpis = allKpis.filter((k) => statsConfig.kpis[k.id]);
 
   return (
     <div className="space-y-3">
@@ -364,9 +371,11 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
   historico: "Histórico (todos los meses)",
 };
 
-// Reglas de combinaciones válidas (métrica, desglose, periodo).
+// Reglas de combinaciones válidas (métrica, desglose, periodo) por DEFECTO.
+// La compatibilidad métrica × desglose puede ampliarse/restringirse desde
+// Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
-function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
+function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
   if (metric === "altasBajas") {
     return desglose === "total";
   }
@@ -396,7 +405,7 @@ function isValidCombo(metric: Metric, desglose: Desglose, period: PeriodMode): b
   }
   return true;
 }
-function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean {
+function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
   if (metric === "altasBajas") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
@@ -405,15 +414,10 @@ function isDesgloseAllowedForMetric(metric: Metric, desglose: Desglose): boolean
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
 }
-function firstValidDesglose(metric: Metric, period: PeriodMode): Desglose {
-  const order: Desglose[] = ["turno", "tipoSesion", "dow", "franja"];
-  for (const d of order) if (isValidCombo(metric, d, period)) return d;
-  return "total";
-}
-function firstValidPeriod(metric: Metric, desglose: Desglose): PeriodMode {
-  const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
-  for (const p of order) if (isValidCombo(metric, desglose, p)) return p;
-  return "mesUnico";
+/** Restricciones de periodo por métrica, independientes de la configuración. */
+function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
+  if (metric === "porEntrenador") return period === "mesUnico";
+  return true;
 }
 
 function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): string {
@@ -479,6 +483,30 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [desglose, setDesglose] = useState<Desglose>("franja");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
+  const statsConfig = useStatsConfig();
+
+  // Compatibilidad efectiva: la del usuario (Config → Estadísticas), acotada
+  // por las reglas de periodo definidas por el negocio.
+  const isDesgloseAllowedForMetric = (mm: Metric, dd: Desglose): boolean =>
+    !!statsConfig.compat[mm]?.[dd];
+  const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
+    isDesgloseAllowedForMetric(mm, dd) && isPeriodAllowedForMetric(mm, pp);
+  const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
+    const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
+    for (const d of order) if (isValidCombo(mm, d, pp)) return d;
+    return "total";
+  };
+  const firstValidPeriod = (mm: Metric, dd: Desglose): PeriodMode => {
+    const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
+    for (const p of order) if (isValidCombo(mm, dd, p)) return p;
+    return "mesUnico";
+  };
+
+  // ¿La combinación seleccionada es "no recomendada" (activada por el usuario
+  // pero fuera de las combinaciones por defecto)?
+  const isCurrentComboNonDefault =
+    !isValidComboDefault(metric, desglose, period) &&
+    isValidCombo(metric, desglose, period);
 
   // Al cambiar de métrica limpiamos la selección para evitar estados raros.
   useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
@@ -750,6 +778,21 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </UITooltip>
           </div>
         </UITooltipProvider>
+        {isCurrentComboNonDefault && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="text-amber-900 dark:text-amber-100">
+                <div className="font-semibold">Combinación no recomendada</div>
+                <div className="opacity-90">
+                  Esta métrica y desglose no forman parte de las combinaciones recomendadas por defecto.
+                  Los resultados podrían no ser representativos. Puedes gestionar las combinaciones activas
+                  desde Configuración → Estadísticas.
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
         {unclassified && unclassified.count > 0 && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
             <div className="flex items-start gap-2">
