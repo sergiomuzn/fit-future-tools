@@ -44,6 +44,24 @@ function countsAsTraining(s: Session): boolean {
   if (s.estado === "cancelada" && !s.no_contabilizar) return true;
   return false;
 }
+// Aplica la preferencia "Contabilizar grupales sin asistentes" del apartado
+// Configuración → Funcionamiento. Si está desactivada, las sesiones grupales
+// sin ningún cliente asignado no cuentan en estadísticas.
+function passesGroupAttendance(
+  s: Session,
+  grupalesSinAsistentesCuentan: boolean,
+  groupClientsMap: Map<string, string[]>,
+): boolean {
+  if (grupalesSinAsistentesCuentan) return true;
+  const isGroup = !!s.group_id || s.ocupacion === 2 || s.tipo === "grupal";
+  if (!isGroup) return true;
+  if (s.client_id) return true;
+  if (s.group_id) {
+    const members = groupClientsMap.get(s.group_id) ?? [];
+    if (members.length > 0) return true;
+  }
+  return false;
+}
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
 function durMin(hi?: string | null, hf?: string | null): number {
   if (!hi || !hf) return 0;
