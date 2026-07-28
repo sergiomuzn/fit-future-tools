@@ -19,6 +19,7 @@ import {
 import { trainerColor } from "@/lib/trainer-colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
