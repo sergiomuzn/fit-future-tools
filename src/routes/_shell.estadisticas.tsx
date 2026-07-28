@@ -176,9 +176,9 @@ function StatsPage() {
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }
