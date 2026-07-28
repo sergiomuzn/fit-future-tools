@@ -5,6 +5,7 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { getBehaviorConfig } from "@/lib/behavior-config";
 import {
   AlertDialog,
   AlertDialogContent,
