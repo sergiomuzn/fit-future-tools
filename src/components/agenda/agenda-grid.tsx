@@ -433,11 +433,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Auto-paso a "realizada" para las sesiones individuales pasadas
   // (los grupos se excluyen para no tocar sus futuras ocurrencias).
   useEffect(() => {
-    const GRACE_MS = 15 * 60 * 1000;
+    const cfg = getBehaviorConfig();
+    const GRACE_MS = Math.max(0, cfg.graciaAutoRealizadaMin) * 60 * 1000;
     const now = Date.now();
     const toUpdate = sessions.filter((s) => {
       if (s.estado !== "reservada") return false;
       if ((s as any).por_confirmar) return false;
+      const isGroup = !!(s as any).group_id || s.ocupacion === 2;
+      if (isGroup && !cfg.autoCompletarGrupales) return false;
+      if (!isGroup && !cfg.autoCompletarIndividuales) return false;
       const end = new Date(`${s.fecha}T${s.hora_fin}`).getTime();
       return end + GRACE_MS < now;
     });
