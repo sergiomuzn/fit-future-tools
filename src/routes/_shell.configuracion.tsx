@@ -6,6 +6,7 @@ import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { CatalogoManager } from "@/components/config/catalogo-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
+import { BehaviorForm } from "@/components/config/behavior-form";
 
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
@@ -22,6 +23,7 @@ function ConfigPage() {
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
           <TabsTrigger value="bonos">Tipos de bonos y precios</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
+          <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
           <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
         </TabsList>
 
@@ -42,6 +44,10 @@ function ConfigPage() {
 
         <TabsContent value="estadisticas" className="pt-4 space-y-6">
           <StatsConfigForm />
+        </TabsContent>
+
+        <TabsContent value="funcionamiento" className="pt-4 space-y-6">
+          <BehaviorForm />
         </TabsContent>
 
         <TabsContent value="cuenta" className="pt-4 space-y-6">

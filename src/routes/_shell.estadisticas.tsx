@@ -19,6 +19,7 @@ import {
 import { trainerColor } from "@/lib/trainer-colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
@@ -42,6 +43,24 @@ function spacesFor(tipo: Session["tipo"]): number {
 function countsAsTraining(s: Session): boolean {
   if (s.estado === "realizada") return true;
   if (s.estado === "cancelada" && !s.no_contabilizar) return true;
+  return false;
+}
+// Aplica la preferencia "Contabilizar grupales sin asistentes" del apartado
+// Configuración → Funcionamiento. Si está desactivada, las sesiones grupales
+// sin ningún cliente asignado no cuentan en estadísticas.
+function passesGroupAttendance(
+  s: Session,
+  grupalesSinAsistentesCuentan: boolean,
+  groupClientsMap: Map<string, string[]>,
+): boolean {
+  if (grupalesSinAsistentesCuentan) return true;
+  const isGroup = !!s.group_id || s.ocupacion === 2 || s.tipo === "grupal";
+  if (!isGroup) return true;
+  if (s.client_id) return true;
+  if (s.group_id) {
+    const members = groupClientsMap.get(s.group_id) ?? [];
+    if (members.length > 0) return true;
+  }
   return false;
 }
 function hourOf(hhmm: string): number { return Number(hhmm.split(":")[0]); }
@@ -140,15 +159,26 @@ function StatsPage() {
     return m;
   }, [groupMembers]);
 
+  // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
+  // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
+  // grupales vacías para que no aparezcan en ningún KPI ni gráfica.
+  const behavior = useBehaviorConfig();
+  const filteredSessions = useMemo(() => {
+    if (behavior.grupalesSinAsistentesCuentan) return sessions;
+    return sessions.filter((s) =>
+      passesGroupAttendance(s, behavior.grupalesSinAsistentesCuentan, groupClientsMap),
+    );
+  }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
 
-      <ComparisonModule sessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }

@@ -16,6 +16,7 @@ import { GroupDialog } from "@/components/groups/group-dialog";
 import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
+import { getBehaviorConfig } from "@/lib/behavior-config";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -122,7 +123,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
     setTitulo((session as any)?.titulo ?? "");
     setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
-    setNoContabilizar(!!(session as any)?.no_contabilizar);
+    const isNewSession = !session?.id;
+    const cfgBehavior = getBehaviorConfig();
+    setNoContabilizar(
+      isNewSession
+        ? cfgBehavior.cancelacionDefaultNoContabilizar
+        : !!(session as any)?.no_contabilizar,
+    );
     setPorConfirmar(!!(session as any)?.por_confirmar);
     setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
   }, [open, session]);
