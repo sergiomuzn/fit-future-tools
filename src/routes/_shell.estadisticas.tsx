@@ -158,6 +158,17 @@ function StatsPage() {
     return m;
   }, [groupMembers]);
 
+  // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
+  // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
+  // grupales vacías para que no aparezcan en ningún KPI ni gráfica.
+  const behavior = useBehaviorConfig();
+  const filteredSessions = useMemo(() => {
+    if (behavior.grupalesSinAsistentesCuentan) return sessions;
+    return sessions.filter((s) =>
+      passesGroupAttendance(s, behavior.grupalesSinAsistentesCuentan, groupClientsMap),
+    );
+  }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
+
   return (
     <div className="p-6 space-y-6">
       <div>
