@@ -176,7 +176,7 @@ function StatsPage() {
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
       <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
@@ -194,11 +194,12 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
+function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+  clientPricePerSessionMap: Map<string, number>;
+  groupClientsMap: Map<string, string[]>;
 }) {
-  void clients;
   const now = new Date();
   const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [ys, ms] = ym.split("-").map(Number);
@@ -207,16 +208,13 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
 
-  // Rango histórico ilimitado: desde el año más antiguo con datos (o hace 5 años) hasta hoy.
-  const earliestYear = useMemo(() => {
-    let min = now.getFullYear();
-    for (const s of sessions) {
-      if (s.fecha) { const yy = Number(s.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
-    }
-    for (const e of events) {
-      if (e.fecha) { const yy = Number(e.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
-    }
-    return Math.min(min, now.getFullYear() - 5);
+  // Sólo mostrar meses/años con actividad real (sesiones o eventos), más el mes en curso.
+  const activityMonths = useMemo(() => {
+    const set = new Set<string>();
+    set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
+    return set;
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
@@ -240,6 +238,24 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
+
+  // KPIs adicionales configurables
+  const facturacionMes = useMemo(() => {
+    let total = 0;
+    for (const s of realizadas) {
+      if (s.client_id) total += clientPricePerSessionMap.get(s.client_id) ?? 0;
+      else if (s.group_id) {
+        const members = groupClientsMap.get(s.group_id) ?? [];
+        for (const cid of members) total += clientPricePerSessionMap.get(cid) ?? 0;
+      }
+    }
+    return Math.round(total);
+  }, [realizadas, clientPricePerSessionMap, groupClientsMap]);
+  const cancelacionesMes = monthSessions.filter((s) => s.estado === "cancelada").length;
+  const sesionesGrupalesMes = realizadas.filter(
+    (s) => !!s.group_id || s.tipo === "grupal" || s.ocupacion === 2,
+  ).length;
+  const clientesActivos = clients.filter((c) => c.activo).length;
 
   const statsConfig = useStatsConfig();
   const allKpis: { id: StatsKpiKey; label: string; value: string; hint: string; info: string }[] = [
@@ -280,12 +296,40 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       hint: `Clientes que pasaron a inactivo`,
       info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
     },
+    {
+      id: "facturacionMes",
+      label: "Facturación estimada del mes",
+      value: `${facturacionMes} €`,
+      hint: `Sesiones realizadas y canceladas contabilizadas`,
+      info: "Suma del precio por sesión de cada entrenamiento del mes (realizadas + canceladas contabilizadas). Precio por sesión = precio del bono ÷ sesiones incluidas. Gympass/ClassPass usan los precios de Configuración → Precios.",
+    },
+    {
+      id: "cancelacionesMes",
+      label: "Cancelaciones del mes",
+      value: String(cancelacionesMes),
+      hint: "Incluye las marcadas como No contabilizar",
+      info: "Número de sesiones en estado 'cancelada' dentro del mes seleccionado, incluyendo las marcadas como 'No contabilizar'.",
+    },
+    {
+      id: "sesionesGrupales",
+      label: "Sesiones grupales del mes",
+      value: String(sesionesGrupalesMes),
+      hint: `${MES_LABEL[m]} ${y}`,
+      info: "Entrenamientos grupales contabilizados en el mes (realizadas + canceladas contabilizadas). Depende del ajuste 'Contabilizar grupales sin asistentes' de Configuración → Funcionamiento.",
+    },
+    {
+      id: "clientesActivos",
+      label: "Clientes activos",
+      value: String(clientesActivos),
+      hint: "Total actual",
+      info: "Número total de clientes marcados como activos en este momento (independiente del mes seleccionado).",
+    },
   ];
   const kpis = allKpis.filter((k) => statsConfig.kpis[k.id]);
 
   return (
     <div className="space-y-3">
-      <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
+      <KpiMonthSelector value={ym} onChange={setYm} activityMonths={activityMonths} now={now} />
       <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
@@ -317,21 +361,29 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   );
 }
 
-function KpiMonthSelector({ value, onChange, earliestYear, now }: {
-  value: string; onChange: (v: string) => void; earliestYear: number; now: Date;
+function KpiMonthSelector({ value, onChange, activityMonths, now }: {
+  value: string; onChange: (v: string) => void; activityMonths: Set<string>; now: Date;
 }) {
   const [ys, ms] = value.split("-");
   const y = Number(ys); const m = Number(ms);
   const curY = now.getFullYear(); const curM = now.getMonth() + 1;
-  const years: number[] = [];
-  for (let yy = curY; yy >= earliestYear; yy--) years.push(yy);
-  const maxMonth = y === curY ? curM : 12;
-  const months: number[] = [];
-  for (let mm = 1; mm <= maxMonth; mm++) months.push(mm);
+  const yearsSet = new Set<number>();
+  for (const key of activityMonths) yearsSet.add(Number(key.slice(0, 4)));
+  const years = Array.from(yearsSet).filter((yy) => Number.isFinite(yy)).sort((a, b) => b - a);
+  const monthsForYearFn = (yy: number): number[] => {
+    const out: number[] = [];
+    for (let mm = 1; mm <= 12; mm++) {
+      const key = `${yy}-${String(mm).padStart(2, "0")}`;
+      if (activityMonths.has(key)) out.push(mm);
+    }
+    return out.sort((a, b) => a - b);
+  };
+  const months = monthsForYearFn(y);
   const setYear = (yy: string) => {
     const ny = Number(yy);
-    const nMax = ny === curY ? curM : 12;
-    const nm = Math.min(m, nMax);
+    const opts = monthsForYearFn(ny);
+    let nm = m;
+    if (!opts.includes(nm)) nm = opts.length ? opts[opts.length - 1] : (ny === curY ? curM : 12);
     onChange(`${yy}-${String(nm).padStart(2, "0")}`);
   };
   const setMonth = (mm: string) => onChange(`${ys}-${mm}`);
