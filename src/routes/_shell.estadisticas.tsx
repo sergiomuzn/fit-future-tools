@@ -584,12 +584,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return "mesUnico";
   };
 
-  // ¿La combinación seleccionada es "no recomendada" (activada por el usuario
-  // pero fuera de las combinaciones por defecto)?
-  const isCurrentComboNonDefault =
-    !isValidComboDefault(metric, desglose, period) &&
-    isValidCombo(metric, desglose, period);
-
   // Al cambiar de métrica limpiamos la selección para evitar estados raros.
   useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
 
@@ -648,32 +642,26 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
-  // Años disponibles: desde el año más antiguo con datos (o hace 5 años) hasta el año actual.
-  // Todos los meses son seleccionables (limitados al mes actual en el año en curso).
-  const availableYears = useMemo(() => {
+  // Meses con actividad (sesiones o eventos) + mes en curso.
+  const activityMonthsCmp = useMemo(() => {
+    const set = new Set<string>();
     const nowD = new Date();
-    const curY = nowD.getFullYear();
-    let min = curY;
-    const scan = (d: string | null | undefined) => {
-      if (!d) return;
-      const yy = Number(d.slice(0, 4));
-      if (Number.isFinite(yy) && yy < min) min = yy;
-    };
-    for (const s of sessions) scan(s.fecha);
-    for (const e of events) scan(e.fecha);
-    min = Math.min(min, curY - 5);
-    const out: string[] = [];
-    for (let y = curY; y >= min; y--) out.push(String(y));
-    return out;
+    set.add(`${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`);
+    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
+    return set;
   }, [sessions, events]);
-
+  const availableYears = useMemo(() => {
+    const ys = new Set<number>();
+    for (const key of activityMonthsCmp) ys.add(Number(key.slice(0, 4)));
+    return Array.from(ys).filter((y) => Number.isFinite(y)).sort((a, b) => b - a).map(String);
+  }, [activityMonthsCmp]);
   const monthsForYear = (yStr: string): number[] => {
-    const nowD = new Date();
-    const curY = nowD.getFullYear();
     const y = Number(yStr);
-    const max = y === curY ? nowD.getMonth() : 11;
     const out: number[] = [];
-    for (let i = 0; i <= max; i++) out.push(i);
+    for (let mm = 1; mm <= 12; mm++) {
+      if (activityMonthsCmp.has(`${y}-${String(mm).padStart(2, "0")}`)) out.push(mm - 1);
+    }
     return out;
   };
 
