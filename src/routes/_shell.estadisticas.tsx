@@ -860,9 +860,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                   {unclassified.reasons.sinCliente > 0 && (
                     <li>{unclassified.reasons.sinCliente} sin cliente ni grupo asignado.</li>
                   )}
-                  {unclassified.reasons.tipoPrueba > 0 && (
-                    <li>{unclassified.reasons.tipoPrueba} de tipo "prueba" (no se cuentan en tipos de bono).</li>
-                  )}
                   {unclassified.reasons.otro > 0 && (
                     <li>{unclassified.reasons.otro} con cliente sin bono activo válido.</li>
                   )}
