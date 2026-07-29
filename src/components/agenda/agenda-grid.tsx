@@ -441,8 +441,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (s.estado !== "reservada" && s.estado !== "prueba") return false;
       if ((s as any).por_confirmar) return false;
       const isGroup = !!(s as any).group_id || s.ocupacion === 2;
-      if (isGroup && !cfg.autoCompletarGrupales) return false;
-      if (!isGroup && !cfg.autoCompletarIndividuales) return false;
+      // Grupales sin ningún integrante: sólo se marcan como realizadas si el ajuste lo permite.
+      if (isGroup && !s.client_id && !cfg.grupalesSinAsistentesCuentan) return false;
       const end = new Date(`${s.fecha}T${s.hora_fin}`).getTime();
       return end + GRACE_MS < now;
     });

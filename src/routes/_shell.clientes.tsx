@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog } from "@/components/groups/group-dialog";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { useEffect } from "react";
+import { getBehaviorConfig } from "@/lib/behavior-config";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_shell/clientes")({
@@ -37,7 +38,12 @@ function ClientesPage() {
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
     (async () => {
-      const { error } = await supabase.rpc("auto_deactivate_prueba_clients" as never);
+      const cfg = getBehaviorConfig();
+      if (!cfg.pruebaAutoInactivar) return;
+      const { error } = await supabase.rpc(
+        "auto_deactivate_prueba_clients" as never,
+        { p_dias: cfg.pruebaDiasInactivar } as never,
+      );
       if (!error) {
         qc.invalidateQueries({ queryKey: ["clients"] });
       }

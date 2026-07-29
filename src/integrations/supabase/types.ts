@@ -520,7 +520,9 @@ export type Database = {
         }
         Returns: undefined
       }
-      auto_deactivate_prueba_clients: { Args: never; Returns: number }
+      auto_deactivate_prueba_clients:
+        | { Args: never; Returns: number }
+        | { Args: { p_dias?: number }; Returns: number }
       ensure_prueba_bono: {
         Args: { p_client: string; p_fecha: string }
         Returns: undefined
