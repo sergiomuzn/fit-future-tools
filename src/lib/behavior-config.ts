@@ -6,6 +6,8 @@ export type BehaviorConfig = {
   graciaAutoRealizadaMin: number;
   cancelacionDefaultNoContabilizar: boolean;
   grupalesSinAsistentesCuentan: boolean;
+  pruebaAutoInactivar: boolean;
+  pruebaDiasInactivar: number;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
@@ -14,6 +16,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   graciaAutoRealizadaMin: 15,
   cancelacionDefaultNoContabilizar: false,
   grupalesSinAsistentesCuentan: true,
+  pruebaAutoInactivar: true,
+  pruebaDiasInactivar: 30,
 };
 
 const STORAGE_KEY = "behavior-config-v1";
