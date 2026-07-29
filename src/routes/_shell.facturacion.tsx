@@ -77,6 +77,7 @@ function FacturacionPage() {
       ...f,
       bono_catalogo_id: bonoId,
       precio_cobrado: f.precio_cobrado && f.precio_cobrado > 0 ? f.precio_cobrado : (cat ? Number(cat.precio) : f.precio_cobrado),
+      sesiones_override: (f as { sesiones_override?: number | null }).sesiones_override ?? (cat ? cat.sesiones_incluidas : null),
     }));
   }, [form.client_id, editingId, lastBonoByClient, catalogo, form.bono_catalogo_id]);
 
