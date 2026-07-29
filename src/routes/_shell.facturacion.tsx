@@ -212,6 +212,7 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.invalidateQueries({ queryKey: ["client-last-bonos"] });
     qc.invalidateQueries({ queryKey: ["client-altas"] });
     setOpen(false);
   }
