@@ -18,6 +18,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog } from "@/components/groups/group-dialog";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { useEffect } from "react";
+import { getBehaviorConfig } from "@/lib/behavior-config";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_shell/clientes")({
