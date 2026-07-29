@@ -1387,9 +1387,6 @@ function buildSeries(args: {
           if (!s.client_id && !s.group_id) {
             unclassified.reasons.sinCliente += 1;
             reason = "Sin cliente ni grupo asignado";
-          } else if (s.tipo === "prueba") {
-            unclassified.reasons.tipoPrueba += 1;
-            reason = "Sesión de prueba (no cuenta en tipos)";
           } else {
             unclassified.reasons.otro += 1;
             reason = "Cliente sin bono activo válido";
