@@ -176,7 +176,7 @@ function StatsPage() {
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} />
+      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
       <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
@@ -194,11 +194,12 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
+function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
+  clientPricePerSessionMap: Map<string, number>;
+  groupClientsMap: Map<string, string[]>;
 }) {
-  void clients;
   const now = new Date();
   const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [ys, ms] = ym.split("-").map(Number);
@@ -207,16 +208,13 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
 
-  // Rango histórico ilimitado: desde el año más antiguo con datos (o hace 5 años) hasta hoy.
-  const earliestYear = useMemo(() => {
-    let min = now.getFullYear();
-    for (const s of sessions) {
-      if (s.fecha) { const yy = Number(s.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
-    }
-    for (const e of events) {
-      if (e.fecha) { const yy = Number(e.fecha.slice(0, 4)); if (Number.isFinite(yy) && yy < min) min = yy; }
-    }
-    return Math.min(min, now.getFullYear() - 5);
+  // Sólo mostrar meses/años con actividad real (sesiones o eventos), más el mes en curso.
+  const activityMonths = useMemo(() => {
+    const set = new Set<string>();
+    set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
+    return set;
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
@@ -240,6 +238,24 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
 
   const altasMes = events.filter((e) => e.tipo === "alta" && e.fecha >= start && e.fecha <= end).length;
   const bajasMes = events.filter((e) => e.tipo === "baja" && e.fecha >= start && e.fecha <= end).length;
+
+  // KPIs adicionales configurables
+  const facturacionMes = useMemo(() => {
+    let total = 0;
+    for (const s of realizadas) {
+      if (s.client_id) total += clientPricePerSessionMap.get(s.client_id) ?? 0;
+      else if (s.group_id) {
+        const members = groupClientsMap.get(s.group_id) ?? [];
+        for (const cid of members) total += clientPricePerSessionMap.get(cid) ?? 0;
+      }
+    }
+    return Math.round(total);
+  }, [realizadas, clientPricePerSessionMap, groupClientsMap]);
+  const cancelacionesMes = monthSessions.filter((s) => s.estado === "cancelada").length;
+  const sesionesGrupalesMes = realizadas.filter(
+    (s) => !!s.group_id || s.tipo === "grupal" || s.ocupacion === 2,
+  ).length;
+  const clientesActivos = clients.filter((c) => c.activo).length;
 
   const statsConfig = useStatsConfig();
   const allKpis: { id: StatsKpiKey; label: string; value: string; hint: string; info: string }[] = [
@@ -280,12 +296,40 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
       hint: `Clientes que pasaron a inactivo`,
       info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
     },
+    {
+      id: "facturacionMes",
+      label: "Facturación estimada del mes",
+      value: `${facturacionMes} €`,
+      hint: `Sesiones realizadas y canceladas contabilizadas`,
+      info: "Suma del precio por sesión de cada entrenamiento del mes (realizadas + canceladas contabilizadas). Precio por sesión = precio del bono ÷ sesiones incluidas. Gympass/ClassPass usan los precios de Configuración → Precios.",
+    },
+    {
+      id: "cancelacionesMes",
+      label: "Cancelaciones del mes",
+      value: String(cancelacionesMes),
+      hint: "Incluye las marcadas como No contabilizar",
+      info: "Número de sesiones en estado 'cancelada' dentro del mes seleccionado, incluyendo las marcadas como 'No contabilizar'.",
+    },
+    {
+      id: "sesionesGrupales",
+      label: "Sesiones grupales del mes",
+      value: String(sesionesGrupalesMes),
+      hint: `${MES_LABEL[m]} ${y}`,
+      info: "Entrenamientos grupales contabilizados en el mes (realizadas + canceladas contabilizadas). Depende del ajuste 'Contabilizar grupales sin asistentes' de Configuración → Funcionamiento.",
+    },
+    {
+      id: "clientesActivos",
+      label: "Clientes activos",
+      value: String(clientesActivos),
+      hint: "Total actual",
+      info: "Número total de clientes marcados como activos en este momento (independiente del mes seleccionado).",
+    },
   ];
   const kpis = allKpis.filter((k) => statsConfig.kpis[k.id]);
 
   return (
     <div className="space-y-3">
-      <KpiMonthSelector value={ym} onChange={setYm} earliestYear={earliestYear} now={now} />
+      <KpiMonthSelector value={ym} onChange={setYm} activityMonths={activityMonths} now={now} />
       <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
@@ -317,21 +361,29 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap }: {
   );
 }
 
-function KpiMonthSelector({ value, onChange, earliestYear, now }: {
-  value: string; onChange: (v: string) => void; earliestYear: number; now: Date;
+function KpiMonthSelector({ value, onChange, activityMonths, now }: {
+  value: string; onChange: (v: string) => void; activityMonths: Set<string>; now: Date;
 }) {
   const [ys, ms] = value.split("-");
   const y = Number(ys); const m = Number(ms);
   const curY = now.getFullYear(); const curM = now.getMonth() + 1;
-  const years: number[] = [];
-  for (let yy = curY; yy >= earliestYear; yy--) years.push(yy);
-  const maxMonth = y === curY ? curM : 12;
-  const months: number[] = [];
-  for (let mm = 1; mm <= maxMonth; mm++) months.push(mm);
+  const yearsSet = new Set<number>();
+  for (const key of activityMonths) yearsSet.add(Number(key.slice(0, 4)));
+  const years = Array.from(yearsSet).filter((yy) => Number.isFinite(yy)).sort((a, b) => b - a);
+  const monthsForYearFn = (yy: number): number[] => {
+    const out: number[] = [];
+    for (let mm = 1; mm <= 12; mm++) {
+      const key = `${yy}-${String(mm).padStart(2, "0")}`;
+      if (activityMonths.has(key)) out.push(mm);
+    }
+    return out.sort((a, b) => a - b);
+  };
+  const months = monthsForYearFn(y);
   const setYear = (yy: string) => {
     const ny = Number(yy);
-    const nMax = ny === curY ? curM : 12;
-    const nm = Math.min(m, nMax);
+    const opts = monthsForYearFn(ny);
+    let nm = m;
+    if (!opts.includes(nm)) nm = opts.length ? opts[opts.length - 1] : (ny === curY ? curM : 12);
     onChange(`${yy}-${String(nm).padStart(2, "0")}`);
   };
   const setMonth = (mm: string) => onChange(`${ys}-${mm}`);
@@ -532,12 +584,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     return "mesUnico";
   };
 
-  // ¿La combinación seleccionada es "no recomendada" (activada por el usuario
-  // pero fuera de las combinaciones por defecto)?
-  const isCurrentComboNonDefault =
-    !isValidComboDefault(metric, desglose, period) &&
-    isValidCombo(metric, desglose, period);
-
   // Al cambiar de métrica limpiamos la selección para evitar estados raros.
   useEffect(() => { setSelectedTrainerIds([]); }, [metric]);
 
@@ -596,32 +642,26 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
-  // Años disponibles: desde el año más antiguo con datos (o hace 5 años) hasta el año actual.
-  // Todos los meses son seleccionables (limitados al mes actual en el año en curso).
-  const availableYears = useMemo(() => {
+  // Meses con actividad (sesiones o eventos) + mes en curso.
+  const activityMonthsCmp = useMemo(() => {
+    const set = new Set<string>();
     const nowD = new Date();
-    const curY = nowD.getFullYear();
-    let min = curY;
-    const scan = (d: string | null | undefined) => {
-      if (!d) return;
-      const yy = Number(d.slice(0, 4));
-      if (Number.isFinite(yy) && yy < min) min = yy;
-    };
-    for (const s of sessions) scan(s.fecha);
-    for (const e of events) scan(e.fecha);
-    min = Math.min(min, curY - 5);
-    const out: string[] = [];
-    for (let y = curY; y >= min; y--) out.push(String(y));
-    return out;
+    set.add(`${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`);
+    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
+    return set;
   }, [sessions, events]);
-
+  const availableYears = useMemo(() => {
+    const ys = new Set<number>();
+    for (const key of activityMonthsCmp) ys.add(Number(key.slice(0, 4)));
+    return Array.from(ys).filter((y) => Number.isFinite(y)).sort((a, b) => b - a).map(String);
+  }, [activityMonthsCmp]);
   const monthsForYear = (yStr: string): number[] => {
-    const nowD = new Date();
-    const curY = nowD.getFullYear();
     const y = Number(yStr);
-    const max = y === curY ? nowD.getMonth() : 11;
     const out: number[] = [];
-    for (let i = 0; i <= max; i++) out.push(i);
+    for (let mm = 1; mm <= 12; mm++) {
+      if (activityMonthsCmp.has(`${y}-${String(mm).padStart(2, "0")}`)) out.push(mm - 1);
+    }
     return out;
   };
 
@@ -808,21 +848,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
             </UITooltip>
           </div>
         </UITooltipProvider>
-        {isCurrentComboNonDefault && (
-          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
-            <div className="flex items-start gap-2">
-              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
-              <div className="text-amber-900 dark:text-amber-100">
-                <div className="font-semibold">Combinación no recomendada</div>
-                <div className="opacity-90">
-                  Esta métrica y desglose no forman parte de las combinaciones recomendadas por defecto.
-                  Los resultados podrían no ser representativos. Puedes gestionar las combinaciones activas
-                  desde Configuración → Estadísticas.
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
         {unclassified && unclassified.count > 0 && (
           <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
             <div className="flex items-start gap-2">
@@ -834,9 +859,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
                 <ul className="list-disc pl-4 text-amber-900/90 dark:text-amber-100/90 space-y-0.5">
                   {unclassified.reasons.sinCliente > 0 && (
                     <li>{unclassified.reasons.sinCliente} sin cliente ni grupo asignado.</li>
-                  )}
-                  {unclassified.reasons.tipoPrueba > 0 && (
-                    <li>{unclassified.reasons.tipoPrueba} de tipo "prueba" (no se cuentan en tipos de bono).</li>
                   )}
                   {unclassified.reasons.otro > 0 && (
                     <li>{unclassified.reasons.otro} con cliente sin bono activo válido.</li>
@@ -1362,9 +1384,6 @@ function buildSeries(args: {
           if (!s.client_id && !s.group_id) {
             unclassified.reasons.sinCliente += 1;
             reason = "Sin cliente ni grupo asignado";
-          } else if (s.tipo === "prueba") {
-            unclassified.reasons.tipoPrueba += 1;
-            reason = "Sesión de prueba (no cuenta en tipos)";
           } else {
             unclassified.reasons.otro += 1;
             reason = "Cliente sin bono activo válido";

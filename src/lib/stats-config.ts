@@ -10,7 +10,15 @@ export type StatsMetric =
 
 export type StatsDesglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 
-export type StatsKpiKey = "entrenamientos" | "ocupacion" | "altas" | "bajas";
+export type StatsKpiKey =
+  | "entrenamientos"
+  | "ocupacion"
+  | "altas"
+  | "bajas"
+  | "facturacionMes"
+  | "cancelacionesMes"
+  | "sesionesGrupales"
+  | "clientesActivos";
 
 export type StatsCompatMatrix = Record<StatsMetric, Record<StatsDesglose, boolean>>;
 
@@ -58,6 +66,10 @@ export const STATS_KPI_LABEL: Record<StatsKpiKey, string> = {
   ocupacion: "Ocupación media del centro",
   altas: "Altas del mes",
   bajas: "Bajas del mes",
+  facturacionMes: "Facturación estimada del mes",
+  cancelacionesMes: "Cancelaciones del mes",
+  sesionesGrupales: "Sesiones grupales del mes",
+  clientesActivos: "Clientes activos",
 };
 
 /** Compatibilidad por defecto (recomendada) entre métrica y desglose. */
@@ -75,6 +87,10 @@ export const DEFAULT_KPIS: Record<StatsKpiKey, boolean> = {
   ocupacion: true,
   altas: true,
   bajas: true,
+  facturacionMes: false,
+  cancelacionesMes: false,
+  sesionesGrupales: false,
+  clientesActivos: false,
 };
 
 export const DEFAULT_STATS_CONFIG: StatsConfig = {
@@ -100,12 +116,12 @@ function mergeCompat(saved: Partial<StatsCompatMatrix> | undefined): StatsCompat
 }
 
 function mergeKpis(saved: Partial<Record<StatsKpiKey, boolean>> | undefined): Record<StatsKpiKey, boolean> {
-  return {
-    entrenamientos: saved?.entrenamientos ?? true,
-    ocupacion: saved?.ocupacion ?? true,
-    altas: saved?.altas ?? true,
-    bajas: saved?.bajas ?? true,
-  };
+  const out = {} as Record<StatsKpiKey, boolean>;
+  for (const k of Object.keys(DEFAULT_KPIS) as StatsKpiKey[]) {
+    const v = saved?.[k];
+    out[k] = typeof v === "boolean" ? v : DEFAULT_KPIS[k];
+  }
+  return out;
 }
 
 function readStorage(): StatsConfig {
