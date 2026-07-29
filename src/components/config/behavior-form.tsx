@@ -102,25 +102,16 @@ export function BehaviorForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Auto-completado de sesiones pasadas</CardTitle>
+          <CardTitle>Sesiones grupales</CardTitle>
         </CardHeader>
         <CardContent>
           <Row
-            title="Marcar individuales y de pareja como realizadas"
-            description="Al cargar la agenda, las sesiones individuales o de pareja reservadas cuya hora de fin ya haya pasado se cambian a 'realizada' automáticamente."
+            title="Contar las sesiones grupales como realizadas aunque no haya integrantes"
+            description="Cuando esté activado, las sesiones grupales pasadas se marcan como realizadas y cuentan en estadísticas aunque no tengan ningún cliente asignado. Si lo desactivas, sólo cuentan las grupales con al menos un cliente."
           >
             <Switch
-              checked={cfg.autoCompletarIndividuales}
-              onCheckedChange={(v) => update("autoCompletarIndividuales", v)}
-            />
-          </Row>
-          <Row
-            title="Marcar sesiones grupales como realizadas"
-            description="Igual que la anterior, pero para sesiones grupales. Desactívalo si prefieres marcar los grupos manualmente."
-          >
-            <Switch
-              checked={cfg.autoCompletarGrupales}
-              onCheckedChange={(v) => update("autoCompletarGrupales", v)}
+              checked={cfg.grupalesSinAsistentesCuentan}
+              onCheckedChange={(v) => update("grupalesSinAsistentesCuentan", v)}
             />
           </Row>
           <Row
@@ -166,17 +157,38 @@ export function BehaviorForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sesiones grupales en estadísticas</CardTitle>
+          <CardTitle>Sesiones de prueba</CardTitle>
         </CardHeader>
         <CardContent>
           <Row
-            title="Contabilizar grupales sin asistentes"
-            description="Cuando esté activado, las sesiones grupales realizadas cuentan siempre en estadísticas aunque no haya ningún cliente asignado (útil si el grupo se imparte igualmente). Si lo desactivas, sólo cuentan las grupales con al menos un cliente."
+            title="Pasar a inactivo los clientes de prueba"
+            description="Si el cliente sólo tiene bono de prueba y no contrata ningún bono, pasa automáticamente a inactivo. Desactívalo si prefieres gestionarlo a mano."
           >
             <Switch
-              checked={cfg.grupalesSinAsistentesCuentan}
-              onCheckedChange={(v) => update("grupalesSinAsistentesCuentan", v)}
+              checked={cfg.pruebaAutoInactivar}
+              onCheckedChange={(v) => update("pruebaAutoInactivar", v)}
             />
+          </Row>
+          <Row
+            title="Días hasta pasar a inactivo"
+            description="Tiempo que transcurre desde la sesión de prueba antes de marcar al cliente como inactivo."
+          >
+            <Select
+              value={String(cfg.pruebaDiasInactivar)}
+              onValueChange={(v) => update("pruebaDiasInactivar", Number(v))}
+            >
+              <SelectTrigger className="w-36" disabled={!cfg.pruebaAutoInactivar}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7">7 días</SelectItem>
+                <SelectItem value="15">15 días</SelectItem>
+                <SelectItem value="30">30 días</SelectItem>
+                <SelectItem value="45">45 días</SelectItem>
+                <SelectItem value="60">60 días</SelectItem>
+                <SelectItem value="90">90 días</SelectItem>
+              </SelectContent>
+            </Select>
           </Row>
         </CardContent>
       </Card>
