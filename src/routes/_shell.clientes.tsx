@@ -37,7 +37,12 @@ function ClientesPage() {
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
     (async () => {
-      const { error } = await supabase.rpc("auto_deactivate_prueba_clients" as never);
+      const cfg = getBehaviorConfig();
+      if (!cfg.pruebaAutoInactivar) return;
+      const { error } = await supabase.rpc(
+        "auto_deactivate_prueba_clients" as never,
+        { p_dias: cfg.pruebaDiasInactivar } as never,
+      );
       if (!error) {
         qc.invalidateQueries({ queryKey: ["clients"] });
       }
