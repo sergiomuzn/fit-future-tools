@@ -743,9 +743,8 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
           <Select
             value={desglose}
             onValueChange={handleDesgloseChange}
-            disabled={metric === "altasBajas"}
           >
-            <SelectTrigger><SelectValue placeholder={metric === "altasBajas" ? "No aplica" : undefined} /></SelectTrigger>
+            <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.entries(DESGLOSE_LABEL) as [Desglose, string][])
                 .filter(([k]) => isDesgloseAllowedForMetric(metric, k))

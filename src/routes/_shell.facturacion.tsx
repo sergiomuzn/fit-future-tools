@@ -61,9 +61,6 @@ function FacturacionPage() {
   for (const row of lastBonoRows) {
     if (lastBonoByClient.has(row.client_id)) continue;
     if (!row.bono_catalogo_id) continue;
-    // Ignorar bonos "prueba" como sugerencia por defecto en la factura.
-    const cat = catalogo.find((b) => b.id === row.bono_catalogo_id);
-    if (cat?.tipo === "prueba") continue;
     lastBonoByClient.set(row.client_id, row.bono_catalogo_id);
   }
 
@@ -113,15 +110,11 @@ function FacturacionPage() {
   }
   availableYears.sort((a, b) => b - a);
 
-  let availableMonths: { label: string; idx: number }[];
-  if (year < now.getFullYear()) {
-    availableMonths = MONTHS.map((label, idx) => ({ label, idx }));
-  } else if (year === now.getFullYear()) {
-    availableMonths = MONTHS.map((label, idx) => ({ label, idx })).filter(({ idx }) => idx <= now.getMonth());
-  } else {
-    const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
-    availableMonths = MONTHS.map((label, idx) => ({ label, idx })).filter(({ idx }) => monthsWithData.has(idx));
-  }
+  const monthsWithData = monthsByYear.get(year) ?? new Set<number>();
+  const monthsForYear = new Set<number>(monthsWithData);
+  // Include the current month by default so the user can register the first invoice of the month.
+  if (year === now.getFullYear()) monthsForYear.add(now.getMonth());
+  const availableMonths = MONTHS.map((label, idx) => ({ label, idx })).filter(({ idx }) => monthsForYear.has(idx));
 
   const isYear = month === -1;
   const startD = isYear
@@ -179,6 +172,7 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.invalidateQueries({ queryKey: ["client-last-bonos"] });
     qc.invalidateQueries({ queryKey: ["client-altas"] });
   }
 
@@ -219,6 +213,7 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["invoices"] });
     qc.invalidateQueries({ queryKey: ["invoices-fechas"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.invalidateQueries({ queryKey: ["client-last-bonos"] });
     qc.invalidateQueries({ queryKey: ["client-altas"] });
     setOpen(false);
   }
