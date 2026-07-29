@@ -89,8 +89,9 @@ export function BehaviorForm() {
               <i> baja</i>; volver a activarlo la retira.
             </li>
             <li>
-              <b>Clientes de prueba:</b> tras 30 días desde la sesión de prueba sin haber
-              contratado bono, el cliente pasa automáticamente a inactivo.
+              <b>Clientes de prueba:</b> tras {cfg.pruebaDiasInactivar} días desde la sesión de
+              prueba sin haber contratado bono, el cliente pasa automáticamente a inactivo
+              {cfg.pruebaAutoInactivar ? "" : " (automatismo desactivado)"}.
             </li>
             <li>
               <b>Cancelaciones:</b> una sesión cancelada cuenta como entrenamiento salvo que la
