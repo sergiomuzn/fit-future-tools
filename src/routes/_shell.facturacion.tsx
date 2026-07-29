@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -45,6 +45,43 @@ function FacturacionPage() {
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
+
+  // Último bono contratado por cliente (más reciente por fecha_inicio, luego created_at).
+  const { data: lastBonoRows = [] } = useQuery({
+    queryKey: ["client-last-bonos"],
+    queryFn: async () =>
+      (await supabase
+        .from("client_bonos")
+        .select("client_id, bono_catalogo_id, fecha_inicio, created_at")
+        .order("fecha_inicio", { ascending: false })
+        .order("created_at", { ascending: false })
+      ).data as { client_id: string; bono_catalogo_id: string | null; fecha_inicio: string; created_at: string }[] ?? [],
+  });
+  const lastBonoByClient = new Map<string, string>();
+  for (const row of lastBonoRows) {
+    if (lastBonoByClient.has(row.client_id)) continue;
+    if (!row.bono_catalogo_id) continue;
+    // Ignorar bonos "prueba" como sugerencia por defecto en la factura.
+    const cat = catalogo.find((b) => b.id === row.bono_catalogo_id);
+    if (cat?.tipo === "prueba") continue;
+    lastBonoByClient.set(row.client_id, row.bono_catalogo_id);
+  }
+
+  // Al elegir cliente en una NUEVA factura, precargar su último bono contratado
+  // y el precio del catálogo (si aún no se han modificado a mano).
+  useEffect(() => {
+    if (editingId) return;
+    if (!form.client_id) return;
+    if (form.bono_catalogo_id) return;
+    const bonoId = lastBonoByClient.get(form.client_id);
+    if (!bonoId) return;
+    const cat = catalogo.find((b) => b.id === bonoId);
+    setForm((f) => ({
+      ...f,
+      bono_catalogo_id: bonoId,
+      precio_cobrado: f.precio_cobrado && f.precio_cobrado > 0 ? f.precio_cobrado : (cat ? Number(cat.precio) : f.precio_cobrado),
+    }));
+  }, [form.client_id, editingId, lastBonoByClient, catalogo, form.bono_catalogo_id]);
 
   const { data: altas = [] } = useQuery({
     queryKey: ["client-altas"],
