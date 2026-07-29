@@ -438,7 +438,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const GRACE_MS = Math.max(0, cfg.graciaAutoRealizadaMin) * 60 * 1000;
     const now = Date.now();
     const toUpdate = sessions.filter((s) => {
-      if (s.estado !== "reservada") return false;
+      if (s.estado !== "reservada" && s.estado !== "prueba") return false;
       if ((s as any).por_confirmar) return false;
       const isGroup = !!(s as any).group_id || s.ocupacion === 2;
       if (isGroup && !cfg.autoCompletarGrupales) return false;
