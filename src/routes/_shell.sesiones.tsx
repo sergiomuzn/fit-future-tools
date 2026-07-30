@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Download, Search, X } from "lucide-react";
+import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
@@ -36,6 +36,7 @@ function SesionesPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [desde, setDesde] = useState<string>("");
@@ -183,6 +184,16 @@ function SesionesPage() {
               <Search className="h-4 w-4" />
             </Button>
           )}
+          <Button
+            variant={filtersOpen ? "default" : "outline"}
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <SlidersHorizontal className="h-4 w-4 mr-1" />
+            Filtrar
+            {filtrosActivos && (
+              <span className="ml-1.5 h-2 w-2 rounded-full bg-primary" />
+            )}
+          </Button>
           <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
@@ -197,6 +208,7 @@ function SesionesPage() {
           </Button>
         </div>
       </div>
+      {filtersOpen && (
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
         <div className="space-y-1">
           <Label className="text-xs text-muted-foreground">Estado</Label>
@@ -241,6 +253,7 @@ function SesionesPage() {
           </Button>
         )}
       </div>
+      )}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
