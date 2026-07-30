@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
   component: EntrenadoresPage,
@@ -23,6 +24,7 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function EntrenadoresPage() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
+  const behavior = useBehaviorConfig();
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
