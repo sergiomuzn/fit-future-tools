@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { useCenterConfig } from "@/lib/center-schedule";
-import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -109,18 +109,20 @@ function BonosPage() {
     return true;
   });
 
-  const filtered = visible.filter((b) => {
-    if (!q.trim()) return true;
+  const textForBono = (b: (typeof visible)[number]) => {
     const client = clientMap.get(b.client_id);
     const cat = catMap.get(b.bono_catalogo_id ?? "");
-    const text = [
+    return [
       client?.nombre ?? "",
       cat?.tipo ? TIPO_LABEL[cat.tipo] : "",
       prettyBonoNombre(b.ultimo_bono_nombre),
       b.ultimo_bono_fecha ?? "",
     ].join(" ");
-    return normalizeText(text).includes(normalizeText(q));
-  });
+  };
+  const exactBonos = visible.filter((b) => normalizeText(textForBono(b)).includes(normalizeText(q)));
+  const filtered = !q.trim() || exactBonos.length > 0
+    ? exactBonos
+    : visible.filter((b) => fuzzyMatch(clientMap.get(b.client_id)?.nombre ?? "", q));
 
   async function save() {
     if (!editing) return;
