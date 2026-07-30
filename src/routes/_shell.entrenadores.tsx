@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
   component: EntrenadoresPage,
@@ -23,6 +24,7 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function EntrenadoresPage() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
+  const behavior = useBehaviorConfig();
   const now = new Date();
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
@@ -53,13 +55,18 @@ function EntrenadoresPage() {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-month", start, end],
     queryFn: async () => {
-      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).in("estado", ["realizada", "prueba"]);
+      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).in("estado", ["realizada", "prueba", "cancelada"]);
       return (data ?? []) as Session[];
     },
   });
 
+  // Sólo se suman al entrenador las sesiones que cuentan como realizadas
+  // (las canceladas dependen del ajuste Configuración → Funcionamiento).
   const countByTrainer = sessions.reduce<Record<string, number>>((acc, s) => {
-    if (s.trainer_id) acc[s.trainer_id] = (acc[s.trainer_id] ?? 0) + 1;
+    const counts =
+      s.estado === "prueba" ||
+      sessionCountsAsTraining(s.estado, (s as any).no_contabilizar, behavior.canceladasCuentanModo);
+    if (counts && s.trainer_id) acc[s.trainer_id] = (acc[s.trainer_id] ?? 0) + 1;
     return acc;
   }, {});
 

@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 
+/**
+ * Cómo cuentan las sesiones canceladas como entrenamiento realizado
+ * (estadísticas y sesiones por entrenador):
+ *  - "segunNC": cuentan salvo las marcadas como "No contabilizar" (comportamiento clásico)
+ *  - "siempre": todas las canceladas cuentan
+ *  - "nunca": ninguna cancelada cuenta
+ */
+export type CanceladasModo = "segunNC" | "siempre" | "nunca";
+
 export type BehaviorConfig = {
   autoCompletarIndividuales: boolean;
   autoCompletarGrupales: boolean;
   graciaAutoRealizadaMin: number;
   cancelacionDefaultNoContabilizar: boolean;
+  canceladasCuentanModo: CanceladasModo;
   grupalesSinAsistentesCuentan: boolean;
   pruebaAutoInactivar: boolean;
   pruebaDiasInactivar: number;
@@ -15,6 +25,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   autoCompletarGrupales: true,
   graciaAutoRealizadaMin: 15,
   cancelacionDefaultNoContabilizar: false,
+  canceladasCuentanModo: "segunNC",
   grupalesSinAsistentesCuentan: true,
   pruebaAutoInactivar: true,
   pruebaDiasInactivar: 30,
@@ -22,6 +33,16 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
 
 const STORAGE_KEY = "behavior-config-v1";
 const EVENT_NAME = "behavior-config-changed";
+
+let cache: BehaviorConfig | null = null;
+let cacheBound = false;
+function bindCacheInvalidation() {
+  if (cacheBound || typeof window === "undefined") return;
+  cacheBound = true;
+  const clear = () => { cache = null; };
+  window.addEventListener(EVENT_NAME, clear);
+  window.addEventListener("storage", clear);
+}
 
 function readStorage(): BehaviorConfig {
   if (typeof window === "undefined") return DEFAULT_BEHAVIOR_CONFIG;
@@ -37,12 +58,33 @@ function readStorage(): BehaviorConfig {
 
 export function writeBehaviorConfig(cfg: BehaviorConfig): void {
   if (typeof window === "undefined") return;
+  cache = cfg;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
 }
 
 export function getBehaviorConfig(): BehaviorConfig {
-  return readStorage();
+  bindCacheInvalidation();
+  if (!cache) cache = readStorage();
+  return cache;
+}
+
+/**
+ * ¿Cuenta esta sesión como entrenamiento realizado?
+ * Se aplica igual en estadísticas y en el conteo por entrenador.
+ */
+export function sessionCountsAsTraining(
+  estado: string,
+  noContabilizar: boolean | null | undefined,
+  modo: CanceladasModo = DEFAULT_BEHAVIOR_CONFIG.canceladasCuentanModo,
+): boolean {
+  if (estado === "realizada") return true;
+  if (estado === "cancelada") {
+    if (modo === "siempre") return true;
+    if (modo === "nunca") return false;
+    return !noContabilizar;
+  }
+  return false;
 }
 
 export function useBehaviorConfig(): BehaviorConfig {

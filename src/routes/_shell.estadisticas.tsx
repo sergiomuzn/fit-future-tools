@@ -19,7 +19,7 @@ import {
 import { trainerColor } from "@/lib/trainer-colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
-import { useBehaviorConfig } from "@/lib/behavior-config";
+import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
 
@@ -39,11 +39,10 @@ function spacesFor(tipo: Session["tipo"]): number {
   if (tipo === "grupal") return 2;
   return 1; // individual, pareja, prueba, null
 }
-// Una sesión cuenta como entrenamiento si está realizada o cancelada (sin marcar "No contabilizar").
+// Una sesión cuenta como entrenamiento si está realizada, o cancelada según el
+// ajuste Configuración → Funcionamiento → Cancelaciones.
 function countsAsTraining(s: Session): boolean {
-  if (s.estado === "realizada") return true;
-  if (s.estado === "cancelada" && !s.no_contabilizar) return true;
-  return false;
+  return sessionCountsAsTraining(s.estado, s.no_contabilizar, getBehaviorConfig().canceladasCuentanModo);
 }
 // Aplica la preferencia "Contabilizar grupales sin asistentes" del apartado
 // Configuración → Funcionamiento. Si está desactivada, las sesiones grupales
@@ -218,6 +217,8 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPrice
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
+  // Se lee la config para re-renderizar cuando cambia el criterio de canceladas.
+  useBehaviorConfig();
   const realizadas = monthSessions.filter(countsAsTraining);
   const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
   const tardes = realizadas.length - mananas;
@@ -566,6 +567,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
   const statsConfig = useStatsConfig();
+  const canceladasModo = useBehaviorConfig().canceladasCuentanModo;
 
   // Compatibilidad efectiva: la del usuario (Config → Estadísticas), acotada
   // por las reglas de periodo definidas por el negocio.
@@ -668,7 +670,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList],
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
 
   function handleCsvExport() {
