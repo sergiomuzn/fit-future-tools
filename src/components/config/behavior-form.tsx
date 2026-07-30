@@ -94,8 +94,13 @@ export function BehaviorForm() {
               {cfg.pruebaAutoInactivar ? "" : " (automatismo desactivado)"}.
             </li>
             <li>
-              <b>Cancelaciones:</b> una sesión cancelada cuenta como entrenamiento salvo que la
-              marques como <i>No contabilizar</i>.
+              <b>Cancelaciones:</b>{" "}
+              {cfg.canceladasCuentanModo === "siempre"
+                ? "todas las sesiones canceladas cuentan como entrenamiento realizado."
+                : cfg.canceladasCuentanModo === "nunca"
+                  ? "ninguna sesión cancelada cuenta como entrenamiento realizado."
+                  : "una sesión cancelada cuenta como entrenamiento salvo que la marques como “No contabilizar”."}{" "}
+              Lo que cuenta como realizado es también lo que se suma al entrenador.
             </li>
           </ul>
         </CardContent>
@@ -153,12 +158,31 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
+            title="Contar las sesiones canceladas como realizadas"
+            description="Define si una sesión cancelada cuenta como entrenamiento en estadísticas y en el total de sesiones del entrenador. Si no cuenta como realizada, tampoco se le suma al entrenador."
+          >
+            <Select
+              value={cfg.canceladasCuentanModo}
+              onValueChange={(v) => update("canceladasCuentanModo", v as BehaviorConfig["canceladasCuentanModo"])}
+            >
+              <SelectTrigger className="w-64">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="segunNC">Según “No contabilizar”</SelectItem>
+                <SelectItem value="siempre">Sí, siempre cuentan</SelectItem>
+                <SelectItem value="nunca">No, nunca cuentan</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row
             title="Al cancelar, marcar por defecto como 'No contabilizar'"
             description="Si lo activas, al cambiar una sesión a 'cancelada' la casilla 'No contabilizar' aparecerá marcada por defecto (se puede desmarcar). Con el ajuste desactivado, las cancelaciones cuentan como entrenamiento salvo que lo marques a mano."
           >
             <Switch
               checked={cfg.cancelacionDefaultNoContabilizar}
               onCheckedChange={(v) => update("cancelacionDefaultNoContabilizar", v)}
+              disabled={cfg.canceladasCuentanModo !== "segunNC"}
             />
           </Row>
         </CardContent>
