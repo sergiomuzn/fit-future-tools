@@ -562,7 +562,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
     },
   });
   const [metric, setMetric] = useState<Metric>("sesiones");
-  const [desglose, setDesglose] = useState<Desglose>("franja");
+  const [desglose, setDesglose] = useState<Desglose>("total");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
   const statsConfig = useStatsConfig();

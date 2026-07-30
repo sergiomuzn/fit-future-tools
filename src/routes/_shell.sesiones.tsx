@@ -3,6 +3,8 @@ import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, type Group, ESTADO_LABEL } from "@/lib/db";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,6 +36,10 @@ function SesionesPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [estadoFilter, setEstadoFilter] = useState<string>("todos");
+  const [tipoFilter, setTipoFilter] = useState<string>("todos");
+  const [desde, setDesde] = useState<string>("");
+  const [hasta, setHasta] = useState<string>("");
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-past"],
@@ -117,12 +123,26 @@ function SesionesPage() {
   })();
 
   const q = normalizeText(search.trim());
-  const filtered = q
-    ? collapsed.filter((s) => {
-        const name = normalizeText(nameForSession(s));
-        return name.includes(q) || s.fecha.includes(q);
-      })
-    : collapsed;
+  const filtered = collapsed.filter((s) => {
+    if (q) {
+      const name = normalizeText(nameForSession(s));
+      if (!name.includes(q) && !s.fecha.includes(q)) return false;
+    }
+    if (desde && s.fecha < desde) return false;
+    if (hasta && s.fecha > hasta) return false;
+    if (estadoFilter !== "todos") {
+      if (estadoFilter === "cancelada" && !(s.estado === "cancelada" && !s.no_contabilizar)) return false;
+      if (estadoFilter === "cancelada_nc" && !(s.estado === "cancelada" && s.no_contabilizar)) return false;
+      if (estadoFilter !== "cancelada" && estadoFilter !== "cancelada_nc" && s.estado !== estadoFilter) return false;
+    }
+    if (tipoFilter !== "todos" && tipoForSession(s) !== tipoFilter) return false;
+    return true;
+  });
+
+  const tipoOptions = Array.from(
+    new Set([...Object.keys(TIPO_LABEL), ...catalogo.map((c) => c.tipo).filter(Boolean) as string[]]),
+  );
+  const filtrosActivos = estadoFilter !== "todos" || tipoFilter !== "todos" || !!desde || !!hasta;
 
   async function updateIncidencia(id: string, val: string) {
     const { error } = await supabase.from("sessions").update({ incidencia: val || null }).eq("id", id);
@@ -176,6 +196,50 @@ function SesionesPage() {
             <Download className="h-4 w-4 mr-1" /> Excel
           </Button>
         </div>
+      </div>
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-3">
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Estado</Label>
+          <Select value={estadoFilter} onValueChange={setEstadoFilter}>
+            <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los estados</SelectItem>
+              <SelectItem value="realizada">Realizada</SelectItem>
+              <SelectItem value="prueba">Prueba</SelectItem>
+              <SelectItem value="cancelada">Cancelada</SelectItem>
+              <SelectItem value="cancelada_nc">Cancelada NC</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Tipo de bono</Label>
+          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+            <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">Todos los tipos</SelectItem>
+              {tipoOptions.map((t) => (
+                <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? t}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Desde</Label>
+          <Input type="date" className="h-9 w-40" value={desde} onChange={(e) => setDesde(e.target.value)} />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs text-muted-foreground">Hasta</Label>
+          <Input type="date" className="h-9 w-40" value={hasta} onChange={(e) => setHasta(e.target.value)} />
+        </div>
+        {filtrosActivos && (
+          <Button
+            variant="ghost"
+            className="h-9"
+            onClick={() => { setEstadoFilter("todos"); setTipoFilter("todos"); setDesde(""); setHasta(""); }}
+          >
+            <X className="h-4 w-4 mr-1" /> Limpiar filtros
+          </Button>
+        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>

@@ -24,6 +24,7 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useConfirm } from "@/components/confirm-dialog";
 
 const NEW_TIPO_SENTINEL = "__nuevo__";
 const BUILTIN_TIPOS = ["individual", "pareja", "grupal", "gympass", "prueba"];
@@ -147,6 +148,7 @@ function SortableRow({
 }
 
 export function CatalogoManager() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
@@ -205,7 +207,7 @@ export function CatalogoManager() {
     toast.success("Cambios guardados");
   }
   async function removeRow(c: BonoCatalogo) {
-    if (!confirm(`¿Eliminar "${prettyBonoNombre(c.nombre)}"?`)) return;
+    if (!(await confirm({ title: `¿Eliminar "${prettyBonoNombre(c.nombre)}"?`, description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("bonos_catalogo").delete().eq("id", c.id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
@@ -278,6 +280,7 @@ export function CatalogoManager() {
 
   return (
     <Card>
+      {dialog}
       <CardHeader>
         <CardTitle>Tipos de bono y precios</CardTitle>
         <p className="text-xs text-muted-foreground">Los cambios afectan a Facturación y Bonos.</p>

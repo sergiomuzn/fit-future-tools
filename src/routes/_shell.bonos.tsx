@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { useCenterConfig } from "@/lib/center-schedule";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,11 +18,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X } from "lucide-react";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
 function BonosPage() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
+  const { colores: tipoColores } = useCenterConfig();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
@@ -68,13 +72,6 @@ function BonosPage() {
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
   const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
-  const TIPO_CLASS: Record<string, string> = {
-    prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-    gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
-  };
   const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
 
   function estadoRank(b: ClientBono): number {
@@ -142,7 +139,7 @@ function BonosPage() {
 
   async function removeBono() {
     if (!editing) return;
-    if (!confirm("¿Eliminar este bono? Esta acción no se puede deshacer.")) return;
+    if (!(await confirm({ title: "¿Eliminar este bono?", description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("client_bonos").delete().eq("id", editing.id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -191,6 +188,7 @@ function BonosPage() {
 
   return (
     <div className="p-6 space-y-4">
+      {dialog}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-display font-semibold">Bonos</h1>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
@@ -255,7 +253,16 @@ function BonosPage() {
                 <TableCell>
                   {(() => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
-                    return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                    if (!t) return <span className="text-muted-foreground">—</span>;
+                    const color = tipoColores[t] ?? "#888888";
+                    return (
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: `${color}26`, color }}
+                      >
+                        {TIPO_LABEL[t] ?? formatTipoBono(t)}
+                      </span>
+                    );
                   })()}
                 </TableCell>
                 <TableCell>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
