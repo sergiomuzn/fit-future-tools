@@ -18,10 +18,12 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X } from "lucide-react";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
 function BonosPage() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
   const [open, setOpen] = useState(false);
@@ -137,7 +139,7 @@ function BonosPage() {
 
   async function removeBono() {
     if (!editing) return;
-    if (!confirm("¿Eliminar este bono? Esta acción no se puede deshacer.")) return;
+    if (!(await confirm({ title: "¿Eliminar este bono?", description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("client_bonos").delete().eq("id", editing.id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -186,6 +188,7 @@ function BonosPage() {
 
   return (
     <div className="p-6 space-y-4">
+      {dialog}
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-display font-semibold">Bonos</h1>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>

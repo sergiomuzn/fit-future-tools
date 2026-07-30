@@ -12,6 +12,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
   component: EntrenadoresPage,
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/_shell/entrenadores")({
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function EntrenadoresPage() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -71,7 +73,7 @@ function EntrenadoresPage() {
     else { qc.invalidateQueries({ queryKey: ["trainers"] }); setOpen(false); toast.success("Guardado"); }
   }
   async function remove(id: string) {
-    if (!confirm("¿Eliminar entrenador?")) return;
+    if (!(await confirm({ title: "¿Eliminar entrenador?", description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("trainers").delete().eq("id", id);
     if (error) toast.error(error.message);
     else qc.invalidateQueries({ queryKey: ["trainers"] });
@@ -79,6 +81,7 @@ function EntrenadoresPage() {
 
   return (
     <div className="p-6 space-y-4">
+      {dialog}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Entrenadores</h1>
         <Button onClick={() => { setEditing({ activo: true }); setOpen(true); }}>

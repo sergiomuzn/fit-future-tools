@@ -25,12 +25,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
 function FacturacionPage() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
@@ -166,7 +168,7 @@ function FacturacionPage() {
   }
 
   async function removeInvoice(inv: Invoice) {
-    if (!confirm("¿Eliminar esta factura? Se revertirá el bono creado.")) return;
+    if (!(await confirm({ title: "¿Eliminar esta factura?", description: "Se revertirá el bono creado." }))) return;
     const { error } = await supabase.from("invoices").delete().eq("id", inv.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Factura eliminada");
@@ -221,6 +223,7 @@ function FacturacionPage() {
 
   return (
     <div className="p-6 space-y-4">
+      {dialog}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-display font-semibold">Facturación</h1>
         <Button onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Nueva factura</Button>

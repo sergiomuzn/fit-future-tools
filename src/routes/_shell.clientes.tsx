@@ -20,12 +20,14 @@ import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useConfirm } from "@/components/confirm-dialog";
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
 });
 
 function ClientesPage() {
+  const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
@@ -111,7 +113,7 @@ function ClientesPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm("¿Eliminar cliente?")) return;
+    if (!(await confirm({ title: "¿Eliminar cliente?", description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("clients").delete().eq("id", id);
     if (error) toast.error(error.message);
     else { toast.success("Cliente eliminado"); qc.invalidateQueries({ queryKey: ["clients"] }); }
@@ -119,6 +121,7 @@ function ClientesPage() {
 
   return (
     <div className="p-6 space-y-4">
+      {dialog}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-display font-semibold">Clientes</h1>
