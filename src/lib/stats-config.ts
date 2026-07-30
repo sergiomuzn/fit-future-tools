@@ -76,7 +76,7 @@ export const STATS_KPI_LABEL: Record<StatsKpiKey, string> = {
 export const DEFAULT_COMPAT: StatsCompatMatrix = {
   ocupacion:     { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   sesiones:      { total: true,  turno: true,  dow: true,  franja: true,  tipoSesion: true  },
-  cancelaciones: { total: true,  turno: true,  dow: true,  franja: true,  tipoSesion: false },
+  cancelaciones: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   porEntrenador: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   facturacion:   { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   altasBajas:    { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
