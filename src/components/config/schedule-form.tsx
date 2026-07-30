@@ -86,9 +86,6 @@ export function HorarioForm() {
 }
 
 const PRECIO_ROWS: { key: keyof Precios; label: string; hint?: string }[] = [
-  { key: "individual", label: "Individual" },
-  { key: "pareja", label: "Pareja" },
-  { key: "grupal", label: "Grupal", hint: "por persona" },
   { key: "gympass_ep", label: "Gympass EP" },
   { key: "gympass_gr", label: "Gympass GR" },
   { key: "classpass", label: "Classpass" },
@@ -130,11 +127,13 @@ export function PreciosForm() {
   const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
 
   return (
+    <div className="space-y-4">
     <Card>
-      <CardHeader><CardTitle>Precios medios y colores</CardTitle></CardHeader>
+      <CardHeader><CardTitle>Precios medios</CardTitle></CardHeader>
       <CardContent className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Se aplican a la facturación estimada de Estadísticas. Al cambiarlos se recalcula el histórico mostrado.
+          Solo para pases externos (Gympass / Classpass). El resto de tipos calcula la facturación
+          estimada dividiendo el precio de cada bono entre sus sesiones.
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
           {PRECIO_ROWS.map((row) => (
@@ -149,9 +148,17 @@ export function PreciosForm() {
             </div>
           ))}
         </div>
-        <div className="pt-4">
-          <div className="text-sm font-medium mb-1">Colores por tipo de sesión</div>
-          <p className="text-xs text-muted-foreground mb-3">
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
+          <Button onClick={save}>Guardar</Button>
+        </div>
+      </CardContent>
+    </Card>
+
+    <Card>
+      <CardHeader><CardTitle>Colores por tipo de bono</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
             Se usan en el desglose "Tipo de sesión" de Estadísticas.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -174,12 +181,12 @@ export function PreciosForm() {
               </div>
             ))}
           </div>
-        </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => { setLocal(DEFAULT_PRECIOS); setLocalColores(DEFAULT_TIPO_COLORES); }}>Restablecer defaults</Button>
+          <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
           <Button onClick={save}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
+    </div>
   );
 }
