@@ -82,7 +82,9 @@ function AgendaPage() {
               onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
                 className={cn(
                 "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
-                paintTrainerId === t.id ? "border-primary scale-110 bg-primary text-white" : "border-border bg-muted text-black",
+                paintTrainerId === t.id
+                  ? "border-primary scale-110 bg-primary text-white"
+                  : "border-border bg-muted text-black dark:text-slate-100",
               )}
               title={t.nombre}
             >
