@@ -103,18 +103,9 @@ export function BehaviorForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sesiones grupales</CardTitle>
+          <CardTitle>General</CardTitle>
         </CardHeader>
         <CardContent>
-          <Row
-            title="Contar las sesiones grupales como realizadas aunque no haya integrantes"
-            description="Cuando esté activado, las sesiones grupales pasadas se marcan como realizadas y cuentan en estadísticas aunque no tengan ningún cliente asignado. Si lo desactivas, sólo cuentan las grupales con al menos un cliente."
-          >
-            <Switch
-              checked={cfg.grupalesSinAsistentesCuentan}
-              onCheckedChange={(v) => update("grupalesSinAsistentesCuentan", v)}
-            />
-          </Row>
           <Row
             title="Margen de gracia tras la hora de fin"
             description="Tiempo que se espera después de la hora de fin antes de marcar la sesión como realizada. Útil para dar margen a cancelaciones de última hora."
@@ -135,6 +126,23 @@ export function BehaviorForm() {
                 <SelectItem value="180">3 horas</SelectItem>
               </SelectContent>
             </Select>
+          </Row>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sesiones grupales</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Contar las sesiones grupales como realizadas aunque no haya integrantes"
+            description="Cuando esté activado, las sesiones grupales pasadas se marcan como realizadas y cuentan en estadísticas aunque no tengan ningún cliente asignado. Si lo desactivas, sólo cuentan las grupales con al menos un cliente."
+          >
+            <Switch
+              checked={cfg.grupalesSinAsistentesCuentan}
+              onCheckedChange={(v) => update("grupalesSinAsistentesCuentan", v)}
+            />
           </Row>
         </CardContent>
       </Card>
