@@ -1,10 +1,20 @@
 import { useEffect, useState } from "react";
 
+/**
+ * Cómo cuentan las sesiones canceladas como entrenamiento realizado
+ * (estadísticas y sesiones por entrenador):
+ *  - "segunNC": cuentan salvo las marcadas como "No contabilizar" (comportamiento clásico)
+ *  - "siempre": todas las canceladas cuentan
+ *  - "nunca": ninguna cancelada cuenta
+ */
+export type CanceladasModo = "segunNC" | "siempre" | "nunca";
+
 export type BehaviorConfig = {
   autoCompletarIndividuales: boolean;
   autoCompletarGrupales: boolean;
   graciaAutoRealizadaMin: number;
   cancelacionDefaultNoContabilizar: boolean;
+  canceladasCuentanModo: CanceladasModo;
   grupalesSinAsistentesCuentan: boolean;
   pruebaAutoInactivar: boolean;
   pruebaDiasInactivar: number;
@@ -15,6 +25,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   autoCompletarGrupales: true,
   graciaAutoRealizadaMin: 15,
   cancelacionDefaultNoContabilizar: false,
+  canceladasCuentanModo: "segunNC",
   grupalesSinAsistentesCuentan: true,
   pruebaAutoInactivar: true,
   pruebaDiasInactivar: 30,
@@ -43,6 +54,24 @@ export function writeBehaviorConfig(cfg: BehaviorConfig): void {
 
 export function getBehaviorConfig(): BehaviorConfig {
   return readStorage();
+}
+
+/**
+ * ¿Cuenta esta sesión como entrenamiento realizado?
+ * Se aplica igual en estadísticas y en el conteo por entrenador.
+ */
+export function sessionCountsAsTraining(
+  estado: string,
+  noContabilizar: boolean | null | undefined,
+  modo: CanceladasModo = DEFAULT_BEHAVIOR_CONFIG.canceladasCuentanModo,
+): boolean {
+  if (estado === "realizada") return true;
+  if (estado === "cancelada") {
+    if (modo === "siempre") return true;
+    if (modo === "nunca") return false;
+    return !noContabilizar;
+  }
+  return false;
 }
 
 export function useBehaviorConfig(): BehaviorConfig {
