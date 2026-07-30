@@ -16,7 +16,7 @@ import { ClientDetailsDialog } from "@/components/clients/client-details-dialog"
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog } from "@/components/groups/group-dialog";
-import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -86,8 +86,12 @@ function ClientesPage() {
     gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
   };
 
-    const filtered = clients
-    .filter((c) => normalizeText(c.nombre).includes(normalizeText(q)))
+  const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
+  const filtered = (matchesExact.length > 0 || !q.trim()
+    ? matchesExact
+    : clients.filter((c) => fuzzyMatch(c.nombre, q))
+  )
+    .slice()
     .sort((a, b) => {
       const aa = a.activo ? 0 : 1;
       const bb = b.activo ? 0 : 1;
