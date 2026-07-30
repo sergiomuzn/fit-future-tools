@@ -34,6 +34,16 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
 const STORAGE_KEY = "behavior-config-v1";
 const EVENT_NAME = "behavior-config-changed";
 
+let cache: BehaviorConfig | null = null;
+let cacheBound = false;
+function bindCacheInvalidation() {
+  if (cacheBound || typeof window === "undefined") return;
+  cacheBound = true;
+  const clear = () => { cache = null; };
+  window.addEventListener(EVENT_NAME, clear);
+  window.addEventListener("storage", clear);
+}
+
 function readStorage(): BehaviorConfig {
   if (typeof window === "undefined") return DEFAULT_BEHAVIOR_CONFIG;
   try {
@@ -48,12 +58,15 @@ function readStorage(): BehaviorConfig {
 
 export function writeBehaviorConfig(cfg: BehaviorConfig): void {
   if (typeof window === "undefined") return;
+  cache = cfg;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
   window.dispatchEvent(new CustomEvent(EVENT_NAME));
 }
 
 export function getBehaviorConfig(): BehaviorConfig {
-  return readStorage();
+  bindCacheInvalidation();
+  if (!cache) cache = readStorage();
+  return cache;
 }
 
 /**
