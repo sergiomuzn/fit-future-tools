@@ -80,6 +80,10 @@ export function StatsConfigForm() {
               </label>
             ))}
           </div>
+          <div className="flex items-center gap-2 pt-2">
+            <Button onClick={save}>Guardar cambios</Button>
+            <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -157,16 +161,15 @@ export function StatsConfigForm() {
               {" "}combinaciones activadas.
             </p>
           </UITooltipProvider>
+          <div className="flex items-center gap-2 pt-2">
+            <Button onClick={save}>Guardar cambios</Button>
+            <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
+            <Label className="text-xs text-muted-foreground ml-auto">
+              La configuración se guarda en este navegador.
+            </Label>
+          </div>
         </CardContent>
       </Card>
-
-      <div className="flex items-center gap-2">
-        <Button onClick={save}>Guardar cambios</Button>
-        <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
-        <Label className="text-xs text-muted-foreground ml-auto">
-          La configuración se guarda en este navegador.
-        </Label>
-      </div>
     </div>
   );
 }
