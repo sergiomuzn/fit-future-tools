@@ -53,13 +53,18 @@ function EntrenadoresPage() {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-month", start, end],
     queryFn: async () => {
-      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).in("estado", ["realizada", "prueba"]);
+      const { data } = await supabase.from("sessions").select("*").gte("fecha", start).lte("fecha", end).in("estado", ["realizada", "prueba", "cancelada"]);
       return (data ?? []) as Session[];
     },
   });
 
+  // Sólo se suman al entrenador las sesiones que cuentan como realizadas
+  // (las canceladas dependen del ajuste Configuración → Funcionamiento).
   const countByTrainer = sessions.reduce<Record<string, number>>((acc, s) => {
-    if (s.trainer_id) acc[s.trainer_id] = (acc[s.trainer_id] ?? 0) + 1;
+    const counts =
+      s.estado === "prueba" ||
+      sessionCountsAsTraining(s.estado, (s as any).no_contabilizar, behavior.canceladasCuentanModo);
+    if (counts && s.trainer_id) acc[s.trainer_id] = (acc[s.trainer_id] ?? 0) + 1;
     return acc;
   }, {});
 
