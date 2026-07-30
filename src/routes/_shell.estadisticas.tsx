@@ -217,6 +217,8 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPrice
   }, [sessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
+  // Se lee la config para re-renderizar cuando cambia el criterio de canceladas.
+  useBehaviorConfig();
   const realizadas = monthSessions.filter(countsAsTraining);
   const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
   const tardes = realizadas.length - mananas;
