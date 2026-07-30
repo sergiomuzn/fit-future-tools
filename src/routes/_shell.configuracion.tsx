@@ -69,8 +69,8 @@ function ConfigPage() {
         </TabsContent>
 
         <TabsContent value="estadisticas" className="pt-4 space-y-6">
-          <PreciosForm />
           <StatsConfigForm />
+          <PreciosForm />
         </TabsContent>
 
         <TabsContent value="funcionamiento" className="pt-4 space-y-6">
