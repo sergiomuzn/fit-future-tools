@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Download, Search, X } from "lucide-react";
+import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
@@ -36,6 +36,7 @@ function SesionesPage() {
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
   const [desde, setDesde] = useState<string>("");
