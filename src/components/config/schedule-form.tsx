@@ -92,6 +92,56 @@ const PRECIO_ROWS: { key: keyof Precios; label: string; hint?: string }[] = [
 ];
 
 export function PreciosForm() {
+  const { horario, precios, invalidate, isLoading } = useCenterConfig();
+  const [local, setLocal] = useState<Precios>(precios);
+
+  useEffect(() => {
+    if (!isLoading) setLocal(precios);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
+  async function save() {
+    const { error } = await supabase.from("center_config").update({
+      horario_base: horario as unknown as never,
+      precios: local as unknown as never,
+    }).eq("id", true);
+    if (error) return toast.error(error.message);
+    toast.success("Precios guardados");
+    invalidate();
+  }
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Precios medios</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Solo para pases externos (Gympass / Classpass). El resto de tipos calcula la facturación
+          estimada dividiendo el precio de cada bono entre sus sesiones. Se usa únicamente para el
+          cálculo de Estadísticas.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {PRECIO_ROWS.map((row) => (
+            <div key={row.key}>
+              <Label>{row.label}{row.hint ? <span className="text-muted-foreground text-xs"> ({row.hint})</span> : null}</Label>
+              <Input
+                type="number"
+                min={0}
+                value={local[row.key]}
+                onChange={(e) => setLocal({ ...local, [row.key]: Number(e.target.value) })}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
+          <Button onClick={save}>Guardar</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function ColoresBonoForm() {
   const { horario, precios, colores, invalidate, isLoading } = useCenterConfig();
   const [local, setLocal] = useState<Precios>(precios);
   const [localColores, setLocalColores] = useState<TipoColores>(colores);
@@ -120,41 +170,13 @@ export function PreciosForm() {
       colores: localColores as unknown as never,
     }).eq("id", true);
     if (error) return toast.error(error.message);
-    toast.success("Precios y colores guardados");
+    toast.success("Colores guardados");
     invalidate();
   }
 
   const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
 
   return (
-    <div className="space-y-4">
-    <Card>
-      <CardHeader><CardTitle>Precios medios</CardTitle></CardHeader>
-      <CardContent className="space-y-3">
-        <p className="text-xs text-muted-foreground">
-          Solo para pases externos (Gympass / Classpass). El resto de tipos calcula la facturación
-          estimada dividiendo el precio de cada bono entre sus sesiones.
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          {PRECIO_ROWS.map((row) => (
-            <div key={row.key}>
-              <Label>{row.label}{row.hint ? <span className="text-muted-foreground text-xs"> ({row.hint})</span> : null}</Label>
-              <Input
-                type="number"
-                min={0}
-                value={local[row.key]}
-                onChange={(e) => setLocal({ ...local, [row.key]: Number(e.target.value) })}
-              />
-            </div>
-          ))}
-        </div>
-        <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar</Button>
-        </div>
-      </CardContent>
-    </Card>
-
     <Card>
       <CardHeader><CardTitle>Colores por tipo de bono</CardTitle></CardHeader>
       <CardContent className="space-y-3">
@@ -187,6 +209,5 @@ export function PreciosForm() {
         </div>
       </CardContent>
     </Card>
-    </div>
   );
 }
