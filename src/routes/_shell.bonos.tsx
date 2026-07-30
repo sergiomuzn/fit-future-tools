@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { useCenterConfig } from "@/lib/center-schedule";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
 
 function BonosPage() {
   const qc = useQueryClient();
+  const { colores: tipoColores } = useCenterConfig();
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
@@ -255,7 +257,16 @@ function BonosPage() {
                 <TableCell>
                   {(() => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
-                    return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                    if (!t) return <span className="text-muted-foreground">—</span>;
+                    const color = tipoColores[t] ?? "#888888";
+                    return (
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium"
+                        style={{ backgroundColor: `${color}26`, color }}
+                      >
+                        {TIPO_LABEL[t] ?? formatTipoBono(t)}
+                      </span>
+                    );
                   })()}
                 </TableCell>
                 <TableCell>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
