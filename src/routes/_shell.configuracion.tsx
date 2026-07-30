@@ -28,7 +28,7 @@ function ConfigPage() {
       <Tabs defaultValue="calendario">
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
-          <TabsTrigger value="bonos">Tipos de bonos y precios</TabsTrigger>
+          <TabsTrigger value="bonos">Tipos de bonos</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
           <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
