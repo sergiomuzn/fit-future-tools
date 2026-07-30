@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download, X, Info } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, X, Info, SlidersHorizontal } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GroupDialog } from "@/components/groups/group-dialog";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
@@ -36,6 +37,11 @@ function ClientesPage() {
   const [tab, setTab] = useState<"clientes" | "grupos">("clientes");
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupEditing, setGroupEditing] = useState<Group | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
+  const [fTipo, setFTipo] = useState<string>("todos");
+  const [fDesde, setFDesde] = useState("");
+  const [fHasta, setFHasta] = useState("");
 
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
@@ -87,10 +93,19 @@ function ClientesPage() {
   };
 
   const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
-  const filtered = (matchesExact.length > 0 || !q.trim()
+  const searched = (matchesExact.length > 0 || !q.trim()
     ? matchesExact
     : clients.filter((c) => fuzzyMatch(c.nombre, q))
-  )
+  );
+  const filtered = searched
+    .filter((c) => {
+      if (fEstado === "activo" && !c.activo) return false;
+      if (fEstado === "inactivo" && c.activo) return false;
+      if (fTipo !== "todos" && (tipoByClient.get(c.id) ?? "") !== fTipo) return false;
+      if (fDesde && (!c.fecha_inicio || c.fecha_inicio < fDesde)) return false;
+      if (fHasta && (!c.fecha_inicio || c.fecha_inicio > fHasta)) return false;
+      return true;
+    })
     .slice()
     .sort((a, b) => {
       const aa = a.activo ? 0 : 1;
@@ -148,6 +163,9 @@ function ClientesPage() {
         </div>
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
+          <Button variant={filtersOpen ? "secondary" : "outline"} onClick={() => setFiltersOpen((v) => !v)}>
+            <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtrar
+          </Button>
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
             Nombre: formatNameTitle(c.nombre),
             "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
@@ -188,6 +206,47 @@ function ClientesPage() {
           </button>
         )}
       </div>
+      {filtersOpen && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end rounded-lg border bg-card p-3">
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Select value={fEstado} onValueChange={(v) => setFEstado(v as typeof fEstado)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="activo">Activo</SelectItem>
+                <SelectItem value="inactivo">Inactivo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Tipo de bono</Label>
+            <Select value={fTipo} onValueChange={setFTipo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {[...new Set(catalogo.map((c) => c.tipo))].map((t) => (
+                  <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Desde (fecha inicio)</Label>
+            <Input type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} />
+          </div>
+          <div className="space-y-1.5">
+            <Label>Hasta (fecha inicio)</Label>
+            <Input type="date" value={fHasta} onChange={(e) => setFHasta(e.target.value)} />
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFDesde(""); setFHasta(""); }}
+          >
+            Limpiar filtros
+          </Button>
+        </div>
+      )}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
