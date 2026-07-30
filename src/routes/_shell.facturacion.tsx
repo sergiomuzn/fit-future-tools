@@ -20,6 +20,7 @@ import {
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
 import { enterToSave } from "@/lib/enter-to-save";
+import { normalizeText, fuzzyMatch } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -147,12 +148,18 @@ function FacturacionPage() {
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   const searchNorm = search.trim().toLowerCase();
-  const filteredInvoices = searchNorm
+  const exactInvoices = searchNorm
     ? invoices.filter((i) => {
         const c = i.client_id ? clientMap.get(i.client_id) : null;
-        return c?.nombre.toLowerCase().includes(searchNorm) ?? false;
+        return normalizeText(c?.nombre).includes(normalizeText(searchNorm));
       })
     : invoices;
+  const filteredInvoices = !searchNorm || exactInvoices.length > 0
+    ? exactInvoices
+    : invoices.filter((i) => {
+        const c = i.client_id ? clientMap.get(i.client_id) : null;
+        return fuzzyMatch(c?.nombre, searchNorm);
+      });
   const filteredTotal = filteredInvoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   function openNew() {

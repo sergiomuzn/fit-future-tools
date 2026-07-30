@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
-import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 
 interface Props {
   value: string | null;
@@ -48,7 +48,9 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
       // If the current search text exactly matches the selected client name,
       // treat it as "no filter" so the user sees the full list to switch.
       if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
-      return clients.filter((c) => normalizeText(c.nombre).includes(q));
+      const exact = clients.filter((c) => normalizeText(c.nombre).includes(q));
+      if (exact.length > 0) return exact;
+      return clients.filter((c) => fuzzyMatch(c.nombre, q));
     },
     [clients, search, selected],
   );
