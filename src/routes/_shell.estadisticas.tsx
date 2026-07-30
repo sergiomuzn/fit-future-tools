@@ -565,6 +565,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
   const statsConfig = useStatsConfig();
+  const canceladasModo = useBehaviorConfig().canceladasCuentanModo;
 
   // Compatibilidad efectiva: la del usuario (Config → Estadísticas), acotada
   // por las reglas de periodo definidas por el negocio.
