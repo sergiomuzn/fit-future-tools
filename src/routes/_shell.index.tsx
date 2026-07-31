@@ -5,6 +5,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { AgendaGrid } from "@/components/agenda/agenda-grid";
+import { WeekView, startOfWeek } from "@/components/agenda/week-view";
+import { MonthView } from "@/components/agenda/month-view";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
@@ -19,6 +21,7 @@ const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto
 function AgendaPage() {
   const { date, setDate } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
+  const [view, setView] = useState<"dia" | "semana" | "mes">("dia");
   const { horario, specialsMap } = useCenterConfig();
   const sched = getDayScheduleFor(date, horario, specialsMap);
   const special = specialsMap.get(ymd(date));
@@ -63,19 +66,49 @@ function AgendaPage() {
     setDate(d);
   }
 
+  function shiftView(dir: number) {
+    if (view === "dia") return shift(dir);
+    if (view === "semana") return shift(dir * 7);
+    setDate(new Date(date.getFullYear(), date.getMonth() + dir, 1));
+  }
+
+  const weekStart = startOfWeek(date);
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekEnd.getDate() + 6);
+  const headerLabel =
+    view === "dia"
+      ? `${DOW[date.getDay()]}, ${date.getDate()} de ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
+      : view === "semana"
+        ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+        : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
-          <Button variant="ghost" size="icon" onClick={() => shift(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" onClick={() => shift(1)}><ChevronRight className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+          <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
           <div className="font-display text-lg font-semibold capitalize">
-            {DOW[date.getDay()]}, {date.getDate()} de {MONTHS[date.getMonth()]} {date.getFullYear()}
+            {headerLabel}
+          </div>
+          <div className="flex items-center gap-1 rounded-md border p-0.5">
+            {(["dia", "semana", "mes"] as const).map((v) => (
+              <Button
+                key={v}
+                variant={view === v ? "default" : "ghost"}
+                size="sm"
+                className="h-7 px-2 text-xs capitalize"
+                onClick={() => setView(v)}
+              >
+                {v === "dia" ? "Día" : v === "semana" ? "Semana" : "Mes"}
+              </Button>
+            ))}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <span className="text-xs mr-1">Pintar entrenador:</span>
+          {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
+          {view === "dia" &&
           {sortedTrainers.map((t) => (
             <button
               key={t.id}
@@ -94,18 +127,18 @@ function AgendaPage() {
         </div>
       </header>
 
-        {paintTrainerId && (
+        {view === "dia" && paintTrainerId && (
         <div className="bg-primary/90 text-primary-foreground text-xs font-medium px-4 py-1.5 border-b">
           Modo pintar activo · pincha sobre las sesiones para asignarles este entrenador.
         </div>
       )}
 
-      {sched === null && (
+      {view === "dia" && sched === null && (
         <div className="bg-destructive/15 text-white text-xs font-medium px-4 py-1.5 border-b">
           {special?.etiqueta ? `${special.etiqueta} · ` : ""}Festivo · Centro cerrado
         </div>
       )}
-      {sched && special?.tipo === "horario_especial" && (
+      {view === "dia" && sched && special?.tipo === "horario_especial" && (
         <div className="bg-amber-500/15 text-white text-xs font-medium px-4 py-1.5 border-b">
           Horario especial: {special.hora_apertura?.slice(0,5)}–{special.hora_cierre?.slice(0,5)}
           {special.etiqueta ? ` · ${special.etiqueta}` : ""}
@@ -113,7 +146,13 @@ function AgendaPage() {
       )}
 
       <div className="flex-1 overflow-hidden">
-        <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
+        {view === "dia" ? (
+          <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
+        ) : view === "semana" ? (
+          <WeekView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
+        ) : (
+          <MonthView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
+        )}
       </div>
 
       <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
