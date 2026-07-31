@@ -10,6 +10,7 @@ import { MonthView } from "@/components/agenda/month-view";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export const Route = createFileRoute("/_shell/")({
   component: AgendaPage,
@@ -92,19 +93,16 @@ function AgendaPage() {
           <div className="font-display text-lg font-semibold capitalize">
             {headerLabel}
           </div>
-          <div className="flex items-center gap-1 rounded-md border p-0.5">
-            {(["dia", "semana", "mes"] as const).map((v) => (
-              <Button
-                key={v}
-                variant={view === v ? "default" : "ghost"}
-                size="sm"
-                className="h-7 px-2 text-xs capitalize"
-                onClick={() => setView(v)}
-              >
-                {v === "dia" ? "Día" : v === "semana" ? "Semana" : "Mes"}
-              </Button>
-            ))}
-          </div>
+          <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
+            <SelectTrigger className="h-8 w-[110px] text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="dia">Día</SelectItem>
+              <SelectItem value="semana">Semana</SelectItem>
+              <SelectItem value="mes">Mes</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div className="flex items-center gap-2">
           {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
