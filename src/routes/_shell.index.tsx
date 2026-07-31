@@ -108,8 +108,7 @@ function AgendaPage() {
         </div>
         <div className="flex items-center gap-2">
           {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
-          {view === "dia" &&
-          {sortedTrainers.map((t) => (
+          {view === "dia" && sortedTrainers.map((t) => (
             <button
               key={t.id}
               onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
