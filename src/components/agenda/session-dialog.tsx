@@ -699,30 +699,34 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 </Button>
               </div>
               <Label className="text-xs text-muted-foreground">
-                Clientes del grupo{pickedGroup ? ` (máx. ${pickedGroup.capacidad})` : ""}
+                Clientes del grupo
+                {pickedGroup
+                  ? ` (${groupClientIds.filter(Boolean).length}/${pickedGroup.capacidad})`
+                  : ""}
               </Label>
-              {onlineMembers.length > 0 && (
-                <div className="rounded-md border border-dashed border-primary/50 bg-primary/5 p-2 space-y-1">
-                  <div className="text-[11px] font-medium text-primary">
-                    Reservas online ({onlineMembers.length})
-                  </div>
-                  {onlineMembers.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="truncate">{onlineClientNames[m.client_id as string] ?? "Cliente"}</span>
-                      <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
-                        {bonoTipoClienteLabel((m as any).booking_tipo)}
-                      </span>
+              {groupClientIds.map((cid, i) => {
+                const tipo = cid ? tipoForClient(cid) : null;
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <ClientPicker
+                        value={cid}
+                        onChange={(id) =>
+                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))
+                        }
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-              {groupClientIds.map((cid, i) => (
-                <ClientPicker
-                  key={i}
-                  value={cid}
-                  onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
-                />
-              ))}
+                    {tipo && (
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                        style={{ backgroundColor: colores[tipo] ?? "var(--muted)" }}
+                      >
+                        {TIPO_LABEL_BONO[tipo] ?? tipo}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-1.5">
