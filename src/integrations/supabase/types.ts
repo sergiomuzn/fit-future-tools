@@ -49,6 +49,7 @@ export type Database = {
           colores: Json
           horario_base: Json
           id: boolean
+          nombre: string
           precios: Json
           updated_at: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           colores?: Json
           horario_base?: Json
           id?: boolean
+          nombre?: string
           precios?: Json
           updated_at?: string
         }
@@ -63,6 +65,7 @@ export type Database = {
           colores?: Json
           horario_base?: Json
           id?: boolean
+          nombre?: string
           precios?: Json
           updated_at?: string
         }
@@ -665,6 +668,7 @@ export type Database = {
         Args: { p_client: string; p_fecha: string }
         Returns: undefined
       }
+      get_center_nombre: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { getDevRoleOverride } from "@/lib/dev-role-preview";
+import { useCenterName } from "@/lib/center-schedule";
 import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
@@ -20,6 +21,7 @@ const emailSchema = z.string().trim().email("Email inválido").max(255);
 
 function AuthPage() {
   const navigate = useNavigate();
+  const centroNombre = useCenterName();
   const [mode, setMode] = useState<"signin" | "forgot">("signin");
   const [isCliente, setIsCliente] = useState(false);
 
@@ -36,7 +38,7 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-display text-2xl">Fitness 360</CardTitle>
+          <CardTitle className="font-display text-2xl">{centroNombre}</CardTitle>
           {!isCliente && <CardDescription>Accede a la gestión del centro</CardDescription>}
         </CardHeader>
         <CardContent>

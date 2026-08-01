@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { cn } from "@/lib/utils";
 import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
+import { useCenterConfig } from "@/lib/center-schedule";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
@@ -66,6 +67,7 @@ function ShellInner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { state, isMobile, setOpenMobile } = useSidebar();
+  const { nombre: centroNombre } = useCenterConfig();
   const collapsed = state === "collapsed" && !isMobile;
   useInactivityLogout();
 
@@ -97,7 +99,7 @@ function ShellInner() {
         <SidebarHeader className="border-b">
           <div className="flex items-center justify-between gap-2 px-2 py-1 group-data-[collapsible=icon]:justify-center">
             <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-              Fitness 360
+              {centroNombre}
             </div>
             <div className="group-data-[collapsible=icon]:hidden">
               <ThemeToggle />
@@ -160,7 +162,7 @@ function ShellInner() {
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
         <div className="flex items-center gap-2 border-b bg-card px-2 py-1.5">
           <SidebarTrigger />
-          <span className="font-display text-sm font-semibold tracking-tight md:hidden">Fitness 360</span>
+          <span className="font-display text-sm font-semibold tracking-tight md:hidden">{centroNombre}</span>
           <div className="ml-auto">
             <NotificationsBell />
           </div>
