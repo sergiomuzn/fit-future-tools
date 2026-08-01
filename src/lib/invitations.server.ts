@@ -24,12 +24,16 @@ export async function checkInvitation(code: string): Promise<InvitationCheck> {
 export async function acceptInvitation(input: {
   code: string;
   nombre: string;
+  apellido: string;
+  telefono: string;
   email: string;
   password: string;
   bonoTipo: BonoTipoCliente;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const check = await checkInvitation(input.code);
   if (!check.ok) return { ok: false, error: "El enlace de invitación no es válido o ha caducado" };
+
+  const fullName = `${input.nombre} ${input.apellido}`.trim();
 
   const { data: invitation } = await supabaseAdmin
     .from("client_invitations")
@@ -41,7 +45,7 @@ export async function acceptInvitation(input: {
     email: input.email,
     password: input.password,
     email_confirm: true,
-    user_metadata: { nombre: input.nombre },
+    user_metadata: { nombre: fullName, telefono: input.telefono },
   });
   if (authError || !created?.user) {
     return { ok: false, error: authError?.message ?? "No se pudo crear la cuenta" };
@@ -50,7 +54,7 @@ export async function acceptInvitation(input: {
 
   const { data: client, error: clientError } = await supabaseAdmin
     .from("clients")
-    .insert([{ nombre: input.nombre, activo: true }])
+    .insert([{ nombre: fullName, telefono: input.telefono, email: input.email, activo: true }])
     .select("id")
     .single();
   if (clientError || !client) {
@@ -61,7 +65,7 @@ export async function acceptInvitation(input: {
   const { error: profileError } = await supabaseAdmin.from("client_profiles").insert([
     {
       id: userId,
-      nombre: input.nombre,
+      nombre: fullName,
       email: input.email,
       bono_tipo: input.bonoTipo,
       client_id: client.id,

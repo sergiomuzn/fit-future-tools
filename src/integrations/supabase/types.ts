@@ -258,6 +258,7 @@ export type Database = {
           activo: boolean
           created_at: string
           cumpleanos: string | null
+          email: string | null
           fecha_inicio: string | null
           id: string
           nombre: string
@@ -268,6 +269,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           cumpleanos?: string | null
+          email?: string | null
           fecha_inicio?: string | null
           id?: string
           nombre: string
@@ -278,6 +280,7 @@ export type Database = {
           activo?: boolean
           created_at?: string
           cumpleanos?: string | null
+          email?: string | null
           fecha_inicio?: string | null
           id?: string
           nombre?: string

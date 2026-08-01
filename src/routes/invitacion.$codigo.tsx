@@ -36,6 +36,8 @@ function InvitacionPage() {
   const [state, setState] = useState<"loading" | "ok" | "invalid">("loading");
   const [reason, setReason] = useState<string>("");
   const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [telefono, setTelefono] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -49,7 +51,9 @@ function InvitacionPage() {
         if (!alive) return;
         if (res.ok) {
           setState("ok");
-          setNombre(res.nombre ?? "");
+          const partes = (res.nombre ?? "").trim().split(/\s+/);
+          setNombre(partes[0] ?? "");
+          setApellido(partes.slice(1).join(" "));
           setEmail(res.email ?? "");
         } else {
           setState("invalid");
@@ -79,6 +83,8 @@ function InvitacionPage() {
     e.preventDefault();
     const em = emailSchema.safeParse(email);
     if (nombre.trim().length < 2) return toast.error("Escribe tu nombre");
+    if (apellido.trim().length < 2) return toast.error("Escribe tu apellido");
+    if (telefono.trim().length < 6) return toast.error("Escribe un teléfono válido");
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
@@ -87,7 +93,15 @@ function InvitacionPage() {
     setLoading(true);
     try {
       const res = await register({
-        data: { code: codigo, nombre: nombre.trim(), email: em.data, password, bonoTipo },
+        data: {
+          code: codigo,
+          nombre: nombre.trim(),
+          apellido: apellido.trim(),
+          telefono: telefono.trim(),
+          email: em.data,
+          password,
+          bonoTipo,
+        },
       });
       if (!res.ok) {
         setLoading(false);
@@ -129,9 +143,19 @@ function InvitacionPage() {
           )}
           {state === "ok" && (
             <form onSubmit={onSubmit} className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-nombre">Nombre</Label>
+                  <Input id="inv-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-apellido">Apellido</Label>
+                  <Input id="inv-apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required />
+                </div>
+              </div>
               <div className="space-y-1.5">
-                <Label htmlFor="inv-nombre">Nombre</Label>
-                <Input id="inv-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                <Label htmlFor="inv-tel">Teléfono</Label>
+                <Input id="inv-tel" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} required />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inv-email">Email</Label>

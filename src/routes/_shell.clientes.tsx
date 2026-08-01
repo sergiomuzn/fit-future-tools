@@ -119,6 +119,7 @@ function ClientesPage() {
     const payload = {
       nombre: editing.nombre,
       telefono: editing.telefono ?? null,
+      email: editing.email ?? null,
       fecha_inicio: editing.fecha_inicio ?? null,
       cumpleanos: editing.cumpleanos ?? null,
       notas: editing.notas ?? null,
@@ -171,6 +172,7 @@ function ClientesPage() {
             "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
             Estado: c.activo ? "Activo" : "Inactivo",
             Teléfono: c.telefono ?? "",
+            Email: c.email ?? "",
             "Fecha inicio": c.fecha_inicio ?? "",
             Cumpleaños: c.cumpleanos ?? "",
             Notas: c.notas ?? "",
@@ -302,6 +304,7 @@ function ClientesPage() {
           <div className="grid gap-3">
             <div className="space-y-1.5"><Label>Nombre</Label><Input value={editing?.nombre ?? ""} onChange={(e) => setEditing({ ...editing, nombre: e.target.value })} /></div>
             <div className="space-y-1.5"><Label>Teléfono</Label><Input value={editing?.telefono ?? ""} onChange={(e) => setEditing({ ...editing, telefono: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editing?.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Fecha de inicio</Label><Input type="date" value={editing?.fecha_inicio ?? ""} onChange={(e) => setEditing({ ...editing, fecha_inicio: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Cumpleaños</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
