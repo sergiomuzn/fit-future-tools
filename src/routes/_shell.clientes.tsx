@@ -298,6 +298,9 @@ function ClientesPage() {
         <TabsContent value="grupos" className="space-y-4">
           <GruposPanel onEdit={(g) => { setGroupEditing(g); setGroupOpen(true); }} />
         </TabsContent>
+        <TabsContent value="accesos" className="space-y-4">
+          <AccesosPanel />
+        </TabsContent>
       </Tabs>
 
       <Dialog open={open} onOpenChange={setOpen}>
