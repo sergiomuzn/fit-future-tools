@@ -186,12 +186,15 @@ function SesionesPage() {
           )}
           <Button
             variant={filtersOpen ? "default" : "outline"}
+            size="icon"
+            aria-label="Filtrar"
+            title="Filtrar"
+            className="relative"
             onClick={() => setFiltersOpen((v) => !v)}
           >
-            <SlidersHorizontal className="h-4 w-4 mr-1" />
-            Filtrar
+            <SlidersHorizontal className="h-4 w-4" />
             {filtrosActivos && (
-              <span className="ml-1.5 h-2 w-2 rounded-full bg-primary" />
+              <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary" />
             )}
           </Button>
           <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
