@@ -221,8 +221,8 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     {
       targetRole: "admin",
       tipo: "reserva_creada",
-      titulo: "Nueva reserva de cliente",
-      mensaje: `${profile.nombre} ha reservado plaza en ${group?.nombre ?? "clase grupal"} (${describeSesion(fecha, horaInicio)}).`,
+      titulo: "Nueva reserva",
+      mensaje: `${profile.nombre} · ${group?.nombre ?? "Clase grupal"} · ${describeSesion(fecha, horaInicio)}`,
     },
   ]);
 }
@@ -261,8 +261,8 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     {
       targetRole: "admin",
       tipo: "reserva_cancelada_cliente",
-      titulo: "Reserva cancelada por cliente",
-      mensaje: `${profile?.nombre ?? "Un cliente"} ha cancelado su plaza en ${row.titulo || group?.nombre || "clase grupal"} (${describeSesion(row.fecha, row.hora_inicio)}).`,
+      titulo: "Reserva cancelada",
+      mensaje: `${profile?.nombre ?? "Cliente"} · ${row.titulo || group?.nombre || "Clase grupal"} · ${describeSesion(row.fecha, row.hora_inicio)}`,
     },
   ]);
 }
