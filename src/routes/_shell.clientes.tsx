@@ -47,6 +47,8 @@ function ClientesPage() {
   const [fTipo, setFTipo] = useState<string>("todos");
   const [fDesde, setFDesde] = useState("");
   const [fHasta, setFHasta] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
 
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
@@ -134,12 +136,15 @@ function ClientesPage() {
         description: `Se añadirán ${nuevos.length} ${nuevos.length === 1 ? "cliente" : "clientes"}${
           dup ? ` (${dup} ya existían y se omitirán)` : ""
         }.`,
+        confirmText: "Importar",
+        destructive: false,
       });
       if (!ok) return;
       const { error } = await supabase.from("clients").insert(nuevos.map((r) => ({ ...r, activo: true })));
       if (error) { toast.error(error.message); return; }
       toast.success(`${nuevos.length} clientes importados`);
       qc.invalidateQueries({ queryKey: ["clients"] });
+      setImportOpen(false);
     } catch {
       toast.error("No se ha podido leer el archivo");
     }
@@ -247,7 +252,7 @@ function ClientesPage() {
               >
                 <Download className="h-4 w-4 mr-2" /> Exportar datos
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+              <DropdownMenuItem onSelect={() => setImportOpen(true)}>
                 <Upload className="h-4 w-4 mr-2" /> Importar clientes
               </DropdownMenuItem>
             </DropdownMenuContent>
