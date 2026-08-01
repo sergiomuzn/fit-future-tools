@@ -18,7 +18,6 @@ import {
 import { toast } from "sonner";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
-import { Trash2 } from "lucide-react";
 
 const EMPTY_SESSIONS: Session[] = [];
 
