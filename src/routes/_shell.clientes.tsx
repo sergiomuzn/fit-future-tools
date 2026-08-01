@@ -134,10 +134,24 @@ function ClientesPage() {
   }
 
   async function remove(id: string) {
-    if (!(await confirm({ title: "¿Eliminar cliente?", description: "Esta acción no se puede deshacer." }))) return;
+    const hoy = new Date().toISOString().slice(0, 10);
+    const { data: reservas } = await supabase
+      .from("sessions")
+      .select("id,group_id,fecha")
+      .eq("client_id", id)
+      .eq("estado", "reservada")
+      .gte("fecha", hoy);
+    const total = reservas?.length ?? 0;
+    const enGrupo = (reservas ?? []).filter((s) => s.group_id).length;
+    const description = total
+      ? `Este cliente tiene ${total} ${total === 1 ? "sesión reservada" : "sesiones reservadas"} pendientes${
+          enGrupo ? ` (${enGrupo} en entrenamientos grupales)` : ""
+        }. Si lo eliminas, esas reservas se borrarán. Esta acción no se puede deshacer.`
+      : "Esta acción no se puede deshacer.";
+    if (!(await confirm({ title: "¿Eliminar cliente?", description }))) return;
     const { error } = await supabase.from("clients").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else { toast.success("Cliente eliminado"); qc.invalidateQueries({ queryKey: ["clients"] }); }
+    else { toast.success("Cliente eliminado"); qc.invalidateQueries({ queryKey: ["clients"] }); qc.invalidateQueries({ queryKey: ["sessions"] }); }
   }
 
   return (
