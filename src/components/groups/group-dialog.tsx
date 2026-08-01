@@ -34,6 +34,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const [capacidad, setCapacidad] = useState<number | "">(6);
   const [activo, setActivo] = useState(true);
   const [notas, setNotas] = useState("");
+  const [acceso, setAcceso] = useState(true);
 
   // Stats data
   const { data: statsSessions = EMPTY_SESSIONS } = useQuery({
@@ -81,6 +82,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
     setCapacidad(group?.capacidad ?? 6);
     setActivo(group?.activo ?? true);
     setNotas(group?.notas ?? "");
+    setAcceso(group?.acceso_clientes ?? true);
   }, [open, group]);
 
   // Compute stats
@@ -153,12 +155,12 @@ export function GroupDialog({ open, onClose, group }: Props) {
 
     if (isNew) {
       const { error } = await supabase.from("groups").insert({
-        nombre: name, capacidad: cap, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null, acceso_clientes: acceso,
       });
       if (error) { toast.error(error.message); return; }
     } else {
       const { error } = await supabase.from("groups").update({
-        nombre: name, capacidad: cap, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null, acceso_clientes: acceso,
       }).eq("id", group!.id);
       if (error) { toast.error(error.message); return; }
     }
