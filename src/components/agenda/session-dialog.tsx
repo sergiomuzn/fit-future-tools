@@ -17,7 +17,7 @@ import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
-import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
+import { useCenterConfig } from "@/lib/center-schedule";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -102,6 +102,31 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     queryFn: async () => (await supabase.from("bonos_catalogo").select("id,tipo")).data ?? [],
     enabled: open,
   });
+  const { colores } = useCenterConfig();
+  const TIPO_LABEL_BONO: Record<string, string> = {
+    individual: "Individual",
+    pareja: "Pareja",
+    grupal: "Grupal",
+    gympass: "Gympass",
+    prueba: "Prueba",
+  };
+  // Tipo de bono efectivo de cada cliente del grupo: las reservas vía
+  // Wellhub/Claspass cuentan como Gympass; el resto usa su bono activo.
+  function tipoForClient(cid: string): string | null {
+    const booking = (groupMembersData ?? []).find(
+      (m) => m.client_id === cid && !!(m as any).booking_tipo,
+    ) as any;
+    const bt = booking?.booking_tipo as string | undefined;
+    if (bt === "wellhub" || bt === "claspass") return "gympass";
+    if (bt === "grupal_directo") return "grupal";
+    const b = bonos
+      .filter((x) => x.client_id === cid && x.activo)
+      .sort((a, z) => (z.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0];
+    return (
+      (catalogoAll as Array<{ id: string; tipo: string }>).find((c) => c.id === b?.bono_catalogo_id)
+        ?.tipo ?? null
+    );
+  }
   const activeBono = clientId
     ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
     : null;
@@ -155,20 +180,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     enabled: open && !!groupId,
   });
 
-  // Asistentes que han reservado desde el portal de clientes (o vía Wellhub/Claspass).
-  const onlineMembers = (groupMembersData ?? []).filter(
-    (m) => !!(m as any).booking_tipo && !!m.client_id,
-  );
-  const { data: onlineClientNames = {} } = useQuery({
-    queryKey: ["online-booking-names", onlineMembers.map((m) => m.client_id).join(",")],
-    queryFn: async () => {
-      const ids = onlineMembers.map((m) => m.client_id as string);
-      if (!ids.length) return {} as Record<string, string>;
-      const { data } = await supabase.from("clients").select("id,nombre").in("id", ids);
-      return Object.fromEntries((data ?? []).map((c) => [c.id, c.nombre])) as Record<string, string>;
-    },
-    enabled: open && onlineMembers.length > 0,
-  });
   const lastAutofilledGroupIdRef = ((): { current: string | null } => {
     // Use a stable ref stored on window to avoid an extra useRef import churn.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -674,30 +685,34 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 </Button>
               </div>
               <Label className="text-xs text-muted-foreground">
-                Clientes del grupo{pickedGroup ? ` (máx. ${pickedGroup.capacidad})` : ""}
+                Clientes del grupo
+                {pickedGroup
+                  ? ` (${groupClientIds.filter(Boolean).length}/${pickedGroup.capacidad})`
+                  : ""}
               </Label>
-              {onlineMembers.length > 0 && (
-                <div className="rounded-md border border-dashed border-primary/50 bg-primary/5 p-2 space-y-1">
-                  <div className="text-[11px] font-medium text-primary">
-                    Reservas online ({onlineMembers.length})
-                  </div>
-                  {onlineMembers.map((m) => (
-                    <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
-                      <span className="truncate">{onlineClientNames[m.client_id as string] ?? "Cliente"}</span>
-                      <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
-                        {bonoTipoClienteLabel((m as any).booking_tipo)}
-                      </span>
+              {groupClientIds.map((cid, i) => {
+                const tipo = cid ? tipoForClient(cid) : null;
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 min-w-0">
+                      <ClientPicker
+                        value={cid}
+                        onChange={(id) =>
+                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))
+                        }
+                      />
                     </div>
-                  ))}
-                </div>
-              )}
-              {groupClientIds.map((cid, i) => (
-                <ClientPicker
-                  key={i}
-                  value={cid}
-                  onChange={(id) => setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))}
-                />
-              ))}
+                    {tipo && (
+                      <span
+                        className="shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium text-white"
+                        style={{ backgroundColor: colores[tipo] ?? "var(--muted)" }}
+                      >
+                        {TIPO_LABEL_BONO[tipo] ?? tipo}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-1.5">
