@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -11,18 +10,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
-
-export const Route = createFileRoute("/_shell/accesos")({
-  head: () => ({
-    meta: [
-      { title: "Accesos de clientes · Fitness 360" },
-      { name: "description", content: "Genera invitaciones y gestiona el acceso de los clientes al portal de reservas." },
-      { property: "og:title", content: "Accesos de clientes · Fitness 360" },
-      { property: "og:description", content: "Genera invitaciones y gestiona el acceso de los clientes al portal de reservas." },
-    ],
-  }),
-  component: AccesosPage,
-});
 
 type Invitation = {
   id: string;
@@ -47,7 +34,7 @@ function invitationStatus(inv: Invitation): { label: string; variant: "default" 
   return { label: "Pendiente", variant: "secondary" };
 }
 
-function AccesosPage() {
+export function AccesosPanel() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
@@ -154,9 +141,7 @@ function AccesosPage() {
   }
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="font-display text-xl font-semibold tracking-tight">Accesos de clientes</h1>
-
+    <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Nueva invitación</CardTitle>
