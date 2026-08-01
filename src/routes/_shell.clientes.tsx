@@ -181,9 +181,6 @@ function ClientesPage() {
         </div>
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
-          <Button variant={filtersOpen ? "secondary" : "outline"} onClick={() => setFiltersOpen((v) => !v)}>
-            <SlidersHorizontal className="h-4 w-4 mr-1" /> Filtrar
-          </Button>
           <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
             Nombre: formatNameTitle(c.nombre),
             "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
@@ -208,18 +205,29 @@ function ClientesPage() {
           <TabsTrigger value="accesos">Accesos</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
-      <div className="relative max-w-sm">
-        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pr-8" />
-        {q && (
-          <button
-            type="button"
-            aria-label="Limpiar búsqueda"
-            onClick={() => setQ("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+      <div className="flex items-center gap-2">
+        <div className="relative w-full max-w-sm">
+          <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pr-8" />
+          {q && (
+            <button
+              type="button"
+              aria-label="Limpiar búsqueda"
+              onClick={() => setQ("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+        <Button
+          variant={filtersOpen ? "secondary" : "outline"}
+          size="icon"
+          aria-label="Filtrar"
+          title="Filtrar"
+          onClick={() => setFiltersOpen((v) => !v)}
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+        </Button>
       </div>
       {filtersOpen && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end rounded-lg border bg-card p-3">
