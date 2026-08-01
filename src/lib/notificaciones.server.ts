@@ -22,10 +22,10 @@ export async function crearNotificaciones(items: NuevaNotificacion[]): Promise<v
   await supabaseAdmin.from("notificaciones").insert(rows);
 }
 
-/** "lunes 7 de julio · 10:00" */
+/** "7 jul · 10:00" */
 export function describeSesion(fecha: string, hora: string): string {
   const [y, m, d] = fecha.split("-").map(Number);
   const date = new Date(y!, (m ?? 1) - 1, d!);
-  const dia = date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long" });
+  const dia = date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
   return `${dia} · ${hora.slice(0, 5)}`;
 }
