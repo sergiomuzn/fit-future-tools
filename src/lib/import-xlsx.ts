@@ -58,7 +58,7 @@ export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[]
       telefono: pick(row, ["telefono", "tlf", "movil", "phone"]) || null,
       email: pick(row, ["email", "correo", "e-mail"]) || null,
       fecha_inicio: toDate(pick(row, ["fecha inicio", "fecha de inicio", "alta", "fecha_inicio"])),
-      cumpleanos: toDate(pick(row, ["cumpleanos", "cumple", "fecha nacimiento", "nacimiento"])),
+      cumpleanos: toDate(pick(row, ["fecha de nacimiento", "fecha nacimiento", "nacimiento", "cumpleanos", "cumple"])),
       notas: pick(row, ["notas", "nota", "observaciones"]) || null,
     });
   }

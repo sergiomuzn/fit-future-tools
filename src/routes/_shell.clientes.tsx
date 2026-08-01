@@ -246,7 +246,7 @@ function ClientesPage() {
                   Teléfono: c.telefono ?? "",
                   Email: c.email ?? "",
                   "Fecha inicio": c.fecha_inicio ?? "",
-                  Cumpleaños: c.cumpleanos ?? "",
+                  "Fecha de nacimiento": c.cumpleanos ?? "",
                   Notas: c.notas ?? "",
                 })), "Clientes")}
               >
@@ -343,7 +343,7 @@ function ClientesPage() {
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha inicio</TableHead>
               <TableHead>Estado</TableHead>
-              <TableHead>Cumpleaños</TableHead>
+              <TableHead>Fecha de nacimiento</TableHead>
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -392,7 +392,7 @@ function ClientesPage() {
             <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editing?.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Fecha de inicio</Label><Input type="date" value={editing?.fecha_inicio ?? ""} onChange={(e) => setEditing({ ...editing, fecha_inicio: e.target.value })} /></div>
-              <div className="space-y-1.5"><Label>Cumpleaños</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
+              <div className="space-y-1.5"><Label>Fecha de nacimiento</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
             </div>
             <div className="space-y-1.5"><Label>Notas</Label><Textarea rows={2} value={editing?.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></div>
             {editing?.id && (
@@ -435,7 +435,7 @@ function ClientesPage() {
             <p>
               Los nombres de las columnas deben coincidir con los campos del cliente:{" "}
               <b>Nombre</b>, <b>Apellido</b>, <b>Teléfono</b>, <b>Email</b>, <b>Fecha inicio</b>,{" "}
-              <b>Cumpleaños</b> y <b>Notas</b>.
+              <b>Fecha de nacimiento</b> y <b>Notas</b>.
             </p>
             <p>
               Los datos que no estén rellenados quedarán vacíos o con su valor predeterminado

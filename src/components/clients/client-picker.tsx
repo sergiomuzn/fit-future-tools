@@ -194,7 +194,7 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
                 <Input type="date" value={draft.fecha_inicio ?? ""} onChange={(e) => setDraft({ ...draft, fecha_inicio: e.target.value })} />
               </div>
               <div className="space-y-1.5">
-                <Label>Cumpleaños</Label>
+                <Label>Fecha de nacimiento</Label>
                 <Input type="date" value={draft.cumpleanos ?? ""} onChange={(e) => setDraft({ ...draft, cumpleanos: e.target.value })} />
               </div>
             </div>
