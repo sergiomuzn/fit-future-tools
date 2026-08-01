@@ -145,10 +145,9 @@ export function useCenterName(): string {
   const { data } = useQuery({
     queryKey: ["center_name"],
     queryFn: async () => {
-      const { data } = await (supabase as unknown as {
-        rpc: (fn: string) => Promise<{ data: string | null }>;
-      }).rpc("get_center_nombre");
-      return (data ?? "").trim() || "Fitness 360";
+      const { getCenterName } = await import("./center-name.functions");
+      const res = await getCenterName();
+      return res.nombre;
     },
   });
   return data ?? "Fitness 360";
