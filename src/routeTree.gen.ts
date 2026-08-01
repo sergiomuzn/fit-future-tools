@@ -10,9 +10,11 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ClienteRouteImport } from './routes/cliente'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
 import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
 import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
@@ -20,10 +22,18 @@ import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenado
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
+import { Route as ShellAccesosRouteImport } from './routes/_shell.accesos'
+import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
+import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClienteRoute = ClienteRouteImport.update({
+  id: '/cliente',
+  path: '/cliente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -39,6 +49,11 @@ const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ShellRoute,
+} as any)
+const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
+  id: '/invitacion/$codigo',
+  path: '/invitacion/$codigo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ShellSesionesRoute = ShellSesionesRouteImport.update({
   id: '/sesiones',
@@ -75,11 +90,30 @@ const ShellBonosRoute = ShellBonosRouteImport.update({
   path: '/bonos',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellAccesosRoute = ShellAccesosRouteImport.update({
+  id: '/accesos',
+  path: '/accesos',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ApiPublicWebhooksWellhubRoute =
+  ApiPublicWebhooksWellhubRouteImport.update({
+    id: '/api/public/webhooks/wellhub',
+    path: '/api/public/webhooks/wellhub',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWebhooksClaspassRoute =
+  ApiPublicWebhooksClaspassRouteImport.update({
+    id: '/api/public/webhooks/claspass',
+    path: '/api/public/webhooks/claspass',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accesos': typeof ShellAccesosRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
@@ -87,10 +121,15 @@ export interface FileRoutesByFullPath {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
+  '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accesos': typeof ShellAccesosRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
@@ -98,13 +137,18 @@ export interface FileRoutesByTo {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
+  '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_shell/accesos': typeof ShellAccesosRoute
   '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/configuracion': typeof ShellConfiguracionRoute
@@ -112,14 +156,19 @@ export interface FileRoutesById {
   '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
+  '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/auth'
+    | '/cliente'
     | '/reset-password'
+    | '/accesos'
     | '/bonos'
     | '/clientes'
     | '/configuracion'
@@ -127,10 +176,15 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
+    | '/invitacion/$codigo'
+    | '/api/public/webhooks/claspass'
+    | '/api/public/webhooks/wellhub'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/cliente'
     | '/reset-password'
+    | '/accesos'
     | '/bonos'
     | '/clientes'
     | '/configuracion'
@@ -138,12 +192,17 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
+    | '/invitacion/$codigo'
     | '/'
+    | '/api/public/webhooks/claspass'
+    | '/api/public/webhooks/wellhub'
   id:
     | '__root__'
     | '/_shell'
     | '/auth'
+    | '/cliente'
     | '/reset-password'
+    | '/_shell/accesos'
     | '/_shell/bonos'
     | '/_shell/clientes'
     | '/_shell/configuracion'
@@ -151,13 +210,20 @@ export interface FileRouteTypes {
     | '/_shell/estadisticas'
     | '/_shell/facturacion'
     | '/_shell/sesiones'
+    | '/invitacion/$codigo'
     | '/_shell/'
+    | '/api/public/webhooks/claspass'
+    | '/api/public/webhooks/wellhub'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ClienteRoute: typeof ClienteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  InvitacionCodigoRoute: typeof InvitacionCodigoRoute
+  ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
+  ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -167,6 +233,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cliente': {
+      id: '/cliente'
+      path: '/cliente'
+      fullPath: '/cliente'
+      preLoaderRoute: typeof ClienteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -189,6 +262,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
       parentRoute: typeof ShellRoute
+    }
+    '/invitacion/$codigo': {
+      id: '/invitacion/$codigo'
+      path: '/invitacion/$codigo'
+      fullPath: '/invitacion/$codigo'
+      preLoaderRoute: typeof InvitacionCodigoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_shell/sesiones': {
       id: '/_shell/sesiones'
@@ -239,10 +319,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellBonosRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/accesos': {
+      id: '/_shell/accesos'
+      path: '/accesos'
+      fullPath: '/accesos'
+      preLoaderRoute: typeof ShellAccesosRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/api/public/webhooks/wellhub': {
+      id: '/api/public/webhooks/wellhub'
+      path: '/api/public/webhooks/wellhub'
+      fullPath: '/api/public/webhooks/wellhub'
+      preLoaderRoute: typeof ApiPublicWebhooksWellhubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/claspass': {
+      id: '/api/public/webhooks/claspass'
+      path: '/api/public/webhooks/claspass'
+      fullPath: '/api/public/webhooks/claspass'
+      preLoaderRoute: typeof ApiPublicWebhooksClaspassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 interface ShellRouteChildren {
+  ShellAccesosRoute: typeof ShellAccesosRoute
   ShellBonosRoute: typeof ShellBonosRoute
   ShellClientesRoute: typeof ShellClientesRoute
   ShellConfiguracionRoute: typeof ShellConfiguracionRoute
@@ -254,6 +356,7 @@ interface ShellRouteChildren {
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellAccesosRoute: ShellAccesosRoute,
   ShellBonosRoute: ShellBonosRoute,
   ShellClientesRoute: ShellClientesRoute,
   ShellConfiguracionRoute: ShellConfiguracionRoute,
@@ -269,18 +372,12 @@ const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   AuthRoute: AuthRoute,
+  ClienteRoute: ClienteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  InvitacionCodigoRoute: InvitacionCodigoRoute,
+  ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
+  ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

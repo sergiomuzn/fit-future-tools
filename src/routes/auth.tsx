@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { homePathForCurrentUser } from "@/lib/roles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,7 +23,9 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/" });
+      if (data.session) {
+        void homePathForCurrentUser().then((path) => navigate({ to: path }));
+      }
     });
   }, [navigate]);
 
@@ -63,7 +66,8 @@ function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: ()
     const { error } = await supabase.auth.signInWithPassword({ email: em.data, password });
     setLoading(false);
     if (error) return toast.error(error.message);
-    navigate({ to: "/" });
+    const path = await homePathForCurrentUser();
+    navigate({ to: path });
   }
 
   return (
