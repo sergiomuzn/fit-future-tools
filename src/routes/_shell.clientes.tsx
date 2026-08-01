@@ -215,18 +215,43 @@ function ClientesPage() {
         </div>
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
-            Nombre: formatNameTitle(c.nombre),
-            "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
-            Estado: c.activo ? "Activo" : "Inactivo",
-            Teléfono: c.telefono ?? "",
-            Email: c.email ?? "",
-            "Fecha inicio": c.fecha_inicio ?? "",
-            Cumpleaños: c.cumpleanos ?? "",
-            Notas: c.notas ?? "",
-          })), "Clientes")}>
-            <Download className="h-4 w-4 mr-1" /> Excel
-          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void importClients(f);
+            }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <MoreHorizontal className="h-4 w-4 mr-1" /> Acciones
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
+                  Nombre: formatNameTitle(c.nombre),
+                  "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
+                  Estado: c.activo ? "Activo" : "Inactivo",
+                  Teléfono: c.telefono ?? "",
+                  Email: c.email ?? "",
+                  "Fecha inicio": c.fecha_inicio ?? "",
+                  Cumpleaños: c.cumpleanos ?? "",
+                  Notas: c.notas ?? "",
+                })), "Clientes")}
+              >
+                <Download className="h-4 w-4 mr-2" /> Exportar datos
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" /> Importar clientes
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => { setEditing({}); setOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
