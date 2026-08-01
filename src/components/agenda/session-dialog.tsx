@@ -676,6 +676,21 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label className="text-xs text-muted-foreground">
                 Clientes del grupo{pickedGroup ? ` (máx. ${pickedGroup.capacidad})` : ""}
               </Label>
+              {onlineMembers.length > 0 && (
+                <div className="rounded-md border border-dashed border-primary/50 bg-primary/5 p-2 space-y-1">
+                  <div className="text-[11px] font-medium text-primary">
+                    Reservas online ({onlineMembers.length})
+                  </div>
+                  {onlineMembers.map((m) => (
+                    <div key={m.id} className="flex items-center justify-between gap-2 text-xs">
+                      <span className="truncate">{onlineClientNames[m.client_id as string] ?? "Cliente"}</span>
+                      <span className="shrink-0 rounded bg-primary/15 px-1.5 py-0.5 text-[10px] text-primary">
+                        {bonoTipoClienteLabel((m as any).booking_tipo)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
               {groupClientIds.map((cid, i) => (
                 <ClientPicker
                   key={i}
