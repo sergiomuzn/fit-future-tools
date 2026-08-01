@@ -352,7 +352,6 @@ function ClientesPage() {
 }
 
 function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
-  const { confirm: confirmGroup, dialog: groupDialog } = useConfirm();
   const qc = useQueryClient();
   const { data: groups = [] } = useQuery({
     queryKey: ["groups"],
@@ -401,21 +400,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
       .join(" · ");
   }
 
-  async function removeGroup(id: string, nombre: string) {
-    if (!(await confirmGroup({ title: `¿Eliminar grupo «${nombre}»?`, description: "Esta acción no se puede deshacer." }))) return;
-    const { error } = await supabase.from("groups").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else { toast.success("Grupo eliminado"); qc.invalidateQueries({ queryKey: ["groups"] }); }
-  }
-
-  async function toggleAcceso(g: Group) {
-    const next = !(g as { acceso_clientes?: boolean }).acceso_clientes;
-    const { error } = await supabase.from("groups").update({ acceso_clientes: next }).eq("id", g.id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(next ? "Acceso de clientes habilitado" : "Acceso restringido");
-    qc.invalidateQueries({ queryKey: ["groups"] });
-  }
-
   const sorted = [...groups].sort((a, b) => {
     if (a.activo !== b.activo) return a.activo ? -1 : 1;
     return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
@@ -423,7 +407,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {groupDialog}
       {sorted.map((g) => (
         <div
           key={g.id}
