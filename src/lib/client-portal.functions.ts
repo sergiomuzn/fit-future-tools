@@ -18,6 +18,8 @@ export const registerFromInvitation = createServerFn({ method: "POST" })
       .object({
         code: z.string().trim().min(4).max(64),
         nombre: z.string().trim().min(2).max(80),
+        apellido: z.string().trim().min(2).max(80),
+        telefono: z.string().trim().min(6).max(30),
         email: z.string().trim().email().max(255),
         password: z.string().min(8).max(128),
         bonoTipo: bonoTipoSchema,
@@ -26,7 +28,17 @@ export const registerFromInvitation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const { acceptInvitation } = await import("./invitations.server");
-    return acceptInvitation(data as { code: string; nombre: string; email: string; password: string; bonoTipo: BonoTipoCliente });
+    return acceptInvitation(
+      data as {
+        code: string;
+        nombre: string;
+        apellido: string;
+        telefono: string;
+        email: string;
+        password: string;
+        bonoTipo: BonoTipoCliente;
+      },
+    );
   });
 
 export const getMyPortalProfile = createServerFn({ method: "POST" })
