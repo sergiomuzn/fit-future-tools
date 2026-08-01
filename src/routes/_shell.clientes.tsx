@@ -228,8 +228,8 @@ function ClientesPage() {
           />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <MoreHorizontal className="h-4 w-4 mr-1" /> Acciones
+              <Button variant="outline" size="icon" aria-label="Acciones" title="Acciones">
+                <MoreHorizontal className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
