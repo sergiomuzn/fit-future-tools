@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCenterName } from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/invitacion/$codigo")({
   ssr: false,
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/invitacion/$codigo")({
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 
 function InvitacionPage() {
+  const centroNombre = useCenterName();
   const { codigo } = Route.useParams();
   const navigate = useNavigate();
   const check = useServerFn(validateInvitation);
@@ -126,7 +128,7 @@ function InvitacionPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-display text-2xl">Fitness 360</CardTitle>
+          <CardTitle className="font-display text-2xl">{centroNombre}</CardTitle>
           <CardDescription>
             {state === "ok" ? "Crea tu cuenta para reservar clases grupales" : "Invitación"}
           </CardDescription>
