@@ -13,6 +13,7 @@ import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
 import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
 import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
@@ -41,6 +42,11 @@ const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => ShellRoute,
+} as any)
+const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
+  id: '/invitacion/$codigo',
+  path: '/invitacion/$codigo',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ShellSesionesRoute = ShellSesionesRouteImport.update({
   id: '/sesiones',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
@@ -114,6 +121,7 @@ export interface FileRoutesByTo {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
+  '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
+    | '/invitacion/$codigo'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
   fileRoutesByTo: FileRoutesByTo
@@ -160,6 +170,7 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
+    | '/invitacion/$codigo'
     | '/'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/_shell/estadisticas'
     | '/_shell/facturacion'
     | '/_shell/sesiones'
+    | '/invitacion/$codigo'
     | '/_shell/'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -184,6 +196,7 @@ export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  InvitacionCodigoRoute: typeof InvitacionCodigoRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
 }
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ShellIndexRouteImport
       parentRoute: typeof ShellRoute
+    }
+    '/invitacion/$codigo': {
+      id: '/invitacion/$codigo'
+      path: '/invitacion/$codigo'
+      fullPath: '/invitacion/$codigo'
+      preLoaderRoute: typeof InvitacionCodigoRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_shell/sesiones': {
       id: '/_shell/sesiones'
@@ -312,6 +332,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  InvitacionCodigoRoute: InvitacionCodigoRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
 }
