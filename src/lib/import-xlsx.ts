@@ -43,7 +43,14 @@ export type ImportedClient = {
   fecha_inicio: string | null;
   cumpleanos: string | null;
   notas: string | null;
+  activo: boolean;
 };
+
+function toActivo(value: string): boolean {
+  const v = norm(value);
+  if (!v) return true;
+  return !["inactivo", "inactiva", "baja", "no", "false", "0", "desactivado", "inactive"].includes(v);
+}
 
 export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[] {
   const out: ImportedClient[] = [];
@@ -60,6 +67,7 @@ export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[]
       fecha_inicio: toDate(pick(row, ["fecha inicio", "fecha de inicio", "alta", "fecha_inicio"])),
       cumpleanos: toDate(pick(row, ["fecha de nacimiento", "fecha nacimiento", "nacimiento", "cumpleanos", "cumple"])),
       notas: pick(row, ["notas", "nota", "observaciones"]) || null,
+      activo: toActivo(pick(row, ["estado", "activo", "situacion", "status"])),
     });
   }
   return out;

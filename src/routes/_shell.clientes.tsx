@@ -140,7 +140,7 @@ function ClientesPage() {
         destructive: false,
       });
       if (!ok) return;
-      const { error } = await supabase.from("clients").insert(nuevos.map((r) => ({ ...r, activo: true })));
+      const { error } = await supabase.from("clients").insert(nuevos);
       if (error) { toast.error(error.message); return; }
       toast.success(`${nuevos.length} clientes importados`);
       qc.invalidateQueries({ queryKey: ["clients"] });
