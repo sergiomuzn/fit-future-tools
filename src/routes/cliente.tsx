@@ -318,7 +318,7 @@ function CalendarioClases({
                         c.asistida
                           ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
                           : c.reservada
-                            ? "bg-primary text-primary-foreground"
+                            ? "bg-state-reservada text-state-reservada-fg"
                             : "bg-muted text-muted-foreground",
                       )}
                     >
@@ -337,7 +337,7 @@ function CalendarioClases({
               <span className="h-2.5 w-2.5 rounded-sm bg-muted" /> Disponible
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Reservada
+              <span className="h-2.5 w-2.5 rounded-sm bg-state-reservada" /> Reservada
             </span>
             <span className="flex items-center gap-1">
               <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> Asistida
