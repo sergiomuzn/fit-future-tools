@@ -861,6 +861,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       onClose={() => setCreateGroupOpen(false)}
       group={null}
     />
+    {confirmDialog}
     </>
   );
 }
