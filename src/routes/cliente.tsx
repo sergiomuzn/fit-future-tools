@@ -316,7 +316,7 @@ function CalendarioClases({
                       className={cn(
                         "truncate rounded px-1 text-[10px] leading-4",
                         c.asistida
-                          ? "bg-state-realizada text-state-realizada-fg"
+                          ? "bg-state-asistida text-state-asistida-fg"
                           : c.reservada
                             ? "bg-state-reservada text-state-reservada-fg"
                             : "bg-muted text-muted-foreground",
@@ -340,7 +340,7 @@ function CalendarioClases({
               <span className="h-2.5 w-2.5 rounded-sm bg-state-reservada" /> Reservada
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm bg-state-realizada" /> Asistida
+              <span className="h-2.5 w-2.5 rounded-sm bg-state-asistida" /> Asistida
             </span>
           </div>
         </CardContent>

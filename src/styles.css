@@ -51,6 +51,8 @@
   --color-state-reservada-fg: var(--state-reservada-fg);
   --color-state-realizada: var(--state-realizada);
   --color-state-realizada-fg: var(--state-realizada-fg);
+  --color-state-asistida: var(--state-asistida);
+  --color-state-asistida-fg: var(--state-asistida-fg);
   --color-state-cancelada: var(--state-cancelada);
   --color-state-cancelada-fg: var(--state-cancelada-fg);
   --color-state-prueba: var(--state-prueba);
@@ -101,6 +103,8 @@
   --state-realizada: #00ADE2;
   --state-realizada-fg: #ffffff;
   --state-cancelada: oklch(0.6 0.21 25);
+  --state-asistida: #0472A8;
+  --state-asistida-fg: #ffffff;
   --state-cancelada-fg: #ffffff;
   --state-prueba: #1CDB14;
   --state-prueba-fg: #ffffff;
@@ -148,6 +152,8 @@
   --state-realizada: #00ADE2;
   --state-realizada-fg: #ffffff;
   --state-cancelada: oklch(0.55 0.2 25);
+  --state-asistida: #0472A8;
+  --state-asistida-fg: #ffffff;
   --state-cancelada-fg: #ffffff;
   --state-prueba: #1CDB14;
   --state-prueba-fg: #ffffff;
