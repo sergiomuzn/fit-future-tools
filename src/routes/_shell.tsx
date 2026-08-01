@@ -1,7 +1,6 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Calendar, Users, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
-import { KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyRoles } from "@/lib/roles";
 import { useQueryClient } from "@tanstack/react-query";
