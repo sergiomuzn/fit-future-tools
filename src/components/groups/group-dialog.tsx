@@ -88,24 +88,24 @@ export function GroupDialog({ open, onClose, group }: Props) {
   // Compute stats
   const stats = useMemo(() => {
     const now = new Date();
-    const prevMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1;
-    const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+    const since = new Date(now);
+    since.setDate(since.getDate() - 30);
+    const sinceIso = since.toISOString().slice(0, 10);
+    const todayIso = now.toISOString().slice(0, 10);
 
     // Sessions in prev month, counted only if realizada (or cancelada without no_contabilizar)
     const isCounted = (s: any) =>
       s.estado === "realizada" || (s.estado === "cancelada" && !s.no_contabilizar);
 
-    const prevMonthSessions = statsSessions.filter((s: any) => {
-      const d = new Date(s.fecha);
-      return d.getMonth() === prevMonth && d.getFullYear() === prevYear && isCounted(s);
-    });
+    const prevMonthSessions = statsSessions.filter(
+      (s: any) => s.fecha >= sinceIso && s.fecha <= todayIso && isCounted(s),
+    );
     // Avg members per session date
     const byDate = new Map<string, Set<string>>();
     for (const s of prevMonthSessions as any[]) {
-      if (!s.client_id) continue;
       const key = `${s.fecha}|${s.hora_inicio}`;
       if (!byDate.has(key)) byDate.set(key, new Set());
-      byDate.get(key)!.add(s.client_id);
+      if (s.client_id) byDate.get(key)!.add(s.client_id);
     }
     const sessionCounts = [...byDate.values()].map((set) => set.size);
     const avgPrev = sessionCounts.length
