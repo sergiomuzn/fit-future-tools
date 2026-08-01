@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download, X, Info, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Upload, X, Info, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,13 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { readXlsxRows, mapClientRows } from "@/lib/import-xlsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
