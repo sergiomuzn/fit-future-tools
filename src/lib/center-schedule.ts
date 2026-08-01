@@ -153,6 +153,8 @@ export function useCenterConfig() {
   });
 
   const horario: HorarioBase = (cfg.data?.horario_base as unknown as HorarioBase) ?? DEFAULT_HORARIO;
+  const nombre: string =
+    ((cfg.data as unknown as { nombre?: string } | null)?.nombre || "").trim() || "Fitness 360";
   const preciosRaw = (cfg.data?.precios as unknown as Partial<Precios>) ?? {};
   const precios: Precios = { ...DEFAULT_PRECIOS, ...preciosRaw };
   const coloresRaw = ((cfg.data as unknown as { colores?: Record<string, string> } | null)?.colores) ?? {};
@@ -162,6 +164,7 @@ export function useCenterConfig() {
 
   return {
     horario,
+    nombre,
     precios,
     colores,
     specials: special.data ?? [],
