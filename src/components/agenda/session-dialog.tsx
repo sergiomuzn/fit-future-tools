@@ -18,6 +18,7 @@ import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -451,6 +452,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
         // Quitar miembros eliminados.
         if (toRemove.length) {
+          const canceladas = toRemove
+            .filter((m) => !!(m as { booked_by_user_id?: string | null }).booked_by_user_id)
+            .map((m) => m.id);
+          if (canceladas.length) {
+            try {
+              await notificarReservasCanceladas({ data: { sessionIds: canceladas } });
+            } catch {
+              /* el aviso es best-effort */
+            }
+          }
           await supabase.from("sessions").delete().in("id", toRemove.map((m) => m.id));
         }
 

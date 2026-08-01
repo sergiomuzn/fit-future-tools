@@ -210,6 +210,21 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     bookedByUserId: userId,
     bookingTipo: profile.bonoTipo,
   });
+
+  const { data: group } = await supabaseAdmin
+    .from("groups")
+    .select("nombre")
+    .eq("id", groupId)
+    .maybeSingle();
+  const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
+  await crearNotificaciones([
+    {
+      targetRole: "admin",
+      tipo: "reserva_creada",
+      titulo: "Nueva reserva de cliente",
+      mensaje: `${profile.nombre} ha reservado plaza en ${group?.nombre ?? "clase grupal"} (${describeSesion(fecha, horaInicio)}).`,
+    },
+  ]);
 }
 
 export async function cancelBookingForUser(userId: string, sessionId: string): Promise<void> {
