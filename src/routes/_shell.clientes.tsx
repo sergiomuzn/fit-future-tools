@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download, X, Info, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, Upload, X, Info, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,13 @@ import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import { readXlsxRows, mapClientRows } from "@/lib/import-xlsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
@@ -112,6 +119,32 @@ function ClientesPage() {
       return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
     });
 
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function importClients(file: File) {
+    try {
+      const rows = mapClientRows(await readXlsxRows(file));
+      if (!rows.length) { toast.error("No se han encontrado clientes en el archivo"); return; }
+      const existentes = new Set(clients.map((c) => normalizeText(c.nombre)));
+      const nuevos = rows.filter((r) => !existentes.has(normalizeText(r.nombre)));
+      const dup = rows.length - nuevos.length;
+      if (!nuevos.length) { toast.error("Todos los clientes del archivo ya existen"); return; }
+      const ok = await confirm({
+        title: "¿Importar clientes?",
+        description: `Se añadirán ${nuevos.length} ${nuevos.length === 1 ? "cliente" : "clientes"}${
+          dup ? ` (${dup} ya existían y se omitirán)` : ""
+        }.`,
+      });
+      if (!ok) return;
+      const { error } = await supabase.from("clients").insert(nuevos.map((r) => ({ ...r, activo: true })));
+      if (error) { toast.error(error.message); return; }
+      toast.success(`${nuevos.length} clientes importados`);
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    } catch {
+      toast.error("No se ha podido leer el archivo");
+    }
+  }
+
   async function save() {
     if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
     const payload = {
@@ -131,6 +164,7 @@ function ClientesPage() {
   }
 
   async function remove(id: string) {
+
     let reservas: { id: string; group_id: string | null }[] = [];
     try {
       const { data } = await supabase
@@ -181,18 +215,43 @@ function ClientesPage() {
         </div>
         {tab === "clientes" ? (
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => exportToXlsx("clientes", filtered.map((c) => ({
-            Nombre: formatNameTitle(c.nombre),
-            "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
-            Estado: c.activo ? "Activo" : "Inactivo",
-            Teléfono: c.telefono ?? "",
-            Email: c.email ?? "",
-            "Fecha inicio": c.fecha_inicio ?? "",
-            Cumpleaños: c.cumpleanos ?? "",
-            Notas: c.notas ?? "",
-          })), "Clientes")}>
-            <Download className="h-4 w-4 mr-1" /> Excel
-          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void importClients(f);
+            }}
+          />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline">
+                <MoreHorizontal className="h-4 w-4 mr-1" /> Acciones
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
+                  Nombre: formatNameTitle(c.nombre),
+                  "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
+                  Estado: c.activo ? "Activo" : "Inactivo",
+                  Teléfono: c.telefono ?? "",
+                  Email: c.email ?? "",
+                  "Fecha inicio": c.fecha_inicio ?? "",
+                  Cumpleaños: c.cumpleanos ?? "",
+                  Notas: c.notas ?? "",
+                })), "Clientes")}
+              >
+                <Download className="h-4 w-4 mr-2" /> Exportar datos
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => fileRef.current?.click()}>
+                <Upload className="h-4 w-4 mr-2" /> Importar clientes
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Button onClick={() => { setEditing({}); setOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
