@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { getDevRoleOverride } from "@/lib/dev-role-preview";
 
 export type AppRole = "admin" | "entrenador" | "cliente";
 
@@ -7,6 +8,8 @@ export async function fetchMyRoles(): Promise<AppRole[]> {
   const { data: userData } = await supabase.auth.getUser();
   const user = userData?.user;
   if (!user) return [];
+  const override = getDevRoleOverride();
+  if (override) return [override];
   const { data } = await supabase.from("user_roles").select("role").eq("user_id", user.id);
   return ((data ?? []) as { role: AppRole }[]).map((r) => r.role);
 }

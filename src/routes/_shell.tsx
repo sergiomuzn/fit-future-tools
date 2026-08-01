@@ -31,7 +31,10 @@ export const Route = createFileRoute("/_shell")({
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
     const roles = await fetchMyRoles();
-    if (!roles.includes("admin")) throw redirect({ to: "/cliente" });
+    if (!roles.includes("admin") && !roles.includes("entrenador")) {
+      throw redirect({ to: "/cliente" });
+    }
+    return { isAdmin: roles.includes("admin") };
   },
   component: ShellLayout,
 });
@@ -48,6 +51,8 @@ const NAV = [
   { to: "/configuracion", label: "Configuración", icon: Settings },
 ] as const;
 
+const NAV_ENTRENADOR: string[] = ["/", "/clientes", "/sesiones"];
+
 function ShellLayout() {
   const isMobile = useIsMobile();
   return (
@@ -60,6 +65,7 @@ function ShellLayout() {
 }
 
 function ShellInner() {
+  const { isAdmin } = Route.useRouteContext();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { date, setDate } = useAgendaDate();
   const [month, setMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
@@ -120,7 +126,7 @@ function ShellInner() {
             </div>
           )}
           <SidebarMenu className="px-2">
-            {NAV.map((item) => {
+            {NAV.filter((item) => isAdmin || NAV_ENTRENADOR.includes(item.to)).map((item) => {
               const Icon = item.icon;
               const active = pathname === item.to;
               return (
