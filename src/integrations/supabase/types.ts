@@ -445,6 +445,39 @@ export type Database = {
           },
         ]
       }
+      notificaciones: {
+        Row: {
+          created_at: string
+          id: string
+          leida: boolean
+          mensaje: string
+          target_role: Database["public"]["Enums"]["app_role"] | null
+          tipo: string
+          titulo: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          leida?: boolean
+          mensaje: string
+          target_role?: Database["public"]["Enums"]["app_role"] | null
+          tipo: string
+          titulo: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          leida?: boolean
+          mensaje?: string
+          target_role?: Database["public"]["Enums"]["app_role"] | null
+          tipo?: string
+          titulo?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sessions: {
         Row: {
           booked_by_user_id: string | null
