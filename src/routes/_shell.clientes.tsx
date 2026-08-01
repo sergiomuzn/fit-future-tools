@@ -121,6 +121,7 @@ function ClientesPage() {
 
   async function save() {
     if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
+    if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
     const payload = {
       nombre: editing.nombre,
       telefono: editing.telefono ?? null,
