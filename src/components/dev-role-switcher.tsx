@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Shield, Dumbbell, User, FlaskConical } from "lucide-react";
+import { Shield, User, FlaskConical } from "lucide-react";
 import type { AppRole } from "@/lib/roles";
 import {
   getDevRoleOverride,
@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 
 const ROLES: { role: AppRole; label: string; icon: typeof Shield }[] = [
   { role: "admin", label: "Admin", icon: Shield },
-  { role: "entrenador", label: "Entrenador", icon: Dumbbell },
   { role: "cliente", label: "Cliente", icon: User },
 ];
 
