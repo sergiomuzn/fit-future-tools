@@ -160,6 +160,99 @@ export type Database = {
           },
         ]
       }
+      client_invitations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          expires_at: string
+          id: string
+          nombre: string | null
+          revoked_at: string | null
+          updated_at: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          nombre?: string | null
+          revoked_at?: string | null
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          expires_at?: string
+          id?: string
+          nombre?: string | null
+          revoked_at?: string | null
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
+      client_profiles: {
+        Row: {
+          activo: boolean
+          bono_tipo: string
+          client_id: string | null
+          created_at: string
+          email: string
+          id: string
+          invitation_id: string | null
+          nombre: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          bono_tipo: string
+          client_id?: string | null
+          created_at?: string
+          email: string
+          id: string
+          invitation_id?: string | null
+          nombre: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          bono_tipo?: string
+          client_id?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          invitation_id?: string | null
+          nombre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_profiles_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_profiles_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "client_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           activo: boolean
@@ -351,6 +444,8 @@ export type Database = {
       }
       sessions: {
         Row: {
+          booked_by_user_id: string | null
+          booking_tipo: string | null
           client_id: string | null
           created_at: string
           estado: Database["public"]["Enums"]["sesion_estado"]
@@ -370,6 +465,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          booked_by_user_id?: string | null
+          booking_tipo?: string | null
           client_id?: string | null
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
@@ -389,6 +486,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          booked_by_user_id?: string | null
+          booking_tipo?: string | null
           client_id?: string | null
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
@@ -545,7 +644,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "entrenador"
+      app_role: "admin" | "entrenador" | "cliente"
       bono_tipo: "individual" | "pareja" | "grupal" | "prueba" | "gympass"
       client_event_tipo: "alta" | "baja"
       sesion_estado:
@@ -682,7 +781,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "entrenador"],
+      app_role: ["admin", "entrenador", "cliente"],
       bono_tipo: ["individual", "pareja", "grupal", "prueba", "gympass"],
       client_event_tipo: ["alta", "baja"],
       sesion_estado: [
