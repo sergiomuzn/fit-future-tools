@@ -1,7 +1,21 @@
 import type { AppRole } from "./roles";
 
 export const DEV_ROLE_STORAGE_KEY = "dev-role-preview";
-export const isDevPreview = import.meta.env.DEV;
+
+function hostIsPreview(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname.toLowerCase();
+  return (
+    h === "localhost" ||
+    h === "127.0.0.1" ||
+    h.includes("id-preview--") ||
+    h.endsWith(".lovableproject.com") ||
+    h.includes("-dev.lovable.app")
+  );
+}
+
+/** true solo en local o en el preview de Lovable; nunca en el dominio publicado. */
+export const isDevPreview: boolean = import.meta.env.DEV || hostIsPreview();
 
 /** Rol simulado en modo desarrollo (null = rol real del usuario). */
 export function getDevRoleOverride(): AppRole | null {
