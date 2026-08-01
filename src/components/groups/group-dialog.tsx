@@ -257,7 +257,7 @@ function GroupForm({
               <div className="rounded-md border bg-card p-3 flex flex-col items-center justify-center text-center min-h-[120px]">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Integrantes medios</div>
                 <div className="text-3xl font-bold">{stats.avgPrev.toFixed(1)}</div>
-                <div className="text-[10px] text-muted-foreground mt-0.5">mes anterior</div>
+                <div className="text-[10px] text-muted-foreground mt-0.5">últimos 30 días</div>
               </div>
               <div className="rounded-md border bg-card p-3 flex flex-col min-h-[120px]">
                 <div className="text-xs text-muted-foreground uppercase tracking-wide mb-2 text-center">Asistentes más frecuentes</div>
@@ -271,7 +271,7 @@ function GroupForm({
                     ))}
                   </ol>
                 )}
-                <div className="text-[10px] text-muted-foreground text-center mt-1">mes anterior</div>
+                <div className="text-[10px] text-muted-foreground text-center mt-1">últimos 30 días</div>
               </div>
             </div>
           )}
