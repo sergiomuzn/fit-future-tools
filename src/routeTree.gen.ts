@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as ClienteRouteImport } from './routes/cliente'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
@@ -27,6 +28,11 @@ import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/publ
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClienteRoute = ClienteRouteImport.update({
+  id: '/cliente',
+  path: '/cliente',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -99,6 +105,7 @@ const ApiPublicWebhooksClaspassRoute =
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
@@ -113,6 +120,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
@@ -130,6 +138,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_shell': typeof ShellRouteWithChildren
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/cliente'
     | '/reset-password'
     | '/bonos'
     | '/clientes'
@@ -162,6 +172,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
+    | '/cliente'
     | '/reset-password'
     | '/bonos'
     | '/clientes'
@@ -178,6 +189,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_shell'
     | '/auth'
+    | '/cliente'
     | '/reset-password'
     | '/_shell/bonos'
     | '/_shell/clientes'
@@ -195,6 +207,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ClienteRoute: typeof ClienteRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/reset-password'
       fullPath: '/reset-password'
       preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cliente': {
+      id: '/cliente'
+      path: '/cliente'
+      fullPath: '/cliente'
+      preLoaderRoute: typeof ClienteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -331,6 +351,7 @@ const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   AuthRoute: AuthRoute,
+  ClienteRoute: ClienteRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   InvitacionCodigoRoute: InvitacionCodigoRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
