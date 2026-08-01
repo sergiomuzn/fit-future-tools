@@ -184,16 +184,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const onlineMembers = (groupMembersData ?? []).filter(
     (m) => !!(m as any).booking_tipo && !!m.client_id,
   );
-  const { data: onlineClientNames = {} } = useQuery({
-    queryKey: ["online-booking-names", onlineMembers.map((m) => m.client_id).join(",")],
-    queryFn: async () => {
-      const ids = onlineMembers.map((m) => m.client_id as string);
-      if (!ids.length) return {} as Record<string, string>;
-      const { data } = await supabase.from("clients").select("id,nombre").in("id", ids);
-      return Object.fromEntries((data ?? []).map((c) => [c.id, c.nombre])) as Record<string, string>;
-    },
-    enabled: open && onlineMembers.length > 0,
-  });
   const lastAutofilledGroupIdRef = ((): { current: string | null } => {
     // Use a stable ref stored on window to avoid an extra useRef import churn.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
