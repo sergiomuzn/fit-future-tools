@@ -16,6 +16,7 @@ import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
 import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
+import { Route as ShellGruposRouteImport } from './routes/_shell.grupos'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
 import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
@@ -57,6 +58,11 @@ const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
 const ShellSesionesRoute = ShellSesionesRouteImport.update({
   id: '/sesiones',
   path: '/sesiones',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellGruposRoute = ShellGruposRouteImport.update({
+  id: '/grupos',
+  path: '/grupos',
   getParentRoute: () => ShellRoute,
 } as any)
 const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
@@ -113,6 +119,7 @@ export interface FileRoutesByFullPath {
   '/entrenadores': typeof ShellEntrenadoresRoute
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
+  '/grupos': typeof ShellGruposRoute
   '/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
@@ -128,6 +135,7 @@ export interface FileRoutesByTo {
   '/entrenadores': typeof ShellEntrenadoresRoute
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
+  '/grupos': typeof ShellGruposRoute
   '/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
@@ -146,6 +154,7 @@ export interface FileRoutesById {
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
   '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
+  '/_shell/grupos': typeof ShellGruposRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
@@ -165,6 +174,7 @@ export interface FileRouteTypes {
     | '/entrenadores'
     | '/estadisticas'
     | '/facturacion'
+    | '/grupos'
     | '/sesiones'
     | '/invitacion/$codigo'
     | '/api/public/webhooks/claspass'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/entrenadores'
     | '/estadisticas'
     | '/facturacion'
+    | '/grupos'
     | '/sesiones'
     | '/invitacion/$codigo'
     | '/'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/_shell/entrenadores'
     | '/_shell/estadisticas'
     | '/_shell/facturacion'
+    | '/_shell/grupos'
     | '/_shell/sesiones'
     | '/invitacion/$codigo'
     | '/_shell/'
@@ -265,6 +277,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellSesionesRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/grupos': {
+      id: '/_shell/grupos'
+      path: '/grupos'
+      fullPath: '/grupos'
+      preLoaderRoute: typeof ShellGruposRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/_shell/facturacion': {
       id: '/_shell/facturacion'
       path: '/facturacion'
@@ -331,6 +350,7 @@ interface ShellRouteChildren {
   ShellEntrenadoresRoute: typeof ShellEntrenadoresRoute
   ShellEstadisticasRoute: typeof ShellEstadisticasRoute
   ShellFacturacionRoute: typeof ShellFacturacionRoute
+  ShellGruposRoute: typeof ShellGruposRoute
   ShellSesionesRoute: typeof ShellSesionesRoute
   ShellIndexRoute: typeof ShellIndexRoute
 }
@@ -342,6 +362,7 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellEntrenadoresRoute: ShellEntrenadoresRoute,
   ShellEstadisticasRoute: ShellEstadisticasRoute,
   ShellFacturacionRoute: ShellFacturacionRoute,
+  ShellGruposRoute: ShellGruposRoute,
   ShellSesionesRoute: ShellSesionesRoute,
   ShellIndexRoute: ShellIndexRoute,
 }
@@ -360,3 +381,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
