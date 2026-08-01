@@ -35,6 +35,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const [activo, setActivo] = useState(true);
   const [notas, setNotas] = useState("");
   const [acceso, setAcceso] = useState(true);
+  const [tab, setTab] = useState("datos");
 
   // Stats data
   const { data: statsSessions = EMPTY_SESSIONS } = useQuery({
@@ -112,19 +113,15 @@ export function GroupDialog({ open, onClose, group }: Props) {
       ? sessionCounts.reduce((a, b) => a + b, 0) / sessionCounts.length
       : 0;
 
-    // Top attendees last 2 months
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    // Top attendees: previous month only
     const attendance = new Map<string, number>();
-    for (const s of statsSessions as any[]) {
-      if (!s.client_id || !isCounted(s)) continue;
-      const d = new Date(s.fecha);
-      if (d < twoMonthsAgo) continue;
+    for (const s of prevMonthSessions as any[]) {
+      if (!s.client_id) continue;
       attendance.set(s.client_id, (attendance.get(s.client_id) ?? 0) + 1);
     }
     const top = [...attendance.entries()]
       .sort((a, b) => b[1] - a[1])
-      .slice(0, 5)
+      .slice(0, 3)
       .map(([id, count]) => ({ id, nombre: formatNameTitle(clientMap.get(id)?.nombre) ?? "?", count }));
 
     return { avgPrev, top };
@@ -186,7 +183,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
             isNew={isNew} stats={stats}
           />
         ) : (
-          <Tabs defaultValue="datos">
+          <Tabs value={tab} onValueChange={setTab}>
             <TabsList>
               <TabsTrigger value="datos">Datos</TabsTrigger>
               <TabsTrigger value="historial">Historial</TabsTrigger>
@@ -211,8 +208,8 @@ export function GroupDialog({ open, onClose, group }: Props) {
           </Tabs>
         )}
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save}>Guardar</Button>
+          <Button variant="outline" onClick={onClose}>{!isNew && tab === "historial" ? "Cerrar" : "Cancelar"}</Button>
+          {(isNew || tab !== "historial") && <Button onClick={save}>Guardar</Button>}
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -275,15 +272,11 @@ function GroupForm({
                     ))}
                   </ol>
                 )}
-                <div className="text-[10px] text-muted-foreground text-center mt-1">últimos 2 meses</div>
+                <div className="text-[10px] text-muted-foreground text-center mt-1">mes anterior</div>
               </div>
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label>Notas</Label>
-            <Textarea rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} />
-          </div>
           <div className="flex items-center gap-2">
             <Checkbox id="grupo-activo" checked={activo} onCheckedChange={(v) => setActivo(!!v)} />
             <Label htmlFor="grupo-activo" className="cursor-pointer">Activo</Label>
