@@ -34,6 +34,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const [capacidad, setCapacidad] = useState<number | "">(6);
   const [activo, setActivo] = useState(true);
   const [notas, setNotas] = useState("");
+  const [acceso, setAcceso] = useState(true);
 
   // Stats data
   const { data: statsSessions = EMPTY_SESSIONS } = useQuery({
@@ -81,6 +82,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
     setCapacidad(group?.capacidad ?? 6);
     setActivo(group?.activo ?? true);
     setNotas(group?.notas ?? "");
+    setAcceso(group?.acceso_clientes ?? true);
   }, [open, group]);
 
   // Compute stats
@@ -153,12 +155,12 @@ export function GroupDialog({ open, onClose, group }: Props) {
 
     if (isNew) {
       const { error } = await supabase.from("groups").insert({
-        nombre: name, capacidad: cap, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null, acceso_clientes: acceso,
       });
       if (error) { toast.error(error.message); return; }
     } else {
       const { error } = await supabase.from("groups").update({
-        nombre: name, capacidad: cap, activo, notas: notas || null,
+        nombre: name, capacidad: cap, activo, notas: notas || null, acceso_clientes: acceso,
       }).eq("id", group!.id);
       if (error) { toast.error(error.message); return; }
     }
@@ -180,6 +182,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
             capacidad={capacidad} setCapacidad={setCapacidad}
             notas={notas} setNotas={setNotas}
             activo={activo} setActivo={setActivo}
+            acceso={acceso} setAcceso={setAcceso}
             isNew={isNew} stats={stats}
           />
         ) : (
@@ -194,6 +197,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
                 capacidad={capacidad} setCapacidad={setCapacidad}
                 notas={notas} setNotas={setNotas}
                 activo={activo} setActivo={setActivo}
+                acceso={acceso} setAcceso={setAcceso}
                 isNew={isNew} stats={stats}
               />
             </TabsContent>
@@ -216,12 +220,13 @@ export function GroupDialog({ open, onClose, group }: Props) {
 }
 
 function GroupForm({
-  nombre, setNombre, capacidad, setCapacidad, notas, setNotas, activo, setActivo, isNew, stats,
+  nombre, setNombre, capacidad, setCapacidad, notas, setNotas, activo, setActivo, acceso, setAcceso, isNew, stats,
 }: {
   nombre: string; setNombre: (v: string) => void;
   capacidad: number | ""; setCapacidad: (v: number | "") => void;
   notas: string; setNotas: (v: string) => void;
   activo: boolean; setActivo: (v: boolean) => void;
+  acceso: boolean; setAcceso: (v: boolean) => void;
   isNew: boolean;
   stats: { avgPrev: number; top: { id: string; nombre: string; count: number }[] };
 }) {
@@ -282,6 +287,15 @@ function GroupForm({
           <div className="flex items-center gap-2">
             <Checkbox id="grupo-activo" checked={activo} onCheckedChange={(v) => setActivo(!!v)} />
             <Label htmlFor="grupo-activo" className="cursor-pointer">Activo</Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox id="grupo-acceso" checked={acceso} onCheckedChange={(v) => setAcceso(!!v)} className="mt-0.5" />
+            <div>
+              <Label htmlFor="grupo-acceso" className="cursor-pointer">Acceso de clientes</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Si se desactiva, el grupo queda con acceso restringido y no aparece en el portal de clientes.
+              </p>
+            </div>
           </div>
         </div>
   );

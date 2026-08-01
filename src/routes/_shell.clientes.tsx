@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Trash2, Download, X, Info, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, Trash2, Download, X, Info, SlidersHorizontal, Lock, Unlock } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -381,6 +381,14 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
     else { toast.success("Grupo eliminado"); qc.invalidateQueries({ queryKey: ["groups"] }); }
   }
 
+  async function toggleAcceso(g: Group) {
+    const next = !(g as { acceso_clientes?: boolean }).acceso_clientes;
+    const { error } = await supabase.from("groups").update({ acceso_clientes: next }).eq("id", g.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success(next ? "Acceso de clientes habilitado" : "Acceso restringido");
+    qc.invalidateQueries({ queryKey: ["groups"] });
+  }
+
   const sorted = [...groups].sort((a, b) => {
     if (a.activo !== b.activo) return a.activo ? -1 : 1;
     return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
@@ -406,10 +414,31 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
               {g.activo ? "Activo" : "Inactivo"}
             </span>
           </div>
+          <div className="mt-1.5">
+            <span
+              className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${
+                g.acceso_clientes
+                  ? "bg-primary/10 text-primary border-primary/20"
+                  : "bg-muted text-muted-foreground border-border"
+              }`}
+            >
+              {g.acceso_clientes ? <Unlock className="h-2.5 w-2.5" /> : <Lock className="h-2.5 w-2.5" />}
+              {g.acceso_clientes ? "Acceso clientes" : "Acceso restringido"}
+            </span>
+          </div>
           <div className="text-xs text-muted-foreground mt-2 line-clamp-2">
             {horarioSummary(g.id)}
           </div>
-          <div className="mt-2 flex justify-end opacity-0 group-hover:opacity-100 transition">
+          <div className="mt-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              title={g.acceso_clientes ? "Restringir acceso de clientes" : "Habilitar acceso de clientes"}
+              onClick={(e) => { e.stopPropagation(); toggleAcceso(g); }}
+            >
+              {g.acceso_clientes ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

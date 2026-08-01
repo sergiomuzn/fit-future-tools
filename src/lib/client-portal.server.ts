@@ -76,7 +76,7 @@ async function loadBlocks(from: string, to: string) {
       .not("group_id", "is", null)
       .gte("fecha", from)
       .lte("fecha", to),
-    supabaseAdmin.from("groups").select("id,nombre,capacidad,activo"),
+    supabaseAdmin.from("groups").select("id,nombre,capacidad,activo,acceso_clientes"),
     supabaseAdmin.from("trainers").select("id,nombre"),
   ]);
 
@@ -101,7 +101,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   for (const [key, rows] of blocks) {
     const first = rows[0];
     const group = first.group_id ? groupById.get(first.group_id) : null;
-    if (!group || group.activo === false) continue;
+    if (!group || group.activo === false || group.acceso_clientes === false) continue;
     const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
     const trainerId = rows.find((r) => r.trainer_id)?.trainer_id ?? null;
     out.push({

@@ -1,0 +1,1 @@
+ALTER TABLE public.groups ADD COLUMN IF NOT EXISTS acceso_clientes boolean NOT NULL DEFAULT true;

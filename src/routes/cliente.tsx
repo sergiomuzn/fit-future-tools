@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
 
@@ -122,6 +123,7 @@ function ClientePortal() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="clases">Clases grupales</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="reservas">Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}</TabsTrigger>
           </TabsList>
 
@@ -139,6 +141,19 @@ function ClientePortal() {
                 busy={bookMutation.isPending || cancelMutation.isPending}
               />
             ))}
+          </TabsContent>
+
+          <TabsContent value="calendario">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Cargando clases…</p>
+            ) : (
+              <CalendarioClases
+                clases={clases}
+                onBook={(c) => bookMutation.mutate(c.key)}
+                onCancel={(c) => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
+                busy={bookMutation.isPending || cancelMutation.isPending}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="reservas" className="space-y-2">
@@ -162,6 +177,152 @@ function ClientePortal() {
 }
 
 function ClaseCard({
+  clase,
+  onBook,
+  onCancel,
+  busy,
+}: {
+  clase: ClaseGrupal;
+  onBook: () => void;
+  onCancel: () => void;
+  busy: boolean;
+}) {
+  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} />;
+}
+
+const MESES = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+const DOW_SHORT = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+function ymd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function CalendarioClases({
+  clases,
+  onBook,
+  onCancel,
+  busy,
+}: {
+  clases: ClaseGrupal[];
+  onBook: (c: ClaseGrupal) => void;
+  onCancel: (c: ClaseGrupal) => void;
+  busy: boolean;
+}) {
+  const porDia = new Map<string, ClaseGrupal[]>();
+  for (const c of clases) {
+    const arr = porDia.get(c.fecha);
+    if (arr) arr.push(c);
+    else porDia.set(c.fecha, [c]);
+  }
+
+  const hoyIso = ymd(new Date());
+  const primeraConClases = [...porDia.keys()].sort()[0] ?? hoyIso;
+  const [selected, setSelected] = useState<string>(primeraConClases);
+  const base = new Date(`${selected}T00:00:00`);
+  const [mes, setMes] = useState<Date>(new Date(base.getFullYear(), base.getMonth(), 1));
+
+  const first = new Date(mes.getFullYear(), mes.getMonth(), 1);
+  const startOffset = (first.getDay() + 6) % 7;
+  const total = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
+  const cells: { d: Date; outside: boolean }[] = [];
+  for (let i = startOffset; i > 0; i--) {
+    cells.push({ d: new Date(mes.getFullYear(), mes.getMonth(), 1 - i), outside: true });
+  }
+  for (let i = 1; i <= total; i++) cells.push({ d: new Date(mes.getFullYear(), mes.getMonth(), i), outside: false });
+  while (cells.length % 7 !== 0) {
+    const last = new Date(cells[cells.length - 1]!.d);
+    last.setDate(last.getDate() + 1);
+    cells.push({ d: last, outside: true });
+  }
+
+  const delDia = porDia.get(selected) ?? [];
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardContent className="p-3">
+          <div className="mb-2 flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
+            >
+              ‹
+            </Button>
+            <span className="text-sm font-medium capitalize">
+              {MESES[mes.getMonth()]} {mes.getFullYear()}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
+            >
+              ›
+            </Button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] text-muted-foreground">
+            {DOW_SHORT.map((d) => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map(({ d, outside }) => {
+              const key = ymd(d);
+              const list = porDia.get(key) ?? [];
+              const reservada = list.some((c) => c.reservada);
+              return (
+                <button
+                  key={key}
+                  onClick={() => setSelected(key)}
+                  disabled={list.length === 0}
+                  className={cn(
+                    "flex min-h-14 flex-col items-center gap-1 rounded-md border p-1 text-xs transition",
+                    outside && "opacity-40",
+                    list.length === 0 && "cursor-default text-muted-foreground",
+                    list.length > 0 && "hover:border-primary/60",
+                    key === selected && "border-primary ring-1 ring-primary",
+                    key === hoyIso && "bg-accent/50",
+                  )}
+                >
+                  <span className="font-medium">{d.getDate()}</span>
+                  {list.length > 0 && (
+                    <span
+                      className={cn(
+                        "rounded-full px-1.5 text-[10px] leading-4",
+                        reservada ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {list.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-2">
+        <p className="text-sm font-medium capitalize">{formatFecha(selected)}</p>
+        {delDia.length === 0 && <p className="text-sm text-muted-foreground">No hay clases este día.</p>}
+        {delDia.map((c) => (
+          <ClaseCard
+            key={c.key}
+            clase={c}
+            onBook={() => onBook(c)}
+            onCancel={() => onCancel(c)}
+            busy={busy}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ClaseCardImpl({
   clase,
   onBook,
   onCancel,

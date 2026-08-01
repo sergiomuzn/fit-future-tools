@@ -356,6 +356,7 @@ export type Database = {
       }
       groups: {
         Row: {
+          acceso_clientes: boolean
           activo: boolean
           capacidad: number
           created_at: string
@@ -365,6 +366,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceso_clientes?: boolean
           activo?: boolean
           capacidad?: number
           created_at?: string
@@ -374,6 +376,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceso_clientes?: boolean
           activo?: boolean
           capacidad?: number
           created_at?: string
