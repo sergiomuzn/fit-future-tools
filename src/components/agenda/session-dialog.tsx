@@ -710,9 +710,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     <div className="flex-1 min-w-0">
                       <ClientPicker
                         value={cid}
-                        onChange={(id) =>
-                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)))
-                        }
+                        onChange={async (id) => {
+                          if (cid && id !== cid) {
+                            const reserva = (groupMembersData ?? []).find(
+                              (m) =>
+                                m.client_id === cid &&
+                                !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
+                            );
+                            if (reserva) {
+                              const ok = await confirm({
+                                title: "¿Quitar a este cliente?",
+                                description:
+                                  "Este cliente reservó esta clase grupal desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
+                                confirmText: "Quitar",
+                              });
+                              if (!ok) return;
+                            }
+                          }
+                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
+                        }}
                       />
                     </div>
                     {tipo && (
