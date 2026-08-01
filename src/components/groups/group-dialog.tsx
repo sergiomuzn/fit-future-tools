@@ -17,6 +17,8 @@ import {
 } from "@/lib/db";
 import { toast } from "sonner";
 import { formatNameTitle } from "@/lib/utils";
+import { useConfirm } from "@/components/confirm-dialog";
+import { Trash2 } from "lucide-react";
 
 const EMPTY_SESSIONS: Session[] = [];
 
@@ -28,6 +30,7 @@ interface Props {
 
 export function GroupDialog({ open, onClose, group }: Props) {
   const qc = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const isNew = !group;
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState<number | "">(6);
@@ -166,8 +169,23 @@ export function GroupDialog({ open, onClose, group }: Props) {
     onClose();
   }
 
+  async function removeGroup() {
+    if (!group) return;
+    const ok = await confirm({
+      title: `¿Eliminar grupo «${group.nombre}»?`,
+      description: "Esta acción no se puede deshacer.",
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("groups").delete().eq("id", group.id);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Grupo eliminado");
+    qc.invalidateQueries({ queryKey: ["groups"] });
+    onClose();
+  }
+
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      {confirmDialog}
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onKeyDown={enterToSave(save)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nuevo grupo" : `Editar grupo · ${group?.nombre}`}</DialogTitle>
@@ -206,9 +224,16 @@ export function GroupDialog({ open, onClose, group }: Props) {
             </TabsContent>
           </Tabs>
         )}
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>{!isNew && tab === "historial" ? "Cerrar" : "Cancelar"}</Button>
-          {(isNew || tab !== "historial") && <Button onClick={save}>Guardar</Button>}
+        <DialogFooter className="sm:justify-between">
+          {!isNew ? (
+            <Button variant="destructive" onClick={removeGroup} className="gap-1.5">
+              <Trash2 className="h-4 w-4" /> Eliminar grupo
+            </Button>
+          ) : <span />}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={onClose}>{!isNew && tab === "historial" ? "Cerrar" : "Cancelar"}</Button>
+            {(isNew || tab !== "historial") && <Button onClick={save}>Guardar</Button>}
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
