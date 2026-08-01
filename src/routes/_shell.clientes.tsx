@@ -140,7 +140,7 @@ function ClientesPage() {
         destructive: false,
       });
       if (!ok) return;
-      const { error } = await supabase.from("clients").insert(nuevos.map((r) => ({ ...r, activo: true })));
+      const { error } = await supabase.from("clients").insert(nuevos);
       if (error) { toast.error(error.message); return; }
       toast.success(`${nuevos.length} clientes importados`);
       qc.invalidateQueries({ queryKey: ["clients"] });
@@ -435,11 +435,11 @@ function ClientesPage() {
             <p>
               Los nombres de las columnas deben coincidir con los campos del cliente:{" "}
               <b>Nombre</b>, <b>Apellido</b>, <b>Teléfono</b>, <b>Email</b>, <b>Fecha inicio</b>,{" "}
-              <b>Fecha de nacimiento</b> y <b>Notas</b>.
+              <b>Fecha de nacimiento</b>, <b>Notas</b> y <b>Estado</b> (Activo/Inactivo).
             </p>
             <p>
               Los datos que no estén rellenados quedarán vacíos o con su valor predeterminado
-              (los clientes nuevos se crean como <b>Activo</b>).
+              (si no se indica <b>Estado</b>, el cliente se crea como <b>Activo</b>).
             </p>
             <p>Se omitirán los clientes cuyo nombre ya exista.</p>
           </div>
