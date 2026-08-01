@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -242,6 +242,31 @@ function CalendarioClases({
     setInicio(d);
   }
 
+  const lockRef = useRef(0);
+  const touchYRef = useRef<number | null>(null);
+
+  function handleWheel(e: React.WheelEvent) {
+    if (Math.abs(e.deltaY) < 8) return;
+    const now = Date.now();
+    if (now - lockRef.current < 350) return;
+    lockRef.current = now;
+    shift(e.deltaY > 0 ? 14 : -14);
+  }
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchYRef.current = e.touches[0]?.clientY ?? null;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    const start = touchYRef.current;
+    touchYRef.current = null;
+    if (start == null) return;
+    const end = e.changedTouches[0]?.clientY ?? start;
+    const diff = start - end;
+    if (Math.abs(diff) < 40) return;
+    shift(diff > 0 ? 14 : -14);
+  }
+
   const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
@@ -249,15 +274,17 @@ function CalendarioClases({
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent className="p-3">
-          <div className="mb-2 flex items-center justify-between">
-            <Button variant="ghost" size="sm" onClick={() => shift(-14)}>
-              ‹
-            </Button>
+        <CardContent
+          className="touch-pan-x p-3 overscroll-contain"
+          onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+        >
+          <div className="mb-2 flex flex-col items-center">
             <span className="text-sm font-medium capitalize">{rangoLabel}</span>
-            <Button variant="ghost" size="sm" onClick={() => shift(14)}>
-              ›
-            </Button>
+            <span className="text-[11px] text-muted-foreground">
+              Desliza arriba o abajo para cambiar de quincena
+            </span>
           </div>
           <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] text-muted-foreground">
             {DOW_SHORT.map((d) => (
