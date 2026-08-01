@@ -66,6 +66,7 @@ export function ClientDetailsDialog({
                   </span>
                 } />
                 <Field label="Teléfono" value={client.telefono ?? "—"} />
+                <Field label="Email" value={client.email ?? "—"} />
                 <Field label="Fecha de inicio" value={client.fecha_inicio ?? "—"} />
                 <Field label="Cumpleaños" value={client.cumpleanos ?? "—"} />
               </dl>
