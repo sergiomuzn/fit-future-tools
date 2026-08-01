@@ -246,8 +246,58 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGroupClientIds(padded.slice(0, Math.max(cap, ids.length)));
   }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, pickedGroup]);
 
+  /**
+   * ¿Aplicar los cambios "a las siguientes" alteraría algo en las sesiones
+   * futuras de la serie? Si ya son idénticas a lo que se propagaría, no tiene
+   * sentido preguntar por el alcance. El entrenador se excluye porque las
+   * repeticiones nacen sin entrenador y se pintan una a una.
+   */
+  function futureWouldChange(): boolean {
+    if (!futureSiblings.length) return false;
+    const hi = `${horaInicio}:00`;
+    const hf = `${horaFin}:00`;
+    const nombreLibreTrim = nombreLibre.trim();
+    const tituloDeseado = grupo
+      ? titulo.trim() || null
+      : !clientId && nombreLibreTrim
+        ? nombreLibreTrim
+        : null;
+    const incidenciaDeseada = incidencia || null;
+
+    const byDate = new Map<string, Session[]>();
+    for (const r of futureSiblings) {
+      const arr = byDate.get(r.fecha!);
+      if (arr) arr.push(r);
+      else byDate.set(r.fecha!, [r]);
+    }
+
+    const sharedDiffers = (r: Session) =>
+      (r.hora_inicio ?? null) !== hi ||
+      (r.hora_fin ?? null) !== hf ||
+      ((r.titulo as string | null) ?? null) !== tituloDeseado ||
+      ((r.incidencia as string | null) ?? null) !== incidenciaDeseada ||
+      (r.ocupacion ?? 1) !== (grupo ? 2 : 1);
+
+    if (grupo) {
+      const desired = new Set(groupClientIds.filter((id): id is string => !!id));
+      for (const [, rows] of byDate) {
+        if (rows.some(sharedDiffers)) return true;
+        const existing = new Set(
+          rows.map((r) => r.client_id).filter((id): id is string => !!id),
+        );
+        if (existing.size !== desired.size) return true;
+        for (const id of desired) if (!existing.has(id)) return true;
+      }
+      return false;
+    }
+
+    return futureSiblings.some(
+      (r) => sharedDiffers(r) || (r.client_id ?? null) !== (clientId ?? null),
+    );
+  }
+
   function requestSave() {
-    if (isSeries) {
+    if (isSeries && futureWouldChange()) {
       setScopeAsk(true);
     } else {
       void doSave("one");
