@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
+import { useCenterName } from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/cliente")({
   ssr: false,
@@ -40,6 +41,7 @@ function formatFecha(fecha: string): string {
 }
 
 function ClientePortal() {
+  const centroNombre = useCenterName();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyPortalProfile);
@@ -105,7 +107,7 @@ function ClientePortal() {
       <header className="border-b bg-card">
         <div className="mx-auto flex max-w-3xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
-            <h1 className="font-display text-lg font-semibold leading-tight">Fitness 360</h1>
+            <h1 className="font-display text-lg font-semibold leading-tight">{centroNombre}</h1>
             <p className="truncate text-xs text-muted-foreground">
               {profile ? `${profile.nombre} · ${bonoTipoClienteLabel(profile.bonoTipo)}` : "Cargando…"}
             </p>
