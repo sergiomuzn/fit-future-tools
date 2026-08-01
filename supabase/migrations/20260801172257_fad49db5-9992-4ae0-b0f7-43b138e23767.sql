@@ -1,0 +1,1 @@
+ALTER TABLE public.center_config ADD COLUMN IF NOT EXISTS nombre text NOT NULL DEFAULT 'Fitness 360';
