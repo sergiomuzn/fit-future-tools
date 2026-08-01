@@ -23,6 +23,7 @@ export interface ClaseGrupal {
   capacidad: number;
   ocupadas: number;
   reservada: boolean;
+  asistida: boolean;
   miSesionId: string | null;
 }
 
