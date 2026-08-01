@@ -230,7 +230,7 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
 export async function cancelBookingForUser(userId: string, sessionId: string): Promise<void> {
   const { data: row } = await supabaseAdmin
     .from("sessions")
-    .select("id,group_id,fecha,hora_inicio,booked_by_user_id")
+    .select("id,group_id,fecha,hora_inicio,titulo,booked_by_user_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
@@ -248,7 +248,21 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
       .from("sessions")
       .update({ client_id: null, booked_by_user_id: null, booking_tipo: null })
       .eq("id", sessionId);
-    return;
+  } else {
+    await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
   }
-  await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+
+  const [profile, { data: group }] = await Promise.all([
+    getPortalProfile(userId),
+    supabaseAdmin.from("groups").select("nombre").eq("id", row.group_id!).maybeSingle(),
+  ]);
+  const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
+  await crearNotificaciones([
+    {
+      targetRole: "admin",
+      tipo: "reserva_cancelada_cliente",
+      titulo: "Reserva cancelada por cliente",
+      mensaje: `${profile?.nombre ?? "Un cliente"} ha cancelado su plaza en ${row.titulo || group?.nombre || "clase grupal"} (${describeSesion(row.fecha, row.hora_inicio)}).`,
+    },
+  ]);
 }
