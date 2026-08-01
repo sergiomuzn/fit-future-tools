@@ -182,6 +182,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
             capacidad={capacidad} setCapacidad={setCapacidad}
             notas={notas} setNotas={setNotas}
             activo={activo} setActivo={setActivo}
+            acceso={acceso} setAcceso={setAcceso}
             isNew={isNew} stats={stats}
           />
         ) : (
@@ -196,6 +197,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
                 capacidad={capacidad} setCapacidad={setCapacidad}
                 notas={notas} setNotas={setNotas}
                 activo={activo} setActivo={setActivo}
+                acceso={acceso} setAcceso={setAcceso}
                 isNew={isNew} stats={stats}
               />
             </TabsContent>
@@ -218,12 +220,13 @@ export function GroupDialog({ open, onClose, group }: Props) {
 }
 
 function GroupForm({
-  nombre, setNombre, capacidad, setCapacidad, notas, setNotas, activo, setActivo, isNew, stats,
+  nombre, setNombre, capacidad, setCapacidad, notas, setNotas, activo, setActivo, acceso, setAcceso, isNew, stats,
 }: {
   nombre: string; setNombre: (v: string) => void;
   capacidad: number | ""; setCapacidad: (v: number | "") => void;
   notas: string; setNotas: (v: string) => void;
   activo: boolean; setActivo: (v: boolean) => void;
+  acceso: boolean; setAcceso: (v: boolean) => void;
   isNew: boolean;
   stats: { avgPrev: number; top: { id: string; nombre: string; count: number }[] };
 }) {
@@ -284,6 +287,15 @@ function GroupForm({
           <div className="flex items-center gap-2">
             <Checkbox id="grupo-activo" checked={activo} onCheckedChange={(v) => setActivo(!!v)} />
             <Label htmlFor="grupo-activo" className="cursor-pointer">Activo</Label>
+          </div>
+          <div className="flex items-start gap-2">
+            <Checkbox id="grupo-acceso" checked={acceso} onCheckedChange={(v) => setAcceso(!!v)} className="mt-0.5" />
+            <div>
+              <Label htmlFor="grupo-acceso" className="cursor-pointer">Acceso de clientes</Label>
+              <p className="text-[11px] text-muted-foreground">
+                Si se desactiva, el grupo queda con acceso restringido y no aparece en el portal de clientes.
+              </p>
+            </div>
           </div>
         </div>
   );
