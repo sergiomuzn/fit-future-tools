@@ -17,7 +17,7 @@ import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
-import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
+import { useCenterConfig } from "@/lib/center-schedule";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -102,6 +102,31 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     queryFn: async () => (await supabase.from("bonos_catalogo").select("id,tipo")).data ?? [],
     enabled: open,
   });
+  const { colores } = useCenterConfig();
+  const TIPO_LABEL_BONO: Record<string, string> = {
+    individual: "Individual",
+    pareja: "Pareja",
+    grupal: "Grupal",
+    gympass: "Gympass",
+    prueba: "Prueba",
+  };
+  // Tipo de bono efectivo de cada cliente del grupo: las reservas vía
+  // Wellhub/Claspass cuentan como Gympass; el resto usa su bono activo.
+  function tipoForClient(cid: string): string | null {
+    const booking = (groupMembersData ?? []).find(
+      (m) => m.client_id === cid && !!(m as any).booking_tipo,
+    ) as any;
+    const bt = booking?.booking_tipo as string | undefined;
+    if (bt === "wellhub" || bt === "claspass") return "gympass";
+    if (bt === "grupal_directo") return "grupal";
+    const b = bonos
+      .filter((x) => x.client_id === cid && x.activo)
+      .sort((a, z) => (z.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0];
+    return (
+      (catalogoAll as Array<{ id: string; tipo: string }>).find((c) => c.id === b?.bono_catalogo_id)
+        ?.tipo ?? null
+    );
+  }
   const activeBono = clientId
     ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
     : null;
