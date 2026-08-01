@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Calendar, Users, UsersRound, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
+import { Calendar, Users, Network, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyRoles } from "@/lib/roles";
 import { useQueryClient } from "@tanstack/react-query";
@@ -39,7 +39,7 @@ export const Route = createFileRoute("/_shell")({
 const NAV = [
   { to: "/", label: "Agenda", icon: Calendar },
   { to: "/clientes", label: "Clientes", icon: Users },
-  { to: "/grupos", label: "Grupos", icon: UsersRound },
+  { to: "/grupos", label: "Grupos", icon: Network },
   { to: "/entrenadores", label: "Entrenadores", icon: Dumbbell },
   { to: "/bonos", label: "Bonos", icon: Wallet },
   { to: "/sesiones", label: "Sesiones", icon: ClipboardList },
