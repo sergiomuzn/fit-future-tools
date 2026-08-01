@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { useConfirm } from "@/components/confirm-dialog";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -40,6 +41,7 @@ interface Props {
 export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const qc = useQueryClient();
   const isNew = !session?.id;
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const [clientId, setClientId] = useState<string | null>(null);
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [estado, setEstado] = useState<SesionEstado>("reservada");
