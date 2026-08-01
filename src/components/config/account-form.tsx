@@ -6,11 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useCenterConfig } from "@/lib/center-schedule";
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(8, "Mínimo 8 caracteres").max(128);
 
 export function AccountForm() {
+  const { nombre: centroNombre, invalidate } = useCenterConfig();
+  const [centro, setCentro] = useState("");
+  const [centroLoading, setCentroLoading] = useState(false);
+  const [centroTouched, setCentroTouched] = useState(false);
   const [currentEmail, setCurrentEmail] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
@@ -26,6 +31,27 @@ export function AccountForm() {
       if (data.user?.email) setCurrentEmail(data.user.email);
     });
   }, []);
+
+  useEffect(() => {
+    if (!centroTouched) setCentro(centroNombre);
+  }, [centroNombre, centroTouched]);
+
+  async function onChangeCentro(e: React.FormEvent) {
+    e.preventDefault();
+    const val = centro.trim();
+    if (!val) return toast.error("El nombre del centro no puede estar vacío");
+    if (val.length > 60) return toast.error("Máximo 60 caracteres");
+    setCentroLoading(true);
+    const { error } = await supabase
+      .from("center_config")
+      .update({ nombre: val } as never)
+      .eq("id", true);
+    setCentroLoading(false);
+    if (error) return toast.error(error.message);
+    setCentroTouched(false);
+    invalidate();
+    toast.success("Nombre del centro actualizado");
+  }
 
   async function onChangeEmail(e: React.FormEvent) {
     e.preventDefault();
@@ -80,6 +106,32 @@ export function AccountForm() {
 
   return (
     <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Nombre del centro</CardTitle>
+          <CardDescription>
+            Se muestra en el menú lateral, en el acceso y en el portal de clientes.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={onChangeCentro} className="space-y-3 max-w-md">
+            <div className="space-y-1.5">
+              <Label htmlFor="centro-nombre">Nombre</Label>
+              <Input
+                id="centro-nombre"
+                value={centro}
+                onChange={(e) => { setCentro(e.target.value); setCentroTouched(true); }}
+                maxLength={60}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={centroLoading}>
+              {centroLoading ? "Guardando..." : "Guardar nombre"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Email de acceso</CardTitle>
