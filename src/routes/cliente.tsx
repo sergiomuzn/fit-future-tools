@@ -352,7 +352,11 @@ function ClaseCardImpl({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium">{clase.nombre}</span>
-            {clase.reservada && <Badge variant="secondary">Reservada</Badge>}
+            {clase.asistida ? (
+              <Badge variant="secondary">Asistida</Badge>
+            ) : (
+              clase.reservada && <Badge variant="secondary">Reservada</Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {formatFecha(clase.fecha)} · {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
@@ -365,7 +369,9 @@ function ClaseCardImpl({
           <span className="text-sm tabular-nums text-muted-foreground">
             {clase.ocupadas} de {clase.capacidad}
           </span>
-          {clase.reservada ? (
+          {clase.asistida ? (
+            <span className="text-sm text-muted-foreground">Completada</span>
+          ) : clase.reservada ? (
             <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
               Cancelar
             </Button>
