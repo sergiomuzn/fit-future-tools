@@ -137,6 +137,25 @@ export function getPeriodCapacity(
 
 export function useCenterConfig() {
   const qc = useQueryClient();
+  return useCenterConfigInner(qc);
+}
+
+/** Nombre del centro accesible para cualquier usuario (login, portal cliente). */
+export function useCenterName(): string {
+  const { data } = useQuery({
+    queryKey: ["center_name"],
+    queryFn: async () => {
+      const { data } = await (supabase as unknown as {
+        rpc: (fn: string) => Promise<{ data: string | null }>;
+      }).rpc("get_center_nombre");
+      return (data ?? "").trim() || "Fitness 360";
+    },
+  });
+  return data ?? "Fitness 360";
+}
+
+function useCenterConfigInner(qcOuter: ReturnType<typeof useQueryClient>) {
+  const qc = qcOuter;
   const cfg = useQuery({
     queryKey: ["center_config"],
     queryFn: async () => {
@@ -172,6 +191,7 @@ export function useCenterConfig() {
     isLoading: cfg.isLoading || special.isLoading,
     invalidate: () => {
       qc.invalidateQueries({ queryKey: ["center_config"] });
+      qc.invalidateQueries({ queryKey: ["center_name"] });
       qc.invalidateQueries({ queryKey: ["special_days"] });
     },
   };
