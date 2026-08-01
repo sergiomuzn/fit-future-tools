@@ -22,6 +22,7 @@ import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenado
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
+import { Route as ShellAccesosRouteImport } from './routes/_shell.accesos'
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 
@@ -89,6 +90,11 @@ const ShellBonosRoute = ShellBonosRouteImport.update({
   path: '/bonos',
   getParentRoute: () => ShellRoute,
 } as any)
+const ShellAccesosRoute = ShellAccesosRouteImport.update({
+  id: '/accesos',
+  path: '/accesos',
+  getParentRoute: () => ShellRoute,
+} as any)
 const ApiPublicWebhooksWellhubRoute =
   ApiPublicWebhooksWellhubRouteImport.update({
     id: '/api/public/webhooks/wellhub',
@@ -107,6 +113,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accesos': typeof ShellAccesosRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/accesos': typeof ShellAccesosRoute
   '/bonos': typeof ShellBonosRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/cliente': typeof ClienteRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_shell/accesos': typeof ShellAccesosRoute
   '/_shell/bonos': typeof ShellBonosRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/configuracion': typeof ShellConfiguracionRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cliente'
     | '/reset-password'
+    | '/accesos'
     | '/bonos'
     | '/clientes'
     | '/configuracion'
@@ -174,6 +184,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cliente'
     | '/reset-password'
+    | '/accesos'
     | '/bonos'
     | '/clientes'
     | '/configuracion'
@@ -191,6 +202,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/cliente'
     | '/reset-password'
+    | '/_shell/accesos'
     | '/_shell/bonos'
     | '/_shell/clientes'
     | '/_shell/configuracion'
@@ -307,6 +319,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellBonosRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/_shell/accesos': {
+      id: '/_shell/accesos'
+      path: '/accesos'
+      fullPath: '/accesos'
+      preLoaderRoute: typeof ShellAccesosRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/api/public/webhooks/wellhub': {
       id: '/api/public/webhooks/wellhub'
       path: '/api/public/webhooks/wellhub'
@@ -325,6 +344,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface ShellRouteChildren {
+  ShellAccesosRoute: typeof ShellAccesosRoute
   ShellBonosRoute: typeof ShellBonosRoute
   ShellClientesRoute: typeof ShellClientesRoute
   ShellConfiguracionRoute: typeof ShellConfiguracionRoute
@@ -336,6 +356,7 @@ interface ShellRouteChildren {
 }
 
 const ShellRouteChildren: ShellRouteChildren = {
+  ShellAccesosRoute: ShellAccesosRoute,
   ShellBonosRoute: ShellBonosRoute,
   ShellClientesRoute: ShellClientesRoute,
   ShellConfiguracionRoute: ShellConfiguracionRoute,
