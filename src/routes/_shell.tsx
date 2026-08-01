@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { MiniCalendar } from "@/components/mini-calendar";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { cn } from "@/lib/utils";
 import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
@@ -161,6 +162,9 @@ function ShellInner() {
         <div className="flex items-center gap-2 border-b bg-card px-2 py-1.5">
           <SidebarTrigger />
           <span className="font-display text-sm font-semibold tracking-tight md:hidden">Fitness 360</span>
+          <div className="ml-auto">
+            <NotificationsBell />
+          </div>
         </div>
         <div className="flex-1 min-h-0 overflow-auto" data-shell-scroll>
           <Outlet />
