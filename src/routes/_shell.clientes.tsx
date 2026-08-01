@@ -456,25 +456,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
           <div className="text-xs text-muted-foreground mt-2 line-clamp-2">
             {horarioSummary(g.id)}
           </div>
-          <div className="mt-2 flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              title={g.acceso_clientes ? "Restringir acceso de clientes" : "Habilitar acceso de clientes"}
-              onClick={(e) => { e.stopPropagation(); toggleAcceso(g); }}
-            >
-              {g.acceso_clientes ? <Unlock className="h-3.5 w-3.5" /> : <Lock className="h-3.5 w-3.5" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7"
-              onClick={(e) => { e.stopPropagation(); removeGroup(g.id, g.nombre); }}
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </Button>
-          </div>
         </div>
       ))}
       {sorted.length === 0 && (
