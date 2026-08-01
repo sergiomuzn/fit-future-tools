@@ -31,8 +31,8 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
       .map((r) => ({
         userId: r.booked_by_user_id,
         tipo: "reserva_cancelada",
-        titulo: "Reserva cancelada",
-        mensaje: `${r.titulo ?? "Clase grupal"} · ${describeSesion(r.fecha, r.hora_inicio)}`,
+        titulo: "Reserva cancelada por el centro",
+        mensaje: `en ${r.titulo ?? "Clase grupal"} (${describeSesion(r.fecha, r.hora_inicio)})`,
       }));
 
     await crearNotificaciones(items);
