@@ -138,6 +138,7 @@ function ClientesPage() {
   }
 
   async function remove(id: string) {
+    void 0;
     let reservas: { id: string; group_id: string | null }[] = [];
     try {
       const { data } = await supabase
