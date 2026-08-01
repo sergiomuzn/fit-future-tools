@@ -250,7 +250,7 @@ function CalendarioClases({
     const now = Date.now();
     if (now - lockRef.current < 350) return;
     lockRef.current = now;
-    shift(e.deltaY > 0 ? 14 : -14);
+    shift(e.deltaY > 0 ? 7 : -7);
   }
 
   function handleTouchStart(e: React.TouchEvent) {
@@ -264,7 +264,7 @@ function CalendarioClases({
     const end = e.changedTouches[0]?.clientY ?? start;
     const diff = start - end;
     if (Math.abs(diff) < 40) return;
-    shift(diff > 0 ? 14 : -14);
+    shift(diff > 0 ? 7 : -7);
   }
 
   const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
@@ -283,7 +283,7 @@ function CalendarioClases({
           <div className="mb-2 flex flex-col items-center">
             <span className="text-sm font-medium capitalize">{rangoLabel}</span>
             <span className="text-[11px] text-muted-foreground">
-              Desliza arriba o abajo para cambiar de quincena
+              Desliza arriba o abajo para avanzar una semana
             </span>
           </div>
           <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] text-muted-foreground">
