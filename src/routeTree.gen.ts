@@ -21,6 +21,7 @@ import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configur
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as ShellBonosRouteImport } from './routes/_shell.bonos'
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
+import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -82,6 +83,12 @@ const ApiPublicWebhooksWellhubRoute =
     path: '/api/public/webhooks/wellhub',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicWebhooksClaspassRoute =
+  ApiPublicWebhooksClaspassRouteImport.update({
+    id: '/api/public/webhooks/claspass',
+    path: '/api/public/webhooks/claspass',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
@@ -94,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRoutesByTo {
@@ -107,6 +115,7 @@ export interface FileRoutesByTo {
   '/facturacion': typeof ShellFacturacionRoute
   '/sesiones': typeof ShellSesionesRoute
   '/': typeof ShellIndexRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRoutesById {
@@ -122,6 +131,7 @@ export interface FileRoutesById {
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/sesiones': typeof ShellSesionesRoute
   '/_shell/': typeof ShellIndexRoute
+  '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
 }
 export interface FileRouteTypes {
@@ -137,6 +147,7 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/sesiones'
+    | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -150,6 +161,7 @@ export interface FileRouteTypes {
     | '/facturacion'
     | '/sesiones'
     | '/'
+    | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
   id:
     | '__root__'
@@ -164,6 +176,7 @@ export interface FileRouteTypes {
     | '/_shell/facturacion'
     | '/_shell/sesiones'
     | '/_shell/'
+    | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
   fileRoutesById: FileRoutesById
 }
@@ -171,6 +184,7 @@ export interface RootRouteChildren {
   ShellRoute: typeof ShellRouteWithChildren
   AuthRoute: typeof AuthRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
 }
 
@@ -260,6 +274,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksWellhubRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/webhooks/claspass': {
+      id: '/api/public/webhooks/claspass'
+      path: '/api/public/webhooks/claspass'
+      fullPath: '/api/public/webhooks/claspass'
+      preLoaderRoute: typeof ApiPublicWebhooksClaspassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -291,6 +312,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   AuthRoute: AuthRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
 }
 export const routeTree = rootRouteImport
