@@ -323,10 +323,12 @@ function ClientesPage() {
               <div className="space-y-1.5"><Label>Cumpleaños</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
             </div>
             <div className="space-y-1.5"><Label>Notas</Label><Textarea rows={2} value={editing?.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></div>
-            <div className="flex items-center gap-2 pt-1">
-              <Checkbox id="activo" checked={editing?.activo ?? true} onCheckedChange={(v) => setEditing({ ...editing, activo: Boolean(v) })} />
-              <Label htmlFor="activo" className="cursor-pointer">Activo</Label>
-            </div>
+            {editing?.id && (
+              <div className="flex items-center gap-2 pt-1">
+                <Checkbox id="activo" checked={editing?.activo ?? true} onCheckedChange={(v) => setEditing({ ...editing, activo: Boolean(v) })} />
+                <Label htmlFor="activo" className="cursor-pointer">Activo</Label>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
