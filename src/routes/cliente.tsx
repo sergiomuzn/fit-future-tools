@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { NotificationsBell } from "@/components/notifications-bell";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
 
 export const Route = createFileRoute("/cliente")({
@@ -110,6 +111,7 @@ function ClientePortal() {
             </p>
           </div>
           <div className="flex items-center gap-1">
+            <NotificationsBell />
             <ThemeToggle />
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
               <LogOut className="h-3.5 w-3.5" />
