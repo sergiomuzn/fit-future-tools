@@ -119,8 +119,33 @@ function ClientesPage() {
       return a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" });
     });
 
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  async function importClients(file: File) {
+    try {
+      const rows = mapClientRows(await readXlsxRows(file));
+      if (!rows.length) { toast.error("No se han encontrado clientes en el archivo"); return; }
+      const existentes = new Set(clients.map((c) => normalizeText(c.nombre)));
+      const nuevos = rows.filter((r) => !existentes.has(normalizeText(r.nombre)));
+      const dup = rows.length - nuevos.length;
+      if (!nuevos.length) { toast.error("Todos los clientes del archivo ya existen"); return; }
+      const ok = await confirm({
+        title: "¿Importar clientes?",
+        description: `Se añadirán ${nuevos.length} ${nuevos.length === 1 ? "cliente" : "clientes"}${
+          dup ? ` (${dup} ya existían y se omitirán)` : ""
+        }.`,
+      });
+      if (!ok) return;
+      const { error } = await supabase.from("clients").insert(nuevos.map((r) => ({ ...r, activo: true })));
+      if (error) { toast.error(error.message); return; }
+      toast.success(`${nuevos.length} clientes importados`);
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    } catch {
+      toast.error("No se ha podido leer el archivo");
+    }
+  }
+
   async function save() {
-    if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
     if (!editing?.nombre) { toast.error("Nombre requerido"); return; }
     const payload = {
       nombre: editing.nombre,
