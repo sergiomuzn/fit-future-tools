@@ -18,6 +18,7 @@ import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import {
   AlertDialog,
   AlertDialogContent,
