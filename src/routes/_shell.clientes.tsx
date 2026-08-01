@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Download, Upload, X, Info, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
@@ -138,7 +138,7 @@ function ClientesPage() {
   }
 
   async function remove(id: string) {
-    void 0;
+
     let reservas: { id: string; group_id: string | null }[] = [];
     try {
       const { data } = await supabase
