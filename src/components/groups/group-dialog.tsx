@@ -302,19 +302,13 @@ function GroupHistory({
   capacidad: number;
   clientMap: Map<string, Client>;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = scrollRef.current;
-    if (el) el.scrollLeft = el.scrollWidth;
-  }, [blocks]);
-
   if (blocks.length === 0) {
     return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
   }
-  // Render newest on the right so user swipes/scrolls LEFT to see older ones.
-  const ordered = [...blocks].reverse();
+  // Newest first (leftmost); scroll right to reach older sessions.
+  const ordered = blocks;
   return (
-    <div ref={scrollRef} className="w-full max-w-full overflow-x-auto overflow-y-hidden px-1 pb-2">
+    <div className="w-full max-w-full overflow-x-auto overflow-y-hidden px-1 pb-2">
       <div className="flex gap-2 min-w-min">
         {ordered.map((b) => {
           const d = new Date(`${b.fecha}T00:00:00`);
