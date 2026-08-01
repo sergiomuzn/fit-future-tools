@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { getDevRoleOverride } from "@/lib/dev-role-preview";
 import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/auth")({
@@ -19,9 +20,11 @@ const emailSchema = z.string().trim().email("Email inválido").max(255);
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "forgot" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "forgot">("signin");
+  const [isCliente, setIsCliente] = useState(false);
 
   useEffect(() => {
+    setIsCliente(getDevRoleOverride() === "cliente");
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         void homePathForCurrentUser().then((path) => navigate({ to: path }));
@@ -34,15 +37,13 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="font-display text-2xl">Fitness 360</CardTitle>
-          <CardDescription>Accede a la gestión del centro</CardDescription>
+          {!isCliente && <CardDescription>Accede a la gestión del centro</CardDescription>}
         </CardHeader>
         <CardContent>
           {mode === "forgot" ? (
             <ForgotForm onBack={() => setMode("signin")} />
-          ) : mode === "signup" ? (
-            <SignUpForm onBack={() => setMode("signin")} />
           ) : (
-            <SignInForm onForgot={() => setMode("forgot")} onSignUp={() => setMode("signup")} />
+            <SignInForm onForgot={() => setMode("forgot")} />
           )}
         </CardContent>
       </Card>
@@ -50,7 +51,7 @@ function AuthPage() {
   );
 }
 
-function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: () => void }) {
+function SignInForm({ onForgot }: { onForgot: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -90,9 +91,6 @@ function SignInForm({ onForgot, onSignUp }: { onForgot: () => void; onSignUp: ()
       </Button>
       <button type="button" onClick={onForgot} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         ¿Has olvidado tu contraseña?
-      </button>
-      <button type="button" onClick={onSignUp} className="text-xs text-muted-foreground hover:text-foreground w-full text-center border-t pt-3 mt-2">
-        Crear cuenta (temporal)
       </button>
     </form>
   );
