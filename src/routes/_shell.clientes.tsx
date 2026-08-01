@@ -17,6 +17,7 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { GroupDialog } from "@/components/groups/group-dialog";
+import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
@@ -34,7 +35,7 @@ function ClientesPage() {
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<Client | null>(null);
-  const [tab, setTab] = useState<"clientes" | "grupos">("clientes");
+  const [tab, setTab] = useState<"clientes" | "grupos" | "accesos">("clientes");
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupEditing, setGroupEditing] = useState<Group | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -183,16 +184,17 @@ function ClientesPage() {
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
         </div>
-        ) : (
+        ) : tab === "grupos" ? (
           <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
             <Plus className="h-4 w-4 mr-1" /> Nuevo grupo
           </Button>
-        )}
+        ) : null}
       </div>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "grupos")}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "grupos" | "accesos")}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="grupos">Grupos</TabsTrigger>
+          <TabsTrigger value="accesos">Accesos</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
       <div className="relative max-w-sm">
