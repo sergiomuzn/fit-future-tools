@@ -409,6 +409,45 @@ function ClientesPage() {
         </DialogContent>
       </Dialog>
       <ClientDetailsDialog client={viewing} defaultTab="info" onOpenChange={(o) => !o && setViewing(null)} />
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Importar clientes</DialogTitle></DialogHeader>
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) void importClients(f);
+            }}
+            onClick={() => fileRef.current?.click()}
+            className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors ${
+              dragOver ? "border-primary bg-primary/5" : "border-muted-foreground/30 hover:bg-accent/50"
+            }`}
+          >
+            <Upload className="h-6 w-6 text-muted-foreground" />
+            <p className="text-sm font-medium">Arrastra aquí el archivo o haz clic para seleccionarlo</p>
+            <p className="text-xs text-muted-foreground">Formatos admitidos: .xlsx, .xls, .csv</p>
+          </div>
+          <div className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground space-y-1">
+            <p>
+              Los nombres de las columnas deben coincidir con los campos del cliente:{" "}
+              <b>Nombre</b>, <b>Apellido</b>, <b>Teléfono</b>, <b>Email</b>, <b>Fecha inicio</b>,{" "}
+              <b>Cumpleaños</b> y <b>Notas</b>.
+            </p>
+            <p>
+              Los datos que no estén rellenados quedarán vacíos o con su valor predeterminado
+              (los clientes nuevos se crean como <b>Activo</b>).
+            </p>
+            <p>Se omitirán los clientes cuyo nombre ya exista.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportOpen(false)}>Cancelar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
