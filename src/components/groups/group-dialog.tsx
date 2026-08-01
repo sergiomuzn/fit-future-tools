@@ -224,13 +224,11 @@ export function GroupDialog({ open, onClose, group }: Props) {
             </TabsContent>
           </Tabs>
         )}
-        <DialogFooter className="sm:justify-between">
-          {!isNew ? (
-            <Button variant="destructive" onClick={removeGroup} className="gap-1.5">
-              <Trash2 className="h-4 w-4" /> Eliminar grupo
-            </Button>
-          ) : <span />}
+        <DialogFooter>
           <div className="flex gap-2 justify-end">
+            {!isNew && tab !== "historial" && (
+              <Button variant="destructive" onClick={removeGroup}>Eliminar grupo</Button>
+            )}
             <Button variant="outline" onClick={onClose}>{!isNew && tab === "historial" ? "Cerrar" : "Cancelar"}</Button>
             {(isNew || tab !== "historial") && <Button onClick={save}>Guardar</Button>}
           </div>
