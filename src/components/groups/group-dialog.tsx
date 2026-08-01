@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -168,7 +168,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={enterToSave(save)}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto overflow-x-hidden" onKeyDown={enterToSave(save)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nuevo grupo" : `Editar grupo · ${group?.nombre}`}</DialogTitle>
         </DialogHeader>
@@ -182,7 +182,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
             isNew={isNew} stats={stats}
           />
         ) : (
-          <Tabs value={tab} onValueChange={setTab}>
+          <Tabs value={tab} onValueChange={setTab} className="min-w-0 w-full">
             <TabsList>
               <TabsTrigger value="datos">Datos</TabsTrigger>
               <TabsTrigger value="historial">Historial</TabsTrigger>
@@ -197,7 +197,7 @@ export function GroupDialog({ open, onClose, group }: Props) {
                 isNew={isNew} stats={stats}
               />
             </TabsContent>
-            <TabsContent value="historial" className="mt-4">
+            <TabsContent value="historial" className="mt-4 min-w-0">
               <GroupHistory
                 blocks={historyBlocks}
                 capacidad={typeof capacidad === "number" ? capacidad : Number(capacidad) || 6}
@@ -302,13 +302,19 @@ function GroupHistory({
   capacidad: number;
   clientMap: Map<string, Client>;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [blocks]);
+
   if (blocks.length === 0) {
     return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
   }
   // Render newest on the right so user swipes/scrolls LEFT to see older ones.
   const ordered = [...blocks].reverse();
   return (
-    <div className="overflow-x-auto -mx-1 px-1 pb-2">
+    <div ref={scrollRef} className="w-full max-w-full overflow-x-auto overflow-y-hidden px-1 pb-2">
       <div className="flex gap-2 min-w-min">
         {ordered.map((b) => {
           const d = new Date(`${b.fecha}T00:00:00`);
