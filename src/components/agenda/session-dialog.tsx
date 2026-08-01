@@ -180,10 +180,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     enabled: open && !!groupId,
   });
 
-  // Asistentes que han reservado desde el portal de clientes (o vía Wellhub/Claspass).
-  const onlineMembers = (groupMembersData ?? []).filter(
-    (m) => !!(m as any).booking_tipo && !!m.client_id,
-  );
   const lastAutofilledGroupIdRef = ((): { current: string | null } => {
     // Use a stable ref stored on window to avoid an extra useRef import churn.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
