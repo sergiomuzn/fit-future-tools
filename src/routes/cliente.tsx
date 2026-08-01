@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
 
@@ -122,6 +123,7 @@ function ClientePortal() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="mb-4">
             <TabsTrigger value="clases">Clases grupales</TabsTrigger>
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="reservas">Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}</TabsTrigger>
           </TabsList>
 
@@ -139,6 +141,19 @@ function ClientePortal() {
                 busy={bookMutation.isPending || cancelMutation.isPending}
               />
             ))}
+          </TabsContent>
+
+          <TabsContent value="calendario">
+            {isLoading ? (
+              <p className="text-sm text-muted-foreground">Cargando clases…</p>
+            ) : (
+              <CalendarioClases
+                clases={clases}
+                onBook={(c) => bookMutation.mutate(c.key)}
+                onCancel={(c) => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
+                busy={bookMutation.isPending || cancelMutation.isPending}
+              />
+            )}
           </TabsContent>
 
           <TabsContent value="reservas" className="space-y-2">
