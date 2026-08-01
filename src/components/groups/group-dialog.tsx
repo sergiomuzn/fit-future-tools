@@ -305,10 +305,17 @@ function GroupHistory({
   if (blocks.length === 0) {
     return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
   }
-  // Newest first (leftmost); scroll right to reach older sessions.
-  const ordered = blocks;
+  // Oldest on the left, newest on the right; view starts scrolled to the newest.
+  const ordered = [...blocks].reverse();
+  const pinRight = (el: HTMLDivElement | null) => {
+    if (!el) return;
+    const snap = () => { el.scrollLeft = el.scrollWidth; };
+    snap();
+    requestAnimationFrame(snap);
+    setTimeout(snap, 60);
+  };
   return (
-    <div className="w-full max-w-full overflow-x-auto overflow-y-hidden px-1 pb-2">
+    <div ref={pinRight} className="w-full max-w-full overflow-x-auto overflow-y-hidden px-1 pb-2">
       <div className="flex gap-2 min-w-min">
         {ordered.map((b) => {
           const d = new Date(`${b.fecha}T00:00:00`);
