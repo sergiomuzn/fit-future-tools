@@ -221,22 +221,28 @@ function CalendarioClases({
   const hoyIso = ymd(new Date());
   const primeraConClases = [...porDia.keys()].sort()[0] ?? hoyIso;
   const [selected, setSelected] = useState<string>(primeraConClases);
-  const base = new Date(`${selected}T00:00:00`);
-  const [mes, setMes] = useState<Date>(new Date(base.getFullYear(), base.getMonth(), 1));
+  // Vista bisemanal: 14 días desde el lunes de la semana del día seleccionado.
+  const baseSel = new Date(`${selected}T00:00:00`);
+  const [inicio, setInicio] = useState<Date>(() => {
+    const d = new Date(baseSel);
+    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    return d;
+  });
 
-  const first = new Date(mes.getFullYear(), mes.getMonth(), 1);
-  const startOffset = (first.getDay() + 6) % 7;
-  const total = new Date(mes.getFullYear(), mes.getMonth() + 1, 0).getDate();
-  const cells: { d: Date; outside: boolean }[] = [];
-  for (let i = startOffset; i > 0; i--) {
-    cells.push({ d: new Date(mes.getFullYear(), mes.getMonth(), 1 - i), outside: true });
+  const cells: { d: Date }[] = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(inicio);
+    d.setDate(inicio.getDate() + i);
+    cells.push({ d });
   }
-  for (let i = 1; i <= total; i++) cells.push({ d: new Date(mes.getFullYear(), mes.getMonth(), i), outside: false });
-  while (cells.length % 7 !== 0) {
-    const last = new Date(cells[cells.length - 1]!.d);
-    last.setDate(last.getDate() + 1);
-    cells.push({ d: last, outside: true });
+
+  function shift(days: number) {
+    const d = new Date(inicio);
+    d.setDate(d.getDate() + days);
+    setInicio(d);
   }
+
+  const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
 
@@ -245,21 +251,11 @@ function CalendarioClases({
       <Card>
         <CardContent className="p-3">
           <div className="mb-2 flex items-center justify-between">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() - 1, 1))}
-            >
+            <Button variant="ghost" size="sm" onClick={() => shift(-14)}>
               ‹
             </Button>
-            <span className="text-sm font-medium capitalize">
-              {MESES[mes.getMonth()]} {mes.getFullYear()}
-            </span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setMes(new Date(mes.getFullYear(), mes.getMonth() + 1, 1))}
-            >
+            <span className="text-sm font-medium capitalize">{rangoLabel}</span>
+            <Button variant="ghost" size="sm" onClick={() => shift(14)}>
               ›
             </Button>
           </div>
@@ -269,38 +265,54 @@ function CalendarioClases({
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
-            {cells.map(({ d, outside }) => {
+            {cells.map(({ d }) => {
               const key = ymd(d);
               const list = porDia.get(key) ?? [];
-              const reservada = list.some((c) => c.reservada);
               return (
                 <button
                   key={key}
                   onClick={() => setSelected(key)}
-                  disabled={list.length === 0}
                   className={cn(
-                    "flex min-h-14 flex-col items-center gap-1 rounded-md border p-1 text-xs transition",
-                    outside && "opacity-40",
-                    list.length === 0 && "cursor-default text-muted-foreground",
+                    "flex min-h-24 flex-col items-stretch gap-0.5 rounded-md border p-1 text-left text-xs transition",
+                    list.length === 0 && "text-muted-foreground",
                     list.length > 0 && "hover:border-primary/60",
                     key === selected && "border-primary ring-1 ring-primary",
                     key === hoyIso && "bg-accent/50",
                   )}
                 >
-                  <span className="font-medium">{d.getDate()}</span>
-                  {list.length > 0 && (
+                  <span className="text-center font-medium">{d.getDate()}</span>
+                  {list.slice(0, 3).map((c) => (
                     <span
+                      key={c.key}
                       className={cn(
-                        "rounded-full px-1.5 text-[10px] leading-4",
-                        reservada ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                        "truncate rounded px-1 text-[10px] leading-4",
+                        c.asistida
+                          ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300"
+                          : c.reservada
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-muted text-muted-foreground",
                       )}
                     >
-                      {list.length}
+                      {c.horaInicio} {c.nombre}
                     </span>
+                  ))}
+                  {list.length > 3 && (
+                    <span className="px-1 text-[10px] text-muted-foreground">+{list.length - 3} más</span>
                   )}
                 </button>
               );
             })}
+          </div>
+          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-sm bg-muted" /> Disponible
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-sm bg-primary" /> Reservada
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-2.5 w-2.5 rounded-sm bg-emerald-500/60" /> Asistida
+            </span>
           </div>
         </CardContent>
       </Card>
@@ -340,7 +352,11 @@ function ClaseCardImpl({
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium">{clase.nombre}</span>
-            {clase.reservada && <Badge variant="secondary">Reservada</Badge>}
+            {clase.asistida ? (
+              <Badge variant="secondary">Asistida</Badge>
+            ) : (
+              clase.reservada && <Badge variant="secondary">Reservada</Badge>
+            )}
           </div>
           <p className="text-sm text-muted-foreground">
             {formatFecha(clase.fecha)} · {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
@@ -353,7 +369,9 @@ function ClaseCardImpl({
           <span className="text-sm tabular-nums text-muted-foreground">
             {clase.ocupadas} de {clase.capacidad}
           </span>
-          {clase.reservada ? (
+          {clase.asistida ? (
+            <span className="text-sm text-muted-foreground">Completada</span>
+          ) : clase.reservada ? (
             <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
               Cancelar
             </Button>

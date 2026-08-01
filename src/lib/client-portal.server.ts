@@ -116,6 +116,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       capacidad: Math.max(1, group.capacidad ?? 1),
       ocupadas: rows.filter((r) => !!r.client_id).length,
       reservada: !!mine,
+      asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
     });
   }
