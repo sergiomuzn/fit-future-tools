@@ -7,7 +7,7 @@ export const isDevPreview = import.meta.env.DEV;
 export function getDevRoleOverride(): AppRole | null {
   if (!isDevPreview || typeof window === "undefined") return null;
   const v = window.localStorage.getItem(DEV_ROLE_STORAGE_KEY);
-  return v === "admin" || v === "entrenador" || v === "cliente" ? v : null;
+  return v === "admin" || v === "cliente" ? v : null;
 }
 
 export function setDevRoleOverride(role: AppRole | null) {
