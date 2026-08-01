@@ -62,22 +62,23 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
-  // Contar hermanas futuras en la misma serie (fecha > actual). Solo pedimos
-  // el "scope" al editar cuando de hecho existen series futuras.
-  const { data: futureSiblingsCount = 0 } = useQuery({
-    queryKey: ["series-future-count", recurrenciaId, session?.fecha],
+  // Hermanas futuras en la misma serie (fecha > actual). Solo pedimos el
+  // "scope" al editar cuando existen series futuras Y los cambios podrían
+  // afectarlas realmente.
+  const { data: futureSiblings = [] } = useQuery({
+    queryKey: ["series-future-rows", recurrenciaId, session?.fecha],
     queryFn: async () => {
-      if (!recurrenciaId || !session?.fecha) return 0;
-      const { count } = await supabase
+      if (!recurrenciaId || !session?.fecha) return [] as Session[];
+      const { data } = await supabase
         .from("sessions")
-        .select("id", { count: "exact", head: true })
+        .select("*")
         .eq("recurrencia_id", recurrenciaId)
         .gt("fecha", session.fecha);
-      return count ?? 0;
+      return (data ?? []) as Session[];
     },
     enabled: open && !isNew && !!recurrenciaId,
   });
-  const isSeries = !isNew && !!recurrenciaId && futureSiblingsCount > 0;
+  const isSeries = !isNew && !!recurrenciaId && futureSiblings.length > 0;
 
   // Fetch group members (same recurrencia_id + fecha + hora_inicio) when editing a group.
   const { data: groupMembersData } = useQuery({
@@ -245,8 +246,58 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGroupClientIds(padded.slice(0, Math.max(cap, ids.length)));
   }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, pickedGroup]);
 
+  /**
+   * ¿Aplicar los cambios "a las siguientes" alteraría algo en las sesiones
+   * futuras de la serie? Si ya son idénticas a lo que se propagaría, no tiene
+   * sentido preguntar por el alcance. El entrenador se excluye porque las
+   * repeticiones nacen sin entrenador y se pintan una a una.
+   */
+  function futureWouldChange(): boolean {
+    if (!futureSiblings.length) return false;
+    const hi = `${horaInicio}:00`;
+    const hf = `${horaFin}:00`;
+    const nombreLibreTrim = nombreLibre.trim();
+    const tituloDeseado = grupo
+      ? titulo.trim() || null
+      : !clientId && nombreLibreTrim
+        ? nombreLibreTrim
+        : null;
+    const incidenciaDeseada = incidencia || null;
+
+    const byDate = new Map<string, Session[]>();
+    for (const r of futureSiblings) {
+      const arr = byDate.get(r.fecha!);
+      if (arr) arr.push(r);
+      else byDate.set(r.fecha!, [r]);
+    }
+
+    const sharedDiffers = (r: Session) =>
+      (r.hora_inicio ?? null) !== hi ||
+      (r.hora_fin ?? null) !== hf ||
+      ((r.titulo as string | null) ?? null) !== tituloDeseado ||
+      ((r.incidencia as string | null) ?? null) !== incidenciaDeseada ||
+      (r.ocupacion ?? 1) !== (grupo ? 2 : 1);
+
+    if (grupo) {
+      const desired = new Set(groupClientIds.filter((id): id is string => !!id));
+      for (const [, rows] of byDate) {
+        if (rows.some(sharedDiffers)) return true;
+        const existing = new Set(
+          rows.map((r) => r.client_id).filter((id): id is string => !!id),
+        );
+        if (existing.size !== desired.size) return true;
+        for (const id of desired) if (!existing.has(id)) return true;
+      }
+      return false;
+    }
+
+    return futureSiblings.some(
+      (r) => sharedDiffers(r) || (r.client_id ?? null) !== (clientId ?? null),
+    );
+  }
+
   function requestSave() {
-    if (isSeries) {
+    if (isSeries && futureWouldChange()) {
       setScopeAsk(true);
     } else {
       void doSave("one");
