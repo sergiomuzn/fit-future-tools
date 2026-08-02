@@ -11,6 +11,19 @@ export function bonoTipoClienteLabel(tipo?: string | null): string {
   return BONO_TIPO_CLIENTE.find((b) => b.value === tipo)?.label ?? "—";
 }
 
+/** Tipo de acceso concedido a un cliente del portal. */
+export type AccesoCliente = "personal" | "grupos" | "ambos";
+
+export const ACCESO_CLIENTE: { value: AccesoCliente; label: string }[] = [
+  { value: "personal", label: "Entrenamiento Personal" },
+  { value: "grupos", label: "Grupos" },
+  { value: "ambos", label: "Ambos" },
+];
+
+export function accesoClienteLabel(acceso?: string | null): string {
+  return ACCESO_CLIENTE.find((a) => a.value === acceso)?.label ?? "—";
+}
+
 export interface ClaseGrupal {
   key: string;
   groupId: string;
@@ -33,4 +46,5 @@ export interface PortalProfile {
   email: string;
   bonoTipo: BonoTipoCliente;
   activo: boolean;
+  acceso: AccesoCliente;
 }
