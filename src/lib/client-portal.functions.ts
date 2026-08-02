@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { BonoTipoCliente, ClaseGrupal, PortalProfile } from "./client-portal-types";
+import type { BonoTipoCliente, ClaseGrupal, PortalProfile, SesionPersonal } from "./client-portal-types";
 
 const bonoTipoSchema = z.enum(["grupal_directo", "wellhub", "claspass"]);
 
@@ -54,7 +54,18 @@ export const listClases = createServerFn({ method: "POST" })
     const { getPortalProfile, listUpcomingClasses } = await import("./client-portal.server");
     const profile = await getPortalProfile(context.userId);
     if (!profile) throw new Error("Cuenta de cliente no activa");
+    if (profile.acceso === "personal") return [];
     return listUpcomingClasses(context.userId);
+  });
+
+export const listSesionesPersonales = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<SesionPersonal[]> => {
+    const { getPortalProfile, listMyPersonalSessions } = await import("./client-portal.server");
+    const profile = await getPortalProfile(context.userId);
+    if (!profile) throw new Error("Cuenta de cliente no activa");
+    if (profile.acceso !== "personal" && profile.acceso !== "ambos") return [];
+    return listMyPersonalSessions(context.userId);
   });
 
 export const reservarClase = createServerFn({ method: "POST" })

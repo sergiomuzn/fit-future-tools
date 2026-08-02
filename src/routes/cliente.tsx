@@ -5,8 +5,20 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { listClases, reservarClase, cancelarReserva, getMyPortalProfile } from "@/lib/client-portal.functions";
-import { bonoTipoClienteLabel, type ClaseGrupal } from "@/lib/client-portal-types";
+import {
+  listClases,
+  reservarClase,
+  cancelarReserva,
+  getMyPortalProfile,
+  listSesionesPersonales,
+} from "@/lib/client-portal.functions";
+import {
+  bonoTipoClienteLabel,
+  accesoIncluyeGrupos,
+  accesoIncluyePersonal,
+  type ClaseGrupal,
+  type SesionPersonal,
+} from "@/lib/client-portal-types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +60,7 @@ function ClientePortal() {
   const fetchClases = useServerFn(listClases);
   const reservar = useServerFn(reservarClase);
   const cancelar = useServerFn(cancelarReserva);
+  const fetchPersonales = useServerFn(listSesionesPersonales);
   const [tab, setTab] = useState("clases");
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
@@ -58,7 +71,16 @@ function ClientePortal() {
   const { data: clases = [], isLoading } = useQuery({
     queryKey: ["portal-clases"],
     queryFn: () => fetchClases({ data: undefined }),
-    enabled: !!profile,
+    enabled: !!profile && accesoIncluyeGrupos(profile?.acceso),
+  });
+
+  const verGrupos = accesoIncluyeGrupos(profile?.acceso);
+  const verPersonal = accesoIncluyePersonal(profile?.acceso);
+
+  const { data: personales = [], isLoading: loadingPersonales } = useQuery({
+    queryKey: ["portal-personales"],
+    queryFn: () => fetchPersonales({ data: undefined }),
+    enabled: !!profile && verPersonal,
   });
 
   const bookMutation = useMutation({
@@ -87,6 +109,10 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+
+  const defaultTab = verGrupos ? "clases" : "personal";
+  const activeTab =
+    (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos) ? defaultTab : tab;
 
   if (!loadingProfile && !profile) {
     return (
@@ -124,11 +150,16 @@ function ClientePortal() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-4">
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={activeTab} onValueChange={setTab}>
           <TabsList className="mb-4">
-            <TabsTrigger value="clases">Clases grupales</TabsTrigger>
-            <TabsTrigger value="calendario">Calendario</TabsTrigger>
-            <TabsTrigger value="reservas">Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}</TabsTrigger>
+            {verGrupos && <TabsTrigger value="clases">Clases grupales</TabsTrigger>}
+            {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
+            {verGrupos && (
+              <TabsTrigger value="reservas">
+                Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}
+              </TabsTrigger>
+            )}
+            {verPersonal && <TabsTrigger value="personal">Entrenamiento personal</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="clases" className="space-y-2">
@@ -174,9 +205,48 @@ function ClientePortal() {
               />
             ))}
           </TabsContent>
+
+          <TabsContent value="personal" className="space-y-2">
+            {loadingPersonales && <p className="text-sm text-muted-foreground">Cargando sesiones…</p>}
+            {!loadingPersonales && personales.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                No tienes entrenamientos personales programados en las próximas semanas.
+              </p>
+            )}
+            {personales.map((s) => (
+              <SesionPersonalCard key={s.id} sesion={s} />
+            ))}
+          </TabsContent>
         </Tabs>
       </main>
     </div>
+  );
+}
+
+function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
+  return (
+    <Card>
+      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{sesion.titulo || "Entrenamiento personal"}</span>
+            {sesion.estado === "realizada" ? (
+              <Badge variant="secondary">Realizada</Badge>
+            ) : sesion.porConfirmar ? (
+              <Badge variant="outline">Por confirmar</Badge>
+            ) : (
+              <Badge variant="secondary">Reservada</Badge>
+            )}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {formatFecha(sesion.fecha)} · {sesion.horaInicio}–{sesion.horaFin} ({sesion.duracionMin} min)
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {sesion.entrenador ? `Entrenador: ${sesion.entrenador}` : "Entrenador por asignar"}
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 

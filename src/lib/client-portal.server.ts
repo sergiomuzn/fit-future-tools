@@ -1,5 +1,11 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { AccesoCliente, BonoTipoCliente, ClaseGrupal, PortalProfile } from "./client-portal-types";
+import type {
+  AccesoCliente,
+  BonoTipoCliente,
+  ClaseGrupal,
+  PortalProfile,
+  SesionPersonal,
+} from "./client-portal-types";
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -127,6 +133,37 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
 
 export async function listMyBookings(userId: string): Promise<ClaseGrupal[]> {
   return (await listUpcomingClasses(userId)).filter((c) => c.reservada);
+}
+
+/** Sesiones de entrenamiento personal (no grupales) del cliente. */
+export async function listMyPersonalSessions(userId: string): Promise<SesionPersonal[]> {
+  const clientId = await requireClientRow(userId);
+  const { from, to } = portalRange();
+  const [{ data: sessions }, { data: trainers }] = await Promise.all([
+    supabaseAdmin
+      .from("sessions")
+      .select("id,fecha,hora_inicio,hora_fin,estado,titulo,trainer_id,por_confirmar,group_id")
+      .eq("client_id", clientId)
+      .is("group_id", null)
+      .gte("fecha", from)
+      .lte("fecha", to),
+    supabaseAdmin.from("trainers").select("id,nombre"),
+  ]);
+  const trainerById = new Map((trainers ?? []).map((t) => [t.id, t.nombre]));
+  return (sessions ?? [])
+    .filter((s) => s.estado !== "cancelada")
+    .map((s) => ({
+      id: s.id,
+      fecha: s.fecha,
+      horaInicio: s.hora_inicio.slice(0, 5),
+      horaFin: s.hora_fin.slice(0, 5),
+      duracionMin: minutesBetween(s.hora_inicio, s.hora_fin),
+      titulo: s.titulo,
+      entrenador: s.trainer_id ? (trainerById.get(s.trainer_id) ?? null) : null,
+      estado: s.estado,
+      porConfirmar: !!s.por_confirmar,
+    }))
+    .sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
 }
 
 /** Añade un asistente a un bloque de clase grupal. Devuelve el id de sesión creada. */
