@@ -85,7 +85,7 @@ export function AccesosPanel() {
             nombre: nombre.trim() || null,
             email: email.trim() || null,
             expires_at: expires.toISOString(),
-            acceso,
+            acceso: acceso ?? "grupos",
           },
         ])
         .select("code")
@@ -96,7 +96,8 @@ export function AccesosPanel() {
     onSuccess: async (code) => {
       setNombre("");
       setEmail("");
-      setAcceso("grupos");
+      setAccesoPersonal(false);
+      setAccesoGrupos(true);
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
       const url = `${window.location.origin}/invitacion/${code}`;
       try {
@@ -168,21 +169,29 @@ export function AccesosPanel() {
             <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="inv-acceso">Acceso</Label>
-            <Select value={acceso} onValueChange={(v) => setAcceso(v as AccesoCliente)}>
-              <SelectTrigger id="inv-acceso" className="w-56">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ACCESO_CLIENTE.map((a) => (
-                  <SelectItem key={a.value} value={a.value}>
-                    {a.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Label>Acceso</Label>
+            <div className="flex h-9 items-center gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={accesoPersonal}
+                  onCheckedChange={(v) => setAccesoPersonal(v === true)}
+                />
+                Entrenamiento Personal
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={accesoGrupos} onCheckedChange={(v) => setAccesoGrupos(v === true)} />
+                Grupos
+              </label>
+            </div>
           </div>
-          <Button onClick={() => createInvitation.mutate()} disabled={createInvitation.isPending} className="gap-1.5">
+          <Button
+            onClick={() => {
+              if (!acceso) return toast.error("Selecciona al menos un tipo de acceso");
+              createInvitation.mutate();
+            }}
+            disabled={createInvitation.isPending}
+            className="gap-1.5"
+          >
             <Plus className="h-4 w-4" /> Generar enlace
           </Button>
           <p className="w-full text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</p>
