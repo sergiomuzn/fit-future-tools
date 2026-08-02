@@ -1,24 +1,30 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { BonoTipoCliente } from "./client-portal-types";
+import type { AccesoCliente, BonoTipoCliente } from "./client-portal-types";
 
 export interface InvitationCheck {
   ok: boolean;
   reason?: "not_found" | "expired" | "used" | "revoked";
   nombre?: string | null;
   email?: string | null;
+  acceso?: AccesoCliente;
 }
 
 export async function checkInvitation(code: string): Promise<InvitationCheck> {
   const { data } = await supabaseAdmin
     .from("client_invitations")
-    .select("id,nombre,email,expires_at,used_at,revoked_at")
+    .select("id,nombre,email,expires_at,used_at,revoked_at,acceso")
     .eq("code", code)
     .maybeSingle();
   if (!data) return { ok: false, reason: "not_found" };
   if (data.revoked_at) return { ok: false, reason: "revoked" };
   if (data.used_at) return { ok: false, reason: "used" };
   if (new Date(data.expires_at).getTime() < Date.now()) return { ok: false, reason: "expired" };
-  return { ok: true, nombre: data.nombre, email: data.email };
+  return {
+    ok: true,
+    nombre: data.nombre,
+    email: data.email,
+    acceso: ((data as { acceso?: string }).acceso ?? "grupos") as AccesoCliente,
+  };
 }
 
 export async function acceptInvitation(input: {
@@ -37,7 +43,7 @@ export async function acceptInvitation(input: {
 
   const { data: invitation } = await supabaseAdmin
     .from("client_invitations")
-    .select("id")
+    .select("id,acceso")
     .eq("code", input.code)
     .single();
 
@@ -70,6 +76,7 @@ export async function acceptInvitation(input: {
       bono_tipo: input.bonoTipo,
       client_id: client.id,
       invitation_id: invitation?.id ?? null,
+      acceso: (invitation as { acceso?: string } | null)?.acceso ?? "grupos",
     },
   ]);
   if (profileError) {

@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import type { BonoTipoCliente, ClaseGrupal, PortalProfile } from "./client-portal-types";
+import type { AccesoCliente, BonoTipoCliente, ClaseGrupal, PortalProfile } from "./client-portal-types";
 
 function iso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -25,7 +25,7 @@ export function portalRange(): { from: string; to: string } {
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
   const { data } = await supabaseAdmin
     .from("client_profiles")
-    .select("id,nombre,email,bono_tipo,activo")
+    .select("id,nombre,email,bono_tipo,activo,acceso")
     .eq("id", userId)
     .maybeSingle();
   if (!data || !data.activo) return null;
@@ -35,6 +35,7 @@ export async function getPortalProfile(userId: string): Promise<PortalProfile | 
     email: data.email,
     bonoTipo: data.bono_tipo as BonoTipoCliente,
     activo: data.activo,
+    acceso: ((data as { acceso?: string }).acceso ?? "grupos") as AccesoCliente,
   };
 }
 
