@@ -9,7 +9,13 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  ACCESO_CLIENTE,
+  accesoClienteLabel,
+  bonoTipoClienteLabel,
+  type AccesoCliente,
+} from "@/lib/client-portal-types";
 
 type Invitation = {
   id: string;
@@ -20,6 +26,7 @@ type Invitation = {
   used_at: string | null;
   revoked_at: string | null;
   created_at: string;
+  acceso: string | null;
 };
 
 function generateCode(): string {
@@ -38,13 +45,14 @@ export function AccesosPanel() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
+  const [acceso, setAcceso] = useState<AccesoCliente>("grupos");
 
   const { data: invitations = [] } = useQuery({
     queryKey: ["client_invitations"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_invitations")
-        .select("id,code,nombre,email,expires_at,used_at,revoked_at,created_at")
+        .select("id,code,nombre,email,expires_at,used_at,revoked_at,created_at,acceso")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return (data ?? []) as Invitation[];
@@ -56,7 +64,7 @@ export function AccesosPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_profiles")
-        .select("id,nombre,email,bono_tipo,activo,created_at")
+        .select("id,nombre,email,bono_tipo,activo,acceso,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
@@ -75,6 +83,7 @@ export function AccesosPanel() {
             nombre: nombre.trim() || null,
             email: email.trim() || null,
             expires_at: expires.toISOString(),
+            acceso,
           },
         ])
         .select("code")
@@ -85,6 +94,7 @@ export function AccesosPanel() {
     onSuccess: async (code) => {
       setNombre("");
       setEmail("");
+      setAcceso("grupos");
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
       const url = `${window.location.origin}/invitacion/${code}`;
       try {
@@ -155,6 +165,21 @@ export function AccesosPanel() {
             <Label htmlFor="inv-email">Email (opcional)</Label>
             <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" />
           </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="inv-acceso">Acceso</Label>
+            <Select value={acceso} onValueChange={(v) => setAcceso(v as AccesoCliente)}>
+              <SelectTrigger id="inv-acceso" className="w-56">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ACCESO_CLIENTE.map((a) => (
+                  <SelectItem key={a.value} value={a.value}>
+                    {a.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
           <Button onClick={() => createInvitation.mutate()} disabled={createInvitation.isPending} className="gap-1.5">
             <Plus className="h-4 w-4" /> Generar enlace
           </Button>
@@ -181,7 +206,8 @@ export function AccesosPanel() {
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
-                      /invitacion/{inv.code} · caduca {new Date(inv.expires_at).toLocaleDateString("es-ES")}
+                      {accesoClienteLabel(inv.acceso)} · /invitacion/{inv.code} · caduca{" "}
+                      {new Date(inv.expires_at).toLocaleDateString("es-ES")}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
@@ -214,7 +240,7 @@ export function AccesosPanel() {
                     <Badge variant={p.activo ? "secondary" : "destructive"}>{p.activo ? "Activo" : "Revocado"}</Badge>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
-                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)}
+                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {accesoClienteLabel(p.acceso)}
                   </p>
                 </div>
                 <Button
