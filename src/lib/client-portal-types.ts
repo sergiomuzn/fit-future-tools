@@ -48,3 +48,23 @@ export interface PortalProfile {
   activo: boolean;
   acceso: AccesoCliente;
 }
+
+export interface SesionPersonal {
+  id: string;
+  fecha: string;
+  horaInicio: string;
+  horaFin: string;
+  duracionMin: number;
+  titulo: string | null;
+  entrenador: string | null;
+  estado: string;
+  porConfirmar: boolean;
+}
+
+export function accesoIncluyeGrupos(acceso?: string | null): boolean {
+  return acceso === "grupos" || acceso === "ambos" || acceso == null;
+}
+
+export function accesoIncluyePersonal(acceso?: string | null): boolean {
+  return acceso === "personal" || acceso === "ambos";
+}
