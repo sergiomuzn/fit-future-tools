@@ -165,6 +165,7 @@ export type Database = {
       }
       client_invitations: {
         Row: {
+          acceso: string
           code: string
           created_at: string
           created_by: string | null
@@ -178,6 +179,7 @@ export type Database = {
           used_by: string | null
         }
         Insert: {
+          acceso?: string
           code: string
           created_at?: string
           created_by?: string | null
@@ -191,6 +193,7 @@ export type Database = {
           used_by?: string | null
         }
         Update: {
+          acceso?: string
           code?: string
           created_at?: string
           created_by?: string | null
@@ -207,6 +210,7 @@ export type Database = {
       }
       client_profiles: {
         Row: {
+          acceso: string
           activo: boolean
           bono_tipo: string
           client_id: string | null
@@ -218,6 +222,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          acceso?: string
           activo?: boolean
           bono_tipo: string
           client_id?: string | null
@@ -229,6 +234,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          acceso?: string
           activo?: boolean
           bono_tipo?: string
           client_id?: string | null
