@@ -9,9 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
-  ACCESO_CLIENTE,
   accesoClienteLabel,
   bonoTipoClienteLabel,
   type AccesoCliente,
@@ -45,7 +44,10 @@ export function AccesosPanel() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [acceso, setAcceso] = useState<AccesoCliente>("grupos");
+  const [accesoPersonal, setAccesoPersonal] = useState(false);
+  const [accesoGrupos, setAccesoGrupos] = useState(true);
+  const acceso: AccesoCliente | null =
+    accesoPersonal && accesoGrupos ? "ambos" : accesoPersonal ? "personal" : accesoGrupos ? "grupos" : null;
 
   const { data: invitations = [] } = useQuery({
     queryKey: ["client_invitations"],
