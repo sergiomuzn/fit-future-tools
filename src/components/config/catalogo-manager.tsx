@@ -30,6 +30,9 @@ import { useServicios, slugifyServicio, type Servicio } from "@/lib/servicios";
 const NEW_TIPO_SENTINEL = "__nuevo__";
 const BUILTIN_TIPOS = ["individual", "pareja", "grupal", "gympass", "prueba"];
 
+type DraftField = "precio" | "tipo" | "sesiones" | "servicio";
+type DraftRow = { precio: string; tipo: string; sesiones: string; servicio: string };
+
 function ServicioSelect({
   value,
   onChange,
