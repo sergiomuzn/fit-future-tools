@@ -21,7 +21,15 @@ export const ACCESO_CLIENTE: { value: AccesoCliente; label: string }[] = [
 ];
 
 export function accesoClienteLabel(acceso?: string | null): string {
-  return ACCESO_CLIENTE.find((a) => a.value === acceso)?.label ?? "—";
+  if (!acceso) return "—";
+  const known = ACCESO_CLIENTE.find((a) => a.value === acceso);
+  if (known) return known.label;
+  // Lista de servicios separada por comas
+  const parts = acceso.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return "—";
+  return parts
+    .map((p) => ACCESO_CLIENTE.find((a) => a.value === p)?.label ?? p)
+    .join(" + ");
 }
 
 export interface ClaseGrupal {
