@@ -41,6 +41,17 @@ function invitationStatus(inv: Invitation): { label: string; variant: "default" 
   return { label: "Pendiente", variant: "secondary" };
 }
 
+function formatAcceso(acceso: string | null | undefined, servicioLabel: (slug: string) => string): string {
+  if (!acceso) return accesoClienteLabel(acceso);
+  if (acceso === "ambos") return `${servicioLabel("personal")} + ${servicioLabel("grupos")}`;
+  return acceso
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(servicioLabel)
+    .join(" + ");
+}
+
 export function AccesosPanel() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
