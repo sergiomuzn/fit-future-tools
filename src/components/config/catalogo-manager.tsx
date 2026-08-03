@@ -142,6 +142,8 @@ function SortableRow({
   sortedLength,
   drafts,
   tipoOptions,
+  servicios,
+  createServicio,
   getVal,
   setVal,
   removeRow,
@@ -149,10 +151,12 @@ function SortableRow({
   c: BonoCatalogo;
   i: number;
   sortedLength: number;
-  drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
+  drafts: Record<string, DraftRow>;
   tipoOptions: string[];
-  getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
-  setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
+  servicios: Servicio[];
+  createServicio: (nombre: string) => Promise<string | null>;
+  getVal: (c: BonoCatalogo, field: DraftField) => string;
+  setVal: (c: BonoCatalogo, field: DraftField, v: string) => void;
   removeRow: (c: BonoCatalogo) => Promise<void>;
 }) {
   const {
@@ -183,6 +187,14 @@ function SortableRow({
             <GripVertical className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
+      </TableCell>
+      <TableCell className="w-48">
+        <ServicioSelect
+          value={getVal(c, "servicio")}
+          onChange={(v) => setVal(c, "servicio", v)}
+          servicios={servicios}
+          onCreate={createServicio}
+        />
       </TableCell>
       <TableCell className="w-40">
         <TipoSelect
