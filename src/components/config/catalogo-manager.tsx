@@ -25,9 +25,72 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useServicios, slugifyServicio, type Servicio } from "@/lib/servicios";
 
 const NEW_TIPO_SENTINEL = "__nuevo__";
 const BUILTIN_TIPOS = ["individual", "pareja", "grupal", "gympass", "prueba"];
+
+type DraftField = "precio" | "tipo" | "sesiones" | "servicio";
+type DraftRow = { precio: string; tipo: string; sesiones: string; servicio: string };
+
+function ServicioSelect({
+  value,
+  onChange,
+  servicios,
+  onCreate,
+}: {
+  value: string;
+  onChange: (slug: string) => void;
+  servicios: Servicio[];
+  onCreate: (nombre: string) => Promise<string | null>;
+}) {
+  const [creating, setCreating] = useState(false);
+  const [draft, setDraft] = useState("");
+  const known = servicios.some((s) => s.slug === value);
+
+  async function commit() {
+    const nombre = draft.trim();
+    setCreating(false);
+    setDraft("");
+    if (!nombre) return;
+    const slug = await onCreate(nombre);
+    if (slug) onChange(slug);
+  }
+
+  if (creating) {
+    return (
+      <Input
+        autoFocus
+        className="h-8"
+        placeholder="Nuevo servicio"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") void commit();
+          if (e.key === "Escape") { setCreating(false); setDraft(""); }
+        }}
+        onBlur={() => void commit()}
+      />
+    );
+  }
+  return (
+    <Select
+      value={known ? value : NEW_TIPO_SENTINEL}
+      onValueChange={(v) => {
+        if (v === NEW_TIPO_SENTINEL) { setCreating(true); return; }
+        onChange(v);
+      }}
+    >
+      <SelectTrigger className="h-8">
+        <SelectValue>{servicios.find((s) => s.slug === value)?.nombre ?? "—"}</SelectValue>
+      </SelectTrigger>
+      <SelectContent>
+        {servicios.map((s) => <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>)}
+        <SelectItem value={NEW_TIPO_SENTINEL}>+ Nuevo servicio…</SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
 
 function TipoSelect({
   value,
@@ -82,6 +145,8 @@ function SortableRow({
   sortedLength,
   drafts,
   tipoOptions,
+  servicios,
+  createServicio,
   getVal,
   setVal,
   removeRow,
@@ -89,10 +154,12 @@ function SortableRow({
   c: BonoCatalogo;
   i: number;
   sortedLength: number;
-  drafts: Record<string, { precio: string; tipo: string; sesiones: string }>;
+  drafts: Record<string, DraftRow>;
   tipoOptions: string[];
-  getVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") => string;
-  setVal: (c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) => void;
+  servicios: Servicio[];
+  createServicio: (nombre: string) => Promise<string | null>;
+  getVal: (c: BonoCatalogo, field: DraftField) => string;
+  setVal: (c: BonoCatalogo, field: DraftField, v: string) => void;
   removeRow: (c: BonoCatalogo) => Promise<void>;
 }) {
   const {
@@ -124,6 +191,14 @@ function SortableRow({
           </button>
         </div>
       </TableCell>
+      <TableCell className="w-48">
+        <ServicioSelect
+          value={getVal(c, "servicio")}
+          onChange={(v) => setVal(c, "servicio", v)}
+          servicios={servicios}
+          onCreate={createServicio}
+        />
+      </TableCell>
       <TableCell className="w-40">
         <TipoSelect
           value={getVal(c, "tipo")}
@@ -150,6 +225,7 @@ function SortableRow({
 export function CatalogoManager() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
+  const { data: servicios = [] } = useServicios();
   const { data: catalogo = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
     queryFn: async () => {
@@ -158,27 +234,41 @@ export function CatalogoManager() {
     },
   });
 
-  const [drafts, setDrafts] = useState<Record<string, { precio: string; tipo: string; sesiones: string }>>({});
+  const [drafts, setDrafts] = useState<Record<string, DraftRow>>({});
   const [adding, setAdding] = useState(false);
-  const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; sesiones_incluidas: string; precio: string }>({
-    nombre: "", tipo: "individual", sesiones_incluidas: "1", precio: "0",
+  const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; servicio: string; sesiones_incluidas: string; precio: string }>({
+    nombre: "", tipo: "individual", servicio: "personal", sesiones_incluidas: "1", precio: "0",
   });
 
-  function getVal(c: BonoCatalogo, field: "precio" | "tipo" | "sesiones") {
+  async function createServicio(nombre: string): Promise<string | null> {
+    const slug = slugifyServicio(nombre);
+    if (!slug) return null;
+    if (servicios.some((s) => s.slug === slug)) return slug;
+    const maxOrden = servicios.reduce((m, s) => Math.max(m, s.orden), 0);
+    const { error } = await supabase.from("servicios").insert({ slug, nombre: nombre.trim(), orden: maxOrden + 1 });
+    if (error) { toast.error(error.message); return null; }
+    await qc.invalidateQueries({ queryKey: ["servicios"] });
+    toast.success("Servicio añadido");
+    return slug;
+  }
+
+  function getVal(c: BonoCatalogo, field: DraftField) {
     const d = drafts[c.id];
     if (d) return d[field];
     if (field === "precio") return String(c.precio);
     if (field === "sesiones") return String(c.sesiones_incluidas);
+    if (field === "servicio") return c.servicio_slug ?? "personal";
     return c.tipo;
   }
-  function setVal(c: BonoCatalogo, field: "precio" | "tipo" | "sesiones", v: string) {
-    if (field !== "tipo") v = v.replace(/^0+(?=\d)/, "");
+  function setVal(c: BonoCatalogo, field: DraftField, v: string) {
+    if (field === "precio" || field === "sesiones") v = v.replace(/^0+(?=\d)/, "");
     setDrafts((prev) => ({
       ...prev,
       [c.id]: {
         precio: field === "precio" ? v : prev[c.id]?.precio ?? String(c.precio),
         tipo: field === "tipo" ? v : prev[c.id]?.tipo ?? c.tipo,
         sesiones: field === "sesiones" ? v : prev[c.id]?.sesiones ?? String(c.sesiones_incluidas),
+        servicio: field === "servicio" ? v : prev[c.id]?.servicio ?? (c.servicio_slug ?? "personal"),
       },
     }));
   }
@@ -197,6 +287,7 @@ export function CatalogoManager() {
           precio: Number(d.precio),
           tipo: d.tipo as BonoCatalogo["tipo"],
           sesiones_incluidas: Number(d.sesiones),
+          servicio_slug: d.servicio,
         }).eq("id", id)
       )
     );
@@ -222,6 +313,7 @@ export function CatalogoManager() {
     const { error } = await supabase.from("bonos_catalogo").insert({
       nombre: nuevo.nombre.trim(),
       tipo: nuevo.tipo as BonoCatalogo["tipo"],
+      servicio_slug: nuevo.servicio,
       sesiones_incluidas: sesiones,
       precio,
       orden: maxOrden + 1,
@@ -229,7 +321,7 @@ export function CatalogoManager() {
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
     toast.success("Bono añadido");
-    setNuevo({ nombre: "", tipo: "individual", sesiones_incluidas: "1", precio: "0" });
+    setNuevo({ nombre: "", tipo: "individual", servicio: "personal", sesiones_incluidas: "1", precio: "0" });
     setAdding(false);
   }
 
@@ -296,6 +388,7 @@ export function CatalogoManager() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10"></TableHead>
+                <TableHead className="w-48">Servicio</TableHead>
                 <TableHead className="w-40">Tipo</TableHead>
                 <TableHead>Bono</TableHead>
                 <TableHead className="w-24">Sesiones</TableHead>
@@ -313,6 +406,8 @@ export function CatalogoManager() {
                     sortedLength={sorted.length}
                     drafts={drafts}
                     tipoOptions={tipoOptions}
+                    servicios={servicios}
+                    createServicio={createServicio}
                     getVal={getVal}
                     setVal={setVal}
                     removeRow={removeRow}
@@ -322,6 +417,14 @@ export function CatalogoManager() {
               {adding && (
                 <TableRow>
                   <TableCell className="w-10"></TableCell>
+                  <TableCell className="w-48">
+                    <ServicioSelect
+                      value={nuevo.servicio}
+                      onChange={(v) => setNuevo({ ...nuevo, servicio: v })}
+                      servicios={servicios}
+                      onCreate={createServicio}
+                    />
+                  </TableCell>
                   <TableCell className="w-40">
                     <TipoSelect
                       value={nuevo.tipo}

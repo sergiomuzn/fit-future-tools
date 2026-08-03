@@ -15,6 +15,7 @@ import {
   bonoTipoClienteLabel,
   type AccesoCliente,
 } from "@/lib/client-portal-types";
+import { useServicios } from "@/lib/servicios";
 
 type Invitation = {
   id: string;
@@ -40,14 +41,30 @@ function invitationStatus(inv: Invitation): { label: string; variant: "default" 
   return { label: "Pendiente", variant: "secondary" };
 }
 
+function formatAcceso(acceso: string | null | undefined, servicioLabel: (slug: string) => string): string {
+  if (!acceso) return accesoClienteLabel(acceso);
+  if (acceso === "ambos") return `${servicioLabel("personal")} + ${servicioLabel("grupos")}`;
+  return acceso
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map(servicioLabel)
+    .join(" + ");
+}
+
 export function AccesosPanel() {
   const qc = useQueryClient();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [accesoPersonal, setAccesoPersonal] = useState(false);
-  const [accesoGrupos, setAccesoGrupos] = useState(true);
-  const acceso: AccesoCliente | null =
-    accesoPersonal && accesoGrupos ? "ambos" : accesoPersonal ? "personal" : accesoGrupos ? "grupos" : null;
+  const { data: servicios = [] } = useServicios();
+  const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
+  const acceso: string | null =
+    seleccion.length === 0
+      ? null
+      : seleccion.includes("personal") && seleccion.includes("grupos") && seleccion.length === 2
+        ? ("ambos" satisfies AccesoCliente)
+        : seleccion.join(",");
+  const servicioLabel = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
   const { data: invitations = [] } = useQuery({
     queryKey: ["client_invitations"],
@@ -96,8 +113,7 @@ export function AccesosPanel() {
     onSuccess: async (code) => {
       setNombre("");
       setEmail("");
-      setAccesoPersonal(false);
-      setAccesoGrupos(true);
+      setSeleccion(["grupos"]);
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
       const url = `${window.location.origin}/invitacion/${code}`;
       try {
@@ -169,19 +185,24 @@ export function AccesosPanel() {
             <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" />
           </div>
           <div className="space-y-1.5">
-            <Label>Acceso</Label>
-            <div className="flex h-9 items-center gap-4">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={accesoPersonal}
-                  onCheckedChange={(v) => setAccesoPersonal(v === true)}
-                />
-                Entrenamiento Personal
-              </label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox checked={accesoGrupos} onCheckedChange={(v) => setAccesoGrupos(v === true)} />
-                Grupos
-              </label>
+            <Label>Acceso (servicios)</Label>
+            <div className="flex min-h-9 flex-wrap items-center gap-4">
+              {servicios.length === 0 && (
+                <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
+              )}
+              {servicios.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={seleccion.includes(s.slug)}
+                    onCheckedChange={(v) =>
+                      setSeleccion((prev) =>
+                        v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
+                      )
+                    }
+                  />
+                  {s.nombre}
+                </label>
+              ))}
             </div>
           </div>
           <Button
@@ -217,7 +238,7 @@ export function AccesosPanel() {
                       <Badge variant={status.variant}>{status.label}</Badge>
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
-                      {accesoClienteLabel(inv.acceso)} · /invitacion/{inv.code} · caduca{" "}
+                      {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
                       {new Date(inv.expires_at).toLocaleDateString("es-ES")}
                     </p>
                   </div>
@@ -251,7 +272,7 @@ export function AccesosPanel() {
                     <Badge variant={p.activo ? "secondary" : "destructive"}>{p.activo ? "Activo" : "Revocado"}</Badge>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
-                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {accesoClienteLabel(p.acceso)}
+                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {formatAcceso(p.acceso, servicioLabel)}
                   </p>
                 </div>
                 <Button

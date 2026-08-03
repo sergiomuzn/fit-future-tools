@@ -21,6 +21,7 @@ export type Database = {
           nombre: string
           orden: number
           precio: number
+          servicio_slug: string
           sesiones_incluidas: number
           tipo: string
         }
@@ -30,6 +31,7 @@ export type Database = {
           nombre: string
           orden?: number
           precio: number
+          servicio_slug?: string
           sesiones_incluidas: number
           tipo: string
         }
@@ -39,6 +41,7 @@ export type Database = {
           nombre?: string
           orden?: number
           precio?: number
+          servicio_slug?: string
           sesiones_incluidas?: number
           tipo?: string
         }
@@ -487,6 +490,33 @@ export type Database = {
           tipo?: string
           titulo?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      servicios: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }

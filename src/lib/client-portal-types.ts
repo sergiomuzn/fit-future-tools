@@ -21,7 +21,15 @@ export const ACCESO_CLIENTE: { value: AccesoCliente; label: string }[] = [
 ];
 
 export function accesoClienteLabel(acceso?: string | null): string {
-  return ACCESO_CLIENTE.find((a) => a.value === acceso)?.label ?? "—";
+  if (!acceso) return "—";
+  const known = ACCESO_CLIENTE.find((a) => a.value === acceso);
+  if (known) return known.label;
+  // Lista de servicios separada por comas
+  const parts = acceso.split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length === 0) return "—";
+  return parts
+    .map((p) => ACCESO_CLIENTE.find((a) => a.value === p)?.label ?? p)
+    .join(" + ");
 }
 
 export interface ClaseGrupal {
@@ -62,9 +70,11 @@ export interface SesionPersonal {
 }
 
 export function accesoIncluyeGrupos(acceso?: string | null): boolean {
-  return acceso === "grupos" || acceso === "ambos" || acceso == null;
+  if (acceso == null) return true;
+  return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("grupos");
 }
 
 export function accesoIncluyePersonal(acceso?: string | null): boolean {
-  return acceso === "personal" || acceso === "ambos";
+  if (!acceso) return false;
+  return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("personal");
 }
