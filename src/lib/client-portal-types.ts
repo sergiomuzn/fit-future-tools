@@ -70,9 +70,11 @@ export interface SesionPersonal {
 }
 
 export function accesoIncluyeGrupos(acceso?: string | null): boolean {
-  return acceso === "grupos" || acceso === "ambos" || acceso == null;
+  if (acceso == null) return true;
+  return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("grupos");
 }
 
 export function accesoIncluyePersonal(acceso?: string | null): boolean {
-  return acceso === "personal" || acceso === "ambos";
+  if (!acceso) return false;
+  return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("personal");
 }
