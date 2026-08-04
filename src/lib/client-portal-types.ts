@@ -78,3 +78,16 @@ export function accesoIncluyePersonal(acceso?: string | null): boolean {
   if (!acceso) return false;
   return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("personal");
 }
+
+export interface ResumenCliente {
+  nombre: string;
+  email: string;
+  telefono: string | null;
+  bonoNombre: string | null;
+  bonoTipo: string | null;
+  ultimoPago: string | null;
+  sesionesRestantes: number | null;
+  sesionesRealizadas: number | null;
+  proximaSesion: { fecha: string; horaInicio: string; nombre: string } | null;
+  cancelaciones: number;
+}
