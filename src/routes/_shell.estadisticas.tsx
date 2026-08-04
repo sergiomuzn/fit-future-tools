@@ -169,15 +169,20 @@ function StatsPage() {
     );
   }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
 
+  const nowPage = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`,
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }
@@ -193,14 +198,14 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
+function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
+  ym: string; onYmChange: (v: string) => void;
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
 }) {
   const now = new Date();
-  const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [ys, ms] = ym.split("-").map(Number);
   const y = ys;
   const m = ms - 1;
@@ -330,7 +335,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPrice
 
   return (
     <div className="space-y-3">
-      <KpiMonthSelector value={ym} onChange={setYm} activityMonths={activityMonths} now={now} />
+      <KpiMonthSelector value={ym} onChange={onYmChange} activityMonths={activityMonths} now={now} />
       <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
@@ -391,7 +396,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
   return (
     <div className="flex items-end gap-2">
       <div className="space-y-1.5">
-        <Label className="text-xs">Mes de los KPIs</Label>
+        <Label className="text-xs">Mes</Label>
         <div className="flex gap-2">
           <Select value={ms} onValueChange={setMonth}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
@@ -547,7 +552,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+  month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
@@ -632,7 +638,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   const now = new Date();
-  const [monthA, setMonthA] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const monthA = month;
   const [compareMonths, setCompareMonths] = useState<string[]>(() => {
     const out: string[] = [];
     for (let i = 3; i >= 0; i--) {
@@ -772,9 +778,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
-        {period === "mesUnico" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
-        )}
         {period === "comparar" && (
           <div className="flex flex-wrap gap-2 items-end">
             {[...compareMonths]
