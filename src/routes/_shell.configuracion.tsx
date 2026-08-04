@@ -11,6 +11,7 @@ import {
 import { HorarioForm, PreciosForm, ColoresBonoForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { CatalogoManager } from "@/components/config/catalogo-manager";
+import { ServiciosManager } from "@/components/config/servicios-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
@@ -64,6 +65,7 @@ function ConfigPage() {
         </TabsContent>
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
+          <ServiciosManager />
           <CatalogoManager />
           <ColoresBonoForm />
         </TabsContent>
