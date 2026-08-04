@@ -198,14 +198,14 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
+function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
+  ym: string; onYmChange: (v: string) => void;
   sessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
 }) {
   const now = new Date();
-  const [ym, setYm] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
   const [ys, ms] = ym.split("-").map(Number);
   const y = ys;
   const m = ms - 1;
@@ -335,7 +335,7 @@ function KpiPanel({ sessions, clients, events, horario, specialsMap, clientPrice
 
   return (
     <div className="space-y-3">
-      <KpiMonthSelector value={ym} onChange={setYm} activityMonths={activityMonths} now={now} />
+      <KpiMonthSelector value={ym} onChange={onYmChange} activityMonths={activityMonths} now={now} />
       <UITooltipProvider delayDuration={150}>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {kpis.map((k) => (
@@ -396,7 +396,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
   return (
     <div className="flex items-end gap-2">
       <div className="space-y-1.5">
-        <Label className="text-xs">Mes de los KPIs</Label>
+        <Label className="text-xs">Mes</Label>
         <div className="flex gap-2">
           <Select value={ms} onValueChange={setMonth}>
             <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
