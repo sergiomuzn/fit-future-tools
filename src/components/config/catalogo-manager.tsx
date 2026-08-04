@@ -37,56 +37,22 @@ function ServicioSelect({
   value,
   onChange,
   servicios,
-  onCreate,
 }: {
   value: string;
   onChange: (slug: string) => void;
   servicios: Servicio[];
-  onCreate: (nombre: string) => Promise<string | null>;
 }) {
-  const [creating, setCreating] = useState(false);
-  const [draft, setDraft] = useState("");
   const known = servicios.some((s) => s.slug === value);
-
-  async function commit() {
-    const nombre = draft.trim();
-    setCreating(false);
-    setDraft("");
-    if (!nombre) return;
-    const slug = await onCreate(nombre);
-    if (slug) onChange(slug);
-  }
-
-  if (creating) {
-    return (
-      <Input
-        autoFocus
-        className="h-8"
-        placeholder="Nuevo servicio"
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") void commit();
-          if (e.key === "Escape") { setCreating(false); setDraft(""); }
-        }}
-        onBlur={() => void commit()}
-      />
-    );
-  }
   return (
     <Select
       value={known ? value : NEW_TIPO_SENTINEL}
-      onValueChange={(v) => {
-        if (v === NEW_TIPO_SENTINEL) { setCreating(true); return; }
-        onChange(v);
-      }}
+      onValueChange={(v) => { if (v !== NEW_TIPO_SENTINEL) onChange(v); }}
     >
       <SelectTrigger className="h-8">
         <SelectValue>{servicios.find((s) => s.slug === value)?.nombre ?? "—"}</SelectValue>
       </SelectTrigger>
       <SelectContent>
         {servicios.map((s) => <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>)}
-        <SelectItem value={NEW_TIPO_SENTINEL}>+ Nuevo servicio…</SelectItem>
       </SelectContent>
     </Select>
   );
