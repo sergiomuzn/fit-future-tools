@@ -4,6 +4,7 @@ import type {
   BonoTipoCliente,
   ClaseGrupal,
   PortalProfile,
+  ResumenCliente,
   SesionPersonal,
 } from "./client-portal-types";
 
@@ -133,6 +134,103 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
 
 export async function listMyBookings(userId: string): Promise<ClaseGrupal[]> {
   return (await listUpcomingClasses(userId)).filter((c) => c.reservada);
+}
+
+/** Resumen del cliente: bono, último pago, próxima sesión y cancelaciones. */
+export async function getClientSummary(userId: string): Promise<ResumenCliente> {
+  const { data: prof } = await supabaseAdmin
+    .from("client_profiles")
+    .select("nombre,email,client_id")
+    .eq("id", userId)
+    .maybeSingle();
+  if (!prof) throw new Error("Cuenta de cliente no activa");
+
+  const clientId = prof.client_id;
+  const base: ResumenCliente = {
+    nombre: prof.nombre,
+    email: prof.email,
+    telefono: null,
+    bonoNombre: null,
+    bonoTipo: null,
+    ultimoPago: null,
+    sesionesRestantes: null,
+    sesionesRealizadas: null,
+    proximaSesion: null,
+    cancelaciones: 0,
+  };
+  if (!clientId) return base;
+
+  const hoy = iso(new Date());
+  const [{ data: cli }, { data: bono }, { data: invoice }, { data: proximas }, { data: groups }] =
+    await Promise.all([
+      supabaseAdmin.from("clients").select("telefono,email").eq("id", clientId).maybeSingle(),
+      supabaseAdmin
+        .from("client_bonos")
+        .select("id,fecha_inicio,sesiones_disponibles,sesiones_realizadas,ultimo_bono_nombre,bono_catalogo_id")
+        .eq("client_id", clientId)
+        .eq("activo", true)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("invoices")
+        .select("fecha")
+        .eq("client_id", clientId)
+        .order("fecha", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("sessions")
+        .select("fecha,hora_inicio,titulo,group_id,estado")
+        .eq("client_id", clientId)
+        .gte("fecha", hoy)
+        .neq("estado", "cancelada")
+        .order("fecha", { ascending: true })
+        .order("hora_inicio", { ascending: true })
+        .limit(5),
+      supabaseAdmin.from("groups").select("id,nombre"),
+    ]);
+
+  base.telefono = cli?.telefono ?? null;
+  if (cli?.email) base.email = cli.email;
+  base.ultimoPago = invoice?.fecha ?? null;
+
+  if (bono) {
+    base.sesionesRestantes = bono.sesiones_disponibles;
+    base.sesionesRealizadas = bono.sesiones_realizadas;
+    base.bonoNombre = bono.ultimo_bono_nombre;
+    if (bono.bono_catalogo_id) {
+      const { data: cat } = await supabaseAdmin
+        .from("bonos_catalogo")
+        .select("nombre,tipo")
+        .eq("id", bono.bono_catalogo_id)
+        .maybeSingle();
+      if (cat) {
+        base.bonoNombre = cat.nombre;
+        base.bonoTipo = cat.tipo;
+      }
+    }
+    const { count } = await supabaseAdmin
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("estado", "cancelada")
+      .gte("fecha", bono.fecha_inicio);
+    base.cancelaciones = count ?? 0;
+  }
+
+  const groupById = new Map((groups ?? []).map((g) => [g.id, g.nombre]));
+  const next = (proximas ?? [])[0];
+  if (next) {
+    base.proximaSesion = {
+      fecha: next.fecha,
+      horaInicio: next.hora_inicio.slice(0, 5),
+      nombre:
+        next.titulo ||
+        (next.group_id ? (groupById.get(next.group_id) ?? "Clase grupal") : "Entrenamiento personal"),
+    };
+  }
+  return base;
 }
 
 /** Sesiones de entrenamiento personal (no grupales) del cliente. */
