@@ -1,7 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { BonoTipoCliente, ClaseGrupal, PortalProfile, SesionPersonal } from "./client-portal-types";
+import type {
+  BonoTipoCliente,
+  ClaseGrupal,
+  PortalProfile,
+  ResumenCliente,
+  SesionPersonal,
+} from "./client-portal-types";
 
 const bonoTipoSchema = z.enum(["grupal_directo", "wellhub", "claspass"]);
 
@@ -84,4 +90,11 @@ export const cancelarReserva = createServerFn({ method: "POST" })
     const { cancelBookingForUser } = await import("./client-portal.server");
     await cancelBookingForUser(context.userId, data.sessionId);
     return { ok: true as const };
+  });
+
+export const getMiResumen = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<ResumenCliente> => {
+    const { getClientSummary } = await import("./client-portal.server");
+    return getClientSummary(context.userId);
   });
