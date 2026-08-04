@@ -18,6 +18,7 @@ import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
   type ClaseGrupal,
+  type ResumenCliente,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
 import { PerfilDialog } from "@/components/cliente/perfil-dialog";
