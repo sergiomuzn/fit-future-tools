@@ -169,15 +169,20 @@ function StatsPage() {
     );
   }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
 
+  const nowPage = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(
+    `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`,
+  );
+
   return (
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
     </div>
   );
 }
