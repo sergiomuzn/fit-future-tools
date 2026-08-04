@@ -25,7 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useConfirm } from "@/components/confirm-dialog";
-import { useServicios, slugifyServicio, type Servicio } from "@/lib/servicios";
+import { useServicios, type Servicio } from "@/lib/servicios";
 
 const NEW_TIPO_SENTINEL = "__nuevo__";
 const BUILTIN_TIPOS = ["individual", "pareja", "grupal", "gympass", "prueba"];
@@ -112,7 +112,6 @@ function SortableRow({
   drafts,
   tipoOptions,
   servicios,
-  createServicio,
   getVal,
   setVal,
   removeRow,
@@ -123,7 +122,6 @@ function SortableRow({
   drafts: Record<string, DraftRow>;
   tipoOptions: string[];
   servicios: Servicio[];
-  createServicio: (nombre: string) => Promise<string | null>;
   getVal: (c: BonoCatalogo, field: DraftField) => string;
   setVal: (c: BonoCatalogo, field: DraftField, v: string) => void;
   removeRow: (c: BonoCatalogo) => Promise<void>;
@@ -162,7 +160,6 @@ function SortableRow({
           value={getVal(c, "servicio")}
           onChange={(v) => setVal(c, "servicio", v)}
           servicios={servicios}
-          onCreate={createServicio}
         />
       </TableCell>
       <TableCell className="w-40">
@@ -205,18 +202,6 @@ export function CatalogoManager() {
   const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; servicio: string; sesiones_incluidas: string; precio: string }>({
     nombre: "", tipo: "individual", servicio: "personal", sesiones_incluidas: "1", precio: "0",
   });
-
-  async function createServicio(nombre: string): Promise<string | null> {
-    const slug = slugifyServicio(nombre);
-    if (!slug) return null;
-    if (servicios.some((s) => s.slug === slug)) return slug;
-    const maxOrden = servicios.reduce((m, s) => Math.max(m, s.orden), 0);
-    const { error } = await supabase.from("servicios").insert({ slug, nombre: nombre.trim(), orden: maxOrden + 1 });
-    if (error) { toast.error(error.message); return null; }
-    await qc.invalidateQueries({ queryKey: ["servicios"] });
-    toast.success("Servicio añadido");
-    return slug;
-  }
 
   function getVal(c: BonoCatalogo, field: DraftField) {
     const d = drafts[c.id];
@@ -373,7 +358,6 @@ export function CatalogoManager() {
                     drafts={drafts}
                     tipoOptions={tipoOptions}
                     servicios={servicios}
-                    createServicio={createServicio}
                     getVal={getVal}
                     setVal={setVal}
                     removeRow={removeRow}
@@ -388,7 +372,6 @@ export function CatalogoManager() {
                       value={nuevo.servicio}
                       onChange={(v) => setNuevo({ ...nuevo, servicio: v })}
                       servicios={servicios}
-                      onCreate={createServicio}
                     />
                   </TableCell>
                   <TableCell className="w-40">
