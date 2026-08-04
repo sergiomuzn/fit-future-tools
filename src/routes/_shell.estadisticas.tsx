@@ -552,7 +552,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+  month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
@@ -637,7 +638,7 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
   };
 
   const now = new Date();
-  const [monthA, setMonthA] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
+  const monthA = month;
   const [compareMonths, setCompareMonths] = useState<string[]>(() => {
     const out: string[] = [];
     for (let i = 3; i >= 0; i--) {
@@ -777,9 +778,6 @@ function ComparisonModule({ sessions, trainers, events, horario, specialsMap, cl
       </div>
 
       <div className="flex flex-wrap gap-4 items-end">
-        {period === "mesUnico" && (
-          <MonthYearPicker label="Mes" value={monthA} onChange={setMonthA} years={availableYears} monthsForYear={monthsForYear} />
-        )}
         {period === "comparar" && (
           <div className="flex flex-wrap gap-2 items-end">
             {[...compareMonths]
