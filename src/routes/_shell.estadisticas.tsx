@@ -641,7 +641,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const monthA = month;
   const [compareMonths, setCompareMonths] = useState<string[]>(() => {
     const out: string[] = [];
-    for (let i = 3; i >= 0; i--) {
+    for (let i = 1; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
     }
