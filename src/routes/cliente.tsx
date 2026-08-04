@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listClases,
@@ -11,6 +11,7 @@ import {
   cancelarReserva,
   getMyPortalProfile,
   listSesionesPersonales,
+  getMiResumen,
 } from "@/lib/client-portal.functions";
 import {
   bonoTipoClienteLabel,
@@ -19,6 +20,7 @@ import {
   type ClaseGrupal,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
+import { PerfilDialog } from "@/components/cliente/perfil-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,7 +63,9 @@ function ClientePortal() {
   const reservar = useServerFn(reservarClase);
   const cancelar = useServerFn(cancelarReserva);
   const fetchPersonales = useServerFn(listSesionesPersonales);
+  const fetchResumen = useServerFn(getMiResumen);
   const [tab, setTab] = useState("clases");
+  const [perfilOpen, setPerfilOpen] = useState(false);
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["portal-profile"],
@@ -76,6 +80,12 @@ function ClientePortal() {
 
   const verGrupos = accesoIncluyeGrupos(profile?.acceso);
   const verPersonal = accesoIncluyePersonal(profile?.acceso);
+
+  const { data: resumen } = useQuery({
+    queryKey: ["portal-resumen"],
+    queryFn: () => fetchResumen({ data: undefined }),
+    enabled: !!profile,
+  });
 
   const { data: personales = [], isLoading: loadingPersonales } = useQuery({
     queryKey: ["portal-personales"],
@@ -112,7 +122,11 @@ function ClientePortal() {
 
   const defaultTab = verGrupos ? "clases" : "personal";
   const activeTab =
-    (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos) ? defaultTab : tab;
+    tab === "bono"
+      ? "bono"
+      : (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos)
+        ? defaultTab
+        : tab;
 
   if (!loadingProfile && !profile) {
     return (
@@ -141,6 +155,16 @@ function ClientePortal() {
           <div className="flex items-center gap-1">
             <NotificationsBell />
             <ThemeToggle />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setPerfilOpen(true)}
+              className="gap-1.5"
+              aria-label="Mi perfil"
+            >
+              <User className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Perfil</span>
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
               <LogOut className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Salir</span>
@@ -160,6 +184,7 @@ function ClientePortal() {
               </TabsTrigger>
             )}
             {verPersonal && <TabsTrigger value="personal">Entrenamiento personal</TabsTrigger>}
+            <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clases" className="space-y-2">
@@ -217,9 +242,66 @@ function ClientePortal() {
               <SesionPersonalCard key={s.id} sesion={s} />
             ))}
           </TabsContent>
+
+          <TabsContent value="bono">
+            <ResumenBono resumen={resumen ?? null} />
+          </TabsContent>
         </Tabs>
       </main>
+
+      <PerfilDialog
+        open={perfilOpen}
+        onOpenChange={setPerfilOpen}
+        nombre={resumen?.nombre ?? profile?.nombre ?? ""}
+        email={resumen?.email ?? profile?.email ?? ""}
+        telefono={resumen?.telefono ?? null}
+      />
     </div>
+  );
+}
+
+function fechaCorta(fecha?: string | null): string {
+  if (!fecha) return "—";
+  const [y, m, d] = fecha.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function DatoFila({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 border-b py-2 last:border-b-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <span className="text-sm font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
+function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
+  if (!resumen) return <p className="text-sm text-muted-foreground">Cargando información…</p>;
+  const prox = resumen.proximaSesion;
+  return (
+    <Card>
+      <CardContent className="p-3">
+        <DatoFila label="Tipo de bono" value={resumen.bonoNombre ?? "—"} />
+        <DatoFila label="Último pago (renovación)" value={fechaCorta(resumen.ultimoPago)} />
+        <DatoFila
+          label="Sesiones restantes"
+          value={resumen.sesionesRestantes == null ? "—" : String(resumen.sesionesRestantes)}
+        />
+        <DatoFila
+          label="Sesiones realizadas"
+          value={resumen.sesionesRealizadas == null ? "—" : String(resumen.sesionesRealizadas)}
+        />
+        <DatoFila
+          label="Próxima sesión"
+          value={prox ? `${formatFecha(prox.fecha)} · ${prox.horaInicio} · ${prox.nombre}` : "Sin sesiones"}
+        />
+        <DatoFila label="Cancelaciones de este bono" value={String(resumen.cancelaciones)} />
+      </CardContent>
+    </Card>
   );
 }
 
