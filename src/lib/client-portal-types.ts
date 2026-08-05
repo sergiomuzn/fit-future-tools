@@ -91,3 +91,16 @@ export interface ResumenCliente {
   proximaSesion: { fecha: string; horaInicio: string; nombre: string } | null;
   cancelaciones: number;
 }
+
+/** Un bono activo del cliente, con su servicio, tipo y color. */
+export interface BonoResumen {
+  id: string;
+  servicio: string | null;
+  tipo: string | null;
+  nombre: string | null;
+  color: string | null;
+  fechaInicio: string | null;
+  sesionesRestantes: number | null;
+  sesionesRealizadas: number | null;
+  cancelaciones: number;
+}
