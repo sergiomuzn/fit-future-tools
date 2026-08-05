@@ -12,16 +12,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface Props {
-  open: boolean;
-  onOpenChange: (v: boolean) => void;
   nombre: string;
   email: string;
   telefono?: string | null;
 }
 
-export function PerfilDialog({ open, onOpenChange, nombre, email, telefono }: Props) {
+export function PerfilForm({ nombre, email, telefono }: Props) {
   const [email1, setEmail1] = useState("");
   const [email2, setEmail2] = useState("");
   const [emailPass, setEmailPass] = useState("");
