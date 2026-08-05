@@ -4,13 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -83,13 +76,8 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Mi perfil</DialogTitle>
-          <DialogDescription>Datos con los que accedes al portal.</DialogDescription>
-        </DialogHeader>
-
+    <Card>
+      <CardContent className="space-y-4 p-4">
         <div className="space-y-1 text-sm">
           <p>
             <span className="text-muted-foreground">Nombre: </span>
