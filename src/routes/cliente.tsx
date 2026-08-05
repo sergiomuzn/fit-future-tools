@@ -265,26 +265,58 @@ function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
   if (!resumen) return <p className="text-sm text-muted-foreground">Cargando información…</p>;
   const prox = resumen.proximaSesion;
   return (
-    <Card>
-      <CardContent className="p-3">
-        <DatoFila label="Tipo de bono" value={resumen.bonoNombre ?? "—"} />
-        <DatoFila label="Último pago (renovación)" value={fechaCorta(resumen.ultimoPago)} />
-        <DatoFila
-          label="Sesiones restantes"
-          value={resumen.sesionesRestantes == null ? "—" : String(resumen.sesionesRestantes)}
-        />
-        <DatoFila
-          label="Sesiones realizadas"
-          value={resumen.sesionesRealizadas == null ? "—" : String(resumen.sesionesRealizadas)}
-        />
-        <DatoFila
-          label="Próxima sesión"
-          value={prox ? `${formatFecha(prox.fecha)} · ${prox.horaInicio} · ${prox.nombre}` : "Sin sesiones"}
-        />
-        <DatoFila label="Cancelaciones de este bono" value={String(resumen.cancelaciones)} />
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      {resumen.bonos.length === 0 ? (
+        <Card>
+          <CardContent className="p-3 text-sm text-muted-foreground">
+            No tienes ningún bono activo ahora mismo.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {resumen.bonos.map((b) => (
+            <Card key={b.id} className="overflow-hidden">
+              <div className="h-1.5 w-full" style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }} />
+              <CardContent className="p-3">
+                <div className="mb-1 flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                    style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }}
+                  />
+                  <span className="truncate font-medium">{b.nombre ?? "Bono"}</span>
+                </div>
+                <DatoFila label="Servicio" value={b.servicio ?? "—"} />
+                <DatoFila label="Tipo" value={b.tipo ? capitalizar(b.tipo) : "—"} />
+                <DatoFila label="Bono" value={b.nombre ?? "—"} />
+                <DatoFila
+                  label="Sesiones restantes"
+                  value={b.sesionesRestantes == null ? "—" : String(b.sesionesRestantes)}
+                />
+                <DatoFila
+                  label="Sesiones realizadas"
+                  value={b.sesionesRealizadas == null ? "—" : String(b.sesionesRealizadas)}
+                />
+                <DatoFila label="Cancelaciones de este bono" value={String(b.cancelaciones)} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      <Card>
+        <CardContent className="p-3">
+          <DatoFila label="Último pago (renovación)" value={fechaCorta(resumen.ultimoPago)} />
+          <DatoFila
+            label="Próxima sesión"
+            value={prox ? `${formatFecha(prox.fecha)} · ${prox.horaInicio} · ${prox.nombre}` : "Sin sesiones"}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
+}
+
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
