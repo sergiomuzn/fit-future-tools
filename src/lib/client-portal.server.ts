@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type {
   AccesoCliente,
+  BonoResumen,
   BonoTipoCliente,
   ClaseGrupal,
   PortalProfile,
@@ -157,6 +158,7 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
     sesionesRealizadas: null,
     proximaSesion: null,
     cancelaciones: 0,
+    bonos: [],
   };
   if (!clientId) return base;
 
@@ -218,6 +220,8 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
       .gte("fecha", bono.fecha_inicio);
     base.cancelaciones = count ?? 0;
   }
+
+  base.bonos = await listActiveBonos(clientId);
 
   const groupById = new Map((groups ?? []).map((g) => [g.id, g.nombre]));
   const next = (proximas ?? [])[0];
