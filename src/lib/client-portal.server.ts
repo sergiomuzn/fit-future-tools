@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type {
   AccesoCliente,
+  BonoResumen,
   BonoTipoCliente,
   ClaseGrupal,
   PortalProfile,
@@ -137,6 +138,68 @@ export async function listMyBookings(userId: string): Promise<ClaseGrupal[]> {
 }
 
 /** Resumen del cliente: bono, último pago, próxima sesión y cancelaciones. */
+const DEFAULT_TIPO_COLORES: Record<string, string> = {
+  individual: "#3b82f6",
+  pareja: "#a855f7",
+  grupal: "#f59e0b",
+  gympass: "#ec4899",
+  prueba: "#1CDB14",
+};
+
+/** Todos los bonos activos del cliente, con servicio, tipo y color configurado. */
+async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
+  const [{ data: bonos }, { data: cfg }, { data: servicios }] = await Promise.all([
+    supabaseAdmin
+      .from("client_bonos")
+      .select("id,fecha_inicio,sesiones_disponibles,sesiones_realizadas,ultimo_bono_nombre,bono_catalogo_id")
+      .eq("client_id", clientId)
+      .eq("activo", true)
+      .order("created_at", { ascending: false }),
+    supabaseAdmin.from("center_config").select("colores").eq("id", true).maybeSingle(),
+    supabaseAdmin.from("servicios").select("slug,nombre"),
+  ]);
+  if (!bonos?.length) return [];
+
+  const colores: Record<string, string> = {
+    ...DEFAULT_TIPO_COLORES,
+    ...(((cfg as { colores?: Record<string, string> } | null)?.colores) ?? {}),
+  };
+  const servicioBySlug = new Map((servicios ?? []).map((s) => [s.slug, s.nombre]));
+
+  const catIds = bonos.map((b) => b.bono_catalogo_id).filter((v): v is string => !!v);
+  const catById = new Map<string, { nombre: string; tipo: string; servicio_slug: string }>();
+  if (catIds.length) {
+    const { data: cats } = await supabaseAdmin
+      .from("bonos_catalogo")
+      .select("id,nombre,tipo,servicio_slug")
+      .in("id", catIds);
+    for (const c of cats ?? []) catById.set(c.id, c);
+  }
+
+  const out: BonoResumen[] = [];
+  for (const b of bonos) {
+    const cat = b.bono_catalogo_id ? catById.get(b.bono_catalogo_id) : null;
+    const { count } = await supabaseAdmin
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("estado", "cancelada")
+      .gte("fecha", b.fecha_inicio);
+    out.push({
+      id: b.id,
+      servicio: cat ? (servicioBySlug.get(cat.servicio_slug) ?? cat.servicio_slug) : null,
+      tipo: cat?.tipo ?? null,
+      nombre: cat?.nombre ?? b.ultimo_bono_nombre ?? null,
+      color: cat?.tipo ? (colores[cat.tipo] ?? null) : null,
+      fechaInicio: b.fecha_inicio,
+      sesionesRestantes: b.sesiones_disponibles,
+      sesionesRealizadas: b.sesiones_realizadas,
+      cancelaciones: count ?? 0,
+    });
+  }
+  return out;
+}
+
 export async function getClientSummary(userId: string): Promise<ResumenCliente> {
   const { data: prof } = await supabaseAdmin
     .from("client_profiles")
@@ -157,6 +220,7 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
     sesionesRealizadas: null,
     proximaSesion: null,
     cancelaciones: 0,
+    bonos: [],
   };
   if (!clientId) return base;
 
@@ -218,6 +282,8 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
       .gte("fecha", bono.fecha_inicio);
     base.cancelaciones = count ?? 0;
   }
+
+  base.bonos = await listActiveBonos(clientId);
 
   const groupById = new Map((groups ?? []).map((g) => [g.id, g.nombre]));
   const next = (proximas ?? [])[0];

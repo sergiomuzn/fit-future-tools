@@ -1,9 +1,9 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut, User } from "lucide-react";
+import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listClases,
@@ -14,14 +14,12 @@ import {
   getMiResumen,
 } from "@/lib/client-portal.functions";
 import {
-  bonoTipoClienteLabel,
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
   type ClaseGrupal,
   type ResumenCliente,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
-import { PerfilDialog } from "@/components/cliente/perfil-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +64,6 @@ function ClientePortal() {
   const fetchPersonales = useServerFn(listSesionesPersonales);
   const fetchResumen = useServerFn(getMiResumen);
   const [tab, setTab] = useState("clases");
-  const [perfilOpen, setPerfilOpen] = useState(false);
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["portal-profile"],
@@ -150,25 +147,17 @@ function ClientePortal() {
           <div className="min-w-0">
             <h1 className="font-display text-lg font-semibold leading-tight">{centroNombre}</h1>
             <p className="truncate text-xs text-muted-foreground">
-              {profile ? `${profile.nombre} · ${bonoTipoClienteLabel(profile.bonoTipo)}` : "Cargando…"}
+              {profile ? profile.nombre : "Cargando…"}
             </p>
           </div>
           <div className="flex items-center gap-1">
             <NotificationsBell />
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPerfilOpen(true)}
-              className="gap-1.5"
-              aria-label="Mi perfil"
-            >
-              <User className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Perfil</span>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Salir</span>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5" aria-label="Mi perfil">
+              <Link to="/perfil">
+                <User className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Perfil</span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -249,14 +238,6 @@ function ClientePortal() {
           </TabsContent>
         </Tabs>
       </main>
-
-      <PerfilDialog
-        open={perfilOpen}
-        onOpenChange={setPerfilOpen}
-        nombre={resumen?.nombre ?? profile?.nombre ?? ""}
-        email={resumen?.email ?? profile?.email ?? ""}
-        telefono={resumen?.telefono ?? null}
-      />
     </div>
   );
 }
@@ -284,26 +265,58 @@ function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
   if (!resumen) return <p className="text-sm text-muted-foreground">Cargando información…</p>;
   const prox = resumen.proximaSesion;
   return (
-    <Card>
-      <CardContent className="p-3">
-        <DatoFila label="Tipo de bono" value={resumen.bonoNombre ?? "—"} />
-        <DatoFila label="Último pago (renovación)" value={fechaCorta(resumen.ultimoPago)} />
-        <DatoFila
-          label="Sesiones restantes"
-          value={resumen.sesionesRestantes == null ? "—" : String(resumen.sesionesRestantes)}
-        />
-        <DatoFila
-          label="Sesiones realizadas"
-          value={resumen.sesionesRealizadas == null ? "—" : String(resumen.sesionesRealizadas)}
-        />
-        <DatoFila
-          label="Próxima sesión"
-          value={prox ? `${formatFecha(prox.fecha)} · ${prox.horaInicio} · ${prox.nombre}` : "Sin sesiones"}
-        />
-        <DatoFila label="Cancelaciones de este bono" value={String(resumen.cancelaciones)} />
-      </CardContent>
-    </Card>
+    <div className="space-y-3">
+      {resumen.bonos.length === 0 ? (
+        <Card>
+          <CardContent className="p-3 text-sm text-muted-foreground">
+            No tienes ningún bono activo ahora mismo.
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          {resumen.bonos.map((b) => (
+            <Card key={b.id} className="overflow-hidden">
+              <div className="h-1.5 w-full" style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }} />
+              <CardContent className="p-3">
+                <div className="mb-1 flex items-center gap-2">
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm"
+                    style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }}
+                  />
+                  <span className="truncate font-medium">{b.nombre ?? "Bono"}</span>
+                </div>
+                <DatoFila label="Servicio" value={b.servicio ?? "—"} />
+                <DatoFila label="Tipo" value={b.tipo ? capitalizar(b.tipo) : "—"} />
+                <DatoFila label="Bono" value={b.nombre ?? "—"} />
+                <DatoFila
+                  label="Sesiones restantes"
+                  value={b.sesionesRestantes == null ? "—" : String(b.sesionesRestantes)}
+                />
+                <DatoFila
+                  label="Sesiones realizadas"
+                  value={b.sesionesRealizadas == null ? "—" : String(b.sesionesRealizadas)}
+                />
+                <DatoFila label="Cancelaciones de este bono" value={String(b.cancelaciones)} />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+      <Card>
+        <CardContent className="p-3">
+          <DatoFila label="Último pago (renovación)" value={fechaCorta(resumen.ultimoPago)} />
+          <DatoFila
+            label="Próxima sesión"
+            value={prox ? `${formatFecha(prox.fecha)} · ${prox.horaInicio} · ${prox.nombre}` : "Sin sesiones"}
+          />
+        </CardContent>
+      </Card>
+    </div>
   );
+}
+
+function capitalizar(s: string): string {
+  return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
 function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
