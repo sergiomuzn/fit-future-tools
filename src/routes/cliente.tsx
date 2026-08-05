@@ -1,9 +1,9 @@
-import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { LogOut, User } from "lucide-react";
+import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import {
   listClases,
@@ -14,14 +14,12 @@ import {
   getMiResumen,
 } from "@/lib/client-portal.functions";
 import {
-  bonoTipoClienteLabel,
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
   type ClaseGrupal,
   type ResumenCliente,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
-import { PerfilDialog } from "@/components/cliente/perfil-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -66,7 +64,6 @@ function ClientePortal() {
   const fetchPersonales = useServerFn(listSesionesPersonales);
   const fetchResumen = useServerFn(getMiResumen);
   const [tab, setTab] = useState("clases");
-  const [perfilOpen, setPerfilOpen] = useState(false);
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["portal-profile"],
@@ -150,25 +147,17 @@ function ClientePortal() {
           <div className="min-w-0">
             <h1 className="font-display text-lg font-semibold leading-tight">{centroNombre}</h1>
             <p className="truncate text-xs text-muted-foreground">
-              {profile ? `${profile.nombre} · ${bonoTipoClienteLabel(profile.bonoTipo)}` : "Cargando…"}
+              {profile ? profile.nombre : "Cargando…"}
             </p>
           </div>
           <div className="flex items-center gap-1">
             <NotificationsBell />
             <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPerfilOpen(true)}
-              className="gap-1.5"
-              aria-label="Mi perfil"
-            >
-              <User className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Perfil</span>
-            </Button>
-            <Button variant="ghost" size="sm" onClick={handleSignOut} className="gap-1.5">
-              <LogOut className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Salir</span>
+            <Button asChild variant="ghost" size="sm" className="gap-1.5" aria-label="Mi perfil">
+              <Link to="/perfil">
+                <User className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Perfil</span>
+              </Link>
             </Button>
           </div>
         </div>
@@ -249,14 +238,6 @@ function ClientePortal() {
           </TabsContent>
         </Tabs>
       </main>
-
-      <PerfilDialog
-        open={perfilOpen}
-        onOpenChange={setPerfilOpen}
-        nombre={resumen?.nombre ?? profile?.nombre ?? ""}
-        email={resumen?.email ?? profile?.email ?? ""}
-        telefono={resumen?.telefono ?? null}
-      />
     </div>
   );
 }
