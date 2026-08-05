@@ -273,7 +273,7 @@ function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className={`grid gap-3 ${resumen.bonos.length > 1 ? "sm:grid-cols-2" : "grid-cols-1"}`}>
           {resumen.bonos.map((b) => (
             <Card key={b.id} className="overflow-hidden">
               <div className="h-1.5 w-full" style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }} />
@@ -283,9 +283,8 @@ function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
                     className="h-2.5 w-2.5 shrink-0 rounded-sm"
                     style={{ backgroundColor: b.color ?? "hsl(var(--muted))" }}
                   />
-                  <span className="truncate font-medium">{b.nombre ?? "Bono"}</span>
+                  <span className="truncate font-medium">{b.servicio ?? b.nombre ?? "Bono"}</span>
                 </div>
-                <DatoFila label="Servicio" value={b.servicio ?? "—"} />
                 <DatoFila label="Tipo" value={b.tipo ? capitalizar(b.tipo) : "—"} />
                 <DatoFila label="Bono" value={b.nombre ?? "—"} />
                 <DatoFila
