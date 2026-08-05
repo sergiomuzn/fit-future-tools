@@ -146,7 +146,7 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
             Actualizar contraseña
           </Button>
         </div>
-      </DialogContent>
-    </Dialog>
+      </CardContent>
+    </Card>
   );
 }
