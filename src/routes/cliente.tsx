@@ -125,7 +125,11 @@ function ClientePortal() {
   const activeTab =
     tab === "bono"
       ? "bono"
-      : (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos)
+      : tab === "horario"
+        ? misServicios.length > 0
+          ? "horario"
+          : defaultTab
+        : (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos)
         ? defaultTab
         : tab;
 
