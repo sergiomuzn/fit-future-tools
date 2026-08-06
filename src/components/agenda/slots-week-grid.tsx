@@ -15,6 +15,13 @@ interface LayoutInfo {
   span: number;
 }
 
+/** Abreviatura de dos letras para un nombre de servicio. */
+function abreviatura(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean);
+  if (palabras.length >= 2) return (palabras[0][0] + palabras[1][0]).toUpperCase();
+  return nombre.trim().slice(0, 2).toUpperCase();
+}
+
 /** Reparte los huecos solapados en columnas (misma lógica que la agenda). */
 function computeLayout(slots: ServiceSlot[]): LayoutInfo[] {
   const sorted = [...slots].sort((a, b) => {
