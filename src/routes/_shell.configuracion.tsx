@@ -15,8 +15,6 @@ import { ServiciosManager } from "@/components/config/servicios-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
-import { DisponibilidadManager } from "@/components/config/disponibilidad-manager";
-
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
 function ConfigPage() {
