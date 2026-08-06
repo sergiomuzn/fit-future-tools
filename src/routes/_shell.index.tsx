@@ -92,6 +92,17 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="border-b bg-card px-4 pt-2">
+        <Tabs
+          value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
+          onValueChange={(v) => setView(v === "disponibilidad" ? "disponibilidad" : "dia")}
+        >
+          <TabsList>
+            <TabsTrigger value="agenda">Agenda</TabsTrigger>
+            <TabsTrigger value="disponibilidad">Horario disponible</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
       <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           {view !== "disponibilidad" && (
@@ -104,26 +115,18 @@ function AgendaPage() {
           <div className="font-display text-lg font-semibold capitalize">
             {headerLabel}
           </div>
-          <Select
-            value={view === "disponibilidad" ? "dia" : view}
-            onValueChange={(v) => setView(v as typeof view)}
-          >
-            <SelectTrigger className="h-8 w-[110px] text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dia">Día</SelectItem>
-              <SelectItem value="semana">Semana</SelectItem>
-              <SelectItem value="mes">Mes</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button
-            variant={view === "disponibilidad" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setView(view === "disponibilidad" ? "dia" : "disponibilidad")}
-          >
-            Horario disponible
-          </Button>
+          {view !== "disponibilidad" && (
+            <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
+              <SelectTrigger className="h-8 w-[110px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dia">Día</SelectItem>
+                <SelectItem value="semana">Semana</SelectItem>
+                <SelectItem value="mes">Mes</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {view === "disponibilidad" && (
