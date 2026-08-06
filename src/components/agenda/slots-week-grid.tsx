@@ -176,10 +176,12 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                 const endMin = timeToMin(s.hora_fin);
                 const top = (startMin / SLOT_MIN) * SLOT_PX;
                 const height = Math.max(((endMin - startMin) / SLOT_MIN) * SLOT_PX - 2, 10);
-                const label = nombreServicio ? nombreServicio(s.servicio_slug) : "";
+                const full = nombreServicio ? nombreServicio(s.servicio_slug) : "";
                 const colWidthPct = 92 / cols; // deja 8% de márgenes laterales para crear huecos
                 const widthPct = colWidthPct * span;
                 const leftPct = 4 + col * colWidthPct;
+                // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
+                const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 return (
                   <button
                     key={s.id}
@@ -193,7 +195,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                         : "bg-muted text-muted-foreground border-border",
                     )}
                     style={{ top, height, left: `${leftPct}%`, width: `calc(${widthPct}% - 2px)` }}
-                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${label} · ${s.capacidad} plazas`}
+                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
                   >
                     {height <= 22 ? (
                       <div className="flex items-baseline gap-1 overflow-hidden">
