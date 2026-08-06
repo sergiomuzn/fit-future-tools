@@ -110,7 +110,9 @@ function AgendaPage() {
           </Tabs>
           {(view !== "disponibilidad" || dispView === "dia") && (
             <>
-              <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
+              {view !== "disponibilidad" && (
+                <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
+              )}
               <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
               <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
             </>

@@ -15,6 +15,13 @@ interface LayoutInfo {
   span: number;
 }
 
+/** Abreviatura de dos letras para un nombre de servicio. */
+function abreviatura(nombre: string): string {
+  const palabras = nombre.trim().split(/\s+/).filter(Boolean);
+  if (palabras.length >= 2) return (palabras[0][0] + palabras[1][0]).toUpperCase();
+  return nombre.trim().slice(0, 2).toUpperCase();
+}
+
 /** Reparte los huecos solapados en columnas (misma lógica que la agenda). */
 function computeLayout(slots: ServiceSlot[]): LayoutInfo[] {
   const sorted = [...slots].sort((a, b) => {
@@ -169,10 +176,12 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                 const endMin = timeToMin(s.hora_fin);
                 const top = (startMin / SLOT_MIN) * SLOT_PX;
                 const height = Math.max(((endMin - startMin) / SLOT_MIN) * SLOT_PX - 2, 10);
-                const label = nombreServicio ? nombreServicio(s.servicio_slug) : "";
+                const full = nombreServicio ? nombreServicio(s.servicio_slug) : "";
                 const colWidthPct = 92 / cols; // deja 8% de márgenes laterales para crear huecos
                 const widthPct = colWidthPct * span;
                 const leftPct = 4 + col * colWidthPct;
+                // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
+                const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 return (
                   <button
                     key={s.id}
@@ -186,7 +195,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                         : "bg-muted text-muted-foreground border-border",
                     )}
                     style={{ top, height, left: `${leftPct}%`, width: `calc(${widthPct}% - 2px)` }}
-                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${label} · ${s.capacidad} plazas`}
+                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
                   >
                     {height <= 22 ? (
                       <div className="flex items-baseline gap-1 overflow-hidden">
