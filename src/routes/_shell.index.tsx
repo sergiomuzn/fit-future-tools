@@ -104,17 +104,26 @@ function AgendaPage() {
           <div className="font-display text-lg font-semibold capitalize">
             {headerLabel}
           </div>
-          <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
-            <SelectTrigger className="h-8 w-[150px] text-xs">
+          <Select
+            value={view === "disponibilidad" ? "dia" : view}
+            onValueChange={(v) => setView(v as typeof view)}
+          >
+            <SelectTrigger className="h-8 w-[110px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="dia">Día</SelectItem>
               <SelectItem value="semana">Semana</SelectItem>
               <SelectItem value="mes">Mes</SelectItem>
-              <SelectItem value="disponibilidad">Horario disponible</SelectItem>
             </SelectContent>
           </Select>
+          <Button
+            variant={view === "disponibilidad" ? "default" : "outline"}
+            size="sm"
+            onClick={() => setView(view === "disponibilidad" ? "dia" : "disponibilidad")}
+          >
+            Horario disponible
+          </Button>
         </div>
         <div className="flex items-center gap-2">
           {view === "disponibilidad" && (
