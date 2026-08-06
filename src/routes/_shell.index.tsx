@@ -13,6 +13,7 @@ import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/_shell/")({
   component: AgendaPage,
