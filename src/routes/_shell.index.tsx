@@ -26,9 +26,10 @@ function AgendaPage() {
   const { date, setDate } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad">("dia");
+  const [dispView, setDispView] = useState<"dia" | "semana">("semana");
   const { data: servicios = [] } = useServicios();
-  const [servicioSlug, setServicioSlug] = useState<string>("");
-  const activeServicio = servicioSlug || servicios[0]?.slug || "";
+  const [servicioSlug, setServicioSlug] = useState<string>("__all");
+  const activeServicio = servicioSlug === "__all" ? "" : servicioSlug;
   const { horario, specialsMap } = useCenterConfig();
   const sched = getDayScheduleFor(date, horario, specialsMap);
   const special = specialsMap.get(ymd(date));
@@ -74,6 +75,7 @@ function AgendaPage() {
   }
 
   function shiftView(dir: number) {
+    if (view === "disponibilidad") return shift(dir);
     if (view === "dia") return shift(dir);
     if (view === "semana") return shift(dir * 7);
     setDate(new Date(date.getFullYear(), date.getMonth() + dir, 1));
@@ -89,7 +91,9 @@ function AgendaPage() {
         ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
         : view === "mes"
           ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
-          : "Horario disponible";
+          : dispView === "dia"
+            ? DOW[date.getDay()]
+            : "Horario disponible";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -104,7 +108,7 @@ function AgendaPage() {
               <TabsTrigger value="disponibilidad" className="text-xs">Horario disponible</TabsTrigger>
             </TabsList>
           </Tabs>
-          {view !== "disponibilidad" && (
+          {(view !== "disponibilidad" || dispView === "dia") && (
             <>
               <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
               <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
@@ -114,7 +118,7 @@ function AgendaPage() {
           <div className="font-display text-lg font-semibold capitalize">
             {headerLabel}
           </div>
-          {view !== "disponibilidad" && (
+          {view !== "disponibilidad" ? (
             <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
               <SelectTrigger className="h-8 w-[110px] text-xs">
                 <SelectValue />
@@ -125,15 +129,26 @@ function AgendaPage() {
                 <SelectItem value="mes">Mes</SelectItem>
               </SelectContent>
             </Select>
+          ) : (
+            <Select value={dispView} onValueChange={(v) => setDispView(v as "dia" | "semana")}>
+              <SelectTrigger className="h-8 w-[110px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="dia">Día</SelectItem>
+                <SelectItem value="semana">Semana</SelectItem>
+              </SelectContent>
+            </Select>
           )}
         </div>
         <div className="flex items-center gap-2">
           {view === "disponibilidad" && (
-            <Select value={activeServicio} onValueChange={setServicioSlug}>
+            <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[220px] text-xs">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="__all">Todos los servicios</SelectItem>
                 {servicios.map((s) => (
                   <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
                 ))}
@@ -191,7 +206,7 @@ function AgendaPage() {
         ) : view === "mes" ? (
           <MonthView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
         ) : (
-          <DisponibilidadView servicioSlug={activeServicio} />
+          <DisponibilidadView servicioSlug={activeServicio} view={dispView} date={date} />
         )}
       </div>
 
