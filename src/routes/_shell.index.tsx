@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { AgendaGrid } from "@/components/agenda/agenda-grid";
 import { WeekView, startOfWeek } from "@/components/agenda/week-view";
 import { MonthView } from "@/components/agenda/month-view";
+import { DisponibilidadView } from "@/components/agenda/disponibilidad-view";
+import { useServicios } from "@/lib/servicios";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
@@ -22,7 +24,10 @@ const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto
 function AgendaPage() {
   const { date, setDate } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
-  const [view, setView] = useState<"dia" | "semana" | "mes">("dia");
+  const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad">("dia");
+  const { data: servicios = [] } = useServicios();
+  const [servicioSlug, setServicioSlug] = useState<string>("");
+  const activeServicio = servicioSlug || servicios[0]?.slug || "";
   const { horario, specialsMap } = useCenterConfig();
   const sched = getDayScheduleFor(date, horario, specialsMap);
   const special = specialsMap.get(ymd(date));
@@ -81,30 +86,49 @@ function AgendaPage() {
       ? `${DOW[date.getDay()]}, ${date.getDate()} de ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
       : view === "semana"
         ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
-        : `${MONTHS[date.getMonth()]} ${date.getFullYear()}`;
+        : view === "mes"
+          ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
+          : "Horario disponible";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
-          <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-          <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
+          {view !== "disponibilidad" && (
+            <>
+              <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
+              <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+              <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
+            </>
+          )}
           <div className="font-display text-lg font-semibold capitalize">
             {headerLabel}
           </div>
           <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
-            <SelectTrigger className="h-8 w-[110px] text-xs">
+            <SelectTrigger className="h-8 w-[150px] text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="dia">Día</SelectItem>
               <SelectItem value="semana">Semana</SelectItem>
               <SelectItem value="mes">Mes</SelectItem>
+              <SelectItem value="disponibilidad">Horario disponible</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div className="flex items-center gap-2">
+          {view === "disponibilidad" && (
+            <Select value={activeServicio} onValueChange={setServicioSlug}>
+              <SelectTrigger className="h-8 w-[220px] text-xs">
+                <SelectValue placeholder="Selecciona un servicio" />
+              </SelectTrigger>
+              <SelectContent>
+                {servicios.map((s) => (
+                  <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
           {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
           {view === "dia" && sortedTrainers.map((t) => (
             <button
@@ -142,13 +166,21 @@ function AgendaPage() {
         </div>
       )}
 
+      {view === "disponibilidad" && (
+        <div className="bg-muted/60 text-xs text-muted-foreground px-4 py-1.5 border-b">
+          Arrastra sobre el calendario para crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+        </div>
+      )}
+
       <div className="flex-1 overflow-hidden">
         {view === "dia" ? (
           <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
         ) : view === "semana" ? (
           <WeekView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
-        ) : (
+        ) : view === "mes" ? (
           <MonthView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
+        ) : (
+          <DisponibilidadView servicioSlug={activeServicio} />
         )}
       </div>
 
