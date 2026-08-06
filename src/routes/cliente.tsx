@@ -16,10 +16,12 @@ import {
 import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
+  accesoServicios,
   type ClaseGrupal,
   type ResumenCliente,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
+import { HorarioDisponible } from "@/components/cliente/horario-disponible";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -78,6 +80,7 @@ function ClientePortal() {
 
   const verGrupos = accesoIncluyeGrupos(profile?.acceso);
   const verPersonal = accesoIncluyePersonal(profile?.acceso);
+  const misServicios = accesoServicios(profile?.acceso).filter((s) => s !== "grupos");
 
   const { data: resumen } = useQuery({
     queryKey: ["portal-resumen"],
@@ -174,6 +177,9 @@ function ClientePortal() {
               </TabsTrigger>
             )}
             {verPersonal && <TabsTrigger value="personal">Entrenamiento personal</TabsTrigger>}
+            {misServicios.length > 0 && (
+              <TabsTrigger value="horario">Horario disponible</TabsTrigger>
+            )}
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
@@ -235,6 +241,10 @@ function ClientePortal() {
 
           <TabsContent value="bono">
             <ResumenBono resumen={resumen ?? null} />
+          </TabsContent>
+
+          <TabsContent value="horario">
+            <HorarioDisponible servicios={misServicios} />
           </TabsContent>
         </Tabs>
       </main>
