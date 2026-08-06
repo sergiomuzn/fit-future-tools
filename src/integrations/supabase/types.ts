@@ -493,6 +493,45 @@ export type Database = {
         }
         Relationships: []
       }
+      service_slots: {
+        Row: {
+          activo: boolean
+          capacidad: number
+          created_at: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          nota: string | null
+          servicio_slug: string
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          dia_semana: number
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          nota?: string | null
+          servicio_slug: string
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          dia_semana?: number
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          nota?: string | null
+          servicio_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       servicios: {
         Row: {
           created_at: string

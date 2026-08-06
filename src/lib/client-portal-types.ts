@@ -79,6 +79,13 @@ export function accesoIncluyePersonal(acceso?: string | null): boolean {
   return acceso === "ambos" || acceso.split(",").map((s) => s.trim()).includes("personal");
 }
 
+/** Slugs de servicio a los que el cliente tiene acceso. */
+export function accesoServicios(acceso?: string | null): string[] {
+  if (!acceso) return [];
+  if (acceso === "ambos") return ["personal", "grupos"];
+  return acceso.split(",").map((s) => s.trim()).filter(Boolean);
+}
+
 export interface ResumenCliente {
   nombre: string;
   email: string;
