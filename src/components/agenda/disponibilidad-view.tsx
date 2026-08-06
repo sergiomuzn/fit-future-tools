@@ -9,26 +9,36 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { useServicios } from "@/lib/servicios";
 import { hhmm, useServiceSlots, type ServiceSlot } from "@/lib/service-slots";
 import { SlotsWeekGrid } from "./slots-week-grid";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface Props {
+  /** Slug del servicio activo, o "" para "Todos los servicios". */
+  servicioSlug: string;
+  view?: "dia" | "semana";
+  date?: Date;
+}
 
 /** Vista de agenda para definir los huecos semanales disponibles por servicio. */
-export function DisponibilidadView({ servicioSlug }: { servicioSlug: string }) {
+export function DisponibilidadView({ servicioSlug, view = "semana", date }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { data: slots = [] } = useServiceSlots();
   const [editing, setEditing] = useState<ServiceSlot | null>(null);
+  const [pending, setPending] = useState<{ dia: number; inicio: string; fin: string; slug: string } | null>(null);
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
-  const visibles = slots.filter((s) => s.servicio_slug === servicioSlug);
+  const visibles = servicioSlug ? slots.filter((s) => s.servicio_slug === servicioSlug) : slots;
+  const dias = view === "dia" && date ? [date.getDay()] : undefined;
   const invalidate = () => qc.invalidateQueries({ queryKey: ["service_slots"] });
 
   const create = useMutation({
-    mutationFn: async (p: { dia: number; inicio: string; fin: string }) => {
+    mutationFn: async (p: { dia: number; inicio: string; fin: string; slug: string }) => {
       const { error } = await supabase.from("service_slots").insert([
-        { servicio_slug: servicioSlug, dia_semana: p.dia, hora_inicio: p.inicio, hora_fin: p.fin, capacidad: 1 },
+        { servicio_slug: p.slug, dia_semana: p.dia, hora_inicio: p.inicio, hora_fin: p.fin, capacidad: 1 },
       ]);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); toast.success("Hueco añadido"); },
+    onSuccess: () => { invalidate(); setPending(null); toast.success("Hueco añadido"); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -54,11 +64,45 @@ export function DisponibilidadView({ servicioSlug }: { servicioSlug: string }) {
     <>
       <SlotsWeekGrid
         slots={visibles}
+        dias={dias}
         nombreServicio={nombreServicio}
-        editable={!!servicioSlug}
-        onCreate={(dia, inicio, fin) => create.mutate({ dia, inicio, fin })}
+        editable
+        onCreate={(dia, inicio, fin) => {
+          if (servicioSlug) create.mutate({ dia, inicio, fin, slug: servicioSlug });
+          else setPending({ dia, inicio, fin, slug: servicios[0]?.slug ?? "" });
+        }}
         onSelect={(s) => setEditing(s)}
       />
+
+      <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Nuevo hueco</DialogTitle>
+          </DialogHeader>
+          {pending && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {hhmm(pending.inicio)}–{hhmm(pending.fin)}
+              </p>
+              <div className="space-y-1.5">
+                <Label>Servicio</Label>
+                <Select value={pending.slug} onValueChange={(v) => setPending({ ...pending, slug: v })}>
+                  <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
+                  <SelectContent>
+                    {servicios.map((s) => (
+                      <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setPending(null)}>Cancelar</Button>
+            <Button disabled={!pending?.slug} onClick={() => pending && create.mutate(pending)}>Crear</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-sm">
