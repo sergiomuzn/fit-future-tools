@@ -28,7 +28,6 @@ function ConfigPage() {
       <Tabs defaultValue="calendario">
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
-          <TabsTrigger value="disponibilidad">Horario disponible</TabsTrigger>
           <TabsTrigger value="bonos">Tipos de bonos</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
@@ -62,10 +61,6 @@ function ConfigPage() {
               <SpecialDaysCalendar />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="disponibilidad" className="pt-4 space-y-6">
-          <DisponibilidadManager />
         </TabsContent>
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
