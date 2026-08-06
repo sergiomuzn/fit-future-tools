@@ -15,8 +15,6 @@ import { ServiciosManager } from "@/components/config/servicios-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
-import { DisponibilidadManager } from "@/components/config/disponibilidad-manager";
-
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
 function ConfigPage() {
@@ -30,7 +28,6 @@ function ConfigPage() {
       <Tabs defaultValue="calendario">
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
-          <TabsTrigger value="disponibilidad">Horario disponible</TabsTrigger>
           <TabsTrigger value="bonos">Tipos de bonos</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
@@ -64,10 +61,6 @@ function ConfigPage() {
               <SpecialDaysCalendar />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="disponibilidad" className="pt-4 space-y-6">
-          <DisponibilidadManager />
         </TabsContent>
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
