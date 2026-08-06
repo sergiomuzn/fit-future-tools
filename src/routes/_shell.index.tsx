@@ -93,19 +93,17 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b bg-card px-4 pt-2">
-        <Tabs
-          value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
-          onValueChange={(v) => setView(v === "disponibilidad" ? "disponibilidad" : "dia")}
-        >
-          <TabsList>
-            <TabsTrigger value="agenda">Agenda</TabsTrigger>
-            <TabsTrigger value="disponibilidad">Horario disponible</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
       <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3">
+          <Tabs
+            value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
+            onValueChange={(v) => setView(v === "disponibilidad" ? "disponibilidad" : "dia")}
+          >
+            <TabsList className="h-8">
+              <TabsTrigger value="agenda" className="text-xs">Agenda</TabsTrigger>
+              <TabsTrigger value="disponibilidad" className="text-xs">Horario disponible</TabsTrigger>
+            </TabsList>
+          </Tabs>
           {view !== "disponibilidad" && (
             <>
               <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
