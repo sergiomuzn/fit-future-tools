@@ -18,6 +18,7 @@ import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
@@ -47,6 +48,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [estado, setEstado] = useState<SesionEstado>("reservada");
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
+  const [servicioSlug, setServicioSlug] = useState<string>("");
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
@@ -138,6 +140,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     (c) => c.id === activeBono?.bono_catalogo_id,
   )?.tipo;
   const isGympassBono = activeBonoTipo === "gympass" || activeBonoTipo === "grupal";
+  const { data: servicios = [] } = useServicios();
+  // Servicio de grupos (grupos reducidos) y servicio individual por defecto.
+  const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
+  const servicioIndividual =
+    servicios.find((s) => s.slug === "personal") ?? servicios.find((s) => !/grupo/i.test(s.slug));
+
+  function cambiarServicio(slug: string) {
+    setServicioSlug(slug);
+    setGrupo(!!servicioGrupo && slug === servicioGrupo.slug);
+  }
+
+  // Si los servicios cargan después de abrir el diálogo, fija el valor por defecto.
+  useEffect(() => {
+    if (!open || servicioSlug || servicios.length === 0) return;
+    setServicioSlug(grupo ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""));
+  }, [open, servicioSlug, servicios.length, grupo, servicioGrupo?.slug, servicioIndividual?.slug]);
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
@@ -148,6 +166,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setEstado((session?.estado as SesionEstado) ?? "reservada");
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
+    setServicioSlug(
+      (session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""),
+    );
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
@@ -732,9 +753,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox id="grupo" checked={grupo} onCheckedChange={(v) => setGrupo(!!v)} />
-            <Label htmlFor="grupo" className="cursor-pointer">Grupo</Label>
+          <div className="space-y-1.5">
+            <Label>Servicio</Label>
+            <Select value={servicioSlug} onValueChange={cambiarServicio}>
+              <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
+              <SelectContent>
+                {servicios.map((s) => (
+                  <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {grupo ? (
