@@ -18,6 +18,7 @@ import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
@@ -47,6 +48,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [estado, setEstado] = useState<SesionEstado>("reservada");
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
+  const [servicioSlug, setServicioSlug] = useState<string>("");
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
   const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
