@@ -16,10 +16,12 @@ interface Props {
   servicioSlug: string;
   view?: "dia" | "semana";
   date?: Date;
+  /** Servicio activo en "modo pintar" cuando se ven todos los servicios. */
+  paintServicioSlug?: string | null;
 }
 
 /** Vista de agenda para definir los huecos semanales disponibles por servicio. */
-export function DisponibilidadView({ servicioSlug, view = "semana", date }: Props) {
+export function DisponibilidadView({ servicioSlug, view = "semana", date, paintServicioSlug }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { data: slots = [] } = useServiceSlots();
@@ -68,7 +70,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date }: Prop
         nombreServicio={nombreServicio}
         editable
         onCreate={(dia, inicio, fin) => {
-          if (servicioSlug) create.mutate({ dia, inicio, fin, slug: servicioSlug });
+          const slug = servicioSlug || paintServicioSlug || "";
+          if (slug) create.mutate({ dia, inicio, fin, slug });
           else setPending({ dia, inicio, fin, slug: servicios[0]?.slug ?? "" });
         }}
         onSelect={(s) => setEditing(s)}

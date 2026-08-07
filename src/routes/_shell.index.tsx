@@ -8,6 +8,7 @@ import { AgendaGrid } from "@/components/agenda/agenda-grid";
 import { WeekView, startOfWeek } from "@/components/agenda/week-view";
 import { MonthView } from "@/components/agenda/month-view";
 import { DisponibilidadView } from "@/components/agenda/disponibilidad-view";
+import { abreviatura, slotColorClasses } from "@/components/agenda/slots-week-grid";
 import { useServicios } from "@/lib/servicios";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,7 @@ function AgendaPage() {
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
   const activeServicio = servicioSlug === "__all" ? "" : servicioSlug;
+  const [paintServicio, setPaintServicio] = useState<string | null>(null);
   const { horario, specialsMap } = useCenterConfig();
   const sched = getDayScheduleFor(date, horario, specialsMap);
   const special = specialsMap.get(ymd(date));
@@ -157,6 +159,26 @@ function AgendaPage() {
               </SelectContent>
             </Select>
           )}
+          {view === "disponibilidad" && servicioSlug === "__all" && (
+            <>
+              <span className="text-xs mr-1">Pintar servicio:</span>
+              {servicios.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => setPaintServicio(paintServicio === s.slug ? null : s.slug)}
+                  className={cn(
+                    "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
+                    paintServicio === s.slug
+                      ? cn("border-primary scale-110", slotColorClasses(s.slug))
+                      : "border-border bg-muted text-black dark:text-slate-100",
+                  )}
+                  title={s.nombre}
+                >
+                  {abreviatura(s.nombre)}
+                </button>
+              ))}
+            </>
+          )}
           {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
           {view === "dia" && sortedTrainers.map((t) => (
             <button
@@ -194,6 +216,13 @@ function AgendaPage() {
         </div>
       )}
 
+      {view === "disponibilidad" && paintServicio && servicioSlug === "__all" && (
+        <div className="bg-primary/90 text-primary-foreground text-xs font-medium px-4 py-1.5 border-b">
+          Modo pintar activo · los huecos que crees serán de{" "}
+          {servicios.find((s) => s.slug === paintServicio)?.nombre ?? paintServicio}.
+        </div>
+      )}
+
       {view === "disponibilidad" && (
         <div className="bg-muted/60 text-xs text-muted-foreground px-4 py-2 border-b space-y-0.5">
           <p className="font-medium text-foreground">
@@ -214,7 +243,12 @@ function AgendaPage() {
         ) : view === "mes" ? (
           <MonthView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
         ) : (
-          <DisponibilidadView servicioSlug={activeServicio} view={dispView} date={date} />
+          <DisponibilidadView
+            servicioSlug={activeServicio}
+            view={dispView}
+            date={date}
+            paintServicioSlug={paintServicio}
+          />
         )}
       </div>
 
