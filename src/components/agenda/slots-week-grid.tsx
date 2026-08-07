@@ -16,10 +16,17 @@ interface LayoutInfo {
 }
 
 /** Abreviatura de dos letras para un nombre de servicio. */
-function abreviatura(nombre: string): string {
+export function abreviatura(nombre: string): string {
   const palabras = nombre.trim().split(/\s+/).filter(Boolean);
   if (palabras.length >= 2) return (palabras[0][0] + palabras[1][0]).toUpperCase();
   return nombre.trim().slice(0, 2).toUpperCase();
+}
+
+/** Clases de color según el servicio: los grupos usan el color de grupo de la agenda. */
+export function slotColorClasses(slug: string, activo = true): string {
+  if (!activo) return "bg-muted text-muted-foreground border-border";
+  if (/grupo/i.test(slug)) return "bg-state-grupo text-state-grupo-fg border-black/10";
+  return "bg-state-reservada text-state-reservada-fg border-black/10";
 }
 
 /** Reparte los huecos solapados en columnas (misma lógica que la agenda). */
@@ -190,9 +197,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                     onClick={() => onSelect?.(s)}
                     className={cn(
                       "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
-                      s.activo
-                        ? "bg-state-reservada text-state-reservada-fg border-black/10"
-                        : "bg-muted text-muted-foreground border-border",
+                      slotColorClasses(s.servicio_slug, s.activo),
                     )}
                     style={{ top, height, left: `${leftPct}%`, width: `calc(${widthPct}% - 2px)` }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
