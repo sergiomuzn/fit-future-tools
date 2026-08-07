@@ -168,9 +168,10 @@ function AgendaPage() {
                   onClick={() => setPaintServicio(paintServicio === s.slug ? null : s.slug)}
                   className={cn(
                     "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
+                    slotColorClasses(s.slug),
                     paintServicio === s.slug
-                      ? cn("border-primary scale-110", slotColorClasses(s.slug))
-                      : "border-border bg-muted text-black dark:text-slate-100",
+                      ? "border-primary scale-110"
+                      : "border-transparent opacity-60",
                   )}
                   title={s.nombre}
                 >
