@@ -150,6 +150,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setServicioSlug(slug);
     setGrupo(!!servicioGrupo && slug === servicioGrupo.slug);
   }
+
+  // Si los servicios cargan después de abrir el diálogo, fija el valor por defecto.
+  useEffect(() => {
+    if (!open || servicioSlug || servicios.length === 0) return;
+    setServicioSlug(grupo ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""));
+  }, [open, servicioSlug, servicios.length, grupo, servicioGrupo?.slug, servicioIndividual?.slug]);
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
