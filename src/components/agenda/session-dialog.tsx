@@ -140,6 +140,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     (c) => c.id === activeBono?.bono_catalogo_id,
   )?.tipo;
   const isGympassBono = activeBonoTipo === "gympass" || activeBonoTipo === "grupal";
+  const { data: servicios = [] } = useServicios();
+  // Servicio de grupos (grupos reducidos) y servicio individual por defecto.
+  const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
+  const servicioIndividual =
+    servicios.find((s) => s.slug === "personal") ?? servicios.find((s) => !/grupo/i.test(s.slug));
+
+  function cambiarServicio(slug: string) {
+    setServicioSlug(slug);
+    setGrupo(!!servicioGrupo && slug === servicioGrupo.slug);
+  }
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
@@ -150,6 +160,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setEstado((session?.estado as SesionEstado) ?? "reservada");
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
+    setServicioSlug(
+      (session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""),
+    );
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
