@@ -747,9 +747,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Checkbox id="grupo" checked={grupo} onCheckedChange={(v) => setGrupo(!!v)} />
-            <Label htmlFor="grupo" className="cursor-pointer">Grupo</Label>
+          <div className="space-y-1.5">
+            <Label>Servicio</Label>
+            <Select value={servicioSlug} onValueChange={cambiarServicio}>
+              <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
+              <SelectContent>
+                {servicios.map((s) => (
+                  <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {grupo ? (
