@@ -195,8 +195,14 @@ function AgendaPage() {
       )}
 
       {view === "disponibilidad" && (
-        <div className="bg-muted/60 text-xs text-muted-foreground px-4 py-1.5 border-b">
-          Arrastra sobre el calendario para crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+        <div className="bg-muted/60 text-xs text-muted-foreground px-4 py-2 border-b space-y-0.5">
+          <p className="font-medium text-foreground">
+            Horario semanal visible para los clientes con acceso a cada servicio.
+          </p>
+          <p>
+            Cada cliente solo verá los huecos de los servicios que tenga contratados. Arrastra sobre el
+            calendario para crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+          </p>
         </div>
       )}
 
