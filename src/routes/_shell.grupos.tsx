@@ -1,28 +1,75 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Plus, Lock, Unlock } from "lucide-react";
+import { Plus } from "lucide-react";
 import { supabase, type Group, type Session, DIAS_SEMANA } from "@/lib/db";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { GroupDialog } from "@/components/groups/group-dialog";
+import { useServicios } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_shell/grupos")({
   component: GruposPage,
 });
 
+function isGrupalSlug(slug: string) {
+  return /grup/i.test(slug);
+}
+function isPersonalSlug(slug: string) {
+  return /^(ep|personal)$/i.test(slug) || /personal/i.test(slug);
+}
+
 function GruposPage() {
   const [groupOpen, setGroupOpen] = useState(false);
   const [groupEditing, setGroupEditing] = useState<Group | null>(null);
+  const { data: servicios = [] } = useServicios();
+  const [tab, setTab] = useState<string>("");
+
+  useEffect(() => {
+    if (!tab && servicios.length > 0) setTab(servicios[0].slug);
+  }, [servicios, tab]);
+
+  const current = servicios.find((s) => s.slug === tab);
 
   return (
     <div className="p-6 space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-display font-semibold">Grupos</h1>
-        <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo grupo
-        </Button>
+      <div className="flex items-center justify-between gap-2">
+        <h1 className="text-2xl font-display font-semibold">Servicios</h1>
+        {current && isGrupalSlug(current.slug) && (
+          <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo grupo
+          </Button>
+        )}
       </div>
-      <GruposPanel onEdit={(g) => { setGroupEditing(g); setGroupOpen(true); }} />
+
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList>
+          {servicios.map((s) => (
+            <TabsTrigger key={s.id} value={s.slug}>{s.nombre}</TabsTrigger>
+          ))}
+        </TabsList>
+        {servicios.map((s) => (
+          <TabsContent key={s.id} value={s.slug} className="pt-4">
+            {isGrupalSlug(s.slug) ? (
+              <GruposPanel onEdit={(g) => { setGroupEditing(g); setGroupOpen(true); }} />
+            ) : isPersonalSlug(s.slug) ? (
+              <div className="text-center text-muted-foreground py-12 border rounded-lg bg-card">
+                Próximamente: configuración de disponibilidad de {s.nombre}.
+              </div>
+            ) : (
+              <div className="text-center text-muted-foreground py-12 border rounded-lg bg-card">
+                {s.nombre}: sin configuración disponible por ahora.
+              </div>
+            )}
+          </TabsContent>
+        ))}
+        {servicios.length === 0 && (
+          <div className="text-center text-muted-foreground py-8 border rounded-lg bg-card">
+            No hay servicios definidos. Créalos en Configuración.
+          </div>
+        )}
+      </Tabs>
+
       <GroupDialog open={groupOpen} onClose={() => setGroupOpen(false)} group={groupEditing} />
     </div>
   );
@@ -96,18 +143,6 @@ function GruposPanel({ onEdit }: { onEdit: (g: Group) => void }) {
               className={`shrink-0 text-[10px] px-1.5 py-0.5 rounded-full ${g.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}
             >
               {g.activo ? "Activo" : "Inactivo"}
-            </span>
-          </div>
-          <div className="mt-1.5">
-            <span
-              className={`inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded-full border ${
-                g.acceso_clientes
-                  ? "bg-primary/10 text-primary border-primary/20"
-                  : "bg-muted text-muted-foreground border-border"
-              }`}
-            >
-              {g.acceso_clientes ? <Unlock className="h-2.5 w-2.5" /> : <Lock className="h-2.5 w-2.5" />}
-              {g.acceso_clientes ? "Acceso clientes" : "Acceso restringido"}
             </span>
           </div>
           <div className="text-xs text-muted-foreground mt-2 line-clamp-2">
