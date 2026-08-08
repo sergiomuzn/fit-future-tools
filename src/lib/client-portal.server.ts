@@ -179,12 +179,22 @@ async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
   const out: BonoResumen[] = [];
   for (const b of bonos) {
     const cat = b.bono_catalogo_id ? catById.get(b.bono_catalogo_id) : null;
-    const { count } = await supabaseAdmin
-      .from("sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("client_id", clientId)
-      .eq("estado", "cancelada")
-      .gte("fecha", b.fecha_inicio);
+    const [{ count }, { count: countNC }] = await Promise.all([
+      supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("estado", "cancelada")
+        .eq("no_contabilizar", false)
+        .gte("fecha", b.fecha_inicio),
+      supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("estado", "cancelada")
+        .eq("no_contabilizar", true)
+        .gte("fecha", b.fecha_inicio),
+    ]);
     out.push({
       id: b.id,
       servicio: cat ? (servicioBySlug.get(cat.servicio_slug) ?? cat.servicio_slug) : null,
@@ -195,6 +205,7 @@ async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
       sesionesRestantes: b.sesiones_disponibles,
       sesionesRealizadas: b.sesiones_realizadas,
       cancelaciones: count ?? 0,
+      cancelacionesNC: countNC ?? 0,
     });
   }
   return out;
@@ -220,6 +231,7 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
     sesionesRealizadas: null,
     proximaSesion: null,
     cancelaciones: 0,
+    cancelacionesNC: 0,
     bonos: [],
   };
   if (!clientId) return base;
@@ -274,13 +286,24 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
         base.bonoTipo = cat.tipo;
       }
     }
-    const { count } = await supabaseAdmin
-      .from("sessions")
-      .select("id", { count: "exact", head: true })
-      .eq("client_id", clientId)
-      .eq("estado", "cancelada")
-      .gte("fecha", bono.fecha_inicio);
+    const [{ count }, { count: countNC }] = await Promise.all([
+      supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("estado", "cancelada")
+        .eq("no_contabilizar", false)
+        .gte("fecha", bono.fecha_inicio),
+      supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("client_id", clientId)
+        .eq("estado", "cancelada")
+        .eq("no_contabilizar", true)
+        .gte("fecha", bono.fecha_inicio),
+    ]);
     base.cancelaciones = count ?? 0;
+    base.cancelacionesNC = countNC ?? 0;
   }
 
   base.bonos = await listActiveBonos(clientId);
@@ -315,7 +338,6 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
   ]);
   const trainerById = new Map((trainers ?? []).map((t) => [t.id, t.nombre]));
   return (sessions ?? [])
-    .filter((s) => s.estado !== "cancelada")
     .map((s) => ({
       id: s.id,
       fecha: s.fecha,
