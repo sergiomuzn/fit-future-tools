@@ -33,6 +33,8 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   grupalesSinAsistentesCuentan: true,
   pruebaAutoInactivar: true,
   pruebaDiasInactivar: 30,
+  clienteVeCanceladas: false,
+  canceladasNCSumanTotal: false,
 };
 
 const STORAGE_KEY = "behavior-config-v1";
