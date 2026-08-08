@@ -190,21 +190,29 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
 
-  const { data: closedBonos = [] } = useQuery({
-    queryKey: ["client-bonos-closed", clientId],
+  const { data: allBonos = [] } = useQuery({
+    queryKey: ["client-bonos-all", clientId],
     queryFn: async () => {
       const { data } = await supabase
         .from("client_bonos")
         .select("*")
-        .eq("client_id", clientId)
-        .eq("activo", false);
+        .eq("client_id", clientId);
       return (data ?? []) as ClientBono[];
     },
   });
+  const closedBonos = allBonos.filter((b) => !b.activo);
   // map por fecha de cierre → bono cerrado (para "restantes al cerrar")
   const closedByDate = new Map<string, ClientBono>();
   closedBonos.forEach((b) => {
     if (b.ultimo_bono_fecha) closedByDate.set(b.ultimo_bono_fecha, b);
+  });
+  // notas de bonos por fecha de inicio
+  const notaByDate = new Map<string, string>();
+  allBonos.forEach((b) => {
+    const nota = (b.nota ?? "").trim();
+    if (nota && b.fecha_inicio) {
+      notaByDate.set(b.fecha_inicio, [notaByDate.get(b.fecha_inicio), nota].filter(Boolean).join("\n"));
+    }
   });
 
   const sessionsByDate = new Map<string, Session[]>();
@@ -258,8 +266,23 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                 isOutside && "opacity-60",
               )}
             >
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-0.5">
                 <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
+                <span className="flex items-center gap-0.5">
+                {notaByDate.has(iso) && (
+                  <span title={`Nota: ${notaByDate.get(iso)}`} className="text-[9px] leading-none text-muted-foreground">✎</span>
+                )}
+                {daySessions.some((s) => (s.incidencia ?? "").trim()) && (
+                  <span
+                    title={daySessions
+                      .filter((s) => (s.incidencia ?? "").trim())
+                      .map((s) => `${s.hora_inicio.slice(0, 5)} · Incidencia: ${s.incidencia}`)
+                      .join("\n")}
+                    className="text-[9px] leading-none font-bold text-red-500"
+                  >
+                    !
+                  </span>
+                )}
                 {dayInvoices.length > 0 && (
                   <span
                     title={dayInvoices.map((iv) => {
@@ -272,16 +295,18 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                     className="h-1.5 w-1.5 rounded-full bg-amber-500"
                   />
                 )}
+                </span>
               </div>
               <div className="flex flex-col gap-0.5 overflow-hidden">
                 {daySessions.slice(0, 2).map((s) => {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
+                  const inc = (s.incidencia ?? "").trim();
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
                   const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
                   return (
                     <div
                       key={s.id}
-                      title={`${s.hora_inicio.slice(0,5)} · ${s.estado}${isNC ? " (NC)" : ""}${isPorConfirmar ? " (Por confirmar)" : ""}`}
+                      title={`${s.hora_inicio.slice(0,5)} · ${s.estado}${isNC ? " (NC)" : ""}${isPorConfirmar ? " (Por confirmar)" : ""}${inc ? `\nIncidencia: ${inc}` : ""}`}
                       className={cn(
                         "flex items-center gap-1 rounded px-1 leading-tight text-[9px] truncate text-white",
                         dot,
@@ -294,6 +319,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                       }}
                     >
                       <span className="truncate">{s.hora_inicio.slice(0,5)}{isNC ? " NC" : ""}</span>
+                      {inc && <span className="font-bold">!</span>}
                     </div>
                   );
                 })}
