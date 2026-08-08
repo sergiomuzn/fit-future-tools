@@ -238,6 +238,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   }
 
   return (
+    <TooltipProvider delayDuration={100}>
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <Button variant="ghost" size="icon" onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() - 1, 1))}>
@@ -355,6 +356,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
         <LegendDot color="bg-amber-500" label="Renovación" />
       </div>
     </div>
+    </TooltipProvider>
   );
 }
 
