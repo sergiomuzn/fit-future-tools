@@ -270,30 +270,35 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                 <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
                 <span className="flex items-center gap-0.5">
                 {notaByDate.has(iso) && (
-                  <span title={`Nota: ${notaByDate.get(iso)}`} className="text-[9px] leading-none text-muted-foreground">✎</span>
-                )}
-                {daySessions.some((s) => (s.incidencia ?? "").trim()) && (
-                  <span
-                    title={daySessions
-                      .filter((s) => (s.incidencia ?? "").trim())
-                      .map((s) => `${s.hora_inicio.slice(0, 5)} · Incidencia: ${s.incidencia}`)
-                      .join("\n")}
-                    className="text-[9px] leading-none font-bold text-red-500"
-                  >
-                    !
-                  </span>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-[9px] leading-none text-muted-foreground cursor-default">✎</span>
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-56 whitespace-pre-wrap">
+                      <span className="font-medium">Nota</span>
+                      <div>{notaByDate.get(iso)}</div>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {dayInvoices.length > 0 && (
-                  <span
-                    title={dayInvoices.map((iv) => {
-                      const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
-                      const cerrado = closedByDate.get(iv.fecha);
-                      return cerrado
-                        ? `${nombre} · Restantes al cerrar: ${cerrado.sesiones_disponibles}`
-                        : nombre;
-                    }).join("\n")}
-                    className="h-1.5 w-1.5 rounded-full bg-amber-500"
-                  />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 cursor-default" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-56">
+                      <div className="font-medium">Renovación</div>
+                      {dayInvoices.map((iv) => {
+                        const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
+                        const cerrado = closedByDate.get(iv.fecha);
+                        return (
+                          <div key={iv.id}>
+                            {nombre}
+                            {cerrado ? ` · Restantes al cerrar: ${cerrado.sesiones_disponibles}` : ""}
+                          </div>
+                        );
+                      })}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 </span>
               </div>
@@ -304,23 +309,33 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
                   const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
                   return (
-                    <div
-                      key={s.id}
-                      title={`${s.hora_inicio.slice(0,5)} · ${s.estado}${isNC ? " (NC)" : ""}${isPorConfirmar ? " (Por confirmar)" : ""}${inc ? `\nIncidencia: ${inc}` : ""}`}
-                      className={cn(
-                        "flex items-center gap-1 rounded px-1 leading-tight text-[9px] truncate text-white",
-                        dot,
-                        isNC && "opacity-60 border border-dashed border-white/60",
-                      )}
-                      style={{
-                        backgroundImage: isPorConfirmar
-                          ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 6px)"
-                          : undefined,
-                      }}
-                    >
-                      <span className="truncate">{s.hora_inicio.slice(0,5)}{isNC ? " NC" : ""}</span>
-                      {inc && <span className="font-bold">!</span>}
-                    </div>
+                    <Tooltip key={s.id}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            "flex items-center gap-1 rounded px-1 leading-tight text-[9px] truncate text-white cursor-default",
+                            dot,
+                            isNC && "opacity-60 border border-dashed border-white/60",
+                          )}
+                          style={{
+                            backgroundImage: isPorConfirmar
+                              ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 6px)"
+                              : undefined,
+                          }}
+                        >
+                          <span className="truncate">{s.hora_inicio.slice(0,5)}{isNC ? " NC" : ""}</span>
+                          {inc && <span className="font-bold">!</span>}
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent className="max-w-56 whitespace-pre-wrap">
+                        <div className="font-medium">
+                          {s.hora_inicio.slice(0,5)} · {s.estado}
+                          {isNC ? " (NC)" : ""}
+                          {isPorConfirmar ? " (Por confirmar)" : ""}
+                        </div>
+                        {inc && <div>Incidencia: {inc}</div>}
+                      </TooltipContent>
+                    </Tooltip>
                   );
                 })}
                 {daySessions.length > 2 && (
