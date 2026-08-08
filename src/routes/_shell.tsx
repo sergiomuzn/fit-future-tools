@@ -160,7 +160,7 @@ function ShellInner() {
         </SidebarFooter>
       </Sidebar>
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <div className="flex items-center gap-2 border-b bg-muted px-2 py-1.5">
+        <div className="flex items-center gap-2 border-b bg-card px-2 py-1.5">
           <SidebarTrigger />
           <span className="font-display text-sm font-semibold tracking-tight md:hidden">{centroNombre}</span>
           <div className="ml-auto">
