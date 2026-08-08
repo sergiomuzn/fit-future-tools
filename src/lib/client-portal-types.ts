@@ -97,6 +97,8 @@ export interface ResumenCliente {
   sesionesRealizadas: number | null;
   proximaSesion: { fecha: string; horaInicio: string; nombre: string } | null;
   cancelaciones: number;
+  /** Canceladas marcadas como "No contabilizar" */
+  cancelacionesNC: number;
   bonos: BonoResumen[];
 }
 
@@ -111,4 +113,6 @@ export interface BonoResumen {
   sesionesRestantes: number | null;
   sesionesRealizadas: number | null;
   cancelaciones: number;
+  /** Canceladas marcadas como "No contabilizar" */
+  cancelacionesNC: number;
 }
