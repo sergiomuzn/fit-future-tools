@@ -31,6 +31,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
 import { useCenterName } from "@/lib/center-schedule";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/cliente")({
   ssr: false,
@@ -57,6 +58,7 @@ function formatFecha(fecha: string): string {
 
 function ClientePortal() {
   const centroNombre = useCenterName();
+  const behavior = useBehaviorConfig();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyPortalProfile);
@@ -88,11 +90,14 @@ function ClientePortal() {
     enabled: !!profile,
   });
 
-  const { data: personales = [], isLoading: loadingPersonales } = useQuery({
+  const { data: personalesAll = [], isLoading: loadingPersonales } = useQuery({
     queryKey: ["portal-personales"],
     queryFn: () => fetchPersonales({ data: undefined }),
     enabled: !!profile && verPersonal,
   });
+  const personales = behavior.clienteVeCanceladas
+    ? personalesAll
+    : personalesAll.filter((s) => s.estado !== "cancelada");
 
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
@@ -244,7 +249,7 @@ function ClientePortal() {
           </TabsContent>
 
           <TabsContent value="bono">
-            <ResumenBono resumen={resumen ?? null} />
+            <ResumenBono resumen={resumen ?? null} sumarNC={behavior.canceladasNCSumanTotal} />
           </TabsContent>
 
           <TabsContent value="horario">
@@ -275,7 +280,7 @@ function DatoFila({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
+function ResumenBono({ resumen, sumarNC }: { resumen: ResumenCliente | null; sumarNC: boolean }) {
   if (!resumen) return <p className="text-sm text-muted-foreground">Cargando información…</p>;
   const prox = resumen.proximaSesion;
   return (
@@ -309,7 +314,10 @@ function ResumenBono({ resumen }: { resumen: ResumenCliente | null }) {
                   label="Sesiones realizadas"
                   value={b.sesionesRealizadas == null ? "—" : String(b.sesionesRealizadas)}
                 />
-                <DatoFila label="Cancelaciones de este bono" value={String(b.cancelaciones)} />
+                <DatoFila
+                  label="Cancelaciones de este bono"
+                  value={String(b.cancelaciones + (sumarNC ? b.cancelacionesNC : 0))}
+                />
               </CardContent>
             </Card>
           ))}
@@ -341,6 +349,8 @@ function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
             <span className="font-medium">{sesion.titulo || "Entrenamiento personal"}</span>
             {sesion.estado === "realizada" ? (
               <Badge variant="secondary">Realizada</Badge>
+            ) : sesion.estado === "cancelada" ? (
+              <Badge variant="destructive">Cancelada</Badge>
             ) : sesion.porConfirmar ? (
               <Badge variant="outline">Por confirmar</Badge>
             ) : (
