@@ -18,6 +18,10 @@ export type BehaviorConfig = {
   grupalesSinAsistentesCuentan: boolean;
   pruebaAutoInactivar: boolean;
   pruebaDiasInactivar: number;
+  /** El cliente ve en su portal las sesiones canceladas */
+  clienteVeCanceladas: boolean;
+  /** Las canceladas marcadas "No contabilizar" suman al total de cancelaciones del cliente */
+  canceladasNCSumanTotal: boolean;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
