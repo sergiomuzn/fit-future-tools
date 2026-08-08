@@ -185,6 +185,24 @@ export function BehaviorForm() {
               disabled={cfg.canceladasCuentanModo !== "segunNC"}
             />
           </Row>
+          <Row
+            title="El cliente puede ver sus sesiones canceladas"
+            description="Si lo activas, en el portal del cliente aparecerán también las sesiones canceladas (marcadas como tal). Si lo desactivas, sólo verá las sesiones vigentes."
+          >
+            <Switch
+              checked={cfg.clienteVeCanceladas}
+              onCheckedChange={(v) => update("clienteVeCanceladas", v)}
+            />
+          </Row>
+          <Row
+            title="Las canceladas 'No contabilizar' suman al total de cancelaciones"
+            description="En el portal del cliente, el total de cancelaciones incluye sólo las canceladas contabilizadas. Actívalo para sumar también las marcadas como 'No contabilizar'."
+          >
+            <Switch
+              checked={cfg.canceladasNCSumanTotal}
+              onCheckedChange={(v) => update("canceladasNCSumanTotal", v)}
+            />
+          </Row>
         </CardContent>
       </Card>
 
