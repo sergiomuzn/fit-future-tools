@@ -120,7 +120,7 @@ function AgendaPage() {
               <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
             </>
           )}
-          <div className="font-display text-lg font-semibold capitalize">
+          <div className="font-display text-lg font-semibold capitalize whitespace-nowrap">
             {headerLabel}
           </div>
           {view !== "disponibilidad" ? (
