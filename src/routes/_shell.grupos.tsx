@@ -33,7 +33,7 @@ function GruposPage() {
 
   return (
     <div className="page-tabbed min-h-screen p-6 space-y-4">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex min-h-10 items-center justify-between gap-2">
         <h1 className="text-2xl font-display font-semibold">Servicios</h1>
         {current && isGrupalSlug(current.slug) && (
           <Button onClick={() => { setGroupEditing(null); setGroupOpen(true); }}>
