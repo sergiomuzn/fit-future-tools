@@ -196,8 +196,21 @@
   overflow: visible;
 }
 
+/* Línea que cruza toda la página bajo las pestañas */
+.app-tabs-list::after {
+  content: "";
+  position: absolute;
+  left: -100vw;
+  right: -100vw;
+  bottom: 0;
+  height: 1px;
+  background-color: var(--border);
+  z-index: 0;
+}
+
 .app-tabs-trigger {
   position: relative;
+  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -247,6 +260,13 @@
   border-radius: 0;
   margin-top: 0;
   padding: 1rem 0 1.5rem;
+  /* Fondo a sangre: cubre los laterales y todo lo que queda por debajo */
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+  margin-bottom: calc(-1.5rem - 100vh);
+  padding-bottom: calc(1.5rem + 100vh);
   box-shadow: -100vw 0 0 var(--background), 100vw 0 0 var(--background);
   clip-path: inset(0 -100vw 0 -100vw);
 }
