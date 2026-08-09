@@ -138,12 +138,12 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
         </div>
 
         {dias.map((dia) => (
-          <div key={dia} className="flex-1 min-w-[110px] border-l">
+          <div key={dia} className="flex-1 min-w-[110px]">
             <div className="sticky top-0 z-20 h-10 w-full border-b bg-card text-xs font-medium flex items-center justify-center">
               {single ? DOW_LONG[dia] : DOW_SHORT[dia]}
             </div>
             <div
-              className={cn("relative", editable && "cursor-crosshair")}
+              className={cn("relative border-l", editable && "cursor-crosshair")}
               style={{ height: TOTAL_PX, marginTop: 8 }}
               onMouseDown={(e) => {
                 if (!editable) return;
