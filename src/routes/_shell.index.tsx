@@ -161,6 +161,22 @@ function AgendaPage() {
               </SelectContent>
             </Select>
           )}
+          {view === "disponibilidad" && (
+            <TooltipProvider delayDuration={100}>
+              <UITooltip>
+                <TooltipTrigger asChild>
+                  <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Información">
+                    <Info className="h-4 w-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                  Horario semanal visible para los clientes con acceso a cada servicio. Cada cliente solo
+                  verá los huecos de los servicios que tenga contratados. Arrastra sobre el calendario para
+                  crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+                </TooltipContent>
+              </UITooltip>
+            </TooltipProvider>
+          )}
           {view === "disponibilidad" && servicioSlug === "__all" && (
             <>
               <span className="text-xs mr-1">Pintar servicio:</span>
