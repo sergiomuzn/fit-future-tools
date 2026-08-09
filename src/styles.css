@@ -235,13 +235,17 @@
   font-weight: 600;
 }
 
-/* Contenido: mismo color que la pestaña activa, sin recuadros */
 .app-tabs-content {
+  margin-top: 0.5rem;
+}
+
+/* Contenido a página completa: mismo color que la pestaña activa */
+.page-tabbed .app-tabs-content {
   position: relative;
   background-color: var(--background);
   border: none;
   border-radius: 0;
-  margin-top: 0 !important;
+  margin-top: 0;
   padding: 1rem 0 1.5rem;
   box-shadow: -100vw 0 0 var(--background), 100vw 0 0 var(--background);
   clip-path: inset(0 -100vw 0 -100vw);

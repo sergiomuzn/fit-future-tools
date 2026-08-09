@@ -196,7 +196,7 @@ function ClientesPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="page-tabbed min-h-screen p-6 space-y-4">
       {dialog}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

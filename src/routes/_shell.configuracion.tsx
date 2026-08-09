@@ -19,7 +19,7 @@ export const Route = createFileRoute("/_shell/configuracion")({ component: Confi
 
 function ConfigPage() {
   return (
-    <div className="p-6 space-y-6">
+    <div className="page-tabbed min-h-screen p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-display font-semibold">Configuración del centro</h1>
         <p className="text-sm text-muted-foreground">Horario, calendario laboral, bonos y precios.</p>
