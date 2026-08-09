@@ -249,8 +249,10 @@ function AgendaPage() {
         </div>
       )}
 
-      <div className="flex-1 overflow-hidden bg-background">
-        {view === "dia" ? (
+      <div className={cn("flex-1 bg-background", view === "historial" ? "overflow-auto" : "overflow-hidden")}>
+        {view === "historial" ? (
+          <HistorialPanel />
+        ) : view === "dia" ? (
           <AgendaGrid date={date} trainers={trainers} paintTrainerId={paintTrainerId} />
         ) : view === "semana" ? (
           <WeekView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
@@ -266,6 +268,7 @@ function AgendaPage() {
         )}
       </div>
 
+      {view !== "historial" && (
       <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
         <Legend color="bg-state-reservada" label="Reservada" />
         <Legend color="bg-state-realizada" label="Realizada" />
@@ -274,6 +277,7 @@ function AgendaPage() {
         <Legend color="bg-state-renovacion" label="Renovación" />
         <Legend color="bg-state-grupo" label="Grupo" />
       </footer>
+      )}
     </div>
   );
 }
