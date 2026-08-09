@@ -124,7 +124,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
       <div className={cn("flex", !single && "min-w-[860px]")}>
         <div className="w-14 shrink-0">
           <div className="sticky top-0 z-20 h-10 border-b bg-card" />
-          <div className="relative text-[10px] text-muted-foreground" style={{ height: TOTAL_PX }}>
+          <div className="relative text-[10px] text-muted-foreground" style={{ height: TOTAL_PX, marginTop: 8 }}>
             {hours.map((h) => (
               <div
                 key={h}
@@ -144,7 +144,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
             </div>
             <div
               className={cn("relative", editable && "cursor-crosshair")}
-              style={{ height: TOTAL_PX }}
+              style={{ height: TOTAL_PX, marginTop: 8 }}
               onMouseDown={(e) => {
                 if (!editable) return;
                 const min = offsetMin(e, e.currentTarget);
