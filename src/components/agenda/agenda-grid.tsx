@@ -466,8 +466,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       <div className="h-full overflow-y-auto">
         <div className="flex" style={{ minHeight: TOTAL_PX }}>
           {/* time gutter (scrolls with sessions) */}
-          <div className="w-14 shrink-0 border-r bg-card/40 text-xs">
-            <div style={{ height: TOTAL_PX, position: "relative", marginTop: 8 }}>
+          <div className="w-14 shrink-0 bg-card/40 text-xs">
+            <div className="border-r" style={{ height: TOTAL_PX, position: "relative", marginTop: 8 }}>
               {hours.map((h) => (
                 <div
                   key={h}
