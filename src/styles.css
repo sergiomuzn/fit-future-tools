@@ -179,6 +179,10 @@
 }
 
 /* ===== Pestañas (global) ===== */
+.page-tabbed {
+  background-color: var(--muted);
+}
+
 .app-tabs-list {
   position: relative;
   display: flex;
@@ -192,21 +196,8 @@
   overflow: visible;
 }
 
-/* Línea fina que atraviesa toda la página */
-.app-tabs-list::after {
-  content: "";
-  position: absolute;
-  left: -100vw;
-  right: -100vw;
-  bottom: 0;
-  height: 1px;
-  background-color: var(--border);
-  z-index: 0;
-}
-
 .app-tabs-trigger {
   position: relative;
-  z-index: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -218,7 +209,7 @@
   line-height: 1.25rem;
   border: none;
   border-radius: 6px 6px 0 0;
-  background-color: transparent;
+  background-color: var(--muted);
   color: var(--muted-foreground);
   box-shadow: none;
   transition: color 0.15s ease, background-color 0.15s ease;
@@ -244,27 +235,18 @@
   font-weight: 600;
 }
 
-/* La línea desaparece bajo la pestaña activa */
-.app-tabs-trigger[data-state="active"]::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 1px;
-  background-color: var(--background);
-  z-index: 2;
+.app-tabs-content {
+  margin-top: 0.5rem;
 }
 
-/* Contenido: fondo levemente grisáceo, sin recuadros */
-.app-tabs-content {
+/* Contenido a página completa: mismo color que la pestaña activa */
+.page-tabbed .app-tabs-content {
   position: relative;
-  background-color: color-mix(in oklab, var(--muted) 30%, transparent);
+  background-color: var(--background);
   border: none;
   border-radius: 0;
-  margin-top: 0 !important;
+  margin-top: 0;
   padding: 1rem 0 1.5rem;
-  box-shadow: -100vw 0 0 color-mix(in oklab, var(--muted) 30%, transparent),
-    100vw 0 0 color-mix(in oklab, var(--muted) 30%, transparent);
+  box-shadow: -100vw 0 0 var(--background), 100vw 0 0 var(--background);
   clip-path: inset(0 -100vw 0 -100vw);
 }
