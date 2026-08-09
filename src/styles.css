@@ -248,6 +248,14 @@
   box-shadow: none;
 }
 
+.app-tabs-content {
+  background-color: color-mix(in oklab, var(--muted) 40%, transparent);
+  border: 1px solid var(--border);
+  border-radius: 0 8px 8px 8px;
+  padding: 1rem;
+  margin-top: 0 !important;
+}
+
 /* Tapa la línea inferior justo bajo la pestaña activa */
 .app-tabs-trigger[data-state="active"]::after {
   content: "";
@@ -257,4 +265,5 @@
   bottom: -1px;
   height: 1px;
   background-color: var(--background);
+  z-index: 2;
 }
