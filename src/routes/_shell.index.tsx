@@ -99,7 +99,7 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 min-h-[60px] flex items-end justify-between gap-3">
+      <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 min-h-[60px] overflow-x-hidden flex items-end justify-between gap-3">
         <div className="flex items-end gap-3">
           <Tabs
             value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
@@ -124,8 +124,8 @@ function AgendaPage() {
             {headerLabel}
           </div>
           {view !== "disponibilidad" ? (
-            <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
-              <SelectTrigger className="h-8 w-[110px] text-xs">
+             <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
+              <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -135,8 +135,8 @@ function AgendaPage() {
               </SelectContent>
             </Select>
           ) : (
-            <Select value={dispView} onValueChange={(v) => setDispView(v as "dia" | "semana")}>
-              <SelectTrigger className="h-8 w-[110px] text-xs">
+             <Select value={dispView} onValueChange={(v) => setDispView(v as "dia" | "semana")}>
+              <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -149,8 +149,8 @@ function AgendaPage() {
         </div>
         <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
-            <Select value={servicioSlug} onValueChange={setServicioSlug}>
-              <SelectTrigger className="h-8 w-[220px] text-xs">
+             <Select value={servicioSlug} onValueChange={setServicioSlug}>
+              <SelectTrigger className="h-8 w-[220px] text-xs bg-background">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
@@ -191,7 +191,7 @@ function AgendaPage() {
                 "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
                 paintTrainerId === t.id
                   ? "border-primary scale-110 bg-primary text-white"
-                  : "border-border bg-muted text-black dark:text-slate-100",
+                  : "border-border bg-background text-black dark:text-slate-100",
               )}
               title={t.nombre}
             >
