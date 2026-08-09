@@ -120,7 +120,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
         <div className="flex min-w-[860px]">
           {/* gutter */}
           <div className="w-14 shrink-0">
-            <div className="sticky top-0 z-20 h-10 border-b bg-card" />
+            <div className="sticky top-0 z-20 h-10 border-b bg-background" />
             <div className="relative text-[10px] text-muted-foreground" style={{ height: TOTAL_PX }}>
               {hours.map((h) => (
                 <div
@@ -142,7 +142,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                 <button
                   onClick={() => onSelectDay(d)}
                   className={cn(
-                    "sticky top-0 z-20 h-10 w-full border-b bg-card text-xs font-medium hover:bg-accent",
+                    "sticky top-0 z-20 h-10 w-full border-b bg-background text-xs font-medium hover:bg-accent",
                     key === todayKey && "text-primary",
                   )}
                 >
