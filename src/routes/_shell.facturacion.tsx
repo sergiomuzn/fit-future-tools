@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ExpandableSearch } from "@/components/expandable-search";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -252,24 +253,12 @@ function FacturacionPage() {
           <span className="font-semibold">{(searchNorm ? filteredTotal : total).toFixed(2)} €</span>
         </div>
       </div>
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
-          placeholder="Buscar factura por cliente..."
+      <div className="flex items-center">
+        <ExpandableSearch
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-8 pr-8"
+          onChange={setSearch}
+          placeholder="Buscar factura por cliente..."
         />
-        {search && (
-          <button
-            type="button"
-            onClick={() => setSearch("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Limpiar búsqueda"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        )}
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
