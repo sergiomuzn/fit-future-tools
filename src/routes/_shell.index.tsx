@@ -99,8 +99,8 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="sticky top-0 z-30 border-b bg-card px-4 py-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 flex items-end justify-between gap-3">
+        <div className="flex items-end gap-3 pb-2">
           <Tabs
             value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
             onValueChange={(v) => setView(v === "disponibilidad" ? "disponibilidad" : "dia")}
@@ -145,7 +145,7 @@ function AgendaPage() {
             </Select>
           )}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
             <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[220px] text-xs">
