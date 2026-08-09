@@ -177,3 +177,84 @@
     font-family: var(--font-display);
   }
 }
+
+/* ===== Pestañas estilo navegador (global) ===== */
+.app-tabs-list {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: 0;
+  height: auto;
+  background: transparent;
+  border-radius: 0;
+  overflow: visible;
+}
+
+/* Línea inferior continua bajo el conjunto de pestañas */
+.app-tabs-list::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background-color: var(--border);
+  z-index: 0;
+}
+
+.app-tabs-trigger {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: 0.45rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.25rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background-color: var(--muted);
+  color: var(--muted-foreground);
+  box-shadow: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.app-tabs-trigger:hover {
+  color: var(--foreground);
+}
+
+.app-tabs-trigger:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+
+.app-tabs-trigger:disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+.app-tabs-trigger[data-state="active"] {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-weight: 600;
+  border-color: var(--border);
+  border-bottom: none;
+  box-shadow: none;
+}
+
+/* Tapa la línea inferior justo bajo la pestaña activa */
+.app-tabs-trigger[data-state="active"]::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background-color: var(--background);
+}
