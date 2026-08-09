@@ -116,7 +116,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
 
   return (
     <>
-      <div className="h-full overflow-auto">
+      <div className="h-full overflow-y-auto overflow-x-hidden">
         <div className="flex min-w-[860px]">
           {/* gutter */}
           <div className="w-14 shrink-0">

@@ -76,7 +76,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
 
   return (
     <>
-      <div className="h-full overflow-auto p-3">
+      <div className="h-full overflow-y-auto overflow-x-hidden p-3">
         <div className="grid grid-cols-7 gap-1 pb-1 text-center text-xs text-muted-foreground">
           {DOW.map((d) => <div key={d}>{d}</div>)}
         </div>
