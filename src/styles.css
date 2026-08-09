@@ -220,7 +220,8 @@
   font-size: 0.875rem;
   font-weight: 400;
   line-height: 1.25rem;
-  border: none;
+  border: 1px solid transparent;
+  border-bottom: none;
   border-top-left-radius: 6px;
   border-top-right-radius: 6px;
   border-bottom-left-radius: 0;
@@ -249,6 +250,7 @@
   background-color: var(--background);
   color: var(--foreground);
   font-weight: 600;
+  border-color: var(--border);
 }
 
 .app-tabs-content {
