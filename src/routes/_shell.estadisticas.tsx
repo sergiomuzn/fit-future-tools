@@ -415,7 +415,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
         </div>
       </div>
       <Button
-        variant="outline" size="sm"
+        variant="outline" size="sm" className="h-9"
         onClick={() => onChange(`${curY}-${String(curM).padStart(2, "0")}`)}
         disabled={y === curY && m === curM}
       >
