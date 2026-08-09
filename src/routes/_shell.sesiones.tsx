@@ -12,6 +12,7 @@ import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { ExpandableSearch } from "@/components/expandable-search";
 
 const TIPO_LABEL: Record<string, string> = {
   individual: "Individual",
@@ -35,7 +36,6 @@ function SesionesPage() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
