@@ -99,7 +99,7 @@ function AgendaPage() {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 flex items-end justify-between gap-3">
+      <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 min-h-[60px] flex items-end justify-between gap-3">
         <div className="flex items-end gap-3">
           <Tabs
             value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
@@ -110,7 +110,7 @@ function AgendaPage() {
               <TabsTrigger value="disponibilidad" className="text-xs">Horario disponible</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex items-center gap-3 pb-2">
+          <div className="flex min-h-9 items-center gap-3 pb-2">
           {(view !== "disponibilidad" || dispView === "dia") && (
             <>
               {view !== "disponibilidad" && (
