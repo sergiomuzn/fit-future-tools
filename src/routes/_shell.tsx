@@ -1,6 +1,6 @@
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Calendar, Users, Layers, Dumbbell, Wallet, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
+import { Calendar, Users, Layers, Dumbbell, ClipboardList, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyRoles } from "@/lib/roles";
 import { useQueryClient } from "@tanstack/react-query";
@@ -42,7 +42,6 @@ const NAV = [
   { to: "/clientes", label: "Clientes", icon: Users },
   { to: "/grupos", label: "Servicios", icon: Layers },
   { to: "/entrenadores", label: "Entrenadores", icon: Dumbbell },
-  { to: "/bonos", label: "Bonos", icon: Wallet },
   { to: "/sesiones", label: "Sesiones", icon: ClipboardList },
   { to: "/facturacion", label: "Facturación", icon: Receipt },
   { to: "/estadisticas", label: "Estadísticas", icon: BarChart3 },

@@ -24,6 +24,7 @@ import {
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ExpandableSearch } from "@/components/expandable-search";
+import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
@@ -42,7 +43,7 @@ function ClientesPage() {
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
   const [viewing, setViewing] = useState<Client | null>(null);
-  const [tab, setTab] = useState<"clientes" | "accesos">("clientes");
+  const [tab, setTab] = useState<"clientes" | "accesos" | "bonos">("clientes");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
@@ -264,9 +265,10 @@ function ClientesPage() {
         </div>
         ) : null}
       </div>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos")}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="bonos">Bonos</TabsTrigger>
           <TabsTrigger value="accesos">Accesos</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
@@ -366,6 +368,9 @@ function ClientesPage() {
           </TableBody>
         </Table>
       </div>
+        </TabsContent>
+        <TabsContent value="bonos" className="space-y-4">
+          <BonosPanel />
         </TabsContent>
         <TabsContent value="accesos" className="space-y-4">
           <AccesosPanel />
