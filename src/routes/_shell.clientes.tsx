@@ -199,7 +199,7 @@ function ClientesPage() {
   return (
     <div className="page-tabbed min-h-screen p-6 space-y-4">
       {dialog}
-      <div className="flex items-center justify-between">
+      <div className="flex min-h-10 items-center justify-between">
         <div className="flex items-center gap-2">
           <h1 className="text-2xl font-display font-semibold">Clientes</h1>
           <TooltipProvider>
