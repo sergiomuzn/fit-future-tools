@@ -12,6 +12,7 @@ import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { ExpandableSearch } from "@/components/expandable-search";
 
 const TIPO_LABEL: Record<string, string> = {
   individual: "Individual",
@@ -35,7 +36,6 @@ function SesionesPage() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
-  const [searchOpen, setSearchOpen] = useState(false);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
   const [tipoFilter, setTipoFilter] = useState<string>("todos");
@@ -156,34 +156,11 @@ function SesionesPage() {
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
         <div className="flex items-center gap-2">
-          {searchOpen ? (
-            <div className="relative flex items-center gap-1">
-              <Input
-                autoFocus
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nombre o fecha (YYYY-MM-DD)…"
-                className="h-9 w-64 pr-8"
-              />
-              {search && (
-                <button
-                  type="button"
-                  aria-label="Limpiar búsqueda"
-                  onClick={() => setSearch("")}
-                  className="absolute right-10 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => { setSearch(""); setSearchOpen(false); }}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <Button variant="outline" size="icon" onClick={() => setSearchOpen(true)} aria-label="Buscar">
-              <Search className="h-4 w-4" />
-            </Button>
-          )}
+          <ExpandableSearch
+            value={search}
+            onChange={setSearch}
+            placeholder="Nombre o fecha (YYYY-MM-DD)…"
+          />
           <Button
             variant={filtersOpen ? "default" : "outline"}
             size="icon"

@@ -5,6 +5,7 @@ import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -195,19 +196,8 @@ function BonosPage() {
         <h1 className="text-2xl font-display font-semibold">Bonos</h1>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
-      <div className="relative max-w-sm">
-        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pl-8 pr-8" />
-        {q && (
-          <button
-            type="button"
-            aria-label="Limpiar búsqueda"
-            onClick={() => setQ("")}
-            className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-        )}
+      <div className="flex items-center">
+        <ExpandableSearch value={q} onChange={setQ} />
       </div>
       <div className="rounded-lg border bg-card">
         <Table>

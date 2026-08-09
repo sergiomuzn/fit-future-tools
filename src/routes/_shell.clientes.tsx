@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ExpandableSearch } from "@/components/expandable-search";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
@@ -270,19 +271,7 @@ function ClientesPage() {
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
       <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-sm">
-          <Input placeholder="Buscar..." value={q} onChange={(e) => setQ(e.target.value)} className="pr-8" />
-          {q && (
-            <button
-              type="button"
-              aria-label="Limpiar búsqueda"
-              onClick={() => setQ("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
+        <ExpandableSearch value={q} onChange={setQ} />
         <Button
           variant={filtersOpen ? "secondary" : "outline"}
           size="icon"
