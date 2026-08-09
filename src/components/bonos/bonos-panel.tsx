@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
@@ -21,9 +20,7 @@ import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
 
-export const Route = createFileRoute("/_shell/bonos")({ component: BonosPage });
-
-function BonosPage() {
+export function BonosPanel() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
@@ -190,14 +187,11 @@ function BonosPage() {
   }
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="space-y-4">
       {dialog}
       <div className="flex items-center justify-between gap-4">
-        <h1 className="text-2xl font-display font-semibold">Bonos</h1>
-        <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
-      </div>
-      <div className="flex items-center">
         <ExpandableSearch value={q} onChange={setQ} />
+        <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
