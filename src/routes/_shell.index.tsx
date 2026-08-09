@@ -99,7 +99,7 @@ function AgendaPage() {
             ? ""
             : dispView === "dia"
               ? DOW[date.getDay()]
-              : "Reservas";
+              : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
