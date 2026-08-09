@@ -248,17 +248,15 @@ function FacturacionPage() {
           <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
           <SelectContent>{availableYears.map((y) => <SelectItem key={y} value={String(y)}>{y}</SelectItem>)}</SelectContent>
         </Select>
-        <div className="ml-auto rounded-lg border bg-card px-4 py-2">
-          <span className="text-xs text-muted-foreground">{searchNorm ? "Total filtrado: " : isYear ? "Total año: " : "Total mes: "}</span>
-          <span className="font-semibold">{(searchNorm ? filteredTotal : total).toFixed(2)} €</span>
-        </div>
-      </div>
-      <div className="flex items-center">
         <ExpandableSearch
           value={search}
           onChange={setSearch}
           placeholder="Buscar factura por cliente..."
         />
+        <div className="ml-auto rounded-lg border bg-card px-4 py-2">
+          <span className="text-xs text-muted-foreground">{searchNorm ? "Total filtrado: " : isYear ? "Total año: " : "Total mes: "}</span>
+          <span className="font-semibold">{(searchNorm ? filteredTotal : total).toFixed(2)} €</span>
+        </div>
       </div>
       <div className="rounded-lg border bg-card">
         <Table>
