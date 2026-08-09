@@ -264,9 +264,10 @@ function ClientesPage() {
         </div>
         ) : null}
       </div>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos")}>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="bonos">Bonos</TabsTrigger>
           <TabsTrigger value="accesos">Accesos</TabsTrigger>
         </TabsList>
         <TabsContent value="clientes" className="space-y-4">
