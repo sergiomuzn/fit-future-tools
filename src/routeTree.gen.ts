@@ -16,7 +16,6 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
-import { Route as ShellSesionesRouteImport } from './routes/_shell.sesiones'
 import { Route as ShellGruposRouteImport } from './routes/_shell.grupos'
 import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
 import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
@@ -59,11 +58,6 @@ const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
   id: '/invitacion/$codigo',
   path: '/invitacion/$codigo',
   getParentRoute: () => rootRouteImport,
-} as any)
-const ShellSesionesRoute = ShellSesionesRouteImport.update({
-  id: '/sesiones',
-  path: '/sesiones',
-  getParentRoute: () => ShellRoute,
 } as any)
 const ShellGruposRoute = ShellGruposRouteImport.update({
   id: '/grupos',
@@ -120,7 +114,6 @@ export interface FileRoutesByFullPath {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/grupos': typeof ShellGruposRoute
-  '/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -136,7 +129,6 @@ export interface FileRoutesByTo {
   '/estadisticas': typeof ShellEstadisticasRoute
   '/facturacion': typeof ShellFacturacionRoute
   '/grupos': typeof ShellGruposRoute
-  '/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
@@ -155,7 +147,6 @@ export interface FileRoutesById {
   '/_shell/estadisticas': typeof ShellEstadisticasRoute
   '/_shell/facturacion': typeof ShellFacturacionRoute
   '/_shell/grupos': typeof ShellGruposRoute
-  '/_shell/sesiones': typeof ShellSesionesRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
@@ -175,7 +166,6 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/grupos'
-    | '/sesiones'
     | '/invitacion/$codigo'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -191,7 +181,6 @@ export interface FileRouteTypes {
     | '/estadisticas'
     | '/facturacion'
     | '/grupos'
-    | '/sesiones'
     | '/invitacion/$codigo'
     | '/'
     | '/api/public/webhooks/claspass'
@@ -209,7 +198,6 @@ export interface FileRouteTypes {
     | '/_shell/estadisticas'
     | '/_shell/facturacion'
     | '/_shell/grupos'
-    | '/_shell/sesiones'
     | '/invitacion/$codigo'
     | '/_shell/'
     | '/api/public/webhooks/claspass'
@@ -278,13 +266,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InvitacionCodigoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_shell/sesiones': {
-      id: '/_shell/sesiones'
-      path: '/sesiones'
-      fullPath: '/sesiones'
-      preLoaderRoute: typeof ShellSesionesRouteImport
-      parentRoute: typeof ShellRoute
-    }
     '/_shell/grupos': {
       id: '/_shell/grupos'
       path: '/grupos'
@@ -351,7 +332,6 @@ interface ShellRouteChildren {
   ShellEstadisticasRoute: typeof ShellEstadisticasRoute
   ShellFacturacionRoute: typeof ShellFacturacionRoute
   ShellGruposRoute: typeof ShellGruposRoute
-  ShellSesionesRoute: typeof ShellSesionesRoute
   ShellIndexRoute: typeof ShellIndexRoute
 }
 
@@ -362,7 +342,6 @@ const ShellRouteChildren: ShellRouteChildren = {
   ShellEstadisticasRoute: ShellEstadisticasRoute,
   ShellFacturacionRoute: ShellFacturacionRoute,
   ShellGruposRoute: ShellGruposRoute,
-  ShellSesionesRoute: ShellSesionesRoute,
   ShellIndexRoute: ShellIndexRoute,
 }
 

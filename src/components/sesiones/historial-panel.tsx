@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, type Group, ESTADO_LABEL } from "@/lib/db";
@@ -30,9 +29,8 @@ const TIPO_CLASS: Record<string, string> = {
   gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
 };
 
-export const Route = createFileRoute("/_shell/sesiones")({ component: SesionesPage });
 
-function SesionesPage() {
+export function HistorialPanel() {
   const qc = useQueryClient();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
@@ -154,7 +152,7 @@ function SesionesPage() {
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-2">
-        <h1 className="text-2xl font-display font-semibold">Sesiones realizadas</h1>
+        <h1 className="text-2xl font-display font-semibold">Historial</h1>
         <div className="flex items-center gap-2">
           <ExpandableSearch
             value={search}
