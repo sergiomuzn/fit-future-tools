@@ -268,5 +268,5 @@
   margin-bottom: calc(-1.5rem - 100vh);
   padding-bottom: calc(1.5rem + 100vh);
   box-shadow: -100vw 0 0 var(--background), 100vw 0 0 var(--background);
-  clip-path: inset(0 -100vw 0 0);
+  clip-path: inset(0 -100vw 0 -100vw);
 }
