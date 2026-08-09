@@ -8,6 +8,7 @@ import { AgendaGrid } from "@/components/agenda/agenda-grid";
 import { WeekView, startOfWeek } from "@/components/agenda/week-view";
 import { MonthView } from "@/components/agenda/month-view";
 import { DisponibilidadView } from "@/components/agenda/disponibilidad-view";
+import { HistorialPanel } from "@/components/sesiones/historial-panel";
 import { abreviatura, slotColorClasses } from "@/components/agenda/slots-week-grid";
 import { useServicios } from "@/lib/servicios";
 import { useAgendaDate } from "@/lib/agenda-context";
@@ -27,7 +28,7 @@ const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto
 function AgendaPage() {
   const { date, setDate } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
-  const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad">("dia");
+  const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
@@ -94,25 +95,30 @@ function AgendaPage() {
         ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
         : view === "mes"
           ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
-          : dispView === "dia"
-            ? DOW[date.getDay()]
-            : "Horario disponible";
+          : view === "historial"
+            ? ""
+            : dispView === "dia"
+              ? DOW[date.getDay()]
+              : "Reservas";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <header className="sticky top-0 z-30 bg-muted px-4 pt-3 pb-0 min-h-[60px] overflow-x-hidden flex items-end justify-between gap-3">
         <div className="flex items-end gap-3">
           <Tabs
-            value={view === "disponibilidad" ? "disponibilidad" : "agenda"}
-            onValueChange={(v) => setView(v === "disponibilidad" ? "disponibilidad" : "dia")}
+            value={view === "disponibilidad" ? "disponibilidad" : view === "historial" ? "historial" : "agenda"}
+            onValueChange={(v) =>
+              setView(v === "disponibilidad" ? "disponibilidad" : v === "historial" ? "historial" : "dia")
+            }
           >
             <TabsList className="h-8">
               <TabsTrigger value="agenda" className="text-xs">Agenda</TabsTrigger>
-              <TabsTrigger value="disponibilidad" className="text-xs">Horario disponible</TabsTrigger>
+              <TabsTrigger value="disponibilidad" className="text-xs">Reservas</TabsTrigger>
+              <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
             </TabsList>
           </Tabs>
           <div className="flex min-h-9 items-center gap-3 pb-2">
-          {(view !== "disponibilidad" || dispView === "dia") && (
+          {view !== "historial" && (view !== "disponibilidad" || dispView === "dia") && (
             <>
               {view !== "disponibilidad" && (
                 <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
@@ -124,7 +130,7 @@ function AgendaPage() {
           <div className="font-display text-lg font-semibold capitalize whitespace-nowrap">
             {headerLabel}
           </div>
-          {view !== "disponibilidad" ? (
+          {view === "historial" ? null : view !== "disponibilidad" ? (
              <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
               <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
                 <SelectValue />
