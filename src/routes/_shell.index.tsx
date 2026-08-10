@@ -26,9 +26,14 @@ const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado
 const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 function AgendaPage() {
-  const { date, setDate } = useAgendaDate();
+  const { date, setDate, agendaTabRequest } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
+  useEffect(() => {
+    if (agendaTabRequest > 0) {
+      setView((v) => (v === "disponibilidad" || v === "historial" ? "dia" : v));
+    }
+  }, [agendaTabRequest]);
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
