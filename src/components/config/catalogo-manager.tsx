@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo, useCallback, useEffect } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, GripVertical } from "lucide-react";
 import { supabase, prettyBonoNombre, formatTipoBono, type BonoCatalogo } from "@/lib/db";
@@ -105,7 +105,7 @@ function TipoSelect({
   );
 }
 
-function SortableRow({
+const SortableRow = memo(function SortableRow({
   c,
   i,
   sortedLength,
@@ -137,8 +137,9 @@ function SortableRow({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? undefined : transition,
     opacity: isDragging ? 0.5 : 1,
+    willChange: "transform" as const,
   };
 
   return (
@@ -183,7 +184,7 @@ function SortableRow({
       </TableCell>
     </TableRow>
   );
-}
+});
 
 export function CatalogoManager() {
   const { confirm, dialog } = useConfirm();
