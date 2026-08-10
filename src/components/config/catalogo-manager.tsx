@@ -346,7 +346,7 @@ export function CatalogoManager() {
         <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
-          measuring={{ droppable: { strategy: MeasuringStrategy.Always } }}
+          measuring={{ droppable: { strategy: MeasuringStrategy.WhileDragging } }}
           onDragEnd={handleDragEnd}
         >
           <Table>
@@ -362,7 +362,7 @@ export function CatalogoManager() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              <SortableContext items={sorted.map((c) => c.id)} strategy={verticalListSortingStrategy}>
+              <SortableContext items={sortedIds} strategy={verticalListSortingStrategy}>
                 {sorted.map((c, i) => (
                   <SortableRow
                     key={c.id}
