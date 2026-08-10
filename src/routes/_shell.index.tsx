@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
@@ -26,9 +26,14 @@ const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado
 const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 function AgendaPage() {
-  const { date, setDate } = useAgendaDate();
+  const { date, setDate, agendaTabRequest } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
+  useEffect(() => {
+    if (agendaTabRequest > 0) {
+      setView((v) => (v === "disponibilidad" || v === "historial" ? "dia" : v));
+    }
+  }, [agendaTabRequest]);
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
