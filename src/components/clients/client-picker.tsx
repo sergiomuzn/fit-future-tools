@@ -71,7 +71,7 @@ export function ClientPicker({ value, onChange, autoFocus }: Props) {
   }
 
   async function saveNew() {
-    const nombre = (draft.nombre ?? "").trim();
+    const nombre = formatNameTitle((draft.nombre ?? "").trim());
     if (!nombre) { toast.error("Nombre requerido"); return; }
     const { data, error } = await supabase.from("clients").insert({
       nombre,

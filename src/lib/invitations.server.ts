@@ -1,3 +1,4 @@
+import { formatNameTitle } from "@/lib/utils";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { AccesoCliente, BonoTipoCliente } from "./client-portal-types";
 
@@ -39,7 +40,7 @@ export async function acceptInvitation(input: {
   const check = await checkInvitation(input.code);
   if (!check.ok) return { ok: false, error: "El enlace de invitación no es válido o ha caducado" };
 
-  const fullName = `${input.nombre} ${input.apellido}`.trim();
+  const fullName = formatNameTitle(`${input.nombre} ${input.apellido}`.trim());
 
   const { data: invitation } = await supabaseAdmin
     .from("client_invitations")
