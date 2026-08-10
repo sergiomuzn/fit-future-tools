@@ -29,6 +29,7 @@ import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
 
@@ -47,6 +48,7 @@ function ClientesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
+  const [fServicio, setFServicio] = useState<string>("todos");
   const [fDesde, setFDesde] = useState("");
   const [fHasta, setFHasta] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -85,13 +87,22 @@ function ClientesPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
+  const serviciosByClient = new Map<string, string[]>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
     if (b.bono_catalogo_id) {
-      const t = catMap.get(b.bono_catalogo_id)?.tipo;
+      const cat = catMap.get(b.bono_catalogo_id);
+      const t = cat?.tipo;
       if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+      const slug = cat?.servicio_slug;
+      if (slug) {
+        const prev = serviciosByClient.get(b.client_id) ?? [];
+        if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
+      }
     }
   }
+  const { data: servicios = [] } = useServicios();
+  const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
   const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const TIPO_CLASS: Record<string, string> = {
     prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
@@ -111,6 +122,7 @@ function ClientesPage() {
       if (fEstado === "activo" && !c.activo) return false;
       if (fEstado === "inactivo" && c.activo) return false;
       if (fTipo !== "todos" && (tipoByClient.get(c.id) ?? "") !== fTipo) return false;
+      if (fServicio !== "todos" && !(serviciosByClient.get(c.id) ?? []).includes(fServicio)) return false;
       if (fDesde && (!c.fecha_inicio || c.fecha_inicio < fDesde)) return false;
       if (fHasta && (!c.fecha_inicio || c.fecha_inicio > fHasta)) return false;
       return true;
@@ -244,6 +256,7 @@ function ClientesPage() {
                 onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
                   Nombre: formatNameTitle(c.nombre),
                   "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
+                  Servicio: (serviciosByClient.get(c.id) ?? []).map(nombreServicio).join(", "),
                   Estado: c.activo ? "Activo" : "Inactivo",
                   Teléfono: c.telefono ?? "",
                   Email: c.email ?? "",
@@ -310,6 +323,18 @@ function ClientesPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
+            <Label>Servicio</Label>
+            <Select value={fServicio} onValueChange={setFServicio}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {servicios.map((s) => (
+                  <SelectItem key={s.slug} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Desde (fecha inicio)</Label>
             <Input type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} />
           </div>
@@ -319,7 +344,7 @@ function ClientesPage() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFDesde(""); setFHasta(""); }}
+            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); setFDesde(""); setFHasta(""); }}
           >
             Limpiar filtros
           </Button>
@@ -330,6 +355,7 @@ function ClientesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Servicio</TableHead>
               <TableHead>Tipo de bono</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha inicio</TableHead>
@@ -343,6 +369,21 @@ function ClientesPage() {
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
                   <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const ss = serviciosByClient.get(c.id) ?? [];
+                    if (ss.length === 0) return <span className="text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {ss.map((s) => (
+                          <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                            {nombreServicio(s)}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   {(() => {
@@ -363,7 +404,7 @@ function ClientesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
