@@ -185,7 +185,7 @@ export function AccesosPanel() {
             <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="w-64" />
           </div>
           <div className="space-y-1.5">
-            <Label>Acceso (servicios)</Label>
+            <Label>Acceso&nbsp; a Servicio</Label>
             <div className="flex min-h-9 flex-wrap items-center gap-4">
               {servicios.length === 0 && (
                 <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
