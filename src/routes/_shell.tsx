@@ -60,7 +60,7 @@ function ShellLayout() {
 
 function ShellInner() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { date, setDate } = useAgendaDate();
+  const { date, setDate, requestAgendaTab } = useAgendaDate();
   const [month, setMonth] = useState(() => new Date(date.getFullYear(), date.getMonth(), 1));
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -112,6 +112,7 @@ function ShellInner() {
                 onSelect={(d) => {
                   setDate(d);
                   setMonth(new Date(d.getFullYear(), d.getMonth(), 1));
+                  requestAgendaTab();
                   if (pathname !== "/") navigate({ to: "/" });
                 }}
                 month={month}
