@@ -199,20 +199,21 @@ export function CatalogoManager() {
   });
 
   const [drafts, setDrafts] = useState<Record<string, DraftRow>>({});
+  const [orderOverride, setOrderOverride] = useState<string[] | null>(null);
   const [adding, setAdding] = useState(false);
   const [nuevo, setNuevo] = useState<{ nombre: string; tipo: string; servicio: string; sesiones_incluidas: string; precio: string }>({
     nombre: "", tipo: "individual", servicio: "personal", sesiones_incluidas: "1", precio: "0",
   });
 
-  function getVal(c: BonoCatalogo, field: DraftField) {
+  const getVal = useCallback((c: BonoCatalogo, field: DraftField) => {
     const d = drafts[c.id];
     if (d) return d[field];
     if (field === "precio") return String(c.precio);
     if (field === "sesiones") return String(c.sesiones_incluidas);
     if (field === "servicio") return c.servicio_slug ?? "personal";
     return c.tipo;
-  }
-  function setVal(c: BonoCatalogo, field: DraftField, v: string) {
+  }, [drafts]);
+  const setVal = useCallback((c: BonoCatalogo, field: DraftField, v: string) => {
     if (field === "precio" || field === "sesiones") v = v.replace(/^0+(?=\d)/, "");
     setDrafts((prev) => ({
       ...prev,
@@ -223,7 +224,7 @@ export function CatalogoManager() {
         servicio: field === "servicio" ? v : prev[c.id]?.servicio ?? (c.servicio_slug ?? "personal"),
       },
     }));
-  }
+  }, []);
   async function saveAll() {
     const entries = Object.entries(drafts);
     if (entries.length === 0) return;
@@ -249,13 +250,13 @@ export function CatalogoManager() {
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
     toast.success("Cambios guardados");
   }
-  async function removeRow(c: BonoCatalogo) {
+  const removeRow = useCallback(async (c: BonoCatalogo) => {
     if (!(await confirm({ title: `¿Eliminar "${prettyBonoNombre(c.nombre)}"?`, description: "Esta acción no se puede deshacer." }))) return;
     const { error } = await supabase.from("bonos_catalogo").delete().eq("id", c.id);
     if (error) { toast.error(error.message); return; }
     qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
     toast.success("Bono eliminado");
-  }
+  }, [confirm, qc]);
   async function addRow() {
     if (!nuevo.nombre.trim()) { toast.error("Nombre requerido"); return; }
     const sesiones = Number(nuevo.sesiones_incluidas);
@@ -277,7 +278,16 @@ export function CatalogoManager() {
     setAdding(false);
   }
 
-  const sorted = [...catalogo].sort((a, b) => a.orden - b.orden);
+  const sorted = useMemo(() => {
+    const base = [...catalogo].sort((a, b) => a.orden - b.orden);
+    if (!orderOverride) return base;
+    const byId = new Map(base.map((c) => [c.id, c]));
+    const out: BonoCatalogo[] = [];
+    for (const id of orderOverride) { const c = byId.get(id); if (c) { out.push(c); byId.delete(id); } }
+    for (const c of base) if (byId.has(c.id)) out.push(c);
+    return out;
+  }, [catalogo, orderOverride]);
+  const sortedIds = useMemo(() => sorted.map((c) => c.id), [sorted]);
   const dirtyCount = Object.keys(drafts).length;
   const tipoOptions = useMemo(() => {
     const s = new Set<string>(BUILTIN_TIPOS);
@@ -289,7 +299,7 @@ export function CatalogoManager() {
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   );
 
-  async function handleDragEnd(event: DragEndEvent) {
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
@@ -298,6 +308,8 @@ export function CatalogoManager() {
     if (oldIndex === -1 || newIndex === -1) return;
 
     const newSorted = arrayMove(sorted, oldIndex, newIndex);
+    // Actualización optimista: la UI se reordena al instante
+    setOrderOverride(newSorted.map((c) => c.id));
 
     // Reasignar orden = índice + 1 y filtrar los que cambiaron (comparando por id)
     const prevOrden = new Map(sorted.map((c) => [c.id, c.orden]));
@@ -314,13 +326,14 @@ export function CatalogoManager() {
 
     const errors = results.filter((r) => r.error);
     if (errors.length > 0) {
+      setOrderOverride(null);
       toast.error("Error al reordenar");
       return;
     }
 
-    qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
-    toast.success("Orden actualizado");
-  }
+    await qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+    setOrderOverride(null);
+  }, [sorted, qc]);
 
   return (
     <Card>
