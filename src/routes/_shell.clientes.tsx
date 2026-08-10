@@ -256,6 +256,7 @@ function ClientesPage() {
                 onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
                   Nombre: formatNameTitle(c.nombre),
                   "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
+                  Servicio: (serviciosByClient.get(c.id) ?? []).map(nombreServicio).join(", "),
                   Estado: c.activo ? "Activo" : "Inactivo",
                   Teléfono: c.telefono ?? "",
                   Email: c.email ?? "",
