@@ -1,4 +1,5 @@
 import * as XLSX from "xlsx";
+import { formatNameTitle } from "@/lib/utils";
 
 export async function readXlsxRows(file: File): Promise<Record<string, unknown>[]> {
   const buf = await file.arrayBuffer();
@@ -61,7 +62,7 @@ export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[]
       .trim();
     if (!nombre) continue;
     out.push({
-      nombre,
+      nombre: formatNameTitle(nombre),
       telefono: pick(row, ["telefono", "tlf", "movil", "phone"]) || null,
       email: pick(row, ["email", "correo", "e-mail"]) || null,
       fecha_inicio: toDate(pick(row, ["fecha inicio", "fecha de inicio", "alta", "fecha_inicio"])),
