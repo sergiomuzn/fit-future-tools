@@ -231,7 +231,9 @@ export function AccesosPanel() {
       <Tabs defaultValue="invitaciones">
         <TabsList>
           <TabsTrigger value="invitaciones">Invitaciones ({invitations.length})</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes con acceso ({profiles.length})</TabsTrigger>
+          <TabsTrigger value="clientes">
+            Clientes con acceso ({profiles.filter((p) => p.activo).length})
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="invitaciones" className="mt-3 space-y-2">
