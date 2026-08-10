@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, Plus, Ban, Trash2, RotateCcw } from "lucide-react";
+import { Copy, Plus, Ban, Trash2, RotateCcw, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
   type AccesoCliente,
 } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
+import { InvitarClientesDialog } from "./invitar-clientes-dialog";
 
 type Invitation = {
   id: string;
@@ -58,6 +59,7 @@ export function AccesosPanel() {
   const [email, setEmail] = useState("");
   const { data: servicios = [] } = useServicios();
   const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const acceso: string | null =
     seleccion.length === 0
       ? null
@@ -173,7 +175,12 @@ export function AccesosPanel() {
     <div className="space-y-4">
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Nueva invitación</CardTitle>
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="text-base">Nueva invitación</CardTitle>
+            <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBulkOpen(true)}>
+              <Users className="h-4 w-4" /> Invitar clientes
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="flex flex-wrap items-end gap-3">
           <div className="space-y-1.5">
@@ -218,6 +225,8 @@ export function AccesosPanel() {
           <p className="w-full text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</p>
         </CardContent>
       </Card>
+
+      <InvitarClientesDialog open={bulkOpen} onOpenChange={setBulkOpen} />
 
       <Tabs defaultValue="invitaciones">
         <TabsList>
