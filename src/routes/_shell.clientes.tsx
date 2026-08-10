@@ -48,6 +48,7 @@ function ClientesPage() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
+  const [fServicio, setFServicio] = useState<string>("todos");
   const [fDesde, setFDesde] = useState("");
   const [fHasta, setFHasta] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -86,13 +87,22 @@ function ClientesPage() {
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
+  const serviciosByClient = new Map<string, string[]>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
     if (b.bono_catalogo_id) {
-      const t = catMap.get(b.bono_catalogo_id)?.tipo;
+      const cat = catMap.get(b.bono_catalogo_id);
+      const t = cat?.tipo;
       if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+      const slug = cat?.servicio_slug;
+      if (slug) {
+        const prev = serviciosByClient.get(b.client_id) ?? [];
+        if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
+      }
     }
   }
+  const { data: servicios = [] } = useServicios();
+  const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
   const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const TIPO_CLASS: Record<string, string> = {
     prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
@@ -112,6 +122,7 @@ function ClientesPage() {
       if (fEstado === "activo" && !c.activo) return false;
       if (fEstado === "inactivo" && c.activo) return false;
       if (fTipo !== "todos" && (tipoByClient.get(c.id) ?? "") !== fTipo) return false;
+      if (fServicio !== "todos" && !(serviciosByClient.get(c.id) ?? []).includes(fServicio)) return false;
       if (fDesde && (!c.fecha_inicio || c.fecha_inicio < fDesde)) return false;
       if (fHasta && (!c.fecha_inicio || c.fecha_inicio > fHasta)) return false;
       return true;
