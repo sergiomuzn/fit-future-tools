@@ -75,20 +75,3 @@ export function fuzzyMatch(text: string | null | undefined, query: string): bool
   }
   return false;
 }
-
-/** Formatea un nombre con la primera letra de cada palabra en mayúscula. */
-export function toTitleCase(input: string): string {
-  return input
-    .trim()
-    .replace(/\s+/g, " ")
-    .split(" ")
-    .map((word) =>
-      word
-        .split("-")
-        .map((part) =>
-          part ? part.charAt(0).toLocaleUpperCase("es") + part.slice(1).toLocaleLowerCase("es") : part
-        )
-        .join("-")
-    )
-    .join(" ");
-}
