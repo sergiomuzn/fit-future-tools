@@ -29,6 +29,7 @@ import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
 
