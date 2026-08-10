@@ -139,7 +139,7 @@ export function InvitarClientesDialog({
                 <MailX className="h-3.5 w-3.5" /> {pendientes} pendientes de envío manual
               </Badge>
             </div>
-            <ScrollArea className="max-h-80">
+            <ScrollArea className="h-80">
               <div className="space-y-2 pr-3">
                 {resultados.map((r) => (
                   <div
@@ -193,7 +193,7 @@ export function InvitarClientesDialog({
               <span className="text-xs text-muted-foreground">{seleccionados.length} seleccionados</span>
             </div>
 
-            <ScrollArea className="max-h-80 rounded-md border">
+            <ScrollArea className="h-80 rounded-md border">
               <div className="divide-y">
                 {isLoading && <p className="p-3 text-sm text-muted-foreground">Cargando…</p>}
                 {!isLoading && clientes.length === 0 && (
