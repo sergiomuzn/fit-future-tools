@@ -323,6 +323,18 @@ function ClientesPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
+            <Label>Servicio</Label>
+            <Select value={fServicio} onValueChange={setFServicio}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {servicios.map((s) => (
+                  <SelectItem key={s.slug} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Desde (fecha inicio)</Label>
             <Input type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} />
           </div>
@@ -332,7 +344,7 @@ function ClientesPage() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFDesde(""); setFHasta(""); }}
+            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); setFDesde(""); setFHasta(""); }}
           >
             Limpiar filtros
           </Button>
@@ -343,6 +355,7 @@ function ClientesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
+              <TableHead>Servicio</TableHead>
               <TableHead>Tipo de bono</TableHead>
               <TableHead>Teléfono</TableHead>
               <TableHead>Fecha inicio</TableHead>
@@ -356,6 +369,21 @@ function ClientesPage() {
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
                   <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
+                </TableCell>
+                <TableCell>
+                  {(() => {
+                    const ss = serviciosByClient.get(c.id) ?? [];
+                    if (ss.length === 0) return <span className="text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex flex-wrap gap-1">
+                        {ss.map((s) => (
+                          <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                            {nombreServicio(s)}
+                          </span>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </TableCell>
                 <TableCell>
                   {(() => {
@@ -376,7 +404,7 @@ function ClientesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
