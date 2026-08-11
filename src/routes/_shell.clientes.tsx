@@ -248,7 +248,28 @@ function ClientesPage() {
             </UITooltip>
           </TooltipProvider>
         </div>
-        {tab === "clientes" ? (
+      </div>
+      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
+        <TabsList>
+          <TabsTrigger value="clientes">Clientes</TabsTrigger>
+          <TabsTrigger value="bonos">Bonos</TabsTrigger>
+          <TabsTrigger value="accesos">Accesos</TabsTrigger>
+        </TabsList>
+<TabsContent value="clientes" className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-2">
+          <ExpandableSearch value={q} onChange={setQ} />
+          <Button
+            variant={filtersOpen ? "secondary" : "outline"}
+            size="icon"
+            aria-label="Filtrar"
+            title="Filtrar"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
+          {columnsMenu}
+        </div>
         <div className="flex items-center gap-2">
           <input
             ref={fileRef}
@@ -292,27 +313,6 @@ function ClientesPage() {
             <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
           </Button>
         </div>
-        ) : null}
-      </div>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
-        <TabsList>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
-          <TabsTrigger value="bonos">Bonos</TabsTrigger>
-          <TabsTrigger value="accesos">Accesos</TabsTrigger>
-        </TabsList>
-        <TabsContent value="clientes" className="space-y-4">
-      <div className="flex items-center gap-2">
-        <ExpandableSearch value={q} onChange={setQ} />
-        <Button
-          variant={filtersOpen ? "secondary" : "outline"}
-          size="icon"
-          aria-label="Filtrar"
-          title="Filtrar"
-          onClick={() => setFiltersOpen((v) => !v)}
-        >
-          <SlidersHorizontal className="h-4 w-4" />
-        </Button>
-        {columnsMenu}
       </div>
       {filtersOpen && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end rounded-lg border bg-card p-3">
