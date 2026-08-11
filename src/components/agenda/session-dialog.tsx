@@ -362,6 +362,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
       group_id: grupo ? effectiveGroupId : null,
+      // Servicio al que pertenece la sesión: determina de qué bono se descuenta.
+      servicio_slug:
+        servicioSlug ||
+        (grupo ? (servicioGrupo?.slug ?? null) : (servicioIndividual?.slug ?? null)),
     };
     // Auto-realizada si la sesión reservada es pasada (con 15 min de margen tras la hora de fin).
     // - "Prueba" se respeta siempre, aunque sea pasada.
