@@ -20,11 +20,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useColumnVisibility } from "@/components/columns-menu";
+
+const BONO_COLUMNS = [
+  { key: "servicio", label: "Servicio" },
+  { key: "tipo", label: "Tipo de bono" },
+  { key: "teoricas", label: "Teóricas" },
+  { key: "realizadas", label: "Realizadas" },
+  { key: "restantes", label: "Restantes" },
+  { key: "estado", label: "Estado" },
+  { key: "ultimo", label: "Último bono" },
+  { key: "fecha", label: "Última fecha" },
+];
 
 export function BonosPanel() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
+  const { show, menu: columnsMenu, visibleCount } = useColumnVisibility("bonos-columns", BONO_COLUMNS);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
@@ -201,7 +214,10 @@ export function BonosPanel() {
     <div className="space-y-4">
       {dialog}
       <div className="flex items-center justify-between gap-4">
-        <ExpandableSearch value={q} onChange={setQ} />
+        <div className="flex items-center gap-2">
+          <ExpandableSearch value={q} onChange={setQ} />
+          {columnsMenu}
+        </div>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
       <div className="rounded-lg border bg-card">
