@@ -80,7 +80,7 @@ export function HorarioForm() {
         })}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocal(DEFAULT_HORARIO)}>Restablecer defaults</Button>
-          <Button onClick={save} disabled={!dirty}>Guardar horario</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
     </Card>

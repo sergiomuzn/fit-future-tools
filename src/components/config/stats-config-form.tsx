@@ -83,7 +83,7 @@ export function StatsConfigForm() {
             ))}
           </div>
           <div className="flex items-center gap-2 pt-2">
-            <Button onClick={save} disabled={!dirty}>Guardar cambios</Button>
+            <Button onClick={save} disabled={!dirty}>Guardar</Button>
             <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
           </div>
         </CardContent>
@@ -164,7 +164,7 @@ export function StatsConfigForm() {
             </p>
           </UITooltipProvider>
           <div className="flex items-center gap-2 pt-2">
-            <Button onClick={save} disabled={!dirty}>Guardar cambios</Button>
+            <Button onClick={save} disabled={!dirty}>Guardar</Button>
             <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
             <Label className="text-xs text-muted-foreground ml-auto">
               La configuración se guarda en este navegador.

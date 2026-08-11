@@ -423,7 +423,7 @@ export function CatalogoManager() {
             </Button>
           ) : <span />}
           <Button onClick={saveAll} disabled={dirtyCount === 0}>
-            Guardar cambios{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
+            Guardar{dirtyCount > 0 ? ` (${dirtyCount})` : ""}
           </Button>
         </div>
       </CardContent>

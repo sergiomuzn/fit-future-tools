@@ -126,7 +126,7 @@ export function AccountForm() {
               />
             </div>
             <Button type="submit" disabled={!centroTouched || centroLoading}>
-              {centroLoading ? "Guardando..." : "Guardar nombre"}
+              {centroLoading ? "Guardando..." : "Guardar"}
             </Button>
           </form>
         </CardContent>
@@ -150,7 +150,7 @@ export function AccountForm() {
               <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
             </div>
             <Button type="submit" disabled={!newEmail || newEmail === currentEmail || emailLoading}>
-              {emailLoading ? "Enviando..." : "Solicitar cambio de email"}
+              {emailLoading ? "Guardando..." : "Guardar"}
             </Button>
           </form>
         </CardContent>
@@ -178,7 +178,7 @@ export function AccountForm() {
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={!currentPass || !newPass || !confirmPass || passLoading}>
-                {passLoading ? "Guardando..." : "Cambiar contraseña"}
+                {passLoading ? "Guardando..." : "Guardar"}
               </Button>
               <Button type="button" variant="outline" onClick={onSendReset} disabled={resetLoading}>
                 {resetLoading ? "Enviando..." : "¿Olvidaste tu contraseña?"}
