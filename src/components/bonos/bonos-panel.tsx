@@ -224,58 +224,89 @@ export function BonosPanel() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map((b) => (
-              (() => {
-              const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
-              const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
-              const noBono = !b.bono_catalogo_id;
-              return (
-              <TableRow key={b.id} className={b.activo ? "" : "opacity-60"}>
+            {grouped.map((g) => (
+              <TableRow key={g.clientId} className="align-top">
                 <TableCell className="font-medium">
-                  <button
-                    className="hover:underline text-left"
-                    onClick={() => setHistoryClient(clientMap.get(b.client_id) ?? null)}
-                  >
-                    {formatNameTitle(clientMap.get(b.client_id)?.nombre) ?? "?"}
-                  </button>
+                  <div className={SUB}>
+                    <button
+                      className="hover:underline text-left"
+                      onClick={() => setHistoryClient(clientMap.get(g.clientId) ?? null)}
+                    >
+                      {formatNameTitle(clientMap.get(g.clientId)?.nombre) ?? "?"}
+                    </button>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  {(() => {
+                  {g.bonos.map((b) => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
-                    if (!t) return <span className="text-muted-foreground">—</span>;
-                    const color = tipoColores[t] ?? "#888888";
+                    const color = t ? tipoColores[t] ?? "#888888" : null;
                     return (
-                      <span
-                        className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{ backgroundColor: `${color}26`, color }}
-                      >
-                        {TIPO_LABEL[t] ?? formatTipoBono(t)}
-                      </span>
+                      <div key={b.id} className={SUB}>
+                        {t && color ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${color}26`, color }}>
+                            {TIPO_LABEL[t] ?? formatTipoBono(t)}
+                          </span>
+                        ) : <span className="text-muted-foreground">—</span>}
+                      </div>
                     );
-                  })()}
+                  })}
                 </TableCell>
-                <TableCell>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</TableCell>
-                <TableCell>{b.sesiones_realizadas}</TableCell>
-                <TableCell className={!isGympass && !noBono && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}>{isGympass || noBono ? "—" : b.sesiones_disponibles}</TableCell>
                 <TableCell>
-                  {isGympass || noBono ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
-                  ) : b.sesiones_disponibles > 0 ? (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
-                  ) : (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
-                  )}
+                  {g.bonos.map((b) => {
+                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const isGympass = t === "gympass" || t === "grupal";
+                    const noBono = !b.bono_catalogo_id;
+                    return <div key={b.id} className={SUB}>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</div>;
+                  })}
                 </TableCell>
-                  <TableCell>{prettyBonoNombre(b.ultimo_bono_nombre)}</TableCell>
-                <TableCell>{b.ultimo_bono_fecha ?? "—"}</TableCell>
                 <TableCell>
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.sesiones_realizadas}</div>)}
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => {
+                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const isGympass = t === "gympass" || t === "grupal";
+                    const noBono = !b.bono_catalogo_id;
+                    return (
+                      <div key={b.id} className={`${SUB} ${!isGympass && !noBono && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}`}>
+                        {isGympass || noBono ? "—" : b.sesiones_disponibles}
+                      </div>
+                    );
+                  })}
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => {
+                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const isGympass = t === "gympass" || t === "grupal";
+                    const noBono = !b.bono_catalogo_id;
+                    const activo = isGympass || noBono || b.sesiones_disponibles > 0;
+                    return (
+                      <div key={b.id} className={SUB}>
+                        {activo ? (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
+                        ) : (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{prettyBonoNombre(b.ultimo_bono_nombre)}</div>)}
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.ultimo_bono_fecha ?? "—"}</div>)}
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => (
+                    <div key={b.id} className={SUB}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
                 </TableCell>
               </TableRow>
-              );
-              })()
             ))}
-            {filtered.length === 0 && (
+            {grouped.length === 0 && (
               <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
