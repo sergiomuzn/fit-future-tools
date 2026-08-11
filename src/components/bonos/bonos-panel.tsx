@@ -127,7 +127,18 @@ export function BonosPanel() {
   });
 
   const visible = sorted.filter((b) => {
-    if (!b.activo) return false;
+    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+    const isGympass = t === "gympass" || t === "grupal";
+    const noBono = !b.bono_catalogo_id;
+    const activo = isGympass || noBono || b.sesiones_disponibles > 0;
+
+    if (fEstado === "activo" && !activo) return false;
+    if (fEstado === "agotado" && activo) return false;
+    if (fTipo !== "todos" && t !== fTipo) return false;
+    if (fServicio !== "todos") {
+      const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+      if (slug !== fServicio) return false;
+    }
     return true;
   });
 
