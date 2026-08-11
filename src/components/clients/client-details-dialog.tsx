@@ -101,14 +101,14 @@ export function ClientDetailsDialog({
                       const cat = catMap.get(b.bono_catalogo_id ?? "");
                       return (
                         <TableRow key={b.id}>
-                          <TableCell>{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
-                          <TableCell>{cat?.servicio_slug ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                          <TableCell className="whitespace-nowrap truncate max-w-[180px]">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
+                          <TableCell className="whitespace-nowrap">{cat?.servicio_slug ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border whitespace-nowrap">
                               {servMap.get(cat.servicio_slug) ?? cat.servicio_slug}
                             </span>
                           ) : "—"}</TableCell>
-                          <TableCell>{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]}`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
-                          <TableCell>{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
+                          <TableCell className="whitespace-nowrap">{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]} whitespace-nowrap`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
                           <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
                         </TableRow>
