@@ -83,7 +83,7 @@ export function StatsConfigForm() {
             ))}
           </div>
           <div className="flex items-center gap-2 pt-2">
-            <Button onClick={save}>Guardar cambios</Button>
+            <Button onClick={save} disabled={!dirty}>Guardar cambios</Button>
             <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
           </div>
         </CardContent>
