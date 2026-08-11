@@ -43,6 +43,10 @@ export function BonosPanel() {
   const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
   const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
+  const [fTipo, setFTipo] = useState<string>("todos");
+  const [fServicio, setFServicio] = useState<string>("todos");
   const [addOpen, setAddOpen] = useState(false);
   const [nuevo, setNuevo] = useState<{
     client_id: string | null;
