@@ -248,51 +248,6 @@ function ClientesPage() {
             </UITooltip>
           </TooltipProvider>
         </div>
-        {tab === "clientes" ? (
-        <div className="flex items-center gap-2">
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx,.xls,.csv"
-            className="hidden"
-            onChange={(e) => {
-              const f = e.target.files?.[0];
-              e.target.value = "";
-              if (f) void importClients(f);
-            }}
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Acciones" title="Acciones">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem
-                onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
-                  Nombre: formatNameTitle(c.nombre),
-                  "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
-                  Servicio: (serviciosByClient.get(c.id) ?? []).map(nombreServicio).join(", "),
-                  Estado: c.activo ? "Activo" : "Inactivo",
-                  Teléfono: c.telefono ?? "",
-                  Email: c.email ?? "",
-                  "Fecha inicio": c.fecha_inicio ?? "",
-                  "Fecha de nacimiento": c.cumpleanos ?? "",
-                  Notas: c.notas ?? "",
-                })), "Clientes")}
-              >
-                <Download className="h-4 w-4 mr-2" /> Exportar datos
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setImportOpen(true)}>
-                <Upload className="h-4 w-4 mr-2" /> Importar clientes
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button onClick={() => { setEditing({}); setOpen(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Nuevo cliente
-          </Button>
-        </div>
-        ) : null}
       </div>
       <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
         <TabsList>
