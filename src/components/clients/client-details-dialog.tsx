@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn, formatNameTitle } from "@/lib/utils";
+import { useServicios } from "@/lib/servicios";
 
 const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
 const TIPO_CLASS: Record<string, string> = {
@@ -38,6 +39,8 @@ export function ClientDetailsDialog({
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
+  const { data: servicios = [] } = useServicios();
+  const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
 
   const history = client
     ? bonos
@@ -86,6 +89,7 @@ export function ClientDetailsDialog({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Bono</TableHead>
+                      <TableHead>Servicio</TableHead>
                       <TableHead>Tipo</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Realizadas</TableHead>
@@ -98,6 +102,7 @@ export function ClientDetailsDialog({
                       return (
                         <TableRow key={b.id}>
                           <TableCell>{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
+                          <TableCell>{cat?.servicio_slug ? servMap.get(cat.servicio_slug) ?? cat.servicio_slug : "—"}</TableCell>
                           <TableCell>{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]}`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
                           <TableCell>{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
