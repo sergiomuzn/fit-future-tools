@@ -260,7 +260,7 @@ function ClientesPage() {
         <div className="flex items-center gap-2">
           <ExpandableSearch value={q} onChange={setQ} />
           <Button
-            variant={filtersOpen ? "secondary" : "outline"}
+            variant="ghost"
             size="icon"
             aria-label="Filtrar"
             title="Filtrar"
