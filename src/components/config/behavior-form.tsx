@@ -250,7 +250,7 @@ export function BehaviorForm() {
           Restaurar valores por defecto
         </Button>
         <Button onClick={save} disabled={!dirty}>
-          Guardar cambios
+          Guardar
         </Button>
       </div>
     </div>
