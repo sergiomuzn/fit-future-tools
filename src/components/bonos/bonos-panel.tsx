@@ -231,10 +231,64 @@ export function BonosPanel() {
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
           <ExpandableSearch value={q} onChange={setQ} />
+          <Button
+            variant={filtersOpen ? "secondary" : "outline"}
+            size="icon"
+            aria-label="Filtrar"
+            title="Filtrar"
+            onClick={() => setFiltersOpen((v) => !v)}
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+          </Button>
           {columnsMenu}
         </div>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
+      {filtersOpen && (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 items-end rounded-lg border bg-card p-3">
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Select value={fEstado} onValueChange={(v) => setFEstado(v as typeof fEstado)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="activo">Activo</SelectItem>
+                <SelectItem value="agotado">Agotado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Tipo de bono</Label>
+            <Select value={fTipo} onValueChange={setFTipo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {[...new Set(catalogo.map((c) => c.tipo))].map((t) => (
+                  <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? formatTipoBono(t)}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Servicio</Label>
+            <Select value={fServicio} onValueChange={setFServicio}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                {servicios.map((s) => (
+                  <SelectItem key={s.slug} value={s.slug}>{s.nombre}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <Button
+            variant="ghost"
+            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); }}
+          >
+            Limpiar filtros
+          </Button>
+        </div>
+      )}
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
