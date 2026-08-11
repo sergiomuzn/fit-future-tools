@@ -20,11 +20,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useColumnVisibility } from "@/components/columns-menu";
+
+const BONO_COLUMNS = [
+  { key: "servicio", label: "Servicio" },
+  { key: "tipo", label: "Tipo de bono" },
+  { key: "teoricas", label: "Teóricas" },
+  { key: "realizadas", label: "Realizadas" },
+  { key: "restantes", label: "Restantes" },
+  { key: "estado", label: "Estado" },
+  { key: "ultimo", label: "Último bono" },
+  { key: "fecha", label: "Última fecha" },
+];
 
 export function BonosPanel() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
+  const { show, menu: columnsMenu, visibleCount } = useColumnVisibility("bonos-columns", BONO_COLUMNS);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
@@ -201,7 +214,10 @@ export function BonosPanel() {
     <div className="space-y-4">
       {dialog}
       <div className="flex items-center justify-between gap-4">
-        <ExpandableSearch value={q} onChange={setQ} />
+        <div className="flex items-center gap-2">
+          <ExpandableSearch value={q} onChange={setQ} />
+          {columnsMenu}
+        </div>
         <Button onClick={() => setAddOpen(true)}><Plus className="h-4 w-4 mr-1" /> Nuevo bono</Button>
       </div>
       <div className="rounded-lg border bg-card">
@@ -213,24 +229,22 @@ export function BonosPanel() {
                   Nombre <ArrowUpDown className={`h-3 w-3 ${sortBy === "nombre" ? "text-foreground" : "opacity-40"}`} />
                 </button>
               </TableHead>
-              <TableHead>
-                Servicio
-              </TableHead>
-              <TableHead>
+              {show("servicio") && <TableHead>Servicio</TableHead>}
+              {show("tipo") && <TableHead>
                 <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("tipo")}>
                   Tipo de bono <ArrowUpDown className={`h-3 w-3 ${sortBy === "tipo" ? "text-foreground" : "opacity-40"}`} />
                 </button>
-              </TableHead>
-              <TableHead>Teóricas</TableHead>
-              <TableHead>Realizadas</TableHead>
-              <TableHead>Restantes</TableHead>
-              <TableHead>
+              </TableHead>}
+              {show("teoricas") && <TableHead>Teóricas</TableHead>}
+              {show("realizadas") && <TableHead>Realizadas</TableHead>}
+              {show("restantes") && <TableHead>Restantes</TableHead>}
+              {show("estado") && <TableHead>
                 <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("estado")}>
                   Estado <ArrowUpDown className={`h-3 w-3 ${sortBy === "estado" ? "text-foreground" : "opacity-40"}`} />
                 </button>
-              </TableHead>
-              <TableHead>Último bono</TableHead>
-              <TableHead>Última fecha</TableHead>
+              </TableHead>}
+              {show("ultimo") && <TableHead>Último bono</TableHead>}
+              {show("fecha") && <TableHead>Última fecha</TableHead>}
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
@@ -247,14 +261,18 @@ export function BonosPanel() {
                     </button>
                   </div>
                 </TableCell>
-                <TableCell>
+                {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
-                      {servicioDe(b) ?? <span className="text-muted-foreground">—</span>}
+                      {servicioDe(b) ? (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                          {servicioDe(b)}
+                        </span>
+                      ) : <span className="text-muted-foreground">—</span>}
                     </div>
                   ))}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("tipo") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
                     const color = t ? tipoColores[t] ?? "#888888" : null;
@@ -268,19 +286,19 @@ export function BonosPanel() {
                       </div>
                     );
                   })}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("teoricas") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
                     return <div key={b.id} className={SUB}>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</div>;
                   })}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("realizadas") && <TableCell>
                   {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.sesiones_realizadas}</div>)}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("restantes") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
@@ -291,8 +309,8 @@ export function BonosPanel() {
                       </div>
                     );
                   })}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("estado") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
@@ -308,13 +326,13 @@ export function BonosPanel() {
                       </div>
                     );
                   })}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("ultimo") && <TableCell>
                   {g.bonos.map((b) => <div key={b.id} className={SUB}>{prettyBonoNombre(b.ultimo_bono_nombre)}</div>)}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("fecha") && <TableCell>
                   {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.ultimo_bono_fecha ?? "—"}</div>)}
-                </TableCell>
+                </TableCell>}
                 <TableCell>
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
@@ -325,7 +343,7 @@ export function BonosPanel() {
               </TableRow>
             ))}
             {grouped.length === 0 && (
-              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
+              <TableRow><TableCell colSpan={visibleCount + 2} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
         </Table>

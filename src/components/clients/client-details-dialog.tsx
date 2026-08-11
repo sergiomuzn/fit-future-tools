@@ -102,7 +102,11 @@ export function ClientDetailsDialog({
                       return (
                         <TableRow key={b.id}>
                           <TableCell>{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
-                          <TableCell>{cat?.servicio_slug ? servMap.get(cat.servicio_slug) ?? cat.servicio_slug : "—"}</TableCell>
+                          <TableCell>{cat?.servicio_slug ? (
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                              {servMap.get(cat.servicio_slug) ?? cat.servicio_slug}
+                            </span>
+                          ) : "—"}</TableCell>
                           <TableCell>{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]}`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
                           <TableCell>{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
