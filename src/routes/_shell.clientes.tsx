@@ -372,12 +372,12 @@ function ClientesPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
-              <TableHead>Servicio</TableHead>
-              <TableHead>Tipo de bono</TableHead>
-              <TableHead>Teléfono</TableHead>
-              <TableHead>Fecha inicio</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Fecha de nacimiento</TableHead>
+              {show("servicio") && <TableHead>Servicio</TableHead>}
+              {show("tipo") && <TableHead>Tipo de bono</TableHead>}
+              {show("telefono") && <TableHead>Teléfono</TableHead>}
+              {show("inicio") && <TableHead>Fecha inicio</TableHead>}
+              {show("estado") && <TableHead>Estado</TableHead>}
+              {show("nacimiento") && <TableHead>Fecha de nacimiento</TableHead>}
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -387,7 +387,7 @@ function ClientesPage() {
                 <TableCell className="font-medium">
                   <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
                 </TableCell>
-                <TableCell>
+                {show("servicio") && <TableCell>
                   {(() => {
                     const rows = bonosByClient.get(c.id) ?? [];
                     if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
@@ -405,8 +405,8 @@ function ClientesPage() {
                       </div>
                     );
                   })()}
-                </TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("tipo") && <TableCell>
                   {(() => {
                     const rows = bonosByClient.get(c.id) ?? [];
                     if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
@@ -422,13 +422,13 @@ function ClientesPage() {
                       </div>
                     );
                   })()}
-                </TableCell>
-                <TableCell>{c.telefono ?? "—"}</TableCell>
-                <TableCell>{c.fecha_inicio ?? "—"}</TableCell>
-                <TableCell>
+                </TableCell>}
+                {show("telefono") && <TableCell>{c.telefono ?? "—"}</TableCell>}
+                {show("inicio") && <TableCell>{c.fecha_inicio ?? "—"}</TableCell>}
+                {show("estado") && <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
-                </TableCell>
-                <TableCell>{c.cumpleanos ?? "—"}</TableCell>
+                </TableCell>}
+                {show("nacimiento") && <TableCell>{c.cumpleanos ?? "—"}</TableCell>}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -436,7 +436,7 @@ function ClientesPage() {
               </TableRow>
             ))}
             {filtered.length === 0 && (
-              <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
+              <TableRow><TableCell colSpan={visibleCount + 2} className="text-center text-muted-foreground py-8">Sin clientes</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
