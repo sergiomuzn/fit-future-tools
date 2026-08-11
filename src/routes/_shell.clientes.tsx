@@ -32,6 +32,16 @@ import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
+import { useColumnVisibility } from "@/components/columns-menu";
+
+const CLIENT_COLUMNS = [
+  { key: "servicio", label: "Servicio" },
+  { key: "tipo", label: "Tipo de bono" },
+  { key: "telefono", label: "Teléfono" },
+  { key: "inicio", label: "Fecha inicio" },
+  { key: "estado", label: "Estado" },
+  { key: "nacimiento", label: "Fecha de nacimiento" },
+];
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -53,6 +63,7 @@ function ClientesPage() {
   const [fHasta, setFHasta] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const { show, menu: columnsMenu, visibleCount } = useColumnVisibility("clientes-columns", CLIENT_COLUMNS);
 
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
@@ -301,6 +312,7 @@ function ClientesPage() {
         >
           <SlidersHorizontal className="h-4 w-4" />
         </Button>
+        {columnsMenu}
       </div>
       {filtersOpen && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5 items-end rounded-lg border bg-card p-3">
