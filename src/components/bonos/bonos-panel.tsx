@@ -155,13 +155,7 @@ export function BonosPanel() {
     if (nuevo.sesiones_disponibles.trim() === "" || !Number.isFinite(sesiones)) {
       toast.error("Introduce un número de sesiones válido"); return;
     }
-    // Desactivar bono activo previo del cliente
-    const { error: deactErr } = await supabase
-      .from("client_bonos")
-      .update({ activo: false })
-      .eq("client_id", nuevo.client_id)
-      .eq("activo", true);
-    if (deactErr) { toast.error(deactErr.message); return; }
+    // Un cliente puede tener varios bonos activos a la vez: no se archiva el anterior.
     const { error } = await supabase.from("client_bonos").insert({
       client_id: nuevo.client_id,
       bono_catalogo_id: cat?.id ?? null,
