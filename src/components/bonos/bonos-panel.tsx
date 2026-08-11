@@ -122,6 +122,15 @@ export function BonosPanel() {
     ? exactBonos
     : visible.filter((b) => fuzzyMatch(clientMap.get(b.client_id)?.nombre ?? "", q));
 
+  // Agrupa los bonos por cliente: una sola fila por cliente con una sub-fila por bono.
+  const grouped: { clientId: string; bonos: ClientBono[] }[] = [];
+  for (const b of filtered) {
+    const g = grouped.find((x) => x.clientId === b.client_id);
+    if (g) g.bonos.push(b);
+    else grouped.push({ clientId: b.client_id, bonos: [b] });
+  }
+  const SUB = "h-9 flex items-center";
+
   async function save() {
     if (!editing) return;
     const selectedCatalogo = catalogo.find((c) => c.id === editing.bono_catalogo_id);
