@@ -149,7 +149,7 @@ export function AccountForm() {
               <Label htmlFor="new-email">Nuevo email</Label>
               <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={emailLoading}>
+            <Button type="submit" disabled={!newEmail || newEmail === currentEmail || emailLoading}>
               {emailLoading ? "Enviando..." : "Solicitar cambio de email"}
             </Button>
           </form>
