@@ -39,6 +39,8 @@ export function HorarioForm() {
     invalidate();
   }
 
+  const dirty = JSON.stringify(local) !== JSON.stringify(horario);
+
   return (
     <Card>
       <CardHeader><CardTitle>Horario base semanal</CardTitle></CardHeader>
@@ -78,7 +80,7 @@ export function HorarioForm() {
         })}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocal(DEFAULT_HORARIO)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar horario</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar horario</Button>
         </div>
       </CardContent>
     </Card>
