@@ -214,7 +214,6 @@ export function InvitarClientesDialog({
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
             <div className="space-y-1.5">
               <Label>Filtrar por servicio</Label>
               <Select value={fServicio} onValueChange={setFServicio}>
