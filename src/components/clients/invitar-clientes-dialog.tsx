@@ -216,16 +216,32 @@ export function InvitarClientesDialog({
 
             <div className="space-y-1.5">
               <Label>Filtrar por servicio</Label>
-              <Select value={fServicio} onValueChange={setFServicio}>
-                <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos los servicios</SelectItem>
-                  {servicios.map((s) => (
-                    <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
-                  ))}
-                  <SelectItem value="sin">Sin bono activo</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant={fServicio === "todos" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFServicio("todos")}
+                >
+                  Todos
+                </Button>
+                {servicios.map((s) => (
+                  <Button
+                    key={s.id}
+                    variant={fServicio === s.slug ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setFServicio(s.slug)}
+                  >
+                    {s.nombre}
+                  </Button>
+                ))}
+                <Button
+                  variant={fServicio === "sin" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setFServicio("sin")}
+                >
+                  Sin bono
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center justify-between">
