@@ -179,6 +179,7 @@ export function ColoresBonoForm() {
   }
 
   const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
+  const dirty = JSON.stringify(localColores) !== JSON.stringify(colores);
 
   return (
     <Card>
@@ -209,7 +210,7 @@ export function ColoresBonoForm() {
           </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
