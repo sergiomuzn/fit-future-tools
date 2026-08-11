@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,7 @@ export function InvitarClientesDialog({
   const { data: servicios = [] } = useServicios();
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [acceso, setAcceso] = useState<string[]>(["grupos"]);
+  const [fServicio, setFServicio] = useState<string>("todos");
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
@@ -59,13 +61,43 @@ export function InvitarClientesDialog({
     },
   });
 
+  const { data: serviciosPorCliente = new Map<string, string[]>() } = useQuery({
+    queryKey: ["servicios_por_cliente", open],
+    enabled: open,
+    queryFn: async () => {
+      const [{ data: cb }, { data: cat }] = await Promise.all([
+        supabase.from("client_bonos").select("client_id,bono_catalogo_id,activo"),
+        supabase.from("bonos_catalogo").select("id,servicio_slug"),
+      ]);
+      const catMap = new Map((cat ?? []).map((c) => [c.id, c.servicio_slug as string | null]));
+      const map = new Map<string, string[]>();
+      for (const b of cb ?? []) {
+        if (!b.activo || !b.bono_catalogo_id) continue;
+        const slug = catMap.get(b.bono_catalogo_id);
+        if (!slug) continue;
+        const prev = map.get(b.client_id) ?? [];
+        if (!prev.includes(slug)) map.set(b.client_id, [...prev, slug]);
+      }
+      return map;
+    },
+  });
+
+  const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+
+  const clientesFiltrados = useMemo(() => {
+    if (fServicio === "todos") return clientes;
+    if (fServicio === "sin") return clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).length === 0);
+    return clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).includes(fServicio));
+  }, [clientes, fServicio, serviciosPorCliente]);
+
   const accesoValue = useMemo(() => {
     if (acceso.length === 0) return null;
     if (acceso.includes("personal") && acceso.includes("grupos") && acceso.length === 2) return "ambos";
     return acceso.join(",");
   }, [acceso]);
 
-  const todosSeleccionados = clientes.length > 0 && seleccionados.length === clientes.length;
+  const todosSeleccionados =
+    clientesFiltrados.length > 0 && clientesFiltrados.every((c) => seleccionados.includes(c.id));
 
   const enviar = useMutation({
     mutationFn: async () => {
@@ -183,10 +215,25 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="flex items-center justify-between">
+            <div className="space-y-1.5">
+              <Label>Filtrar por servicio</Label>
+              <Select value={fServicio} onValueChange={setFServicio}>
+                <SelectTrigger className="w-[220px]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos los servicios</SelectItem>
+                  {servicios.map((s) => (
+                    <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                  ))}
+                  <SelectItem value="sin">Sin bono activo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center justify-between">
               <label className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={todosSeleccionados}
-                  onCheckedChange={(v) => setSeleccionados(v === true ? clientes.map((c) => c.id) : [])}
+                  onCheckedChange={(v) => setSeleccionados(v === true ? clientesFiltrados.map((c) => c.id) : [])}
                 />
                 Seleccionar todos
               </label>
@@ -196,12 +243,12 @@ export function InvitarClientesDialog({
             <ScrollArea className="h-80 rounded-md border">
               <div className="divide-y">
                 {isLoading && <p className="p-3 text-sm text-muted-foreground">Cargando…</p>}
-                {!isLoading && clientes.length === 0 && (
+                {!isLoading && clientesFiltrados.length === 0 && (
                   <p className="p-3 text-sm text-muted-foreground">
-                    Todos los clientes activos ya tienen acceso o invitación.
+                    No hay clientes que coincidan con este filtro.
                   </p>
                 )}
-                {clientes.map((c) => (
+                {clientesFiltrados.map((c) => (
                   <label key={c.id} className="flex cursor-pointer items-center gap-3 p-2.5">
                     <Checkbox
                       checked={seleccionados.includes(c.id)}
@@ -216,6 +263,20 @@ export function InvitarClientesDialog({
                       <span className="block truncate text-xs text-muted-foreground">
                         {c.email || "Sin email registrado"}
                       </span>
+                    </span>
+                    <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                      {(serviciosPorCliente.get(c.id) ?? []).length === 0 ? (
+                        <span className="text-xs text-muted-foreground">-</span>
+                      ) : (
+                        (serviciosPorCliente.get(c.id) ?? []).map((slug) => (
+                          <span
+                            key={slug}
+                            className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border whitespace-nowrap"
+                          >
+                            {nombreServicio(slug)}
+                          </span>
+                        ))
+                      )}
                     </span>
                   </label>
                 ))}
