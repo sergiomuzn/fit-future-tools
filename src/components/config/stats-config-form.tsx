@@ -59,6 +59,8 @@ export function StatsConfigForm() {
     toast.success("Configuración de estadísticas guardada");
   }
 
+  const dirty = JSON.stringify(local) !== JSON.stringify(saved);
+
   return (
     <div className="space-y-6">
       <Card>
