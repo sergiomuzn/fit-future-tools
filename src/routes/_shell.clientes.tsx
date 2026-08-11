@@ -88,6 +88,7 @@ function ClientesPage() {
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
+  const bonosByClient = new Map<string, { slug: string | null; tipo: string | null }[]>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
     if (b.bono_catalogo_id) {
@@ -98,6 +99,10 @@ function ClientesPage() {
       if (slug) {
         const prev = serviciosByClient.get(b.client_id) ?? [];
         if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
+      }
+      const rows = bonosByClient.get(b.client_id) ?? [];
+      if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
+        bonosByClient.set(b.client_id, [...rows, { slug: slug ?? null, tipo: t ?? null }]);
       }
     }
   }
@@ -372,14 +377,18 @@ function ClientesPage() {
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const ss = serviciosByClient.get(c.id) ?? [];
-                    if (ss.length === 0) return <span className="text-muted-foreground">—</span>;
+                    const rows = bonosByClient.get(c.id) ?? [];
+                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
                     return (
-                      <div className="flex flex-wrap gap-1">
-                        {ss.map((s) => (
-                          <span key={s} className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
-                            {nombreServicio(s)}
-                          </span>
+                      <div className="flex flex-col gap-1">
+                        {rows.map((r, i) => (
+                          <div key={i} className="h-6 flex items-center">
+                            {r.slug ? (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                                {nombreServicio(r.slug)}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </div>
                         ))}
                       </div>
                     );
@@ -387,8 +396,19 @@ function ClientesPage() {
                 </TableCell>
                 <TableCell>
                   {(() => {
-                    const t = tipoByClient.get(c.id);
-                    return t ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t]}`}>{TIPO_LABEL[t]}</span> : <span className="text-muted-foreground">—</span>;
+                    const rows = bonosByClient.get(c.id) ?? [];
+                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        {rows.map((r, i) => (
+                          <div key={i} className="h-6 flex items-center">
+                            {r.tipo ? (
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[r.tipo]}`}>{TIPO_LABEL[r.tipo]}</span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </div>
+                        ))}
+                      </div>
+                    );
                   })()}
                 </TableCell>
                 <TableCell>{c.telefono ?? "—"}</TableCell>
