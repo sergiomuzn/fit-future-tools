@@ -125,7 +125,7 @@ export function AccountForm() {
                 required
               />
             </div>
-            <Button type="submit" disabled={centroLoading}>
+            <Button type="submit" disabled={!centroTouched || centroLoading}>
               {centroLoading ? "Guardando..." : "Guardar nombre"}
             </Button>
           </form>
