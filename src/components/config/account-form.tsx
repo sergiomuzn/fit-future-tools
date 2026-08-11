@@ -125,7 +125,7 @@ export function AccountForm() {
                 required
               />
             </div>
-            <Button type="submit" disabled={centroLoading}>
+            <Button type="submit" disabled={!centroTouched || centroLoading}>
               {centroLoading ? "Guardando..." : "Guardar nombre"}
             </Button>
           </form>
@@ -149,7 +149,7 @@ export function AccountForm() {
               <Label htmlFor="new-email">Nuevo email</Label>
               <Input id="new-email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} required />
             </div>
-            <Button type="submit" disabled={emailLoading}>
+            <Button type="submit" disabled={!newEmail || newEmail === currentEmail || emailLoading}>
               {emailLoading ? "Enviando..." : "Solicitar cambio de email"}
             </Button>
           </form>
@@ -177,7 +177,7 @@ export function AccountForm() {
               <Input id="confirm-pass" type="password" autoComplete="new-password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required />
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="submit" disabled={passLoading}>
+              <Button type="submit" disabled={!currentPass || !newPass || !confirmPass || passLoading}>
                 {passLoading ? "Guardando..." : "Cambiar contraseña"}
               </Button>
               <Button type="button" variant="outline" onClick={onSendReset} disabled={resetLoading}>

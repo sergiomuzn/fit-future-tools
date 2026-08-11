@@ -39,6 +39,8 @@ export function HorarioForm() {
     invalidate();
   }
 
+  const dirty = JSON.stringify(local) !== JSON.stringify(horario);
+
   return (
     <Card>
       <CardHeader><CardTitle>Horario base semanal</CardTitle></CardHeader>
@@ -78,7 +80,7 @@ export function HorarioForm() {
         })}
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocal(DEFAULT_HORARIO)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar horario</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar horario</Button>
         </div>
       </CardContent>
     </Card>
@@ -110,6 +112,8 @@ export function PreciosForm() {
     invalidate();
   }
 
+  const dirty = JSON.stringify(local) !== JSON.stringify(precios);
+
   return (
     <Card>
       <CardHeader><CardTitle>Precios medios</CardTitle></CardHeader>
@@ -134,7 +138,7 @@ export function PreciosForm() {
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
@@ -175,6 +179,7 @@ export function ColoresBonoForm() {
   }
 
   const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
+  const dirty = JSON.stringify(localColores) !== JSON.stringify(colores);
 
   return (
     <Card>
@@ -205,7 +210,7 @@ export function ColoresBonoForm() {
           </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
