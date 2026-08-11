@@ -576,6 +576,7 @@ export type Database = {
           ocupacion: number
           por_confirmar: boolean
           recurrencia_id: string | null
+          servicio_slug: string | null
           tipo: string | null
           titulo: string | null
           trainer_id: string | null
@@ -597,6 +598,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
+          servicio_slug?: string | null
           tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
@@ -618,6 +620,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
+          servicio_slug?: string | null
           tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
@@ -752,9 +755,17 @@ export type Database = {
         Returns: boolean
       }
       is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
+      pick_bono_for_session: {
+        Args: { p_client: string; p_for_restore?: boolean; p_servicio: string }
+        Returns: string
+      }
       revert_invoice_row: {
         Args: { p_bono_cat: string; p_client: string; p_fecha: string }
         Returns: undefined
+      }
+      session_servicio_slug: {
+        Args: { p_group_id: string; p_ocupacion: number; p_servicio: string }
+        Returns: string
       }
       sync_client_fecha_inicio: {
         Args: { p_client: string }
