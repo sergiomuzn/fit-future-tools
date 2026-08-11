@@ -112,6 +112,8 @@ export function PreciosForm() {
     invalidate();
   }
 
+  const dirty = JSON.stringify(local) !== JSON.stringify(precios);
+
   return (
     <Card>
       <CardHeader><CardTitle>Precios medios</CardTitle></CardHeader>
@@ -136,7 +138,7 @@ export function PreciosForm() {
         </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocal(DEFAULT_PRECIOS)}>Restablecer defaults</Button>
-          <Button onClick={save}>Guardar</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
     </Card>
