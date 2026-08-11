@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
@@ -68,6 +69,12 @@ export function BonosPanel() {
     },
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
+  const { data: servicios = [] } = useServicios();
+  const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
+  const servicioDe = (b: ClientBono) => {
+    const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+    return slug ? servMap.get(slug) ?? slug : null;
+  };
 
   const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
@@ -112,6 +119,7 @@ export function BonosPanel() {
     const cat = catMap.get(b.bono_catalogo_id ?? "");
     return [
       client?.nombre ?? "",
+      servicioDe(b) ?? "",
       cat?.tipo ? TIPO_LABEL[cat.tipo] : "",
       prettyBonoNombre(b.ultimo_bono_nombre),
       b.ultimo_bono_fecha ?? "",
@@ -206,6 +214,9 @@ export function BonosPanel() {
                 </button>
               </TableHead>
               <TableHead>
+                Servicio
+              </TableHead>
+              <TableHead>
                 <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("tipo")}>
                   Tipo de bono <ArrowUpDown className={`h-3 w-3 ${sortBy === "tipo" ? "text-foreground" : "opacity-40"}`} />
                 </button>
@@ -235,6 +246,13 @@ export function BonosPanel() {
                       {formatNameTitle(clientMap.get(g.clientId)?.nombre) ?? "?"}
                     </button>
                   </div>
+                </TableCell>
+                <TableCell>
+                  {g.bonos.map((b) => (
+                    <div key={b.id} className={SUB}>
+                      {servicioDe(b) ?? <span className="text-muted-foreground">—</span>}
+                    </div>
+                  ))}
                 </TableCell>
                 <TableCell>
                   {g.bonos.map((b) => {
@@ -307,7 +325,7 @@ export function BonosPanel() {
               </TableRow>
             ))}
             {grouped.length === 0 && (
-              <TableRow><TableCell colSpan={9} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
+              <TableRow><TableCell colSpan={10} className="text-center text-muted-foreground py-8">Sin bonos aún · añade una factura para generar uno</TableCell></TableRow>
             )}
           </TableBody>
         </Table>
