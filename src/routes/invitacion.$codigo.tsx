@@ -137,11 +137,27 @@ function InvitacionPage() {
               ? existente
                 ? "Activa tu acceso al portal de reservas"
                 : "Crea tu cuenta para reservar clases grupales"
-              : "Invitación"}
+              : state === "verify"
+                ? "Verifica tu correo"
+                : "Invitación"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {state === "loading" && <p className="text-sm text-muted-foreground">Validando invitación…</p>}
+          {state === "verify" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Te hemos enviado un correo a <span className="font-medium text-foreground">{email}</span>. Haz clic en el
+                enlace para verificar tu dirección y poder acceder al portal.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Si no lo encuentras, revisa la carpeta de spam.
+              </p>
+              <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>
+                Ir a iniciar sesión
+              </Button>
+            </div>
+          )}
           {state === "invalid" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">{reason}</p>
