@@ -35,7 +35,7 @@ function InvitacionPage() {
   const check = useServerFn(validateInvitation);
   const register = useServerFn(registerFromInvitation);
 
-  const [state, setState] = useState<"loading" | "ok" | "invalid">("loading");
+  const [state, setState] = useState<"loading" | "ok" | "invalid" | "verify">("loading");
   const [reason, setReason] = useState<string>("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
@@ -113,15 +113,14 @@ function InvitacionPage() {
         setLoading(false);
         return toast.error(res.error);
       }
-      const { error } = await supabase.auth.signInWithPassword({ email: em.data, password });
+      await supabase.auth.resend({
+        type: "signup",
+        email: em.data,
+        options: { emailRedirectTo: `${window.location.origin}/auth` },
+      });
       setLoading(false);
-      if (error) {
-        toast.success("Cuenta creada. Inicia sesión para continuar.");
-        navigate({ to: "/auth" });
-        return;
-      }
-      toast.success("¡Bienvenido!");
-      navigate({ to: "/cliente" });
+      setState("verify");
+      toast.success("Te hemos enviado un correo de verificación");
     } catch (err) {
       setLoading(false);
       toast.error((err as Error).message);
@@ -138,11 +137,27 @@ function InvitacionPage() {
               ? existente
                 ? "Activa tu acceso al portal de reservas"
                 : "Crea tu cuenta para reservar clases grupales"
-              : "Invitación"}
+              : state === "verify"
+                ? "Verifica tu correo"
+                : "Invitación"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {state === "loading" && <p className="text-sm text-muted-foreground">Validando invitación…</p>}
+          {state === "verify" && (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Te hemos enviado un correo a <span className="font-medium text-foreground">{email}</span>. Haz clic en el
+                enlace para verificar tu dirección y poder acceder al portal.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Si no lo encuentras, revisa la carpeta de spam.
+              </p>
+              <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>
+                Ir a iniciar sesión
+              </Button>
+            </div>
+          )}
           {state === "invalid" && (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">{reason}</p>
