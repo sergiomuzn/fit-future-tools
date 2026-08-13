@@ -245,15 +245,7 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="shrink-0">Filtrar por servicio</Label>
-                <ExpandableSearch
-                  value={busqueda}
-                  onChange={setBusqueda}
-                  placeholder="Buscar cliente..."
-                  className="justify-end"
-                />
-              </div>
+              <Label>Filtrar por servicio</Label>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant={fServicio === "todos" ? "default" : "outline"}
@@ -283,13 +275,20 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={todosSeleccionados}
-                  onCheckedChange={(v) => setSeleccionados(v === true ? clientesFiltrados.map((c) => c.id) : [])}
+              <div className="flex items-center gap-3">
+                <ExpandableSearch
+                  value={busqueda}
+                  onChange={setBusqueda}
+                  placeholder="Buscar cliente..."
                 />
-                Seleccionar todos
-              </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={todosSeleccionados}
+                    onCheckedChange={(v) => setSeleccionados(v === true ? clientesFiltrados.map((c) => c.id) : [])}
+                  />
+                  Seleccionar todos
+                </label>
+              </div>
               <span className="text-xs text-muted-foreground">{seleccionados.length} seleccionados</span>
             </div>
 
@@ -304,21 +303,15 @@ export function InvitarClientesDialog({
                 {clientesFiltrados.map((c) => (
                   <label
                     key={c.id}
-                    className="flex cursor-pointer items-center gap-3 p-2.5"
-                    onClick={(e) => toggleSeleccion(c.id, e)}
-                    onMouseDown={(e) => {
-                      if (e.shiftKey) e.preventDefault();
+                    className="flex cursor-pointer items-center gap-3 p-2.5 select-none"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleSeleccion(c.id, e);
                     }}
                   >
                     <Checkbox
                       checked={seleccionados.includes(c.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      onCheckedChange={() => {
-                        setSeleccionados((prev) =>
-                          prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
-                        );
-                        lastSelectedIdRef.current = c.id;
-                      }}
+                      onClick={(e) => e.preventDefault()}
                     />
                     <span className="min-w-0 flex-1 pointer-events-none">
                       <span className="block truncate text-sm font-medium">{c.nombre}</span>
