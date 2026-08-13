@@ -49,6 +49,7 @@ export type Database = {
       }
       center_config: {
         Row: {
+          avisos: Json
           colores: Json
           horario_base: Json
           id: boolean
@@ -57,6 +58,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avisos?: Json
           colores?: Json
           horario_base?: Json
           id?: boolean
@@ -65,6 +67,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avisos?: Json
           colores?: Json
           horario_base?: Json
           id?: boolean
@@ -746,6 +749,7 @@ export type Database = {
         Args: { p_client: string; p_fecha: string }
         Returns: undefined
       }
+      get_aviso_umbral: { Args: never; Returns: number }
       get_center_nombre: { Args: never; Returns: string }
       has_role: {
         Args: {
