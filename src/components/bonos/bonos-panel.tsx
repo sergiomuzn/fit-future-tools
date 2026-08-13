@@ -213,6 +213,7 @@ export function BonosPanel() {
       activo: true,
       ultimo_bono_nombre: cat?.nombre ?? "Manual",
       ultimo_bono_fecha: nuevo.fecha_inicio || new Date().toISOString().slice(0, 10),
+      servicio_slug: cat?.servicio_slug ?? servicios[0]?.slug ?? "personal",
       nota: nuevo.nota.trim() || null,
     });
     if (error) { toast.error(error.message); return; }
