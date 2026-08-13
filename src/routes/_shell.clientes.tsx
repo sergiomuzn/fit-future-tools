@@ -387,6 +387,7 @@ function ClientesPage() {
               <TableHead>Nombre</TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
               {show("tipo") && <TableHead>Tipo de bono</TableHead>}
+              {show("restantes") && <TableHead>Sesiones restantes</TableHead>}
               {show("telefono") && <TableHead>Teléfono</TableHead>}
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
