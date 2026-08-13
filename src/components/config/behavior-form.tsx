@@ -227,13 +227,6 @@ export function BehaviorForm() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Sesiones de prueba</CardTitle>
-        </CardHeader>
-        <CardContent className="hidden" />
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Avisos al cliente</CardTitle>
         </CardHeader>
         <CardContent>
