@@ -59,11 +59,13 @@ export function InvitarClientesDialog({
     queryFn: async () => {
       const [{ data: cs, error: e1 }, { data: ps, error: e2 }] = await Promise.all([
         supabase.from("clients").select("id,nombre,email,telefono").eq("activo", true).order("nombre"),
-        supabase.from("client_profiles").select("client_id"),
+        supabase.from("client_profiles").select("client_id,activo"),
       ]);
       if (e1) throw e1;
       if (e2) throw e2;
-      const conAcceso = new Set((ps ?? []).map((p) => p.client_id).filter(Boolean) as string[]);
+      const conAcceso = new Set(
+        (ps ?? []).filter((p) => p.activo).map((p) => p.client_id).filter(Boolean) as string[],
+      );
       return ((cs ?? []) as ClienteSinAcceso[]).filter((c) => !conAcceso.has(c.id));
     },
   });
