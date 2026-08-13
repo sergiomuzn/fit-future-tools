@@ -292,7 +292,13 @@ export function AccesosPanel() {
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{p.nombre}</span>
+                    <button
+                      type="button"
+                      onClick={() => openClientDetails(p.client_id)}
+                      className="font-medium text-left hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    >
+                      {p.nombre}
+                    </button>
                     <Badge variant={p.activo ? "secondary" : "destructive"}>{p.activo ? "Activo" : "Revocado"}</Badge>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
@@ -313,6 +319,12 @@ export function AccesosPanel() {
           ))}
         </TabsContent>
       </Tabs>
+
+      <ClientDetailsDialog
+        client={viewingClient}
+        defaultTab="info"
+        onOpenChange={(open) => !open && setViewingClient(null)}
+      />
     </div>
   );
 }
