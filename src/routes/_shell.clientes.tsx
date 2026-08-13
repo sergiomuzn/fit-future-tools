@@ -37,6 +37,7 @@ import { useColumnVisibility } from "@/components/columns-menu";
 const CLIENT_COLUMNS = [
   { key: "servicio", label: "Servicio" },
   { key: "tipo", label: "Tipo de bono" },
+  { key: "restantes", label: "Sesiones restantes" },
   { key: "telefono", label: "Teléfono" },
   { key: "inicio", label: "Fecha inicio" },
   { key: "estado", label: "Estado" },
@@ -99,7 +100,7 @@ function ClientesPage() {
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
-  const bonosByClient = new Map<string, { slug: string | null; tipo: string | null }[]>();
+  const bonosByClient = new Map<string, { slug: string | null; tipo: string | null; restantes: number; agotado: boolean }[]>();
   const activos = clientBonos.filter((b) => b.activo);
   const conActivo = new Set(activos.map((b) => b.client_id));
   // Si un cliente no tiene bonos activos, mostramos su último bono (archivado/agotado)
@@ -121,7 +122,12 @@ function ClientesPage() {
     }
     const rows = bonosByClient.get(b.client_id) ?? [];
     if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
-      bonosByClient.set(b.client_id, [...rows, { slug: slug ?? null, tipo: t ?? null }]);
+      bonosByClient.set(b.client_id, [...rows, {
+        slug: slug ?? null,
+        tipo: t ?? null,
+        restantes: b.sesiones_disponibles ?? 0,
+        agotado: (b.sesiones_disponibles ?? 0) <= 0,
+      }]);
     }
   }
   const { data: servicios = [] } = useServicios();
@@ -381,6 +387,7 @@ function ClientesPage() {
               <TableHead>Nombre</TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
               {show("tipo") && <TableHead>Tipo de bono</TableHead>}
+              {show("restantes") && <TableHead>Sesiones restantes</TableHead>}
               {show("telefono") && <TableHead>Teléfono</TableHead>}
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
@@ -424,6 +431,24 @@ function ClientesPage() {
                             {r.tipo ? (
                               <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[r.tipo] ?? "bg-muted text-muted-foreground border"}`}>{TIPO_LABEL[r.tipo] ?? r.tipo}</span>
                             ) : <span className="text-muted-foreground">—</span>}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </TableCell>}
+                {show("restantes") && <TableCell>
+                  {(() => {
+                    const rows = bonosByClient.get(c.id) ?? [];
+                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        {rows.map((r, i) => (
+                          <div key={i} className="h-6 flex items-center gap-2">
+                            <span className={r.agotado ? "text-red-600 dark:text-red-400 font-medium" : ""}>{r.restantes}</span>
+                            {r.agotado && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
+                            )}
                           </div>
                         ))}
                       </div>
