@@ -127,6 +127,8 @@ export function BonosPanel() {
   });
 
   const visible = sorted.filter((b) => {
+    // Los bonos archivados (renovados) sólo viven en el historial del cliente
+    if (!b.activo) return false;
     const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
     const isGympass = t === "gympass" || t === "grupal";
     const noBono = !b.bono_catalogo_id;
