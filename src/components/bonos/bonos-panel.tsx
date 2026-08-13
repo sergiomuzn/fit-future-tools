@@ -150,7 +150,7 @@ export function BonosPanel() {
     return [
       client?.nombre ?? "",
       servicioDe(b) ?? "",
-      cat?.tipo ? TIPO_LABEL[cat.tipo] : "",
+      (cat?.tipo ?? b.tipo) ? TIPO_LABEL[(cat?.tipo ?? b.tipo)] ?? (cat?.tipo ?? b.tipo) : "",
       prettyBonoNombre(b.ultimo_bono_nombre),
       b.ultimo_bono_fecha ?? "",
     ].join(" ");

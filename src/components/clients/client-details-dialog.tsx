@@ -108,7 +108,7 @@ export function ClientDetailsDialog({
                               {servMap.get(slug) ?? slug}
                             </span>
                           ) : "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]} whitespace-nowrap`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{(cat?.tipo ?? b.tipo) ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[(cat?.tipo ?? b.tipo)!] ?? "bg-muted"} whitespace-nowrap`}>{TIPO_LABEL[(cat?.tipo ?? b.tipo)!] ?? (cat?.tipo ?? b.tipo)}</span> : "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
                           <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
