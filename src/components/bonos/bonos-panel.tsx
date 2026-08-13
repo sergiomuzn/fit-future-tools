@@ -202,7 +202,8 @@ export function BonosPanel() {
     if (nuevo.sesiones_disponibles.trim() === "" || !Number.isFinite(sesiones)) {
       toast.error("Introduce un número de sesiones válido"); return;
     }
-    // Un cliente puede tener varios bonos activos a la vez: no se archiva el anterior.
+    // Un cliente puede tener varios bonos activos de distinto servicio/tipo.
+    // Si ya existe uno idéntico, la base de datos lo archiva y arrastra sus sesiones.
     const { error } = await supabase.from("client_bonos").insert({
       client_id: nuevo.client_id,
       bono_catalogo_id: cat?.id ?? null,
