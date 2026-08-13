@@ -54,6 +54,27 @@ export const getMyPortalProfile = createServerFn({ method: "POST" })
     return getPortalProfile(context.userId);
   });
 
+export const resendVerificationEmail = createServerFn({ method: "POST" })
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        email: z.string().trim().email().max(255),
+        redirectTo: z.string().trim().url().max(500),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data }) => {
+    const { sendSignupVerification } = await import("./invitations.server");
+    return sendSignupVerification(data.email, data.redirectTo);
+  });
+
+const _getMyPortalProfileUnused = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PortalProfile | null> => {
+    const { getPortalProfile } = await import("./client-portal.server");
+    return getPortalProfile(context.userId);
+  });
+
 export const listClases = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ClaseGrupal[]> => {
