@@ -89,7 +89,8 @@ function InvitacionPage() {
     const em = emailSchema.safeParse(email);
     if (nombre.trim().length < 2) return toast.error("Escribe tu nombre");
     if (apellido.trim().length < 2) return toast.error("Escribe tu apellido");
-    if (telefono.trim().length < 6) return toast.error("Escribe un teléfono válido");
+    if (!existente && telefono.trim().length < 6) return toast.error("Escribe un teléfono válido");
+    if (!email.trim()) return toast.error("El correo es obligatorio");
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
@@ -102,7 +103,7 @@ function InvitacionPage() {
           code: codigo,
           nombre: nombre.trim(),
           apellido: apellido.trim(),
-          telefono: telefono.trim(),
+          ...(existente ? {} : { telefono: telefono.trim() }),
           email: em.data,
           password,
           ...(existente ? {} : { bonoTipo: bonoTipo as BonoTipoCliente }),
@@ -155,17 +156,33 @@ function InvitacionPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label htmlFor="inv-nombre">Nombre</Label>
-                  <Input id="inv-nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                  <Input
+                    id="inv-nombre"
+                    value={nombre}
+                    onChange={(e) => setNombre(e.target.value)}
+                    readOnly={existente}
+                    className={existente ? "bg-muted text-muted-foreground" : undefined}
+                    required
+                  />
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="inv-apellido">Apellido</Label>
-                  <Input id="inv-apellido" value={apellido} onChange={(e) => setApellido(e.target.value)} required />
+                  <Input
+                    id="inv-apellido"
+                    value={apellido}
+                    onChange={(e) => setApellido(e.target.value)}
+                    readOnly={existente}
+                    className={existente ? "bg-muted text-muted-foreground" : undefined}
+                    required
+                  />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="inv-tel">Teléfono</Label>
-                <Input id="inv-tel" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} required />
-              </div>
+              {!existente && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="inv-tel">Teléfono</Label>
+                  <Input id="inv-tel" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} required />
+                </div>
+              )}
               <div className="space-y-1.5">
                 <Label htmlFor="inv-email">Email</Label>
                 <Input id="inv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />

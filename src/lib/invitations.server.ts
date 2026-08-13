@@ -46,7 +46,7 @@ export async function acceptInvitation(input: {
   code: string;
   nombre: string;
   apellido: string;
-  telefono: string;
+  telefono?: string;
   email: string;
   password: string;
   bonoTipo?: BonoTipoCliente;
@@ -78,7 +78,11 @@ export async function acceptInvitation(input: {
   if (clientId) {
     const { error: updError } = await supabaseAdmin
       .from("clients")
-      .update({ telefono: input.telefono, email: input.email, activo: true })
+      .update({
+        ...(input.telefono?.trim() ? { telefono: input.telefono.trim() } : {}),
+        email: input.email,
+        activo: true,
+      })
       .eq("id", clientId);
     if (updError) {
       await supabaseAdmin.auth.admin.deleteUser(userId);
@@ -87,7 +91,7 @@ export async function acceptInvitation(input: {
   } else {
     const { data: client, error: clientError } = await supabaseAdmin
       .from("clients")
-      .insert([{ nombre: fullName, telefono: input.telefono, email: input.email, activo: true }])
+      .insert([{ nombre: fullName, telefono: input.telefono?.trim() || null, email: input.email, activo: true }])
       .select("id")
       .single();
     if (clientError || !client) {
