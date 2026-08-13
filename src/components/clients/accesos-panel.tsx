@@ -184,6 +184,7 @@ export function AccesosPanel() {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["client_profiles"] });
+      qc.invalidateQueries({ queryKey: ["clientes_sin_acceso"] });
       toast.success("Acceso actualizado");
     },
     onError: (e: Error) => toast.error(e.message),
