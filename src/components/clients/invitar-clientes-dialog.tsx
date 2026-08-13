@@ -303,21 +303,15 @@ export function InvitarClientesDialog({
                 {clientesFiltrados.map((c) => (
                   <label
                     key={c.id}
-                    className="flex cursor-pointer items-center gap-3 p-2.5"
-                    onClick={(e) => toggleSeleccion(c.id, e)}
-                    onMouseDown={(e) => {
-                      if (e.shiftKey) e.preventDefault();
+                    className="flex cursor-pointer items-center gap-3 p-2.5 select-none"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      toggleSeleccion(c.id, e);
                     }}
                   >
                     <Checkbox
                       checked={seleccionados.includes(c.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      onCheckedChange={() => {
-                        setSeleccionados((prev) =>
-                          prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
-                        );
-                        lastSelectedIdRef.current = c.id;
-                      }}
+                      onClick={(e) => e.preventDefault()}
                     />
                     <span className="min-w-0 flex-1 pointer-events-none">
                       <span className="block truncate text-sm font-medium">{c.nombre}</span>
