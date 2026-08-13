@@ -245,15 +245,7 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between gap-3">
-                <Label className="shrink-0">Filtrar por servicio</Label>
-                <ExpandableSearch
-                  value={busqueda}
-                  onChange={setBusqueda}
-                  placeholder="Buscar cliente..."
-                  className="justify-end"
-                />
-              </div>
+              <Label>Filtrar por servicio</Label>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant={fServicio === "todos" ? "default" : "outline"}
