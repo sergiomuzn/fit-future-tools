@@ -229,6 +229,51 @@ export function BehaviorForm() {
         <CardHeader>
           <CardTitle>Sesiones de prueba</CardTitle>
         </CardHeader>
+        <CardContent className="hidden" />
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Avisos al cliente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Avisar cuando le queden pocas sesiones"
+            description="El cliente recibe un aviso en su buzón cada vez que consume una sesión y su saldo queda por debajo de este número (incluye 0 y saldos negativos)."
+          >
+            <Select
+              value={String(avisoUmbral)}
+              onValueChange={(v) => {
+                setAvisoUmbral(Number(v));
+                setDirty(true);
+              }}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Menos de 1 sesión</SelectItem>
+                <SelectItem value="2">Menos de 2 sesiones</SelectItem>
+                <SelectItem value="3">Menos de 3 sesiones</SelectItem>
+                <SelectItem value="4">Menos de 4 sesiones</SelectItem>
+                <SelectItem value="5">Menos de 5 sesiones</SelectItem>
+                <SelectItem value="10">Menos de 10 sesiones</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row
+            title="Avisar cuando renueva el bono"
+            description="El cliente recibe un aviso en su buzón cuando se le suman sesiones a su perfil tras una renovación o un nuevo bono."
+          >
+            <Switch checked={avisoRenovacion} onCheckedChange={(v) => { setAvisoRenovacion(v); setDirty(true); }} />
+          </Row>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Sesiones de prueba</CardTitle>
+        </CardHeader>
         <CardContent>
           <Row
             title="Pasar a inactivo los clientes de prueba"
