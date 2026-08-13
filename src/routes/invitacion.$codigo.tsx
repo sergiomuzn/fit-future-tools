@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { validateInvitation, registerFromInvitation } from "@/lib/client-portal.functions";
+import { validateInvitation, registerFromInvitation, resendVerificationEmail } from "@/lib/client-portal.functions";
 import { BONO_TIPO_CLIENTE, type BonoTipoCliente } from "@/lib/client-portal-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,8 @@ function InvitacionPage() {
   const navigate = useNavigate();
   const check = useServerFn(validateInvitation);
   const register = useServerFn(registerFromInvitation);
+  const resend = useServerFn(resendVerificationEmail);
+  const [resending, setResending] = useState(false);
 
   const [state, setState] = useState<"loading" | "ok" | "invalid" | "verify">("loading");
   const [reason, setReason] = useState<string>("");
@@ -113,14 +115,13 @@ function InvitacionPage() {
         setLoading(false);
         return toast.error(res.error);
       }
-      await supabase.auth.resend({
-        type: "signup",
-        email: em.data,
-        options: { emailRedirectTo: `${window.location.origin}/auth` },
+      const sent = await resend({
+        data: { email: em.data, redirectTo: `${window.location.origin}/auth` },
       });
       setLoading(false);
       setState("verify");
-      toast.success("Te hemos enviado un correo de verificación");
+      if (sent.ok) toast.success("Te hemos enviado un correo de verificación");
+      else toast.error(sent.error ?? "No se pudo enviar el correo de verificación");
     } catch (err) {
       setLoading(false);
       toast.error((err as Error).message);
@@ -153,6 +154,25 @@ function InvitacionPage() {
               <p className="text-sm text-muted-foreground">
                 Si no lo encuentras, revisa la carpeta de spam.
               </p>
+              <p className="text-sm text-muted-foreground">
+                El enlace caduca en 24 horas. Si caduca, puedes pedir uno nuevo desde la pantalla de acceso.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={resending}
+                onClick={async () => {
+                  setResending(true);
+                  const r = await resend({
+                    data: { email: email.trim().toLowerCase(), redirectTo: `${window.location.origin}/auth` },
+                  });
+                  setResending(false);
+                  if (r.ok) toast.success("Correo reenviado");
+                  else toast.error(r.error ?? "No se pudo reenviar el correo");
+                }}
+              >
+                {resending ? "Reenviando…" : "Reenviar correo"}
+              </Button>
               <Button className="w-full" onClick={() => navigate({ to: "/auth" })}>
                 Ir a iniciar sesión
               </Button>
