@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Copy, Send, Mail, MailX } from "lucide-react";
@@ -8,16 +8,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
+import { fuzzyMatch } from "@/lib/utils";
 
 type ClienteSinAcceso = { id: string; nombre: string; email: string | null; telefono: string | null };
 
@@ -44,7 +38,9 @@ export function InvitarClientesDialog({
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
   const [acceso, setAcceso] = useState<string[]>(["grupos"]);
   const [fServicio, setFServicio] = useState<string>("todos");
+  const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
+  const lastSelectedIdRef = useRef<string | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
     queryKey: ["clientes_sin_acceso", open],
@@ -85,10 +81,17 @@ export function InvitarClientesDialog({
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
   const clientesFiltrados = useMemo(() => {
-    if (fServicio === "todos") return clientes;
-    if (fServicio === "sin") return clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).length === 0);
-    return clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).includes(fServicio));
-  }, [clientes, fServicio, serviciosPorCliente]);
+    const filtrados =
+      fServicio === "todos"
+        ? clientes
+        : fServicio === "sin"
+          ? clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).length === 0)
+          : clientes.filter((c) => (serviciosPorCliente.get(c.id) ?? []).includes(fServicio));
+
+    if (!busqueda.trim()) return filtrados;
+    const q = busqueda.trim();
+    return filtrados.filter((c) => fuzzyMatch(c.nombre, q) || fuzzyMatch(c.email, q) || fuzzyMatch(c.telefono, q));
+  }, [clientes, fServicio, serviciosPorCliente, busqueda]);
 
   const accesoValue = useMemo(() => {
     if (acceso.length === 0) return null;
@@ -98,6 +101,29 @@ export function InvitarClientesDialog({
 
   const todosSeleccionados =
     clientesFiltrados.length > 0 && clientesFiltrados.every((c) => seleccionados.includes(c.id));
+
+  function toggleSeleccion(id: string, event: React.MouseEvent | React.PointerEvent) {
+    setSeleccionados((prev) => {
+      const isSelected = prev.includes(id);
+      if (event.shiftKey && lastSelectedIdRef.current && lastSelectedIdRef.current !== id) {
+        const ids = clientesFiltrados.map((c) => c.id);
+        const start = ids.indexOf(lastSelectedIdRef.current);
+        const end = ids.indexOf(id);
+        if (start !== -1 && end !== -1) {
+          const range = ids.slice(Math.min(start, end), Math.max(start, end) + 1);
+          const next = new Set(prev);
+          for (const rid of range) {
+            if (isSelected) next.delete(rid);
+            else next.add(rid);
+          }
+          return Array.from(next);
+        }
+      }
+      lastSelectedIdRef.current = id;
+      if (isSelected) return prev.filter((x) => x !== id);
+      return [...prev, id];
+    });
+  }
 
   const enviar = useMutation({
     mutationFn: async () => {
@@ -123,6 +149,7 @@ export function InvitarClientesDialog({
     onSuccess: (res) => {
       setResultados(res);
       setSeleccionados([]);
+      lastSelectedIdRef.current = null;
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
       qc.invalidateQueries({ queryKey: ["clientes_sin_acceso"] });
     },
@@ -143,6 +170,9 @@ export function InvitarClientesDialog({
     if (!v) {
       setResultados(null);
       setSeleccionados([]);
+      setBusqueda("");
+      setFServicio("todos");
+      lastSelectedIdRef.current = null;
     }
   }
 
@@ -215,7 +245,15 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="space-y-1.5">
-              <Label>Filtrar por servicio</Label>
+              <div className="flex items-center justify-between gap-3">
+                <Label className="shrink-0">Filtrar por servicio</Label>
+                <ExpandableSearch
+                  value={busqueda}
+                  onChange={setBusqueda}
+                  placeholder="Buscar cliente..."
+                  className="justify-end"
+                />
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <Button
                   variant={fServicio === "todos" ? "default" : "outline"}
@@ -260,26 +298,35 @@ export function InvitarClientesDialog({
                 {isLoading && <p className="p-3 text-sm text-muted-foreground">Cargando…</p>}
                 {!isLoading && clientesFiltrados.length === 0 && (
                   <p className="p-3 text-sm text-muted-foreground">
-                    No hay clientes que coincidan con este filtro.
+                    {busqueda.trim() ? "No hay clientes que coincidan con la búsqueda." : "No hay clientes que coincidan con este filtro."}
                   </p>
                 )}
                 {clientesFiltrados.map((c) => (
-                  <label key={c.id} className="flex cursor-pointer items-center gap-3 p-2.5">
+                  <label
+                    key={c.id}
+                    className="flex cursor-pointer items-center gap-3 p-2.5"
+                    onClick={(e) => toggleSeleccion(c.id, e)}
+                    onMouseDown={(e) => {
+                      if (e.shiftKey) e.preventDefault();
+                    }}
+                  >
                     <Checkbox
                       checked={seleccionados.includes(c.id)}
-                      onCheckedChange={(v) =>
+                      onClick={(e) => e.stopPropagation()}
+                      onCheckedChange={() => {
                         setSeleccionados((prev) =>
-                          v === true ? [...prev, c.id] : prev.filter((x) => x !== c.id),
-                        )
-                      }
+                          prev.includes(c.id) ? prev.filter((x) => x !== c.id) : [...prev, c.id],
+                        );
+                        lastSelectedIdRef.current = c.id;
+                      }}
                     />
-                    <span className="min-w-0 flex-1">
+                    <span className="min-w-0 flex-1 pointer-events-none">
                       <span className="block truncate text-sm font-medium">{c.nombre}</span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {c.email || "Sin email registrado"}
                       </span>
                     </span>
-                    <span className="flex shrink-0 flex-wrap justify-end gap-1">
+                    <span className="flex shrink-0 flex-wrap justify-end gap-1 pointer-events-none">
                       {(serviciosPorCliente.get(c.id) ?? []).length === 0 ? (
                         <span className="text-xs text-muted-foreground">-</span>
                       ) : (
