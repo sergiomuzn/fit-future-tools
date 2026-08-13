@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Info, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import {
   type BehaviorConfig,
   DEFAULT_BEHAVIOR_CONFIG,
@@ -36,9 +37,17 @@ function Row({
 export function BehaviorForm() {
   const [cfg, setCfg] = useState<BehaviorConfig>(DEFAULT_BEHAVIOR_CONFIG);
   const [dirty, setDirty] = useState(false);
+  const [avisoUmbral, setAvisoUmbral] = useState(2);
+  const [avisoRenovacion, setAvisoRenovacion] = useState(true);
 
   useEffect(() => {
     setCfg(getBehaviorConfig());
+    void (async () => {
+      const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
+      const avisos = (data?.avisos ?? {}) as { umbral_sesiones?: number; avisar_renovacion?: boolean };
+      setAvisoUmbral(avisos.umbral_sesiones ?? 2);
+      setAvisoRenovacion(avisos.avisar_renovacion ?? true);
+    })();
   }, []);
 
   function update<K extends keyof BehaviorConfig>(key: K, value: BehaviorConfig[K]) {
@@ -46,14 +55,24 @@ export function BehaviorForm() {
     setDirty(true);
   }
 
-  function save() {
+  async function save() {
     writeBehaviorConfig(cfg);
+    const { error } = await supabase
+      .from("center_config")
+      .update({ avisos: { umbral_sesiones: avisoUmbral, avisar_renovacion: avisoRenovacion } })
+      .eq("id", true);
     setDirty(false);
+    if (error) {
+      toast.error("No se pudieron guardar los avisos al cliente");
+      return;
+    }
     toast.success("Configuración de funcionamiento guardada");
   }
 
   function reset() {
     setCfg(DEFAULT_BEHAVIOR_CONFIG);
+    setAvisoUmbral(2);
+    setAvisoRenovacion(true);
     setDirty(true);
   }
 
@@ -202,6 +221,44 @@ export function BehaviorForm() {
               checked={cfg.canceladasNCSumanTotal}
               onCheckedChange={(v) => update("canceladasNCSumanTotal", v)}
             />
+          </Row>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Avisos al cliente</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Avisar cuando le queden pocas sesiones"
+            description="El cliente recibe un aviso en su buzón cada vez que consume una sesión y su saldo queda por debajo de este número (incluye 0 y saldos negativos)."
+          >
+            <Select
+              value={String(avisoUmbral)}
+              onValueChange={(v) => {
+                setAvisoUmbral(Number(v));
+                setDirty(true);
+              }}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Menos de 1 sesión</SelectItem>
+                <SelectItem value="2">Menos de 2 sesiones</SelectItem>
+                <SelectItem value="3">Menos de 3 sesiones</SelectItem>
+                <SelectItem value="4">Menos de 4 sesiones</SelectItem>
+                <SelectItem value="5">Menos de 5 sesiones</SelectItem>
+                <SelectItem value="10">Menos de 10 sesiones</SelectItem>
+              </SelectContent>
+            </Select>
+          </Row>
+          <Row
+            title="Avisar cuando renueva el bono"
+            description="El cliente recibe un aviso en su buzón cuando se le suman sesiones a su perfil tras una renovación o un nuevo bono."
+          >
+            <Switch checked={avisoRenovacion} onCheckedChange={(v) => { setAvisoRenovacion(v); setDirty(true); }} />
           </Row>
         </CardContent>
       </Card>
