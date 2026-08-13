@@ -35,7 +35,7 @@ function InvitacionPage() {
   const check = useServerFn(validateInvitation);
   const register = useServerFn(registerFromInvitation);
 
-  const [state, setState] = useState<"loading" | "ok" | "invalid">("loading");
+  const [state, setState] = useState<"loading" | "ok" | "invalid" | "verify">("loading");
   const [reason, setReason] = useState<string>("");
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
@@ -113,15 +113,14 @@ function InvitacionPage() {
         setLoading(false);
         return toast.error(res.error);
       }
-      const { error } = await supabase.auth.signInWithPassword({ email: em.data, password });
+      await supabase.auth.resend({
+        type: "signup",
+        email: em.data,
+        options: { emailRedirectTo: `${window.location.origin}/auth` },
+      });
       setLoading(false);
-      if (error) {
-        toast.success("Cuenta creada. Inicia sesión para continuar.");
-        navigate({ to: "/auth" });
-        return;
-      }
-      toast.success("¡Bienvenido!");
-      navigate({ to: "/cliente" });
+      setState("verify");
+      toast.success("Te hemos enviado un correo de verificación");
     } catch (err) {
       setLoading(false);
       toast.error((err as Error).message);
