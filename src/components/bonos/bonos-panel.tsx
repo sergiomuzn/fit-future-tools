@@ -97,7 +97,7 @@ export function BonosPanel() {
   const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
 
   function estadoRank(b: ClientBono): number {
-    const tipoBono = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+    const tipoBono = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
     const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
     const noBono = !b.bono_catalogo_id;
     if (!b.activo) return 2;
@@ -116,8 +116,8 @@ export function BonosPanel() {
       const nb = clientMap.get(b.client_id)?.nombre ?? "";
       return na.localeCompare(nb, "es", { sensitivity: "base" });
     }
-    const ta = catMap.get(a.bono_catalogo_id ?? "")?.tipo;
-    const tb = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+    const ta = (catMap.get(a.bono_catalogo_id ?? "")?.tipo ?? a.tipo);
+    const tb = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo);
     const ra = ta ? tipoRank[ta] : 99;
     const rb = tb ? tipoRank[tb] : 99;
     if (ra !== rb) return ra - rb;
@@ -129,7 +129,7 @@ export function BonosPanel() {
   const visible = sorted.filter((b) => {
     // Los bonos archivados (renovados) sólo viven en el historial del cliente
     if (!b.activo) return false;
-    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
     const isGympass = t === "gympass" || t === "grupal";
     const noBono = !b.bono_catalogo_id;
     const activo = isGympass || noBono || b.sesiones_disponibles > 0;
@@ -347,7 +347,7 @@ export function BonosPanel() {
                 </TableCell>}
                 {show("tipo") && <TableCell>
                   {g.bonos.map((b) => {
-                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo;
+                    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo);
                     const color = t ? tipoColores[t] ?? "#888888" : null;
                     return (
                       <div key={b.id} className={SUB}>
@@ -362,7 +362,7 @@ export function BonosPanel() {
                 </TableCell>}
                 {show("teoricas") && <TableCell>
                   {g.bonos.map((b) => {
-                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
                     return <div key={b.id} className={SUB}>{isGympass ? "—" : noBono ? 0 : b.sesiones_disponibles + b.sesiones_realizadas}</div>;
@@ -373,7 +373,7 @@ export function BonosPanel() {
                 </TableCell>}
                 {show("restantes") && <TableCell>
                   {g.bonos.map((b) => {
-                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
                     return (
@@ -385,7 +385,7 @@ export function BonosPanel() {
                 </TableCell>}
                 {show("estado") && <TableCell>
                   {g.bonos.map((b) => {
-                    const t = catMap.get(b.bono_catalogo_id ?? "")?.tipo as string | undefined;
+                    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
                     const activo = isGympass || noBono || b.sesiones_disponibles > 0;
