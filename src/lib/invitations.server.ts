@@ -12,6 +12,32 @@ export interface InvitationCheck {
   telefono?: string | null;
 }
 
+export async function sendSignupVerification(
+  email: string,
+  redirectTo: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const url = process.env["SUPABASE_URL"];
+  const key = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["SUPABASE_ANON_KEY"];
+  if (!url || !key) return { ok: false, error: "Configuración de correo no disponible" };
+  try {
+    const res = await fetch(
+      `${url}/auth/v1/resend?redirect_to=${encodeURIComponent(redirectTo)}`,
+      {
+        method: "POST",
+        headers: { apikey: key, "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "signup", email: email.trim().toLowerCase() }),
+      },
+    );
+    if (!res.ok) {
+      const body = (await res.json().catch(() => null)) as { msg?: string; message?: string } | null;
+      return { ok: false, error: body?.msg ?? body?.message ?? `No se pudo enviar el correo (${res.status})` };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: (e as Error).message };
+  }
+}
+
 export async function checkInvitation(code: string): Promise<InvitationCheck> {
   const { data } = await supabaseAdmin
     .from("client_invitations")
