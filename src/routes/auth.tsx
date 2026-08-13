@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { getDevRoleOverride } from "@/lib/dev-role-preview";
 import { useCenterName } from "@/lib/center-schedule";
 import { Eye, EyeOff } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { resendVerificationEmail } from "@/lib/client-portal.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -22,7 +24,7 @@ const emailSchema = z.string().trim().email("Email inválido").max(255);
 function AuthPage() {
   const navigate = useNavigate();
   const centroNombre = useCenterName();
-  const [mode, setMode] = useState<"signin" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "forgot" | "verify">("signin");
   const [isCliente, setIsCliente] = useState(false);
 
   useEffect(() => {
@@ -44,8 +46,10 @@ function AuthPage() {
         <CardContent>
           {mode === "forgot" ? (
             <ForgotForm onBack={() => setMode("signin")} />
+          ) : mode === "verify" ? (
+            <ResendVerifyForm onBack={() => setMode("signin")} />
           ) : (
-            <SignInForm onForgot={() => setMode("forgot")} />
+            <SignInForm onForgot={() => setMode("forgot")} onVerify={() => setMode("verify")} />
           )}
         </CardContent>
       </Card>
@@ -53,7 +57,7 @@ function AuthPage() {
   );
 }
 
-function SignInForm({ onForgot }: { onForgot: () => void }) {
+function SignInForm({ onForgot, onVerify }: { onForgot: () => void; onVerify: () => void }) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -68,7 +72,13 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email: em.data, password });
     setLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      if (/not confirmed|confirm/i.test(error.message)) {
+        toast.error("Debes verificar tu correo antes de acceder");
+        return onVerify();
+      }
+      return toast.error(error.message);
+    }
     const path = await homePathForCurrentUser();
     navigate({ to: path });
   }
@@ -93,6 +103,45 @@ function SignInForm({ onForgot }: { onForgot: () => void }) {
       </Button>
       <button type="button" onClick={onForgot} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
         ¿Has olvidado tu contraseña?
+      </button>
+      <button type="button" onClick={onVerify} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
+        Reenviar correo de verificación
+      </button>
+    </form>
+  );
+}
+
+function ResendVerifyForm({ onBack }: { onBack: () => void }) {
+  const resend = useServerFn(resendVerificationEmail);
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    const em = emailSchema.safeParse(email);
+    if (!em.success) return toast.error(em.error.issues[0].message);
+    setLoading(true);
+    const res = await resend({ data: { email: em.data, redirectTo: `${window.location.origin}/auth` } });
+    setLoading(false);
+    if (!res.ok) return toast.error(res.error ?? "No se pudo enviar el correo");
+    toast.success("Te hemos enviado un nuevo correo de verificación");
+    onBack();
+  }
+
+  return (
+    <form onSubmit={onSubmit} className="space-y-3">
+      <p className="text-sm text-muted-foreground">
+        Introduce tu correo y te enviaremos un nuevo enlace de verificación.
+      </p>
+      <div className="space-y-1.5">
+        <Label htmlFor="rv-email">Email</Label>
+        <Input id="rv-email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+      </div>
+      <Button type="submit" className="w-full" disabled={loading}>
+        {loading ? "Enviando..." : "Reenviar verificación"}
+      </Button>
+      <button type="button" onClick={onBack} className="text-sm text-muted-foreground hover:text-foreground w-full text-center">
+        Volver
       </button>
     </form>
   );
