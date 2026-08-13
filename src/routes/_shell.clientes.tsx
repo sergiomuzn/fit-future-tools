@@ -438,6 +438,7 @@ function ClientesPage() {
                   })()}
                 </TableCell>}
                 {show("telefono") && <TableCell>{c.telefono ?? "—"}</TableCell>}
+                {/* placeholder */}
                 {show("inicio") && <TableCell>{c.fecha_inicio ?? "—"}</TableCell>}
                 {show("estado") && <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
