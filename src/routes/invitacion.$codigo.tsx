@@ -44,6 +44,7 @@ function InvitacionPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [bonoTipo, setBonoTipo] = useState<BonoTipoCliente | "">("");
+  const [existente, setExistente] = useState(false);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -53,10 +54,12 @@ function InvitacionPage() {
         if (!alive) return;
         if (res.ok) {
           setState("ok");
+          setExistente(Boolean(res.existente));
           const partes = (res.nombre ?? "").trim().split(/\s+/);
           setNombre(partes[0] ?? "");
           setApellido(partes.slice(1).join(" "));
           setEmail(res.email ?? "");
+          if (res.telefono) setTelefono(res.telefono);
         } else {
           setState("invalid");
           setReason(
@@ -90,7 +93,7 @@ function InvitacionPage() {
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
-    if (!bonoTipo) return toast.error("Selecciona tu tipo de bono");
+    if (!existente && !bonoTipo) return toast.error("Selecciona tu tipo de bono");
 
     setLoading(true);
     try {
@@ -102,7 +105,7 @@ function InvitacionPage() {
           telefono: telefono.trim(),
           email: em.data,
           password,
-          bonoTipo,
+          ...(existente ? {} : { bonoTipo: bonoTipo as BonoTipoCliente }),
         },
       });
       if (!res.ok) {
@@ -130,7 +133,11 @@ function InvitacionPage() {
         <CardHeader>
           <CardTitle className="font-display text-2xl">{centroNombre}</CardTitle>
           <CardDescription>
-            {state === "ok" ? "Crea tu cuenta para reservar clases grupales" : "Invitación"}
+            {state === "ok"
+              ? existente
+                ? "Activa tu acceso al portal de reservas"
+                : "Crea tu cuenta para reservar clases grupales"
+              : "Invitación"}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -171,23 +178,25 @@ function InvitacionPage() {
                 <Label htmlFor="inv-pass2">Repetir contraseña</Label>
                 <Input id="inv-pass2" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
               </div>
-              <div className="space-y-1.5">
-                <Label>Tipo de bono</Label>
-                <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tu tipo de bono" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BONO_TIPO_CLIENTE.map((b) => (
-                      <SelectItem key={b.value} value={b.value}>
-                        {b.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!existente && (
+                <div className="space-y-1.5">
+                  <Label>Tipo de bono</Label>
+                  <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tu tipo de bono" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BONO_TIPO_CLIENTE.map((b) => (
+                        <SelectItem key={b.value} value={b.value}>
+                          {b.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creando cuenta…" : "Crear cuenta"}
+                {loading ? "Activando…" : existente ? "Activar acceso" : "Crear cuenta"}
               </Button>
             </form>
           )}
