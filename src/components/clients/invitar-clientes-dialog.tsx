@@ -283,13 +283,20 @@ export function InvitarClientesDialog({
             </div>
 
             <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={todosSeleccionados}
-                  onCheckedChange={(v) => setSeleccionados(v === true ? clientesFiltrados.map((c) => c.id) : [])}
+              <div className="flex items-center gap-3">
+                <ExpandableSearch
+                  value={busqueda}
+                  onChange={setBusqueda}
+                  placeholder="Buscar cliente..."
                 />
-                Seleccionar todos
-              </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={todosSeleccionados}
+                    onCheckedChange={(v) => setSeleccionados(v === true ? clientesFiltrados.map((c) => c.id) : [])}
+                  />
+                  Seleccionar todos
+                </label>
+              </div>
               <span className="text-xs text-muted-foreground">{seleccionados.length} seleccionados</span>
             </div>
 
