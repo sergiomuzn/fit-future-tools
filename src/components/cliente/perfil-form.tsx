@@ -18,11 +18,13 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
   const [email2, setEmail2] = useState("");
   const [emailPass, setEmailPass] = useState("");
   const [savingEmail, setSavingEmail] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
 
   const [passActual, setPassActual] = useState("");
   const [pass1, setPass1] = useState("");
   const [pass2, setPass2] = useState("");
   const [savingPass, setSavingPass] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
 
   async function reauth(password: string): Promise<boolean> {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -48,6 +50,7 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
       setEmail1("");
       setEmail2("");
       setEmailPass("");
+      setShowEmailForm(false);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -68,6 +71,7 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
       setPassActual("");
       setPass1("");
       setPass2("");
+      setShowPasswordForm(false);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -98,53 +102,79 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
         <Separator />
 
         <div className="space-y-2">
-          <p className="text-sm font-medium">Cambiar correo de acceso</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-email1">Nuevo correo</Label>
-            <Input id="perfil-email1" type="email" value={email1} onChange={(e) => setEmail1(e.target.value)} />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Cambiar correo de acceso</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEmailForm((v) => !v)}
+            >
+              {showEmailForm ? "Cancelar" : "Cambiar"}
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-email2">Repetir nuevo correo</Label>
-            <Input id="perfil-email2" type="email" value={email2} onChange={(e) => setEmail2(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-email-pass">Contraseña actual</Label>
-            <Input
-              id="perfil-email-pass"
-              type="password"
-              value={emailPass}
-              onChange={(e) => setEmailPass(e.target.value)}
-            />
-          </div>
-          <Button size="sm" onClick={handleEmail} disabled={savingEmail}>
-            Actualizar correo
-          </Button>
+          {showEmailForm ? (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-email1">Nuevo correo</Label>
+                <Input id="perfil-email1" type="email" value={email1} onChange={(e) => setEmail1(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-email2">Repetir nuevo correo</Label>
+                <Input id="perfil-email2" type="email" value={email2} onChange={(e) => setEmail2(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-email-pass">Contraseña actual</Label>
+                <Input
+                  id="perfil-email-pass"
+                  type="password"
+                  value={emailPass}
+                  onChange={(e) => setEmailPass(e.target.value)}
+                />
+              </div>
+              <Button size="sm" onClick={handleEmail} disabled={savingEmail}>
+                Actualizar correo
+              </Button>
+            </div>
+          ) : null}
         </div>
 
         <Separator />
 
         <div className="space-y-2">
-          <p className="text-sm font-medium">Cambiar contraseña</p>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-pass-act">Contraseña actual</Label>
-            <Input
-              id="perfil-pass-act"
-              type="password"
-              value={passActual}
-              onChange={(e) => setPassActual(e.target.value)}
-            />
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Cambiar contraseña</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPasswordForm((v) => !v)}
+            >
+              {showPasswordForm ? "Cancelar" : "Cambiar"}
+            </Button>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-pass1">Nueva contraseña</Label>
-            <Input id="perfil-pass1" type="password" value={pass1} onChange={(e) => setPass1(e.target.value)} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="perfil-pass2">Repetir nueva contraseña</Label>
-            <Input id="perfil-pass2" type="password" value={pass2} onChange={(e) => setPass2(e.target.value)} />
-          </div>
-          <Button size="sm" onClick={handlePassword} disabled={savingPass}>
-            Actualizar contraseña
-          </Button>
+          {showPasswordForm ? (
+            <div className="space-y-3 pt-1">
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-pass-act">Contraseña actual</Label>
+                <Input
+                  id="perfil-pass-act"
+                  type="password"
+                  value={passActual}
+                  onChange={(e) => setPassActual(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-pass1">Nueva contraseña</Label>
+                <Input id="perfil-pass1" type="password" value={pass1} onChange={(e) => setPass1(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="perfil-pass2">Repetir nueva contraseña</Label>
+                <Input id="perfil-pass2" type="password" value={pass2} onChange={(e) => setPass2(e.target.value)} />
+              </div>
+              <Button size="sm" onClick={handlePassword} disabled={savingPass}>
+                Actualizar contraseña
+              </Button>
+            </div>
+          ) : null}
         </div>
       </CardContent>
     </Card>
