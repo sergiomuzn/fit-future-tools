@@ -9,6 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 import { fuzzyMatch } from "@/lib/utils";
@@ -40,6 +50,7 @@ export function InvitarClientesDialog({
   const [fServicio, setFServicio] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
+  const [sinContactoOpen, setSinContactoOpen] = useState(false);
   const lastSelectedIdRef = useRef<string | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
@@ -177,6 +188,21 @@ export function InvitarClientesDialog({
   }
 
   const enviadosPorEmail = resultados?.filter((r) => r.enviado).length ?? 0;
+  const sinContacto = useMemo(
+    () =>
+      clientes.filter(
+        (c) => seleccionados.includes(c.id) && !c.email?.trim() && !c.telefono?.trim(),
+      ),
+    [clientes, seleccionados],
+  );
+
+  function intentarEnviar() {
+    if (sinContacto.length > 0) {
+      setSinContactoOpen(true);
+      return;
+    }
+    enviar.mutate();
+  }
   const pendientes = resultados ? resultados.length - enviadosPorEmail : 0;
 
   return (
@@ -347,13 +373,44 @@ export function InvitarClientesDialog({
             <Button
               className="gap-1.5"
               disabled={seleccionados.length === 0 || !accesoValue || enviar.isPending}
-              onClick={() => enviar.mutate()}
+              onClick={intentarEnviar}
             >
               <Send className="h-4 w-4" /> Enviar invitaciones
             </Button>
           )}
         </DialogFooter>
       </DialogContent>
+      <AlertDialog open={sinContactoOpen} onOpenChange={setSinContactoOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Clientes sin email ni teléfono</AlertDialogTitle>
+            <AlertDialogDescription>
+              {sinContacto.length === 1
+                ? "1 cliente seleccionado no tiene email ni teléfono registrado, por lo que no se le podrá enviar la invitación."
+                : `${sinContacto.length} clientes seleccionados no tienen email ni teléfono registrado, por lo que no se les podrá enviar la invitación.`}{" "}
+              Se generará igualmente un enlace desde el que podrán acceder.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="max-h-40 overflow-y-auto text-sm">
+            <ul className="list-disc space-y-0.5 pl-5">
+              {sinContacto.map((c) => (
+                <li key={c.id}>{c.nombre}</li>
+              ))}
+            </ul>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setSinContactoOpen(false);
+                enviar.mutate();
+              }}
+            >
+              Generar enlaces
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }
