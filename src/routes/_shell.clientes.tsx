@@ -437,8 +437,25 @@ function ClientesPage() {
                     );
                   })()}
                 </TableCell>}
+                {show("restantes") && <TableCell>
+                  {(() => {
+                    const rows = bonosByClient.get(c.id) ?? [];
+                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        {rows.map((r, i) => (
+                          <div key={i} className="h-6 flex items-center gap-2">
+                            <span className={r.agotado ? "text-red-600 dark:text-red-400 font-medium" : ""}>{r.restantes}</span>
+                            {r.agotado && (
+                              <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </TableCell>}
                 {show("telefono") && <TableCell>{c.telefono ?? "—"}</TableCell>}
-                {/* placeholder */}
                 {show("inicio") && <TableCell>{c.fecha_inicio ?? "—"}</TableCell>}
                 {show("estado") && <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
