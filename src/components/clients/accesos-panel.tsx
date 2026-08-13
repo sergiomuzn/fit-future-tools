@@ -17,6 +17,8 @@ import {
 } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
 import { InvitarClientesDialog } from "./invitar-clientes-dialog";
+import { ClientDetailsDialog } from "./client-details-dialog";
+import type { Client } from "@/lib/db";
 
 type Invitation = {
   id: string;
@@ -60,6 +62,7 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const acceso: string | null =
     seleccion.length === 0
       ? null
@@ -85,12 +88,22 @@ export function AccesosPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_profiles")
-        .select("id,nombre,email,bono_tipo,activo,acceso,created_at")
+        .select("id,client_id,nombre,email,bono_tipo,activo,acceso,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  async function openClientDetails(clientId: string | null) {
+    if (!clientId) return;
+    const { data, error } = await supabase.from("clients").select("*").eq("id", clientId).single();
+    if (error) {
+      toast.error("No se pudo cargar el cliente");
+      return;
+    }
+    setViewingClient(data as Client);
+  }
 
   const createInvitation = useMutation({
     mutationFn: async () => {
@@ -279,7 +292,13 @@ export function AccesosPanel() {
               <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium">{p.nombre}</span>
+                    <button
+                      type="button"
+                      onClick={() => openClientDetails(p.client_id)}
+                      className="font-medium text-left hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                    >
+                      {p.nombre}
+                    </button>
                     <Badge variant={p.activo ? "secondary" : "destructive"}>{p.activo ? "Activo" : "Revocado"}</Badge>
                   </div>
                   <p className="truncate text-xs text-muted-foreground">
@@ -300,6 +319,12 @@ export function AccesosPanel() {
           ))}
         </TabsContent>
       </Tabs>
+
+      <ClientDetailsDialog
+        client={viewingClient}
+        defaultTab="info"
+        onOpenChange={(open) => !open && setViewingClient(null)}
+      />
     </div>
   );
 }
