@@ -17,6 +17,8 @@ import {
 } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
 import { InvitarClientesDialog } from "./invitar-clientes-dialog";
+import { ClientDetailsDialog } from "./client-details-dialog";
+import type { Client } from "@/lib/db";
 
 type Invitation = {
   id: string;
