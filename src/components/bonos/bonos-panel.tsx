@@ -89,7 +89,7 @@ export function BonosPanel() {
   const { data: servicios = [] } = useServicios();
   const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const servicioDe = (b: ClientBono) => {
-    const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+    const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
     return slug ? servMap.get(slug) ?? slug : null;
   };
 
@@ -138,7 +138,7 @@ export function BonosPanel() {
     if (fEstado === "agotado" && activo) return false;
     if (fTipo !== "todos" && t !== fTipo) return false;
     if (fServicio !== "todos") {
-      const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+      const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
     }
     return true;
