@@ -62,6 +62,7 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
   const [bulkOpen, setBulkOpen] = useState(false);
+  const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const acceso: string | null =
     seleccion.length === 0
       ? null
