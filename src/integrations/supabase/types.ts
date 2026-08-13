@@ -86,6 +86,7 @@ export type Database = {
           fecha_inicio: string
           id: string
           nota: string | null
+          servicio_slug: string
           sesiones_disponibles: number
           sesiones_realizadas: number
           ultimo_bono_fecha: string | null
@@ -100,6 +101,7 @@ export type Database = {
           fecha_inicio?: string
           id?: string
           nota?: string | null
+          servicio_slug: string
           sesiones_disponibles?: number
           sesiones_realizadas?: number
           ultimo_bono_fecha?: string | null
@@ -114,6 +116,7 @@ export type Database = {
           fecha_inicio?: string
           id?: string
           nota?: string | null
+          servicio_slug?: string
           sesiones_disponibles?: number
           sesiones_realizadas?: number
           ultimo_bono_fecha?: string | null

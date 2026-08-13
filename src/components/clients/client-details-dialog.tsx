@@ -99,12 +99,13 @@ export function ClientDetailsDialog({
                   <TableBody>
                     {history.map((b) => {
                       const cat = catMap.get(b.bono_catalogo_id ?? "");
+                      const slug = cat?.servicio_slug ?? b.servicio_slug;
                       return (
                         <TableRow key={b.id}>
                           <TableCell className="whitespace-nowrap truncate max-w-[180px]">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
-                          <TableCell className="whitespace-nowrap">{cat?.servicio_slug ? (
+                          <TableCell className="whitespace-nowrap">{slug ? (
                             <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border whitespace-nowrap">
-                              {servMap.get(cat.servicio_slug) ?? cat.servicio_slug}
+                              {servMap.get(slug) ?? slug}
                             </span>
                           ) : "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{cat ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[cat.tipo]} whitespace-nowrap`}>{TIPO_LABEL[cat.tipo]}</span> : "—"}</TableCell>

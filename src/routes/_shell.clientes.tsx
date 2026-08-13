@@ -102,19 +102,17 @@ function ClientesPage() {
   const bonosByClient = new Map<string, { slug: string | null; tipo: string | null }[]>();
   for (const b of clientBonos) {
     if (!b.activo) continue;
-    if (b.bono_catalogo_id) {
-      const cat = catMap.get(b.bono_catalogo_id);
-      const t = cat?.tipo;
-      if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
-      const slug = cat?.servicio_slug;
-      if (slug) {
-        const prev = serviciosByClient.get(b.client_id) ?? [];
-        if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
-      }
-      const rows = bonosByClient.get(b.client_id) ?? [];
-      if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
-        bonosByClient.set(b.client_id, [...rows, { slug: slug ?? null, tipo: t ?? null }]);
-      }
+    const cat = b.bono_catalogo_id ? catMap.get(b.bono_catalogo_id) : undefined;
+    const t = cat?.tipo;
+    if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
+    const slug = cat?.servicio_slug ?? b.servicio_slug;
+    if (slug) {
+      const prev = serviciosByClient.get(b.client_id) ?? [];
+      if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
+    }
+    const rows = bonosByClient.get(b.client_id) ?? [];
+    if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
+      bonosByClient.set(b.client_id, [...rows, { slug: slug ?? null, tipo: t ?? null }]);
     }
   }
   const { data: servicios = [] } = useServicios();

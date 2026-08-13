@@ -89,7 +89,7 @@ export function BonosPanel() {
   const { data: servicios = [] } = useServicios();
   const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const servicioDe = (b: ClientBono) => {
-    const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+    const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
     return slug ? servMap.get(slug) ?? slug : null;
   };
 
@@ -138,7 +138,7 @@ export function BonosPanel() {
     if (fEstado === "agotado" && activo) return false;
     if (fTipo !== "todos" && t !== fTipo) return false;
     if (fServicio !== "todos") {
-      const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug;
+      const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
     }
     return true;
@@ -213,6 +213,7 @@ export function BonosPanel() {
       activo: true,
       ultimo_bono_nombre: cat?.nombre ?? "Manual",
       ultimo_bono_fecha: nuevo.fecha_inicio || new Date().toISOString().slice(0, 10),
+      servicio_slug: cat?.servicio_slug ?? servicios[0]?.slug ?? "personal",
       nota: nuevo.nota.trim() || null,
     });
     if (error) { toast.error(error.message); return; }
