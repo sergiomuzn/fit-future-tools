@@ -134,6 +134,10 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
               <Button size="sm" onClick={handleEmail} disabled={savingEmail}>
                 Actualizar correo
               </Button>
+              <p className="text-xs text-muted-foreground">
+                Enviaremos un enlace de verificación al nuevo correo (válido 24 h). El cambio no se aplica hasta que lo
+                confirmes; también avisamos al correo anterior.
+              </p>
             </div>
           ) : null}
         </div>

@@ -3,7 +3,6 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { validateInvitation, registerFromInvitation, resendVerificationEmail } from "@/lib/client-portal.functions";
 import { BONO_TIPO_CLIENTE, type BonoTipoCliente } from "@/lib/client-portal-types";
 import { Button } from "@/components/ui/button";
