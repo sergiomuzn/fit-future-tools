@@ -80,7 +80,7 @@ export async function acceptInvitation(input: {
   const { data: created, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: emailNorm,
     password: input.password,
-    email_confirm: true,
+    email_confirm: false,
     user_metadata: { nombre: fullName, telefono: input.telefono },
   });
   if (created?.user) {
@@ -103,7 +103,6 @@ export async function acceptInvitation(input: {
     }
     const { error: updUserError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
       password: input.password,
-      email_confirm: true,
       user_metadata: { nombre: fullName, telefono: input.telefono },
     });
     if (updUserError) return { ok: false, error: updUserError.message };
