@@ -88,12 +88,22 @@ export function AccesosPanel() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_profiles")
-        .select("id,nombre,email,bono_tipo,activo,acceso,created_at")
+        .select("id,client_id,nombre,email,bono_tipo,activo,acceso,created_at")
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
+
+  async function openClientDetails(clientId: string | null) {
+    if (!clientId) return;
+    const { data, error } = await supabase.from("clients").select("*").eq("id", clientId).single();
+    if (error) {
+      toast.error("No se pudo cargar el cliente");
+      return;
+    }
+    setViewingClient(data as Client);
+  }
 
   const createInvitation = useMutation({
     mutationFn: async () => {
