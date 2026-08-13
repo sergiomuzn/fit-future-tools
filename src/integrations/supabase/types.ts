@@ -172,6 +172,7 @@ export type Database = {
       client_invitations: {
         Row: {
           acceso: string
+          client_id: string | null
           code: string
           created_at: string
           created_by: string | null
@@ -186,6 +187,7 @@ export type Database = {
         }
         Insert: {
           acceso?: string
+          client_id?: string | null
           code: string
           created_at?: string
           created_by?: string | null
@@ -200,6 +202,7 @@ export type Database = {
         }
         Update: {
           acceso?: string
+          client_id?: string | null
           code?: string
           created_at?: string
           created_by?: string | null
@@ -212,7 +215,15 @@ export type Database = {
           used_at?: string | null
           used_by?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "client_invitations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       client_profiles: {
         Row: {
