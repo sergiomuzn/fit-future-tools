@@ -89,6 +89,7 @@ export type Database = {
           servicio_slug: string
           sesiones_disponibles: number
           sesiones_realizadas: number
+          tipo: string
           ultimo_bono_fecha: string | null
           ultimo_bono_nombre: string | null
           updated_at: string
@@ -104,6 +105,7 @@ export type Database = {
           servicio_slug: string
           sesiones_disponibles?: number
           sesiones_realizadas?: number
+          tipo?: string
           ultimo_bono_fecha?: string | null
           ultimo_bono_nombre?: string | null
           updated_at?: string
@@ -119,6 +121,7 @@ export type Database = {
           servicio_slug?: string
           sesiones_disponibles?: number
           sesiones_realizadas?: number
+          tipo?: string
           ultimo_bono_fecha?: string | null
           ultimo_bono_nombre?: string | null
           updated_at?: string

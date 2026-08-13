@@ -103,7 +103,7 @@ function ClientesPage() {
   for (const b of clientBonos) {
     if (!b.activo) continue;
     const cat = b.bono_catalogo_id ? catMap.get(b.bono_catalogo_id) : undefined;
-    const t = cat?.tipo;
+    const t = cat?.tipo ?? b.tipo;
     if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
     const slug = cat?.servicio_slug ?? b.servicio_slug;
     if (slug) {
@@ -413,7 +413,7 @@ function ClientesPage() {
                         {rows.map((r, i) => (
                           <div key={i} className="h-6 flex items-center">
                             {r.tipo ? (
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[r.tipo]}`}>{TIPO_LABEL[r.tipo]}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[r.tipo] ?? "bg-muted text-muted-foreground border"}`}>{TIPO_LABEL[r.tipo] ?? r.tipo}</span>
                             ) : <span className="text-muted-foreground">—</span>}
                           </div>
                         ))}
