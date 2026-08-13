@@ -63,16 +63,56 @@ export async function acceptInvitation(input: {
     .single();
   const existingClientId = (invitation as { client_id?: string | null } | null)?.client_id ?? null;
 
+  const emailNorm = input.email.trim().toLowerCase();
+
+  // El correo no puede pertenecer a otra ficha de cliente distinta a la invitada
+  const { data: otherClients } = await supabaseAdmin
+    .from("clients")
+    .select("id")
+    .ilike("email", emailNorm);
+  const conflicting = (otherClients ?? []).filter((c) => c.id !== existingClientId);
+  if (conflicting.length > 0) {
+    return { ok: false, error: "Ese correo ya está registrado en otro cliente" };
+  }
+
+  let userId: string | null = null;
+  let createdNewUser = false;
   const { data: created, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: input.email,
+    email: emailNorm,
     password: input.password,
     email_confirm: true,
     user_metadata: { nombre: fullName, telefono: input.telefono },
   });
-  if (authError || !created?.user) {
-    return { ok: false, error: authError?.message ?? "No se pudo crear la cuenta" };
+  if (created?.user) {
+    userId = created.user.id;
+    createdNewUser = true;
+  } else {
+    // Puede existir una cuenta huérfana con ese correo (intento anterior sin acceso activo)
+    const { data: list } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    const existingUser = list?.users?.find((u) => (u.email ?? "").toLowerCase() === emailNorm);
+    if (!existingUser) {
+      return { ok: false, error: authError?.message ?? "No se pudo crear la cuenta" };
+    }
+    const { data: existingProfile } = await supabaseAdmin
+      .from("client_profiles")
+      .select("id")
+      .eq("id", existingUser.id)
+      .maybeSingle();
+    if (existingProfile) {
+      return { ok: false, error: "Ese correo ya tiene un acceso activo" };
+    }
+    const { error: updUserError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
+      password: input.password,
+      email_confirm: true,
+      user_metadata: { nombre: fullName, telefono: input.telefono },
+    });
+    if (updUserError) return { ok: false, error: updUserError.message };
+    userId = existingUser.id;
   }
-  const userId = created.user.id;
+
+  const cleanupUser = async () => {
+    if (createdNewUser && userId) await supabaseAdmin.auth.admin.deleteUser(userId);
+  };
 
   let clientId = existingClientId;
   if (clientId) {
@@ -85,7 +125,7 @@ export async function acceptInvitation(input: {
       })
       .eq("id", clientId);
     if (updError) {
-      await supabaseAdmin.auth.admin.deleteUser(userId);
+      await cleanupUser();
       return { ok: false, error: updError.message };
     }
   } else {
@@ -95,7 +135,7 @@ export async function acceptInvitation(input: {
       .select("id")
       .single();
     if (clientError || !client) {
-      await supabaseAdmin.auth.admin.deleteUser(userId);
+      await cleanupUser();
       return { ok: false, error: clientError?.message ?? "No se pudo crear la ficha de cliente" };
     }
     clientId = client.id;
@@ -113,11 +153,19 @@ export async function acceptInvitation(input: {
     },
   ]);
   if (profileError) {
-    await supabaseAdmin.auth.admin.deleteUser(userId);
+    await cleanupUser();
     return { ok: false, error: profileError.message };
   }
 
-  await supabaseAdmin.from("user_roles").insert([{ user_id: userId, role: "cliente" }]);
+  const { data: existingRole } = await supabaseAdmin
+    .from("user_roles")
+    .select("user_id")
+    .eq("user_id", userId)
+    .eq("role", "cliente")
+    .maybeSingle();
+  if (!existingRole) {
+    await supabaseAdmin.from("user_roles").insert([{ user_id: userId, role: "cliente" }]);
+  }
   await supabaseAdmin
     .from("client_invitations")
     .update({ used_at: new Date().toISOString(), used_by: userId })
