@@ -100,8 +100,17 @@ function ClientesPage() {
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
   const bonosByClient = new Map<string, { slug: string | null; tipo: string | null }[]>();
+  const activos = clientBonos.filter((b) => b.activo);
+  const conActivo = new Set(activos.map((b) => b.client_id));
+  // Si un cliente no tiene bonos activos, mostramos su último bono (archivado/agotado)
+  const ultimoArchivado = new Map<string, (typeof clientBonos)[number]>();
   for (const b of clientBonos) {
-    if (!b.activo) continue;
+    if (b.activo || conActivo.has(b.client_id)) continue;
+    const prev = ultimoArchivado.get(b.client_id);
+    const key = (x: typeof b) => x.ultimo_bono_fecha ?? x.fecha_inicio ?? x.created_at;
+    if (!prev || String(key(b)) > String(key(prev))) ultimoArchivado.set(b.client_id, b);
+  }
+  for (const b of [...activos, ...ultimoArchivado.values()]) {
     const cat = b.bono_catalogo_id ? catMap.get(b.bono_catalogo_id) : undefined;
     const t = cat?.tipo ?? b.tipo;
     if (t && !tipoByClient.has(b.client_id)) tipoByClient.set(b.client_id, t);
