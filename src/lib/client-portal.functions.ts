@@ -68,13 +68,6 @@ export const resendVerificationEmail = createServerFn({ method: "POST" })
     return sendSignupVerification(data.email, data.redirectTo);
   });
 
-const _getMyPortalProfileUnused = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .handler(async ({ context }): Promise<PortalProfile | null> => {
-    const { getPortalProfile } = await import("./client-portal.server");
-    return getPortalProfile(context.userId);
-  });
-
 export const listClases = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<ClaseGrupal[]> => {
