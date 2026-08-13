@@ -25,7 +25,7 @@ export const registerFromInvitation = createServerFn({ method: "POST" })
         code: z.string().trim().min(4).max(64),
         nombre: z.string().trim().min(2).max(80),
         apellido: z.string().trim().min(2).max(80),
-        telefono: z.string().trim().min(6).max(30),
+        telefono: z.string().trim().max(30).optional(),
         email: z.string().trim().email().max(255),
         password: z.string().min(8).max(128),
         bonoTipo: bonoTipoSchema.optional(),
@@ -39,7 +39,7 @@ export const registerFromInvitation = createServerFn({ method: "POST" })
         code: string;
         nombre: string;
         apellido: string;
-        telefono: string;
+        telefono?: string;
         email: string;
         password: string;
         bonoTipo?: BonoTipoCliente;
