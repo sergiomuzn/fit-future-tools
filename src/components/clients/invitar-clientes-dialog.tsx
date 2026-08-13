@@ -9,6 +9,16 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 import { fuzzyMatch } from "@/lib/utils";
@@ -40,6 +50,7 @@ export function InvitarClientesDialog({
   const [fServicio, setFServicio] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
+  const [sinContactoOpen, setSinContactoOpen] = useState(false);
   const lastSelectedIdRef = useRef<string | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
@@ -177,6 +188,21 @@ export function InvitarClientesDialog({
   }
 
   const enviadosPorEmail = resultados?.filter((r) => r.enviado).length ?? 0;
+  const sinContacto = useMemo(
+    () =>
+      clientes.filter(
+        (c) => seleccionados.includes(c.id) && !c.email?.trim() && !c.telefono?.trim(),
+      ),
+    [clientes, seleccionados],
+  );
+
+  function intentarEnviar() {
+    if (sinContacto.length > 0) {
+      setSinContactoOpen(true);
+      return;
+    }
+    enviar.mutate();
+  }
   const pendientes = resultados ? resultados.length - enviadosPorEmail : 0;
 
   return (
