@@ -178,23 +178,25 @@ function InvitacionPage() {
                 <Label htmlFor="inv-pass2">Repetir contraseña</Label>
                 <Input id="inv-pass2" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
               </div>
-              <div className="space-y-1.5">
-                <Label>Tipo de bono</Label>
-                <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecciona tu tipo de bono" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {BONO_TIPO_CLIENTE.map((b) => (
-                      <SelectItem key={b.value} value={b.value}>
-                        {b.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              {!existente && (
+                <div className="space-y-1.5">
+                  <Label>Tipo de bono</Label>
+                  <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona tu tipo de bono" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {BONO_TIPO_CLIENTE.map((b) => (
+                        <SelectItem key={b.value} value={b.value}>
+                          {b.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
               <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creando cuenta…" : "Crear cuenta"}
+                {loading ? "Activando…" : existente ? "Activar acceso" : "Crear cuenta"}
               </Button>
             </form>
           )}
