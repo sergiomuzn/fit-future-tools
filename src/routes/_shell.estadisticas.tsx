@@ -1435,6 +1435,28 @@ function buildSeries(args: {
 
   // Para comparar/histórico: transponer para que X = meses y series = slots de desglose.
   if (period !== "mesUnico") {
+    // Comparar meses con desgloses categóricos ordenados (franja, día de la
+    // semana, turno): X = buckets del desglose y cada mes es una serie propia.
+    if (
+      period === "comparar" &&
+      (desglose === "franja" || desglose === "dow" || desglose === "turno") &&
+      metric !== "porEntrenador"
+    ) {
+      const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
+      const finalSeriesM = monthSeries.length ? monthSeries : seriesKeys;
+      const keepAll = desglose === "franja";
+      const rowsM = keepAll
+        ? rows
+        : (rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0)).length
+            ? rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0))
+            : rows);
+      return {
+        rows: rowsM,
+        seriesKeys: finalSeriesM,
+        isLineChart: desglose === "franja" || desglose === "dow",
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
     const monthOrder = periods.map((p) => p.key);
     const slotOrder = bucketKeys.filter((b) => seriesKeys.some((k) => k === b || k.endsWith(` · ${b}`)) || acc.get(b));
     // Recolectar todas las "series" reales: bucketKeys que aparecen como bucket.
