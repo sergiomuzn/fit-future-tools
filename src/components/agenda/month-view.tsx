@@ -112,7 +112,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
                           "truncate rounded px-1 text-left text-[10px] leading-tight",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[s.estado],
+                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[s.tipo === "prueba" ? "prueba" : s.estado],
                         )}
                         title={`${s.hora_inicio.slice(0, 5)} ${name}`}
                       >
