@@ -269,7 +269,7 @@ export function BonosPanel() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {[...new Set(catalogo.map((c) => c.tipo))].map((t) => (
+                {[...new Set(catalogo.map((c) => c.tipo))].filter((t) => t !== "prueba").map((t) => (
                   <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? formatTipoBono(t)}</SelectItem>
                 ))}
               </SelectContent>
