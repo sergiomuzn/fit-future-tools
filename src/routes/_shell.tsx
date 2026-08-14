@@ -94,8 +94,8 @@ function ShellInner() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b">
-          <div className="flex items-center justify-between gap-2 px-2 py-1 group-data-[collapsible=icon]:justify-center">
+        <SidebarHeader className="border-b h-12 px-2 py-0">
+          <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
             <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
               {centroNombre}
             </div>
