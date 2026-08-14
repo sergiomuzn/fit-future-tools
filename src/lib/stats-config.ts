@@ -134,23 +134,6 @@ function mergeKpis(saved: Partial<Record<StatsKpiKey, boolean>> | undefined): Re
   return out;
 }
 
-function mergePeriods<K extends string>(
-  keys: K[],
-  defaults: Record<K, Record<StatsPeriod, boolean>>,
-  saved: Partial<Record<K, Partial<Record<StatsPeriod, boolean>>>> | undefined,
-): Record<K, Record<StatsPeriod, boolean>> {
-  const out = {} as Record<K, Record<StatsPeriod, boolean>>;
-  for (const k of keys) {
-    const row = {} as Record<StatsPeriod, boolean>;
-    for (const p of STATS_PERIODS) {
-      const v = saved?.[k]?.[p];
-      row[p] = typeof v === "boolean" ? v : defaults[k][p];
-    }
-    out[k] = row;
-  }
-  return out;
-}
-
 function readStorage(): StatsConfig {
   if (typeof window === "undefined") return DEFAULT_STATS_CONFIG;
   try {
@@ -159,8 +142,6 @@ function readStorage(): StatsConfig {
     const parsed = JSON.parse(raw) as Partial<StatsConfig>;
     return {
       compat: mergeCompat(parsed.compat),
-      metricPeriods: mergePeriods(STATS_METRICS, DEFAULT_METRIC_PERIODS, parsed.metricPeriods),
-      desglosePeriods: mergePeriods(STATS_DESGLOSES, DEFAULT_DESGLOSE_PERIODS, parsed.desglosePeriods),
       kpis: mergeKpis(parsed.kpis),
     };
   } catch {
@@ -192,12 +173,4 @@ export function useStatsConfig(): StatsConfig {
 /** ¿Es la combinación métrica × desglose la recomendada por defecto? */
 export function isDefaultCompat(metric: StatsMetric, desglose: StatsDesglose): boolean {
   return DEFAULT_COMPAT[metric][desglose] === true;
-}
-
-/** ¿Es el periodo recomendado por defecto para esa métrica/desglose? */
-export function isDefaultMetricPeriod(metric: StatsMetric, period: StatsPeriod): boolean {
-  return DEFAULT_METRIC_PERIODS[metric][period] === true;
-}
-export function isDefaultDesglosePeriod(desglose: StatsDesglose, period: StatsPeriod): boolean {
-  return DEFAULT_DESGLOSE_PERIODS[desglose][period] === true;
 }
