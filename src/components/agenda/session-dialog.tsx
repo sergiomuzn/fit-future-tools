@@ -46,6 +46,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [clientId, setClientId] = useState<string | null>(null);
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [estado, setEstado] = useState<SesionEstado>("reservada");
+  const [esPrueba, setEsPrueba] = useState(false);
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
@@ -163,7 +164,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open) return;
     setClientId(session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
-    setEstado((session?.estado as SesionEstado) ?? "reservada");
+    setEsPrueba(session?.estado === "prueba");
+    setEstado(
+      session?.estado === "prueba" ? "reservada" : ((session?.estado as SesionEstado) ?? "reservada"),
+    );
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
     setServicioSlug(
@@ -355,7 +359,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       fecha: session.fecha!,
       hora_inicio: `${horaInicio}:00`,
       hora_fin: `${horaFin}:00`,
-      estado,
+      estado: (esPrueba ? "prueba" : estado) as SesionEstado,
       ocupacion,
       incidencia: incidencia || null,
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
@@ -381,7 +385,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (base.por_confirmar) return "reservada";
       // Canceladas se respetan tal cual. Prueba se auto-progresa a realizada
       // cuando la sesión es pasada (el tipo de bono "prueba" se mantiene).
-      if (base.estado === "cancelada") return base.estado;
+      if (base.estado === "cancelada" || base.estado === "prueba") return base.estado;
       // Futuro: si estaba marcada como realizada, revertir a reservada.
       if (!isPast) {
         if (base.estado === "realizada") return "reservada";
@@ -769,6 +773,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
+          <div className="flex items-center gap-2">
+            <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
+            <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+          </div>
+
           {grupo ? (
             <div className="space-y-1.5">
               <Label>Grupo</Label>
@@ -859,10 +868,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
+              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)} disabled={esPrueba}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).map((e) => (
+                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
                     <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
                   ))}
                 </SelectContent>
@@ -870,7 +879,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          {estado === "cancelada" && (
+          {!esPrueba && estado === "cancelada" && (
             <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
               <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
               <div className="space-y-0.5">
@@ -895,7 +904,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Textarea value={incidencia} onChange={(e) => setIncidencia(e.target.value)} rows={2} />
           </div>
 
-          {estado === "reservada" && (
+          {!esPrueba && estado === "reservada" && (
             <div className="flex items-center gap-2">
               <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
               <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
