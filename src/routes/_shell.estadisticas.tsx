@@ -755,18 +755,10 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][])
-                .filter(([k]) => isValidCombo(metric, desglose, k) || (desglose === "franja" && k === "historico"))
-                .map(([k, v]) => {
-                  const locked = !isValidCombo(metric, desglose, k);
-                  return (
-                    <SelectItem key={k} value={k} disabled={locked}>
-                      <span className="inline-flex items-center gap-1.5">
-                        {locked && <Lock className="h-3.5 w-3.5" />}
-                        {v}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
+                .filter(([k]) => isValidCombo(metric, desglose, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
