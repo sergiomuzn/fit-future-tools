@@ -96,6 +96,20 @@ function ClientesPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
+  // Sesiones de prueba: sirven para mostrar el tipo de bono "Prueba" en clientes
+  // que aún no tienen ningún bono registrado.
+  const { data: sesionesPrueba = [] } = useQuery({
+    queryKey: ["sessions-prueba"],
+    queryFn: async () =>
+      ((await supabase
+        .from("sessions")
+        .select("client_id,fecha,servicio_slug,tipo,estado")
+        .or("tipo.eq.prueba,estado.eq.prueba")).data ?? []) as Array<{
+        client_id: string | null;
+        fecha: string;
+        servicio_slug: string | null;
+      }>,
+  });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
@@ -128,6 +142,15 @@ function ClientesPage() {
         agotado: (b.sesiones_disponibles ?? 0) <= 0,
       }]);
     }
+  }
+  // Clientes con sesión de prueba y sin ningún bono → tipo "Prueba" derivado.
+  for (const s of sesionesPrueba) {
+    if (!s.client_id || bonosByClient.has(s.client_id)) continue;
+    tipoByClient.set(s.client_id, "prueba");
+    if (s.servicio_slug) serviciosByClient.set(s.client_id, [s.servicio_slug]);
+    bonosByClient.set(s.client_id, [
+      { slug: s.servicio_slug ?? null, tipo: "prueba", restantes: 0, agotado: false },
+    ]);
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
