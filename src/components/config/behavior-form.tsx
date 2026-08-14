@@ -314,6 +314,7 @@ export function BehaviorForm() {
       </Card>
 
       <div className="flex justify-between items-center">
+*** placeholder
         <Button variant="ghost" size="sm" onClick={reset}>
           <RotateCcw className="h-4 w-4 mr-2" />
           Restaurar valores por defecto
