@@ -577,9 +577,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     !!statsConfig.compat[mm]?.[dd];
   const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
     isDesgloseAllowedForMetric(mm, dd) &&
-    isPeriodAllowedForMetric(mm, pp) &&
-    // Franja horaria no admite histórico (demasiados puntos por mes).
-    !(dd === "franja" && pp === "historico");
+    statsConfig.metricPeriods[mm]?.[pp] !== false &&
+    statsConfig.desglosePeriods[dd]?.[pp] !== false;
   const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
     const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
     for (const d of order) if (isValidCombo(mm, d, pp)) return d;
