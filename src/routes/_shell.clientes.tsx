@@ -37,7 +37,6 @@ import { useColumnVisibility } from "@/components/columns-menu";
 const CLIENT_COLUMNS = [
   { key: "servicio", label: "Servicio" },
   { key: "tipo", label: "Tipo de bono" },
-  { key: "restantes", label: "Sesiones restantes" },
   { key: "telefono", label: "Teléfono" },
   { key: "inicio", label: "Fecha inicio" },
   { key: "estado", label: "Estado" },
