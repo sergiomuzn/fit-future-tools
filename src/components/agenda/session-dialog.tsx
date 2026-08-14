@@ -698,14 +698,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       }
     }
-    // Marcar el cliente como cliente de prueba (bono "Prueba") también al editar.
-    if (!isNew && !grupo && clientId && esPrueba) {
-      await supabase.rpc("ensure_prueba_bono" as never, {
-        p_client: clientId,
-        p_fecha: session.fecha!,
-      } as never);
-      qc.invalidateQueries({ queryKey: ["clients"] });
-    }
+    // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     setScopeAsk(false);
