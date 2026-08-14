@@ -502,11 +502,7 @@ function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
 }
-/** Restricciones de periodo por métrica, independientes de la configuración. */
-function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
-  if (metric === "porEntrenador") return period === "mesUnico";
-  return true;
-}
+// Las restricciones de periodo se configuran en Configuración → Estadísticas.
 
 function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): string {
   const metricInfo: Record<Metric, string> = {
