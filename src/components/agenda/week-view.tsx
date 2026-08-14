@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client, colorEstadoFor } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
