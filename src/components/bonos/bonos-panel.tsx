@@ -44,7 +44,7 @@ export function BonosPanel() {
   const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("activo");
+  const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
   const [addOpen, setAddOpen] = useState(false);
