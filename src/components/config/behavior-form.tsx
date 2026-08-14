@@ -188,8 +188,6 @@ export function BehaviorForm() {
           <CardTitle>Cancelaciones</CardTitle>
         </CardHeader>
         <CardContent>
-      </Card>
-        <CardContent>
           <Row
             title="Contar las sesiones canceladas como realizadas"
             description="Define si una sesión cancelada cuenta como entrenamiento en estadísticas y en el total de sesiones del entrenador. Si no cuenta como realizada, tampoco se le suma al entrenador."
