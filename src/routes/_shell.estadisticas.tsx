@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Lock } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
@@ -580,7 +580,10 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const isDesgloseAllowedForMetric = (mm: Metric, dd: Desglose): boolean =>
     !!statsConfig.compat[mm]?.[dd];
   const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
-    isDesgloseAllowedForMetric(mm, dd) && isPeriodAllowedForMetric(mm, pp);
+    isDesgloseAllowedForMetric(mm, dd) &&
+    isPeriodAllowedForMetric(mm, pp) &&
+    // Franja horaria no admite histórico (demasiados puntos por mes).
+    !(dd === "franja" && pp === "historico");
   const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
     const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
     for (const d of order) if (isValidCombo(mm, d, pp)) return d;
@@ -712,25 +715,14 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     return palette[idx % palette.length];
   };
 
-  // Línea superpuesta sobre barras: sólo para categorías con orden natural
-  // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
-  // ni cuando se comparan meses en paralelo.
-  const showOverlayLine =
-    !isLineChart &&
-    metric !== "porEntrenador" &&
-    (desglose === "franja" || desglose === "dow");
-  const totalValues = useMemo<number[] | null>(() => {
-    if (!showOverlayLine) return null;
-    const n = rows.length;
-    if (n < 2) return null;
-    return rows.map((r) =>
-      seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
-    );
-  }, [rows, seriesKeys, showOverlayLine]);
-  const hasTotal = totalValues !== null;
-  const rowsWithTotal = hasTotal
-    ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
-    : rows;
+  // Ya no se dibuja línea de total superpuesta sobre las barras.
+  const rowsWithTotal = rows;
+  // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
+  const manyTicks = rows.length > 10;
+  const xAxisProps = manyTicks
+    ? { tick: { fontSize: 10 }, angle: -45, textAnchor: "end" as const, height: 60, interval: 0 }
+    : { tick: { fontSize: 12 } };
+  const chartMargin = manyTicks ? { top: 10, right: 10, left: 0, bottom: 24 } : { top: 10, right: 10, left: 0, bottom: 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
 
@@ -768,10 +760,18 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][])
-                .filter(([k]) => isValidCombo(metric, desglose, k))
-                .map(([k, v]) => (
-                  <SelectItem key={k} value={k}>{v}</SelectItem>
-                ))}
+                .filter(([k]) => isValidCombo(metric, desglose, k) || (desglose === "franja" && k === "historico"))
+                .map(([k, v]) => {
+                  const locked = !isValidCombo(metric, desglose, k);
+                  return (
+                    <SelectItem key={k} value={k} disabled={locked}>
+                      <span className="inline-flex items-center gap-1.5">
+                        {locked && <Lock className="h-3.5 w-3.5" />}
+                        {v}
+                      </span>
+                    </SelectItem>
+                  );
+                })}
             </SelectContent>
           </Select>
         </div>
@@ -927,16 +927,16 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
-            style={{ minWidth: Math.max(rows.length * 80, 400) }}
+            style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {isLineChart ? (
-                <LineChart data={rows}>
+                <LineChart data={rows} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                    {metric !== "porEntrenador" && <RLegend />}
                    {seriesKeys.map((k, i) => (
@@ -956,9 +956,9 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   ))}
                 </LineChart>
               ) : (
-                <ComposedChart data={rowsWithTotal}>
+                <ComposedChart data={rowsWithTotal} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                   {metric !== "porEntrenador" && <RLegend />}
                   {seriesKeys.map((k, i) => (
@@ -970,21 +970,6 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
                     </Bar>
                   ))}
-                  {hasTotal && (
-                    <Line
-                      type="monotone"
-                      dataKey="__total"
-                      name="Total"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      connectNulls
-                      dot={{ r: 5, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
-                      activeDot={{ r: 7, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
-                      isAnimationActive={false}
-                    >
-                      <LabelList dataKey="__total" position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 700 }} />
-                    </Line>
-                  )}
                 </ComposedChart>
               )}
             </ResponsiveContainer>
@@ -1322,7 +1307,13 @@ function buildSeries(args: {
       const isTardeTurno = p.key.startsWith("Tarde ·");
       const capByBucket = new Map<string, number>();
       const addCap = (b: string, min: number) => capByBucket.set(b, (capByBucket.get(b) ?? 0) + min * SLOTS);
-      for (const d of eachDate(monthStart(py, pm), monthEnd(py, pm))) {
+      // El mes en curso no se extrapola: sólo cuentan los días transcurridos.
+      const todayD = new Date();
+      const isCurrentMonth = py === todayD.getFullYear() && pm === todayD.getMonth();
+      const capEnd = isCurrentMonth
+        ? new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate())
+        : monthEnd(py, pm);
+      for (const d of eachDate(monthStart(py, pm), capEnd)) {
         const dayOpen = openMinutesOfDay(d, horario, specialsMap);
         if (dayOpen === 0) continue;
         if (desglose === "franja") {
@@ -1444,6 +1435,28 @@ function buildSeries(args: {
 
   // Para comparar/histórico: transponer para que X = meses y series = slots de desglose.
   if (period !== "mesUnico") {
+    // Comparar meses con desgloses categóricos ordenados (franja, día de la
+    // semana, turno): X = buckets del desglose y cada mes es una serie propia.
+    if (
+      period === "comparar" &&
+      (desglose === "franja" || desglose === "dow" || desglose === "turno") &&
+      metric !== "porEntrenador"
+    ) {
+      const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
+      const finalSeriesM = monthSeries.length ? monthSeries : seriesKeys;
+      const keepAll = desglose === "franja";
+      const rowsM = keepAll
+        ? rows
+        : (rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0)).length
+            ? rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0))
+            : rows);
+      return {
+        rows: rowsM,
+        seriesKeys: finalSeriesM,
+        isLineChart: desglose === "franja" || desglose === "dow",
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
     const monthOrder = periods.map((p) => p.key);
     const slotOrder = bucketKeys.filter((b) => seriesKeys.some((k) => k === b || k.endsWith(` · ${b}`)) || acc.get(b));
     // Recolectar todas las "series" reales: bucketKeys que aparecen como bucket.
