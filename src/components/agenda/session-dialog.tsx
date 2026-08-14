@@ -164,7 +164,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open) return;
     setClientId(session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
-    setEsPrueba(session?.estado === "prueba");
+    setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
     setEstado(
       session?.estado === "prueba" ? "reservada" : ((session?.estado as SesionEstado) ?? "reservada"),
     );
@@ -359,7 +359,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       fecha: session.fecha!,
       hora_inicio: `${horaInicio}:00`,
       hora_fin: `${horaFin}:00`,
-      estado: (esPrueba ? "prueba" : estado) as SesionEstado,
+      // La casilla "Sesión de prueba" marca el tipo; el estado sigue siendo
+      // editable (reservada / realizada / cancelada). Para conservar el color
+      // y evitar la auto-conversión, una prueba no cancelada se guarda como
+      // estado "prueba".
+      estado: (esPrueba && estado !== "cancelada" ? "prueba" : estado) as SesionEstado,
+      tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
@@ -435,7 +440,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
       // Si es una sesión de prueba con un cliente asignado, aseguramos que el
       // cliente quede registrado con un bono "Prueba" activo (sin factura).
-      if (!error && !grupo && clientId && base.estado === "prueba") {
+      if (!error && !grupo && clientId && esPrueba) {
         await supabase.rpc("ensure_prueba_bono" as never, {
           p_client: clientId,
           p_fecha: session.fecha!,
@@ -450,6 +455,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         hora_inicio: base.hora_inicio,
         hora_fin: base.hora_fin,
         estado: base.estado,
+        tipo: base.tipo,
         titulo: base.titulo,
         no_contabilizar: base.no_contabilizar,
         por_confirmar: base.por_confirmar,
