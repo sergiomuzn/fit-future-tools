@@ -313,6 +313,23 @@ export function BehaviorForm() {
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Bonos</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Ocultar bonos agotados de clientes inactivos"
+            description="Si el cliente está inactivo y su bono no tiene sesiones restantes, el bono deja de aparecer en la tabla de Bonos. Desactívalo para seguir viéndolos."
+          >
+            <Switch
+              checked={cfg.ocultarBonosInactivosAgotados}
+              onCheckedChange={(v) => update("ocultarBonosInactivosAgotados", v)}
+            />
+          </Row>
+        </CardContent>
+      </Card>
+
       <div className="flex justify-between items-center">
         <Button variant="ghost" size="sm" onClick={reset}>
           <RotateCcw className="h-4 w-4 mr-2" />
