@@ -377,7 +377,18 @@ export function BonosPanel() {
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
                     return (
-                      <div key={b.id} className={`${SUB} ${!isGympass && !noBono && b.sesiones_disponibles <= 1 ? "text-orange-500 font-semibold" : ""}`}>
+                      <div
+                        key={b.id}
+                        className={`${SUB} ${
+                          isGympass || noBono
+                            ? ""
+                            : b.sesiones_disponibles <= 0
+                              ? "text-red-600 dark:text-red-400 font-semibold"
+                              : b.sesiones_disponibles <= 1
+                                ? "text-orange-500 font-semibold"
+                                : ""
+                        }`}
+                      >
                         {isGympass || noBono ? "—" : b.sesiones_disponibles}
                       </div>
                     );
