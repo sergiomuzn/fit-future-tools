@@ -19,13 +19,18 @@ import {
   STATS_KPI_LABEL,
   STATS_METRICS,
   STATS_METRIC_LABEL,
+  STATS_PERIODS,
+  STATS_PERIOD_LABEL,
   isDefaultCompat,
+  isDefaultMetricPeriod,
+  isDefaultDesglosePeriod,
   useStatsConfig,
   writeStatsConfig,
   type StatsConfig,
   type StatsDesglose,
   type StatsKpiKey,
   type StatsMetric,
+  type StatsPeriod,
 } from "@/lib/stats-config";
 
 export function StatsConfigForm() {
@@ -48,6 +53,26 @@ export function StatsConfigForm() {
 
   function toggleKpi(k: StatsKpiKey) {
     setLocal((cur) => ({ ...cur, kpis: { ...cur.kpis, [k]: !cur.kpis[k] } }));
+  }
+
+  function toggleMetricPeriod(m: StatsMetric, p: StatsPeriod) {
+    setLocal((cur) => ({
+      ...cur,
+      metricPeriods: {
+        ...cur.metricPeriods,
+        [m]: { ...cur.metricPeriods[m], [p]: !cur.metricPeriods[m][p] },
+      },
+    }));
+  }
+
+  function toggleDesglosePeriod(d: StatsDesglose, p: StatsPeriod) {
+    setLocal((cur) => ({
+      ...cur,
+      desglosePeriods: {
+        ...cur.desglosePeriods,
+        [d]: { ...cur.desglosePeriods[d], [p]: !cur.desglosePeriods[d][p] },
+      },
+    }));
   }
 
   function resetDefaults() {
@@ -169,6 +194,85 @@ export function StatsConfigForm() {
             <Label className="text-xs text-muted-foreground ml-auto">
               La configuración se guarda en este navegador.
             </Label>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Compatibilidad con el periodo</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <p className="text-xs text-muted-foreground">
+            Activa qué periodos estarán disponibles para cada métrica y para cada desglose. Las combinaciones
+            desactivadas no aparecerán en el selector de Periodo de Estadísticas.
+          </p>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left">
+                  <th className="p-2 font-medium">Métrica</th>
+                  {STATS_PERIODS.map((p) => (
+                    <th key={p} className="p-2 font-medium text-center whitespace-nowrap">
+                      {STATS_PERIOD_LABEL[p]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {STATS_METRICS.map((m) => (
+                  <tr key={m} className="border-t">
+                    <td className="p-2 font-medium whitespace-nowrap">{STATS_METRIC_LABEL[m]}</td>
+                    {STATS_PERIODS.map((p) => {
+                      const enabled = local.metricPeriods[m][p];
+                      const warn = enabled && !isDefaultMetricPeriod(m, p);
+                      return (
+                        <td key={p} className={"p-2 text-center " + (warn ? "bg-amber-500/10" : "")}>
+                          <Checkbox checked={enabled} onCheckedChange={() => toggleMetricPeriod(m, p)} />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-left">
+                  <th className="p-2 font-medium">Desglose</th>
+                  {STATS_PERIODS.map((p) => (
+                    <th key={p} className="p-2 font-medium text-center whitespace-nowrap">
+                      {STATS_PERIOD_LABEL[p]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {STATS_DESGLOSES.map((d) => (
+                  <tr key={d} className="border-t">
+                    <td className="p-2 font-medium whitespace-nowrap">{STATS_DESGLOSE_LABEL[d]}</td>
+                    {STATS_PERIODS.map((p) => {
+                      const enabled = local.desglosePeriods[d][p];
+                      const warn = enabled && !isDefaultDesglosePeriod(d, p);
+                      return (
+                        <td key={p} className={"p-2 text-center " + (warn ? "bg-amber-500/10" : "")}>
+                          <Checkbox checked={enabled} onCheckedChange={() => toggleDesglosePeriod(d, p)} />
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button onClick={save} disabled={!dirty}>Guardar</Button>
+            <Button variant="outline" onClick={resetDefaults}>Restablecer recomendados</Button>
           </div>
         </CardContent>
       </Card>
