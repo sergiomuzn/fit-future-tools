@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X, SlidersHorizontal } from "lucide-react";
 import { useConfirm } from "@/components/confirm-dialog";
 import { useColumnVisibility } from "@/components/columns-menu";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 const BONO_COLUMNS = [
   { key: "servicio", label: "Servicio" },
@@ -37,6 +38,7 @@ export function BonosPanel() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
+  const behavior = useBehaviorConfig();
   const { show, menu: columnsMenu, visibleCount } = useColumnVisibility("bonos-columns", BONO_COLUMNS);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
@@ -135,6 +137,12 @@ export function BonosPanel() {
     const isGympass = t === "gympass" || t === "grupal";
     const noBono = !b.bono_catalogo_id;
     const activo = isGympass || noBono || b.sesiones_disponibles > 0;
+
+    // Cliente inactivo y bono sin sesiones restantes → oculto (configurable)
+    if (behavior.ocultarBonosInactivosAgotados) {
+      const cliente = clientMap.get(b.client_id);
+      if (cliente && !cliente.activo && b.sesiones_disponibles <= 0) return false;
+    }
 
     if (fEstado === "activo" && !activo) return false;
     if (fEstado === "agotado" && activo) return false;
