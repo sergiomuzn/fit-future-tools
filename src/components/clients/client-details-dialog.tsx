@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
+import { supabase, prettyBonoNombre, colorEstadoFor, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
