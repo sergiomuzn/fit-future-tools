@@ -50,26 +50,6 @@ export function StatsConfigForm() {
     setLocal((cur) => ({ ...cur, kpis: { ...cur.kpis, [k]: !cur.kpis[k] } }));
   }
 
-  function toggleMetricPeriod(m: StatsMetric, p: StatsPeriod) {
-    setLocal((cur) => ({
-      ...cur,
-      metricPeriods: {
-        ...cur.metricPeriods,
-        [m]: { ...cur.metricPeriods[m], [p]: !cur.metricPeriods[m][p] },
-      },
-    }));
-  }
-
-  function toggleDesglosePeriod(d: StatsDesglose, p: StatsPeriod) {
-    setLocal((cur) => ({
-      ...cur,
-      desglosePeriods: {
-        ...cur.desglosePeriods,
-        [d]: { ...cur.desglosePeriods[d], [p]: !cur.desglosePeriods[d][p] },
-      },
-    }));
-  }
-
   function resetDefaults() {
     setLocal(DEFAULT_STATS_CONFIG);
   }
