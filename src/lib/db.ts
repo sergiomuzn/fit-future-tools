@@ -36,6 +36,12 @@ export const ESTADO_BG: Record<SesionEstado, string> = {
   renovacion: "bg-state-renovacion text-state-renovacion-fg",
 };
 
+/** Devuelve el estado que debe usarse para pintar la sesión.
+ * Una sesión de prueba siempre conserva el color de prueba aunque su estado administrativo sea realizado/cancelado. */
+export function colorEstadoFor(session: { estado: SesionEstado; tipo?: string | null }): SesionEstado {
+  return session.tipo === "prueba" ? "prueba" : session.estado;
+}
+
 export function turnoFromHora(hora: string): "manana" | "tarde" {
   const [h] = hora.split(":").map(Number);
   return h < 14 ? "manana" : "tarde";
