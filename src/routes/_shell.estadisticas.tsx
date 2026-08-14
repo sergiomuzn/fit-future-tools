@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info, Lock } from "lucide-react";
+import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
@@ -502,11 +502,7 @@ function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
   if (metric === "facturacion" && desglose === "franja") return false;
   return true;
 }
-/** Restricciones de periodo por métrica, independientes de la configuración. */
-function isPeriodAllowedForMetric(metric: Metric, period: PeriodMode): boolean {
-  if (metric === "porEntrenador") return period === "mesUnico";
-  return true;
-}
+// Las restricciones de periodo se configuran en Configuración → Estadísticas.
 
 function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): string {
   const metricInfo: Record<Metric, string> = {
@@ -581,9 +577,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     !!statsConfig.compat[mm]?.[dd];
   const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
     isDesgloseAllowedForMetric(mm, dd) &&
-    isPeriodAllowedForMetric(mm, pp) &&
-    // Franja horaria no admite histórico (demasiados puntos por mes).
-    !(dd === "franja" && pp === "historico");
+    statsConfig.metricPeriods[mm]?.[pp] !== false &&
+    statsConfig.desglosePeriods[dd]?.[pp] !== false;
   const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
     const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
     for (const d of order) if (isValidCombo(mm, d, pp)) return d;
@@ -760,18 +755,10 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               {(Object.entries(PERIOD_LABEL) as [PeriodMode, string][])
-                .filter(([k]) => isValidCombo(metric, desglose, k) || (desglose === "franja" && k === "historico"))
-                .map(([k, v]) => {
-                  const locked = !isValidCombo(metric, desglose, k);
-                  return (
-                    <SelectItem key={k} value={k} disabled={locked}>
-                      <span className="inline-flex items-center gap-1.5">
-                        {locked && <Lock className="h-3.5 w-3.5" />}
-                        {v}
-                      </span>
-                    </SelectItem>
-                  );
-                })}
+                .filter(([k]) => isValidCombo(metric, desglose, k))
+                .map(([k, v]) => (
+                  <SelectItem key={k} value={k}>{v}</SelectItem>
+                ))}
             </SelectContent>
           </Select>
         </div>
