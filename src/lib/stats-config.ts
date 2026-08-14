@@ -26,8 +26,6 @@ export type StatsCompatMatrix = Record<StatsMetric, Record<StatsDesglose, boolea
 
 export type StatsConfig = {
   compat: StatsCompatMatrix;
-  metricPeriods: Record<StatsMetric, Record<StatsPeriod, boolean>>;
-  desglosePeriods: Record<StatsDesglose, Record<StatsPeriod, boolean>>;
   kpis: Record<StatsKpiKey, boolean>;
 };
 
@@ -105,29 +103,8 @@ export const DEFAULT_KPIS: Record<StatsKpiKey, boolean> = {
   clientesActivos: false,
 };
 
-/** Periodos recomendados por métrica. */
-export const DEFAULT_METRIC_PERIODS: Record<StatsMetric, Record<StatsPeriod, boolean>> = {
-  ocupacion:     { mesUnico: true, comparar: true,  historico: true  },
-  sesiones:      { mesUnico: true, comparar: true,  historico: true  },
-  cancelaciones: { mesUnico: true, comparar: true,  historico: true  },
-  porEntrenador: { mesUnico: true, comparar: false, historico: false },
-  facturacion:   { mesUnico: true, comparar: true,  historico: true  },
-  altasBajas:    { mesUnico: true, comparar: true,  historico: true  },
-};
-
-/** Periodos recomendados por desglose. */
-export const DEFAULT_DESGLOSE_PERIODS: Record<StatsDesglose, Record<StatsPeriod, boolean>> = {
-  total:      { mesUnico: true, comparar: true, historico: true  },
-  turno:      { mesUnico: true, comparar: true, historico: true  },
-  dow:        { mesUnico: true, comparar: true, historico: true  },
-  franja:     { mesUnico: true, comparar: true, historico: false },
-  tipoSesion: { mesUnico: true, comparar: true, historico: true  },
-};
-
 export const DEFAULT_STATS_CONFIG: StatsConfig = {
   compat: DEFAULT_COMPAT,
-  metricPeriods: DEFAULT_METRIC_PERIODS,
-  desglosePeriods: DEFAULT_DESGLOSE_PERIODS,
   kpis: DEFAULT_KPIS,
 };
 
