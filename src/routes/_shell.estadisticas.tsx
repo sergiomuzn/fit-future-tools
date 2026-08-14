@@ -571,22 +571,17 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const statsConfig = useStatsConfig();
   const canceladasModo = useBehaviorConfig().canceladasCuentanModo;
 
-  // Compatibilidad efectiva: la del usuario (Config → Estadísticas), acotada
-  // por las reglas de periodo definidas por el negocio.
+  // Compatibilidad efectiva: sólo la métrica × desglose configurada por el usuario.
   const isDesgloseAllowedForMetric = (mm: Metric, dd: Desglose): boolean =>
     !!statsConfig.compat[mm]?.[dd];
-  const isValidCombo = (mm: Metric, dd: Desglose, pp: PeriodMode): boolean =>
-    isDesgloseAllowedForMetric(mm, dd) &&
-    statsConfig.metricPeriods[mm]?.[pp] !== false &&
-    statsConfig.desglosePeriods[dd]?.[pp] !== false;
+  const isValidCombo = (mm: Metric, dd: Desglose, _pp: PeriodMode): boolean =>
+    isDesgloseAllowedForMetric(mm, dd);
   const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
     const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
     for (const d of order) if (isValidCombo(mm, d, pp)) return d;
     return "total";
   };
-  const firstValidPeriod = (mm: Metric, dd: Desglose): PeriodMode => {
-    const order: PeriodMode[] = ["mesUnico", "comparar", "historico"];
-    for (const p of order) if (isValidCombo(mm, dd, p)) return p;
+  const firstValidPeriod = (_mm: Metric, _dd: Desglose): PeriodMode => {
     return "mesUnico";
   };
 
