@@ -319,7 +319,7 @@ export function BonosPanel() {
                 </button>
               </TableHead>}
               {show("ultimo") && <TableHead>Último bono</TableHead>}
-              {show("fecha") && <TableHead>Última fecha</TableHead>}
+              {show("fecha") && <TableHead>Fecha de bono</TableHead>}
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
