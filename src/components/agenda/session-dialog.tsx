@@ -791,11 +791,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
             <div className="space-y-0.5">
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
-              <p className="text-[11px] text-muted-foreground leading-tight">
-                El cliente queda registrado con bono de tipo “Prueba”. Si no contrata bono en
-                los días configurados, pasa automáticamente a inactivo conservando ese tipo.
-                El estado de la sesión (reservada, realizada o cancelada) se puede cambiar igualmente.
-              </p>
             </div>
           </div>
 

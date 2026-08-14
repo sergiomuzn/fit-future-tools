@@ -103,13 +103,25 @@ export function BehaviorForm() {
               al llegar a 0: se conserva hasta que el cliente renueva.
             </li>
             <li>
+              <b>Bonos agotados y archivado:</b> cuando las sesiones restantes llegan a 0 o pasan a
+              negativo (-1, -2…), el bono sigue visible en la pestaña <i>Bonos</i> mostrando ese
+              número con el estado <i>Agotado</i>. Sólo se archiva en el historial cuando entra un
+              bono nuevo (desde facturación o añadido a mano), y en ese momento las sesiones
+              restantes del bono archivado se suman o restan al bono nuevo. Las sesiones restantes
+              no se muestran en la pestaña <i>Clientes</i>, sólo en <i>Bonos</i>.
+            </li>
+            <li>
               <b>Altas y bajas:</b> el primer bono (individual, pareja o grupal, no de prueba ni
               pases genéricos) genera un <i>alta</i>. Marcar un cliente como inactivo registra una
               <i> baja</i>; volver a activarlo la retira.
             </li>
             <li>
-              <b>Clientes de prueba:</b> tras {cfg.pruebaDiasInactivar} días desde la sesión de
-              prueba sin haber contratado bono, el cliente pasa automáticamente a inactivo
+              <b>Sesiones de prueba:</b> al marcar la casilla <i>Sesión de prueba</i> en la agenda, el
+              cliente queda registrado con bono de tipo <i>Prueba</i>. El estado de esa sesión
+              (reservada, realizada o cancelada) se puede cambiar igualmente. Tras{" "}
+              {cfg.pruebaDiasInactivar} días desde la sesión de prueba sin haber contratado bono, el
+              cliente pasa automáticamente a inactivo conservando el tipo de bono <i>Prueba</i> hasta
+              que se registre un bono nuevo (facturación o alta manual)
               {cfg.pruebaAutoInactivar ? "" : " (automatismo desactivado)"}.
             </li>
             <li>
