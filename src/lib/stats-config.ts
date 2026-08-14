@@ -10,6 +10,8 @@ export type StatsMetric =
 
 export type StatsDesglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 
+export type StatsPeriod = "mesUnico" | "comparar" | "historico";
+
 export type StatsKpiKey =
   | "entrenamientos"
   | "ocupacion"
@@ -24,6 +26,8 @@ export type StatsCompatMatrix = Record<StatsMetric, Record<StatsDesglose, boolea
 
 export type StatsConfig = {
   compat: StatsCompatMatrix;
+  metricPeriods: Record<StatsMetric, Record<StatsPeriod, boolean>>;
+  desglosePeriods: Record<StatsDesglose, Record<StatsPeriod, boolean>>;
   kpis: Record<StatsKpiKey, boolean>;
 };
 
@@ -61,6 +65,14 @@ export const STATS_DESGLOSE_LABEL: Record<StatsDesglose, string> = {
   tipoSesion: "Tipo de sesión",
 };
 
+export const STATS_PERIODS: StatsPeriod[] = ["mesUnico", "comparar", "historico"];
+
+export const STATS_PERIOD_LABEL: Record<StatsPeriod, string> = {
+  mesUnico: "Mes actual",
+  comparar: "Comparar meses",
+  historico: "Histórico",
+};
+
 export const STATS_KPI_LABEL: Record<StatsKpiKey, string> = {
   entrenamientos: "Entrenamientos totales",
   ocupacion: "Ocupación media del centro",
@@ -93,8 +105,29 @@ export const DEFAULT_KPIS: Record<StatsKpiKey, boolean> = {
   clientesActivos: false,
 };
 
+/** Periodos recomendados por métrica. */
+export const DEFAULT_METRIC_PERIODS: Record<StatsMetric, Record<StatsPeriod, boolean>> = {
+  ocupacion:     { mesUnico: true, comparar: true,  historico: true  },
+  sesiones:      { mesUnico: true, comparar: true,  historico: true  },
+  cancelaciones: { mesUnico: true, comparar: true,  historico: true  },
+  porEntrenador: { mesUnico: true, comparar: false, historico: false },
+  facturacion:   { mesUnico: true, comparar: true,  historico: true  },
+  altasBajas:    { mesUnico: true, comparar: true,  historico: true  },
+};
+
+/** Periodos recomendados por desglose. */
+export const DEFAULT_DESGLOSE_PERIODS: Record<StatsDesglose, Record<StatsPeriod, boolean>> = {
+  total:      { mesUnico: true, comparar: true, historico: true  },
+  turno:      { mesUnico: true, comparar: true, historico: true  },
+  dow:        { mesUnico: true, comparar: true, historico: true  },
+  franja:     { mesUnico: true, comparar: true, historico: false },
+  tipoSesion: { mesUnico: true, comparar: true, historico: true  },
+};
+
 export const DEFAULT_STATS_CONFIG: StatsConfig = {
   compat: DEFAULT_COMPAT,
+  metricPeriods: DEFAULT_METRIC_PERIODS,
+  desglosePeriods: DEFAULT_DESGLOSE_PERIODS,
   kpis: DEFAULT_KPIS,
 };
 
@@ -124,6 +157,23 @@ function mergeKpis(saved: Partial<Record<StatsKpiKey, boolean>> | undefined): Re
   return out;
 }
 
+function mergePeriods<K extends string>(
+  keys: K[],
+  defaults: Record<K, Record<StatsPeriod, boolean>>,
+  saved: Partial<Record<K, Partial<Record<StatsPeriod, boolean>>>> | undefined,
+): Record<K, Record<StatsPeriod, boolean>> {
+  const out = {} as Record<K, Record<StatsPeriod, boolean>>;
+  for (const k of keys) {
+    const row = {} as Record<StatsPeriod, boolean>;
+    for (const p of STATS_PERIODS) {
+      const v = saved?.[k]?.[p];
+      row[p] = typeof v === "boolean" ? v : defaults[k][p];
+    }
+    out[k] = row;
+  }
+  return out;
+}
+
 function readStorage(): StatsConfig {
   if (typeof window === "undefined") return DEFAULT_STATS_CONFIG;
   try {
@@ -132,6 +182,8 @@ function readStorage(): StatsConfig {
     const parsed = JSON.parse(raw) as Partial<StatsConfig>;
     return {
       compat: mergeCompat(parsed.compat),
+      metricPeriods: mergePeriods(STATS_METRICS, DEFAULT_METRIC_PERIODS, parsed.metricPeriods),
+      desglosePeriods: mergePeriods(STATS_DESGLOSES, DEFAULT_DESGLOSE_PERIODS, parsed.desglosePeriods),
       kpis: mergeKpis(parsed.kpis),
     };
   } catch {
@@ -163,4 +215,12 @@ export function useStatsConfig(): StatsConfig {
 /** ¿Es la combinación métrica × desglose la recomendada por defecto? */
 export function isDefaultCompat(metric: StatsMetric, desglose: StatsDesglose): boolean {
   return DEFAULT_COMPAT[metric][desglose] === true;
+}
+
+/** ¿Es el periodo recomendado por defecto para esa métrica/desglose? */
+export function isDefaultMetricPeriod(metric: StatsMetric, period: StatsPeriod): boolean {
+  return DEFAULT_METRIC_PERIODS[metric][period] === true;
+}
+export function isDefaultDesglosePeriod(desglose: StatsDesglose, period: StatsPeriod): boolean {
+  return DEFAULT_DESGLOSE_PERIODS[desglose][period] === true;
 }
