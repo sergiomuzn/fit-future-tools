@@ -319,7 +319,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
                   const inc = (s.incidencia ?? "").trim();
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
-                  const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
+                  const dot = ESTADO_DOT[colorEstadoFor(s)] ?? "bg-muted";
                   return (
                     <Tooltip key={s.id}>
                       <TooltipTrigger asChild>
