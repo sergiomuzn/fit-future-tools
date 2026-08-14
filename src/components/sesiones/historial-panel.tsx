@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
-import { ESTADO_BG, colorEstadoFor } from "@/lib/db";
+import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 
