@@ -30,7 +30,7 @@ const BONO_COLUMNS = [
   { key: "restantes", label: "Restantes" },
   { key: "estado", label: "Estado" },
   { key: "ultimo", label: "Último bono" },
-  { key: "fecha", label: "Última fecha" },
+  { key: "fecha", label: "Fecha de bono" },
 ];
 
 export function BonosPanel() {
@@ -319,7 +319,7 @@ export function BonosPanel() {
                 </button>
               </TableHead>}
               {show("ultimo") && <TableHead>Último bono</TableHead>}
-              {show("fecha") && <TableHead>Última fecha</TableHead>}
+              {show("fecha") && <TableHead>Fecha de bono</TableHead>}
               <TableHead className="w-12"></TableHead>
             </TableRow>
           </TableHeader>
