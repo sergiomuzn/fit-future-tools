@@ -130,6 +130,8 @@ export function BonosPanel() {
     // Los bonos archivados (renovados) sólo viven en el historial del cliente
     if (!b.activo) return false;
     const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
+    // Los bonos de tipo "prueba" no se listan en Bonos (sólo en Clientes)
+    if (t === "prueba") return false;
     const isGympass = t === "gympass" || t === "grupal";
     const noBono = !b.bono_catalogo_id;
     const activo = isGympass || noBono || b.sesiones_disponibles > 0;
@@ -267,7 +269,7 @@ export function BonosPanel() {
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                {[...new Set(catalogo.map((c) => c.tipo))].map((t) => (
+                {[...new Set(catalogo.map((c) => c.tipo))].filter((t) => t !== "prueba").map((t) => (
                   <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? formatTipoBono(t)}</SelectItem>
                 ))}
               </SelectContent>
