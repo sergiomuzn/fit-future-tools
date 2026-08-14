@@ -916,16 +916,16 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
-            style={{ minWidth: Math.max(rows.length * 80, 400) }}
+            style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {isLineChart ? (
-                <LineChart data={rows}>
+                <LineChart data={rows} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                    {metric !== "porEntrenador" && <RLegend />}
                    {seriesKeys.map((k, i) => (
@@ -945,9 +945,9 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   ))}
                 </LineChart>
               ) : (
-                <ComposedChart data={rowsWithTotal}>
+                <ComposedChart data={rowsWithTotal} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="bucket" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                   {metric !== "porEntrenador" && <RLegend />}
                   {seriesKeys.map((k, i) => (
@@ -959,21 +959,6 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
                     </Bar>
                   ))}
-                  {hasTotal && (
-                    <Line
-                      type="monotone"
-                      dataKey="__total"
-                      name="Total"
-                      stroke="#f59e0b"
-                      strokeWidth={3}
-                      connectNulls
-                      dot={{ r: 5, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
-                      activeDot={{ r: 7, fill: "#f59e0b", stroke: "#ffffff", strokeWidth: 2 }}
-                      isAnimationActive={false}
-                    >
-                      <LabelList dataKey="__total" position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 700 }} />
-                    </Line>
-                  )}
                 </ComposedChart>
               )}
             </ResponsiveContainer>
