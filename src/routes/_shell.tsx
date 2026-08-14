@@ -94,8 +94,8 @@ function ShellInner() {
   return (
     <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
       <Sidebar collapsible="icon">
-        <SidebarHeader className="border-b">
-          <div className="flex items-center justify-between gap-2 px-2 py-1 group-data-[collapsible=icon]:justify-center">
+        <SidebarHeader className="border-b h-12 px-2 py-0">
+          <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
             <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
               {centroNombre}
             </div>
@@ -159,7 +159,7 @@ function ShellInner() {
         </SidebarFooter>
       </Sidebar>
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
-        <div className="flex items-center gap-2 border-b bg-card px-2 py-1.5">
+        <div className="flex h-12 items-center gap-2 border-b bg-card px-2 py-0">
           <SidebarTrigger />
           <span className="font-display text-sm font-semibold tracking-tight md:hidden">{centroNombre}</span>
           <div className="ml-auto">
