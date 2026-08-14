@@ -712,25 +712,14 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     return palette[idx % palette.length];
   };
 
-  // Línea superpuesta sobre barras: sólo para categorías con orden natural
-  // (franja horaria, día de la semana). Nunca en entrenadores, tipos, turnos,
-  // ni cuando se comparan meses en paralelo.
-  const showOverlayLine =
-    !isLineChart &&
-    metric !== "porEntrenador" &&
-    (desglose === "franja" || desglose === "dow");
-  const totalValues = useMemo<number[] | null>(() => {
-    if (!showOverlayLine) return null;
-    const n = rows.length;
-    if (n < 2) return null;
-    return rows.map((r) =>
-      seriesKeys.reduce((s, k) => s + (Number((r as Record<string, unknown>)[k]) || 0), 0),
-    );
-  }, [rows, seriesKeys, showOverlayLine]);
-  const hasTotal = totalValues !== null;
-  const rowsWithTotal = hasTotal
-    ? rows.map((r, i) => ({ ...r, __total: totalValues![i] }))
-    : rows;
+  // Ya no se dibuja línea de total superpuesta sobre las barras.
+  const rowsWithTotal = rows;
+  // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
+  const manyTicks = rows.length > 10;
+  const xAxisProps = manyTicks
+    ? { tick: { fontSize: 10 }, angle: -45, textAnchor: "end" as const, height: 60, interval: 0 }
+    : { tick: { fontSize: 12 } };
+  const chartMargin = manyTicks ? { top: 10, right: 10, left: 0, bottom: 24 } : { top: 10, right: 10, left: 0, bottom: 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
 
