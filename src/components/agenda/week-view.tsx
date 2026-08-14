@@ -171,7 +171,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[session.estado],
+                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[session.tipo === "prueba" ? "prueba" : session.estado],
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)` }}
                         title={`${session.hora_inicio.slice(0, 5)} ${name}`}
