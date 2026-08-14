@@ -46,6 +46,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [clientId, setClientId] = useState<string | null>(null);
   const [trainerId, setTrainerId] = useState<string | null>(null);
   const [estado, setEstado] = useState<SesionEstado>("reservada");
+  const [esPrueba, setEsPrueba] = useState(false);
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
@@ -163,7 +164,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open) return;
     setClientId(session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
-    setEstado((session?.estado as SesionEstado) ?? "reservada");
+    setEsPrueba(session?.estado === "prueba");
+    setEstado(
+      session?.estado === "prueba" ? "reservada" : ((session?.estado as SesionEstado) ?? "reservada"),
+    );
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
     setServicioSlug(
