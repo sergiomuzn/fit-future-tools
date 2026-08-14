@@ -580,7 +580,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 !(session as any).por_confirmar &&
                 !["gympass", "grupal"].includes(catTipoMap.get(bono?.bono_catalogo_id ?? "") ?? "") &&
                 (!bono || bono.sesiones_disponibles <= 1);
-              const estadoForColor = needsRenewal ? "renovacion" : session.estado;
+              const estadoForColor = session.tipo === "prueba"
+                ? "prueba"
+                : needsRenewal
+                  ? "renovacion"
+                  : session.estado;
               const isGroup = session.ocupacion === 2;
               const members = groupMembers.get(session.id);
               const groupMemberCount = isGroup
