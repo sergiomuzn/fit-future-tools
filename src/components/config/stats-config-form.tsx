@@ -19,18 +19,13 @@ import {
   STATS_KPI_LABEL,
   STATS_METRICS,
   STATS_METRIC_LABEL,
-  STATS_PERIODS,
-  STATS_PERIOD_LABEL,
   isDefaultCompat,
-  isDefaultMetricPeriod,
-  isDefaultDesglosePeriod,
   useStatsConfig,
   writeStatsConfig,
   type StatsConfig,
   type StatsDesglose,
   type StatsKpiKey,
   type StatsMetric,
-  type StatsPeriod,
 } from "@/lib/stats-config";
 
 export function StatsConfigForm() {
