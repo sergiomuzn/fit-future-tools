@@ -22,6 +22,8 @@ export type BehaviorConfig = {
   clienteVeCanceladas: boolean;
   /** Las canceladas marcadas "No contabilizar" suman al total de cancelaciones del cliente */
   canceladasNCSumanTotal: boolean;
+  /** Ocultar en la tabla de Bonos los bonos sin sesiones restantes de clientes inactivos */
+  ocultarBonosInactivosAgotados: boolean;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
@@ -35,6 +37,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   pruebaDiasInactivar: 30,
   clienteVeCanceladas: false,
   canceladasNCSumanTotal: false,
+  ocultarBonosInactivosAgotados: true,
 };
 
 const STORAGE_KEY = "behavior-config-v1";
