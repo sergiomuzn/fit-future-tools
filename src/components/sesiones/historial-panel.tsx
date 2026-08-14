@@ -266,7 +266,7 @@ export function HistorialPanel() {
                 <TableCell>{s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell>
                   <span
-                    className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[colorEstadoFor(s)]} opacity-60`}
+                    className={`inline-flex items-center h-7 px-2.5 rounded-full text-xs font-medium ${ESTADO_BG[s.estado]} opacity-60`}
                   >
                     {s.estado === "cancelada" && s.no_contabilizar
                       ? "Cancelada NC"
