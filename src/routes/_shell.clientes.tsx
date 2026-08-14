@@ -144,8 +144,13 @@ function ClientesPage() {
     }
   }
   // Clientes con sesión de prueba y sin ningún bono → tipo "Prueba" derivado.
+  // Los bonos "automáticos" (sin bono del catálogo, creados al registrar una
+  // sesión) no cuentan como bono real contratado.
+  const conBonoReal = new Set(
+    clientBonos.filter((b) => b.bono_catalogo_id).map((b) => b.client_id),
+  );
   for (const s of sesionesPrueba) {
-    if (!s.client_id || bonosByClient.has(s.client_id)) continue;
+    if (!s.client_id || conBonoReal.has(s.client_id)) continue;
     tipoByClient.set(s.client_id, "prueba");
     if (s.servicio_slug) serviciosByClient.set(s.client_id, [s.servicio_slug]);
     bonosByClient.set(s.client_id, [
