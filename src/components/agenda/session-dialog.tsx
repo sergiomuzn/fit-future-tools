@@ -438,14 +438,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
-      // Si es una sesión de prueba con un cliente asignado, aseguramos que el
-      // cliente quede registrado con un bono "Prueba" activo (sin factura).
+      // No se crea ningún bono: el tipo "Prueba" se deriva de la propia sesión
+      // hasta que se registre un bono real (Bonos o Facturación).
       if (!error && !grupo && clientId && esPrueba) {
-        await supabase.rpc("ensure_prueba_bono" as never, {
-          p_client: clientId,
-          p_fecha: session.fecha!,
-        } as never);
-        qc.invalidateQueries({ queryKey: ["client_bonos"] });
         qc.invalidateQueries({ queryKey: ["clients"] });
       }
     } else {
@@ -703,14 +698,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       }
     }
-    // Marcar el cliente como cliente de prueba (bono "Prueba") también al editar.
-    if (!isNew && !grupo && clientId && esPrueba) {
-      await supabase.rpc("ensure_prueba_bono" as never, {
-        p_client: clientId,
-        p_fecha: session.fecha!,
-      } as never);
-      qc.invalidateQueries({ queryKey: ["clients"] });
-    }
+    // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     setScopeAsk(false);
