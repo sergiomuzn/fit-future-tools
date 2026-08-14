@@ -164,7 +164,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open) return;
     setClientId(session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
-    setEsPrueba(session?.estado === "prueba");
+    setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
     setEstado(
       session?.estado === "prueba" ? "reservada" : ((session?.estado as SesionEstado) ?? "reservada"),
     );
@@ -359,7 +359,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       fecha: session.fecha!,
       hora_inicio: `${horaInicio}:00`,
       hora_fin: `${horaFin}:00`,
-      estado: (esPrueba ? "prueba" : estado) as SesionEstado,
+      // La casilla "Sesión de prueba" marca el tipo; el estado sigue siendo
+      // editable (reservada / realizada / cancelada). Para conservar el color
+      // y evitar la auto-conversión, una prueba no cancelada se guarda como
+      // estado "prueba".
+      estado: (esPrueba && estado !== "cancelada" ? "prueba" : estado) as SesionEstado,
+      tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
       titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
@@ -435,7 +440,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
       // Si es una sesión de prueba con un cliente asignado, aseguramos que el
       // cliente quede registrado con un bono "Prueba" activo (sin factura).
-      if (!error && !grupo && clientId && base.estado === "prueba") {
+      if (!error && !grupo && clientId && esPrueba) {
         await supabase.rpc("ensure_prueba_bono" as never, {
           p_client: clientId,
           p_fecha: session.fecha!,
@@ -450,6 +455,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         hora_inicio: base.hora_inicio,
         hora_fin: base.hora_fin,
         estado: base.estado,
+        tipo: base.tipo,
         titulo: base.titulo,
         no_contabilizar: base.no_contabilizar,
         por_confirmar: base.por_confirmar,
@@ -697,6 +703,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       }
     }
+    // Marcar el cliente como cliente de prueba (bono "Prueba") también al editar.
+    if (!isNew && !grupo && clientId && esPrueba) {
+      await supabase.rpc("ensure_prueba_bono" as never, {
+        p_client: clientId,
+        p_fecha: session.fecha!,
+      } as never);
+      qc.invalidateQueries({ queryKey: ["clients"] });
+    }
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     setScopeAsk(false);
@@ -773,9 +787,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-start gap-2">
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-            <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+            <div className="space-y-0.5">
+              <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                El cliente queda registrado con bono de tipo “Prueba”. Si no contrata bono en
+                los días configurados, pasa automáticamente a inactivo conservando ese tipo.
+                El estado de la sesión (reservada, realizada o cancelada) se puede cambiar igualmente.
+              </p>
+            </div>
           </div>
 
           {grupo ? (
@@ -868,7 +889,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)} disabled={esPrueba}>
+              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
@@ -879,7 +900,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          {!esPrueba && estado === "cancelada" && (
+          {estado === "cancelada" && (
             <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
               <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
               <div className="space-y-0.5">
@@ -904,7 +925,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Textarea value={incidencia} onChange={(e) => setIncidencia(e.target.value)} rows={2} />
           </div>
 
-          {!esPrueba && estado === "reservada" && (
+          {estado === "reservada" && (
             <div className="flex items-center gap-2">
               <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
               <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
