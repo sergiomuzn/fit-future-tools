@@ -30,7 +30,7 @@ const BONO_COLUMNS = [
   { key: "restantes", label: "Restantes" },
   { key: "estado", label: "Estado" },
   { key: "ultimo", label: "Último bono" },
-  { key: "fecha", label: "Última fecha" },
+  { key: "fecha", label: "Fecha de bono" },
 ];
 
 export function BonosPanel() {
