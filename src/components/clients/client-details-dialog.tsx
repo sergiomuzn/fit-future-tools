@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
-import { supabase, prettyBonoNombre, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
+import { supabase, prettyBonoNombre, colorEstadoFor, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -319,7 +319,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
                   const inc = (s.incidencia ?? "").trim();
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
-                  const dot = ESTADO_DOT[s.estado] ?? "bg-muted";
+                  const dot = ESTADO_DOT[colorEstadoFor(s)] ?? "bg-muted";
                   return (
                     <Tooltip key={s.id}>
                       <TooltipTrigger asChild>

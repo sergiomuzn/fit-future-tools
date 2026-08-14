@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client, ESTADO_BG } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
 import { formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
@@ -112,7 +112,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
                           "truncate rounded px-1 text-left text-[10px] leading-tight",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[s.estado],
+                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
                         )}
                         title={`${s.hora_inicio.slice(0, 5)} ${name}`}
                       >

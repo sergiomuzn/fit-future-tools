@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, type Session, type Trainer, type Client, ESTADO_BG } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
@@ -171,7 +171,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[session.estado],
+                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)` }}
                         title={`${session.hora_inicio.slice(0, 5)} ${name}`}
