@@ -874,7 +874,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
             <div className="space-y-1.5">
               <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)} disabled={esPrueba}>
+              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
@@ -885,7 +885,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          {!esPrueba && estado === "cancelada" && (
+          {estado === "cancelada" && (
             <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
               <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
               <div className="space-y-0.5">
@@ -910,7 +910,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Textarea value={incidencia} onChange={(e) => setIncidencia(e.target.value)} rows={2} />
           </div>
 
-          {!esPrueba && estado === "reservada" && (
+          {estado === "reservada" && (
             <div className="flex items-center gap-2">
               <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
               <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
