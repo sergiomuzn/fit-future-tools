@@ -1307,7 +1307,13 @@ function buildSeries(args: {
       const isTardeTurno = p.key.startsWith("Tarde ·");
       const capByBucket = new Map<string, number>();
       const addCap = (b: string, min: number) => capByBucket.set(b, (capByBucket.get(b) ?? 0) + min * SLOTS);
-      for (const d of eachDate(monthStart(py, pm), monthEnd(py, pm))) {
+      // El mes en curso no se extrapola: sólo cuentan los días transcurridos.
+      const todayD = new Date();
+      const isCurrentMonth = py === todayD.getFullYear() && pm === todayD.getMonth();
+      const capEnd = isCurrentMonth
+        ? new Date(todayD.getFullYear(), todayD.getMonth(), todayD.getDate())
+        : monthEnd(py, pm);
+      for (const d of eachDate(monthStart(py, pm), capEnd)) {
         const dayOpen = openMinutesOfDay(d, horario, specialsMap);
         if (dayOpen === 0) continue;
         if (desglose === "franja") {
