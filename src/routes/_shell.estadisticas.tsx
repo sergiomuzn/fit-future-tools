@@ -10,7 +10,7 @@ import { Download, Info, Lock } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line, ComposedChart, LabelList, Cell,
+  Legend as RLegend, Line, ComposedChart, LabelList, Cell,
 } from "recharts";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
