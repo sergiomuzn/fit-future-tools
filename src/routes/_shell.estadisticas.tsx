@@ -1661,7 +1661,7 @@ function buildSeries(args: {
     const finalT = nzT.length ? nzT : trows;
     // Histórico de facturación / ocupación: áreas sombreadas, línea de media
     // en "sin desglosar" y etiquetas espaciadas en el desglose por turno.
-    if (period === "historico" && (metric === "facturacion" || metric === "ocupacion")) {
+    if (period === "historico" && metric === "ocupacion") {
       const withMedia = desglose === "total";
       if (withMedia && slots.length) {
         const key = slots[0];
