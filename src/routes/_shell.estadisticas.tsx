@@ -667,7 +667,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
@@ -691,6 +691,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (seriesColors?.[name]) return seriesColors[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
       const c = trainerColorByInitials.get(name);
@@ -920,14 +921,18 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                   {metric !== "porEntrenador" && <RLegend />}
+                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
                       type="monotone"
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
-                      strokeWidth={2}
+                      strokeWidth={
+                        metric === "porEntrenador" && desglose === "total" && period === "historico" && selectedTrainerIds.length === 0
+                          ? 0
+                          : 2
+                      }
                       connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
@@ -942,14 +947,23 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {metric !== "porEntrenador" && <RLegend />}
+                  {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
                         ))}
-                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                      <LabelList
+                        dataKey={k}
+                        position={stackMap?.[k] ? "center" : "top"}
+                        style={{
+                          fill: stackMap?.[k] ? "#ffffff" : "var(--color-foreground)",
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                        formatter={(v: number) => (Number(v) === 0 ? "" : v)}
+                      />
                     </Bar>
                   ))}
                 </ComposedChart>
