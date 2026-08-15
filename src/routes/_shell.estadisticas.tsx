@@ -1053,7 +1053,12 @@ function buildSeries(args: {
   groupClientsMap: Map<string, string[]>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
-}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
+}): {
+  rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
+  unclassified?: UnclassifiedInfo;
+  stackMap?: Record<string, string>;
+  seriesColors?: Record<string, string>;
+} {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
     "individual", "pareja", "grupal", "gympass", "prueba",
