@@ -1351,13 +1351,58 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico: X = meses, una serie (puntos/línea) por entrenador.
+    // histórico: X = meses, barras apiladas por entrenador seleccionado.
+    if (selectedTrainerIds.length === 0) {
+      const rowsT: SeriesRow[] = periods.map((p) => {
+        let total = 0;
+        for (const id of trainerMap.keys()) total += countFor(id, p);
+        return { bucket: p.key, Total: total };
+      });
+      return {
+        rows: rowsT,
+        seriesKeys: ["Total"],
+        isLineChart: false,
+        seriesColors: { Total: "#94a3b8" },
+      };
+    }
+    const stackMapT: Record<string, string> = {};
+    const seriesColorsT: Record<string, string> = {};
+    for (const id of selectedTrainerIds) {
+      const k = initialsOf(id);
+      stackMapT[k] = "ent";
+      seriesColorsT[k] = trainerColor(id);
+    }
     const rowsT: SeriesRow[] = periods.map((p) => {
       const row: SeriesRow = { bucket: p.key };
-      for (const id of ids) row[initialsOf(id)] = countFor(id, p);
+      for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
       return row;
     });
-    return { rows: rowsT, seriesKeys: ids.map(initialsOf), isLineChart: true };
+    return {
+      rows: rowsT,
+      seriesKeys: selectedTrainerIds.map(initialsOf),
+      isLineChart: false,
+      stackMap: stackMapT,
+      seriesColors: seriesColorsT,
+    };
+  }
+
+  // Cancelaciones · sin desglosar · histórico → dos líneas (Canceladas y NC)
+  if (metric === "cancelaciones" && period === "historico" && desglose === "total") {
+    const rowsC: SeriesRow[] = periods.map((p) => {
+      const list = sessions.filter((s) => p.filter(s) && s.estado === "cancelada");
+      return {
+        bucket: p.key,
+        Cancelada: list.filter((s) => !s.no_contabilizar).length,
+        NC: list.filter((s) => !!s.no_contabilizar).length,
+      };
+    });
+    return {
+      rows: rowsC,
+      seriesKeys: ["Cancelada", "NC"],
+      isLineChart: true,
+      areas: true,
+      seriesColors: { Cancelada: MONTH_PALETTE[0], NC: MONTH_PALETTE[1] },
+    };
   }
 
   // Buckets
