@@ -1072,6 +1072,9 @@ function buildSeries(args: {
   unclassified?: UnclassifiedInfo;
   stackMap?: Record<string, string>;
   seriesColors?: Record<string, string>;
+  areas?: boolean;
+  media?: boolean;
+  labelEvery?: number;
 } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
