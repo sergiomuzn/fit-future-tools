@@ -667,7 +667,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
@@ -691,6 +691,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (seriesColors?.[name]) return seriesColors[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
       const c = trainerColorByInitials.get(name);
@@ -920,14 +921,18 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                   {metric !== "porEntrenador" && <RLegend />}
+                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
                       type="monotone"
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
-                      strokeWidth={2}
+                      strokeWidth={
+                        metric === "porEntrenador" && desglose === "total" && period === "historico" && selectedTrainerIds.length === 0
+                          ? 0
+                          : 2
+                      }
                       connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
@@ -942,14 +947,23 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {metric !== "porEntrenador" && <RLegend />}
+                  {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
                         ))}
-                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                      <LabelList
+                        dataKey={k}
+                        position={stackMap?.[k] ? "center" : "top"}
+                        style={{
+                          fill: stackMap?.[k] ? "#ffffff" : "var(--color-foreground)",
+                          fontSize: 11,
+                          fontWeight: 600,
+                        }}
+                        formatter={(v: number) => (Number(v) === 0 ? "" : v)}
+                      />
                     </Bar>
                   ))}
                 </ComposedChart>
@@ -1053,7 +1067,12 @@ function buildSeries(args: {
   groupClientsMap: Map<string, string[]>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
-}): { rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; unclassified?: UnclassifiedInfo } {
+}): {
+  rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
+  unclassified?: UnclassifiedInfo;
+  stackMap?: Record<string, string>;
+  seriesColors?: Record<string, string>;
+} {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
     "individual", "pareja", "grupal", "gympass", "prueba",
@@ -1224,6 +1243,121 @@ function buildSeries(args: {
   const monthsForPeriods = collectMonthList("sessions");
   for (const { y, m, key } of monthsForPeriods) {
     periods.push({ key, filter: (s: Session) => inMonth(s, y, m), days: daysInMonth(y, m) });
+  }
+
+  // ---------------------------------------------------------------
+  // Casos especiales de comparación por meses
+  // ---------------------------------------------------------------
+  const MONTH_PALETTE = ["#0EA5E9", "#F97316", "#22C55E", "#A855F7"];
+  const MONTH_PALETTE_NC = ["#075985", "#9A3412", "#166534", "#6B21A8"];
+
+  // Cancelaciones · comparar meses
+  if (metric === "cancelaciones" && period === "comparar") {
+    const isCanc = (s: Session) => s.estado === "cancelada";
+    if (desglose === "total") {
+      // X = meses. Cada barra apila: cancelaciones contabilizadas + NC.
+      const rowsC: SeriesRow[] = periods.map((p) => {
+        const list = sessions.filter((s) => p.filter(s) && isCanc(s));
+        return {
+          bucket: p.key,
+          Cancelada: list.filter((s) => !s.no_contabilizar).length,
+          NC: list.filter((s) => !!s.no_contabilizar).length,
+        };
+      });
+      return {
+        rows: rowsC,
+        seriesKeys: ["Cancelada", "NC"],
+        isLineChart: false,
+        stackMap: { Cancelada: "canc", NC: "canc" },
+        seriesColors: { Cancelada: MONTH_PALETTE[0], NC: MONTH_PALETTE[1] },
+      };
+    }
+    if (desglose === "turno") {
+      // X = Mañana / Tarde. Una barra apilada (Cancelada + NC) por cada mes.
+      const keys: string[] = [];
+      const stackMap: Record<string, string> = {};
+      const seriesColors: Record<string, string> = {};
+      periods.forEach((p, i) => {
+        const kc = `${p.key} · Cancelada`;
+        const kn = `${p.key} · NC`;
+        keys.push(kc, kn);
+        stackMap[kc] = p.key;
+        stackMap[kn] = p.key;
+        seriesColors[kc] = MONTH_PALETTE[i % MONTH_PALETTE.length];
+        seriesColors[kn] = MONTH_PALETTE_NC[i % MONTH_PALETTE_NC.length];
+      });
+      const rowsC: SeriesRow[] = (["Mañana", "Tarde"] as const).map((turno) => {
+        const row: SeriesRow = { bucket: turno };
+        for (const p of periods) {
+          const list = sessions.filter(
+            (s) => p.filter(s) && isCanc(s) &&
+              ((hourOf(s.hora_inicio) < 14) === (turno === "Mañana")),
+          );
+          row[`${p.key} · Cancelada`] = list.filter((s) => !s.no_contabilizar).length;
+          row[`${p.key} · NC`] = list.filter((s) => !!s.no_contabilizar).length;
+        }
+        return row;
+      });
+      return { rows: rowsC, seriesKeys: keys, isLineChart: false, stackMap, seriesColors };
+    }
+    if (desglose === "dow") {
+      // X = días de la semana. Sólo totales (NC incluidas), una barra por mes.
+      const DOWS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+      const idxLbl = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+      const seriesColors: Record<string, string> = {};
+      periods.forEach((p, i) => { seriesColors[p.key] = MONTH_PALETTE[i % MONTH_PALETTE.length]; });
+      const rowsC: SeriesRow[] = DOWS.map((d) => {
+        const row: SeriesRow = { bucket: d };
+        for (const p of periods) {
+          row[p.key] = sessions.filter(
+            (s) => p.filter(s) && isCanc(s) &&
+              idxLbl[new Date(s.fecha + "T00:00:00").getDay()] === d,
+          ).length;
+        }
+        return row;
+      });
+      const nz = rowsC.filter((r) => periods.some((p) => Number(r[p.key]) !== 0));
+      return {
+        rows: nz.length ? nz : rowsC,
+        seriesKeys: periods.map((p) => p.key),
+        isLineChart: false,
+        seriesColors,
+      };
+    }
+  }
+
+  // Sesiones por entrenador · sin desglosar · comparar / histórico
+  if (metric === "porEntrenador" && desglose === "total" && period !== "mesUnico") {
+    const ids = selectedTrainerIds.length
+      ? selectedTrainerIds
+      : Array.from(trainerMap.keys());
+    const initialsOf = (id: string) => trainerMap.get(id)?.iniciales ?? "—";
+    const countFor = (id: string, p: { filter: (s: Session) => boolean }) =>
+      sessions.filter((s) => p.filter(s) && countsAsTraining(s) && s.trainer_id === id).length;
+    if (period === "comparar") {
+      // X = entrenadores, una barra por mes.
+      const seriesColors: Record<string, string> = {};
+      periods.forEach((p, i) => { seriesColors[p.key] = MONTH_PALETTE[i % MONTH_PALETTE.length]; });
+      const rowsT: SeriesRow[] = ids.map((id) => {
+        const row: SeriesRow = { bucket: initialsOf(id) };
+        for (const p of periods) row[p.key] = countFor(id, p);
+        return row;
+      });
+      const nz = rowsT.filter((r) => periods.some((p) => Number(r[p.key]) !== 0));
+      return {
+        rows: nz.length ? nz : rowsT,
+        seriesKeys: periods.map((p) => p.key),
+        isLineChart: false,
+        seriesColors,
+      };
+    }
+    // histórico: X = meses, una serie (puntos/línea) por entrenador.
+    const rowsT: SeriesRow[] = periods.map((p) => {
+      const row: SeriesRow = { bucket: p.key };
+      for (const id of ids) row[initialsOf(id)] = countFor(id, p);
+      return row;
+    });
+    return { rows: rowsT, seriesKeys: ids.map(initialsOf), isLineChart: true };
   }
 
   // Buckets
