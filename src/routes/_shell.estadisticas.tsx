@@ -717,6 +717,20 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   const chartInfo = getChartInfo(metric, desglose, period);
 
+  // Combinaciones bloqueadas (poco legibles en histórico).
+  const blockedMessage: string | null = (() => {
+    if (period !== "historico") return null;
+    if (desglose === "franja") {
+      return "Combinación no disponible. Usa Mes actual o Comparar meses para ver el desglose por franja horaria";
+    }
+    if (desglose === "dow") {
+      if (metric === "cancelaciones") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver cancelaciones por día de la semana";
+      if (metric === "facturacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la facturación por día de la semana";
+      if (metric === "ocupacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la ocupación por día de la semana";
+    }
+    return null;
+  })();
+
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-3">
@@ -912,16 +926,35 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             className="h-full"
             style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
-          {rows.length === 0 ? (
+          {blockedMessage ? (
+            <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center text-sm text-muted-foreground">
+              <Lock className="h-6 w-6 opacity-60" />
+              <span className="max-w-sm">{blockedMessage}</span>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {isLineChart ? (
-                <LineChart data={rows} margin={chartMargin}>
+                <ComposedChart data={rows} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                    {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
+                   {areas && seriesKeys.map((k, i) => (
+                     <Area
+                       key={`a-${k}`}
+                       type="monotone"
+                       dataKey={k}
+                       fill={colorForSeries(k, i)}
+                       fillOpacity={0.1}
+                       stroke="none"
+                       legendType="none"
+                       tooltipType="none"
+                       isAnimationActive={false}
+                       connectNulls
+                     />
+                   ))}
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
@@ -938,10 +971,48 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
                     >
-                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                      <LabelList
+                        dataKey={k}
+                        position="top"
+                        style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
+                        formatter={(v: number, _e?: unknown, idx?: number) =>
+                          labelEvery && labelEvery > 1 && typeof idx === "number" && idx % labelEvery !== 0 ? "" : String(v)
+                        }
+                        content={
+                          labelEvery && labelEvery > 1
+                            ? (props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
+                                const idx = props.index ?? 0;
+                                if (idx % labelEvery !== 0) return null;
+                                return (
+                                  <text
+                                    x={Number(props.x)}
+                                    y={Number(props.y) - 8}
+                                    textAnchor="middle"
+                                    style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
+                                  >
+                                    {props.value}
+                                  </text>
+                                );
+                              }
+                            : undefined
+                        }
+                      />
                     </Line>
                   ))}
-                </LineChart>
+                  {media && (
+                    <Line
+                      type="linear"
+                      dataKey="__media"
+                      name="Media"
+                      stroke="#94a3b8"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      activeDot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
+                </ComposedChart>
               ) : (
                 <ComposedChart data={rowsWithTotal} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
