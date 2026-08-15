@@ -1421,7 +1421,7 @@ function buildSeries(args: {
     // semana, turno): X = buckets del desglose y cada mes es una serie propia.
     if (
       period === "comparar" &&
-      (desglose === "franja" || desglose === "dow" || desglose === "turno") &&
+      (desglose === "franja" || desglose === "dow" || desglose === "turno" || desglose === "tipoSesion") &&
       metric !== "porEntrenador"
     ) {
       const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
