@@ -6,11 +6,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Lock } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, LineChart, Line, ComposedChart, LabelList, Cell,
+  Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
+  Legend as RLegend, Line, ComposedChart, LabelList, Cell,
 } from "recharts";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
@@ -667,7 +667,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, media, labelEvery } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
@@ -716,6 +716,20 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const chartMargin = manyTicks ? { top: 10, right: 10, left: 0, bottom: 24 } : { top: 10, right: 10, left: 0, bottom: 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
+
+  // Combinaciones bloqueadas (poco legibles en histórico).
+  const blockedMessage: string | null = (() => {
+    if (period !== "historico") return null;
+    if (desglose === "franja") {
+      return "Combinación no disponible. Usa Mes actual o Comparar meses para ver el desglose por franja horaria";
+    }
+    if (desglose === "dow") {
+      if (metric === "cancelaciones") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver cancelaciones por día de la semana";
+      if (metric === "facturacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la facturación por día de la semana";
+      if (metric === "ocupacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la ocupación por día de la semana";
+    }
+    return null;
+  })();
 
   return (
     <div className="space-y-4">
@@ -912,16 +926,35 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             className="h-full"
             style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
-          {rows.length === 0 ? (
+          {blockedMessage ? (
+            <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center text-sm text-muted-foreground">
+              <Lock className="h-6 w-6 opacity-60" />
+              <span className="max-w-sm">{blockedMessage}</span>
+            </div>
+          ) : rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
               {isLineChart ? (
-                <LineChart data={rows} margin={chartMargin}>
+                <ComposedChart data={rows} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                    {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
+                   {areas && seriesKeys.map((k, i) => (
+                     <Area
+                       key={`a-${k}`}
+                       type="monotone"
+                       dataKey={k}
+                       fill={colorForSeries(k, i)}
+                       fillOpacity={0.1}
+                       stroke="none"
+                       legendType="none"
+                       tooltipType="none"
+                       isAnimationActive={false}
+                       connectNulls
+                     />
+                   ))}
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
@@ -938,10 +971,45 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
                     >
-                      <LabelList dataKey={k} position="top" style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }} />
+                      <LabelList
+                        dataKey={k}
+                        position="top"
+                        style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
+                        content={
+                          labelEvery && labelEvery > 1
+                            ? (props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
+                                const idx = props.index ?? 0;
+                                if (idx % labelEvery !== 0) return null;
+                                return (
+                                  <text
+                                    x={Number(props.x)}
+                                    y={Number(props.y) - 8}
+                                    textAnchor="middle"
+                                    style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
+                                  >
+                                    {props.value}
+                                  </text>
+                                );
+                              }
+                            : undefined
+                        }
+                      />
                     </Line>
                   ))}
-                </LineChart>
+                  {media && (
+                    <Line
+                      type="linear"
+                      dataKey="__media"
+                      name="Media"
+                      stroke="#94a3b8"
+                      strokeWidth={1.5}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      activeDot={false}
+                      isAnimationActive={false}
+                    />
+                  )}
+                </ComposedChart>
               ) : (
                 <ComposedChart data={rowsWithTotal} margin={chartMargin}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
@@ -1072,6 +1140,9 @@ function buildSeries(args: {
   unclassified?: UnclassifiedInfo;
   stackMap?: Record<string, string>;
   seriesColors?: Record<string, string>;
+  areas?: boolean;
+  media?: boolean;
+  labelEvery?: number;
 } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
@@ -1230,7 +1301,19 @@ function buildSeries(args: {
       desglose === "turno" ? ["Mañana", "Tarde"] :
       desglose === "dow" ? [...DOW_KEYS] :
       ["Total"];
-    return { rows, seriesKeys, isLineChart: period === "historico" };
+    if (period === "historico") {
+      if (desglose === "total") {
+        const vals = rows.map((r) => Number(r["Total"]) || 0);
+        const media = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+        for (const r of rows) r["__media"] = media;
+      }
+      return {
+        rows, seriesKeys, isLineChart: true, areas: true,
+        media: desglose === "total",
+        labelEvery: desglose === "turno" ? 3 : 1,
+      };
+    }
+    return { rows, seriesKeys, isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
@@ -1351,13 +1434,58 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico: X = meses, una serie (puntos/línea) por entrenador.
+    // histórico: X = meses, barras apiladas por entrenador seleccionado.
+    if (selectedTrainerIds.length === 0) {
+      const rowsT: SeriesRow[] = periods.map((p) => {
+        let total = 0;
+        for (const id of trainerMap.keys()) total += countFor(id, p);
+        return { bucket: p.key, Total: total };
+      });
+      return {
+        rows: rowsT,
+        seriesKeys: ["Total"],
+        isLineChart: false,
+        seriesColors: { Total: "#94a3b8" },
+      };
+    }
+    const stackMapT: Record<string, string> = {};
+    const seriesColorsT: Record<string, string> = {};
+    for (const id of selectedTrainerIds) {
+      const k = initialsOf(id);
+      stackMapT[k] = "ent";
+      seriesColorsT[k] = trainerColor(id);
+    }
     const rowsT: SeriesRow[] = periods.map((p) => {
       const row: SeriesRow = { bucket: p.key };
-      for (const id of ids) row[initialsOf(id)] = countFor(id, p);
+      for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
       return row;
     });
-    return { rows: rowsT, seriesKeys: ids.map(initialsOf), isLineChart: true };
+    return {
+      rows: rowsT,
+      seriesKeys: selectedTrainerIds.map(initialsOf),
+      isLineChart: false,
+      stackMap: stackMapT,
+      seriesColors: seriesColorsT,
+    };
+  }
+
+  // Cancelaciones · sin desglosar · histórico → dos líneas (Canceladas y NC)
+  if (metric === "cancelaciones" && period === "historico" && desglose === "total") {
+    const rowsC: SeriesRow[] = periods.map((p) => {
+      const list = sessions.filter((s) => p.filter(s) && s.estado === "cancelada");
+      return {
+        bucket: p.key,
+        Cancelada: list.filter((s) => !s.no_contabilizar).length,
+        NC: list.filter((s) => !!s.no_contabilizar).length,
+      };
+    });
+    return {
+      rows: rowsC,
+      seriesKeys: ["Cancelada", "NC"],
+      isLineChart: true,
+      areas: true,
+      seriesColors: { Cancelada: MONTH_PALETTE[0], NC: MONTH_PALETTE[1] },
+    };
   }
 
   // Buckets
@@ -1598,9 +1726,30 @@ function buildSeries(args: {
     // filtrar meses todo cero para evitar ruido en histórico
     const nzT = trows.filter((r) => slots.some((k) => Number(r[k]) !== 0));
     void slotOrder;
+    const finalT = nzT.length ? nzT : trows;
+    // Histórico de facturación / ocupación: áreas sombreadas, línea de media
+    // en "sin desglosar" y etiquetas espaciadas en el desglose por turno.
+    if (period === "historico" && metric === "ocupacion") {
+      const withMedia = desglose === "total";
+      if (withMedia && slots.length) {
+        const key = slots[0];
+        const vals = finalT.map((r) => Number(r[key]) || 0);
+        const media = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
+        for (const r of finalT) r["__media"] = media;
+      }
+      return {
+        rows: finalT,
+        seriesKeys: slots,
+        isLineChart: true,
+        areas: true,
+        media: withMedia,
+        labelEvery: desglose === "turno" ? 3 : 1,
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
     // Histórico (meses cronológicos consecutivos) → línea con puntos.
     // Comparar meses (selección puntual en paralelo) → barras.
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
+    return { rows: finalT, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
