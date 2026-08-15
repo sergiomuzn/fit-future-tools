@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Info } from "lucide-react";
+import { Download, Info, Lock } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
@@ -975,9 +975,6 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                         dataKey={k}
                         position="top"
                         style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
-                        formatter={(v: number, _e?: unknown, idx?: number) =>
-                          labelEvery && labelEvery > 1 && typeof idx === "number" && idx % labelEvery !== 0 ? "" : String(v)
-                        }
                         content={
                           labelEvery && labelEvery > 1
                             ? (props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
