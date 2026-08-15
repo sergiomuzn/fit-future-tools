@@ -1646,9 +1646,30 @@ function buildSeries(args: {
     // filtrar meses todo cero para evitar ruido en histórico
     const nzT = trows.filter((r) => slots.some((k) => Number(r[k]) !== 0));
     void slotOrder;
+    const finalT = nzT.length ? nzT : trows;
+    // Histórico de facturación / ocupación: áreas sombreadas, línea de media
+    // en "sin desglosar" y etiquetas espaciadas en el desglose por turno.
+    if (period === "historico" && (metric === "facturacion" || metric === "ocupacion")) {
+      const withMedia = desglose === "total";
+      if (withMedia && slots.length) {
+        const key = slots[0];
+        const vals = finalT.map((r) => Number(r[key]) || 0);
+        const media = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
+        for (const r of finalT) r["__media"] = media;
+      }
+      return {
+        rows: finalT,
+        seriesKeys: slots,
+        isLineChart: true,
+        areas: true,
+        media: withMedia,
+        labelEvery: desglose === "turno" ? 3 : 1,
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
     // Histórico (meses cronológicos consecutivos) → línea con puntos.
     // Comparar meses (selección puntual en paralelo) → barras.
-    return { rows: nzT.length ? nzT : trows, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
+    return { rows: finalT, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
