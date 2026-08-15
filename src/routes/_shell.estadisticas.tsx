@@ -1233,7 +1233,19 @@ function buildSeries(args: {
       desglose === "turno" ? ["Mañana", "Tarde"] :
       desglose === "dow" ? [...DOW_KEYS] :
       ["Total"];
-    return { rows, seriesKeys, isLineChart: period === "historico" };
+    if (period === "historico") {
+      if (desglose === "total") {
+        const vals = rows.map((r) => Number(r["Total"]) || 0);
+        const media = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+        for (const r of rows) r["__media"] = media;
+      }
+      return {
+        rows, seriesKeys, isLineChart: true, areas: true,
+        media: desglose === "total",
+        labelEvery: desglose === "turno" ? 3 : 1,
+      };
+    }
+    return { rows, seriesKeys, isLineChart: false };
   }
 
   // Determine periods (label + filter fn)
