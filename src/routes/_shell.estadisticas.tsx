@@ -667,7 +667,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, media, labelEvery } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
@@ -716,20 +716,6 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const chartMargin = manyTicks ? { top: 10, right: 10, left: 0, bottom: 24 } : { top: 10, right: 10, left: 0, bottom: 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
-
-  // Combinaciones bloqueadas (poco legibles en histórico).
-  const blockedMessage: string | null = (() => {
-    if (period !== "historico") return null;
-    if (desglose === "franja") {
-      return "Combinación no disponible. Usa Mes actual o Comparar meses para ver el desglose por franja horaria";
-    }
-    if (desglose === "dow") {
-      if (metric === "cancelaciones") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver cancelaciones por día de la semana";
-      if (metric === "facturacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la facturación por día de la semana";
-      if (metric === "ocupacion") return "Combinación no disponible. Usa Mes actual o Comparar meses para ver la ocupación por día de la semana";
-    }
-    return null;
-  })();
 
   return (
     <div className="space-y-4">
