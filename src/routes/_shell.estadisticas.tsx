@@ -907,17 +907,19 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             </div>
           </div>
         )}
+        {matrix ? (
+          matrix.kind === "ranking" ? (
+            <RankingTable matrix={matrix} />
+          ) : (
+            <HeatmapTable matrix={matrix} />
+          )
+        ) : (
         <div className="h-[420px] overflow-x-auto">
           <div
             className="h-full"
             style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
-          {blockedMessage ? (
-            <div className="h-full flex flex-col items-center justify-center gap-2 px-6 text-center text-sm text-muted-foreground">
-              <Lock className="h-6 w-6 opacity-60" />
-              <span className="max-w-sm">{blockedMessage}</span>
-            </div>
-          ) : rows.length === 0 ? (
+          {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
           ) : (
             <ResponsiveContainer width="100%" height="100%">
