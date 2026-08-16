@@ -1501,6 +1501,33 @@ function buildSeries(args: {
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
   const isMultiSeries = metric === "porEntrenador";
 
+  // Sesiones por entrenador · histórico · con desglose y entrenadores
+  // seleccionados → comparar entrenadores entre sí: X = desglose, series = entrenadores.
+  if (
+    metric === "porEntrenador" &&
+    period === "historico" &&
+    desglose !== "total" &&
+    selectedTrainerIds.length > 0
+  ) {
+    const initialsOf2 = (id: string) => trainerMap.get(id)?.iniciales ?? "—";
+    const inRange = sessions.filter((s) => periods.some((p) => p.filter(s)) && countsAsTraining(s));
+    const rowsE: SeriesRow[] = bucketKeys.map((b) => {
+      const row: SeriesRow = { bucket: b };
+      for (const id of selectedTrainerIds) {
+        row[initialsOf2(id)] = inRange.filter((s) => s.trainer_id === id && bucketOf(s) === b).length;
+      }
+      return row;
+    });
+    const keysE = selectedTrainerIds.map(initialsOf2);
+    const nzE = rowsE.filter((r) => keysE.some((k) => Number(r[k]) !== 0));
+    return {
+      rows: nzE.length ? nzE : rowsE,
+      seriesKeys: keysE,
+      isLineChart: false,
+      seriesColors: Object.fromEntries(selectedTrainerIds.map((id) => [initialsOf2(id), trainerColor(id)])),
+    };
+  }
+
   const seriesKeysSet = new Set<string>();
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
   const capacityByBucketPeriod = new Map<string, number>(); // for ocupacion: bucket|period -> capacity
