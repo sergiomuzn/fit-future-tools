@@ -984,11 +984,12 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       />
                     </Line>
                   ))}
-                  {media && (
+                  {(mediaKeys ?? []).map((mk) => (
                     <Line
+                      key={mk}
                       type="linear"
-                      dataKey="__media"
-                      name="Media"
+                      dataKey={mk}
+                      name={(mediaKeys ?? []).length > 1 ? `Media ${mk.replace("__media__", "")}` : "Media"}
                       stroke="#94a3b8"
                       strokeWidth={1.5}
                       strokeDasharray="5 5"
@@ -996,7 +997,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                       activeDot={false}
                       isAnimationActive={false}
                     />
-                  )}
+                  ))}
                 </ComposedChart>
               ) : (
                 <ComposedChart data={rowsWithTotal} margin={chartMargin}>
@@ -1028,6 +1029,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
           )}
           </div>
         </div>
+        )}
         {metric === "porEntrenador" && (
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
             {selectedTrainers.length === 0 ? (
