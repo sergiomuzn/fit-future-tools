@@ -1423,21 +1423,7 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico: si hay entrenadores seleccionados, comparar mes a mes con líneas.
-    if (period === "historico" && selectedTrainerIds.length > 0) {
-      const rowsT: SeriesRow[] = periods.map((p) => {
-        const row: SeriesRow = { bucket: p.key };
-        for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
-        return row;
-      });
-      return {
-        rows: rowsT,
-        seriesKeys: selectedTrainerIds.map(initialsOf),
-        isLineChart: true,
-        seriesColors: Object.fromEntries(selectedTrainerIds.map((id) => [initialsOf(id), trainerColor(id)])),
-      };
-    }
-    // histórico → tabla de ranking global: filas = meses, columnas = entrenadores.
+    // histórico → barras apiladas: X = meses, una serie por entrenador.
     const totalsById = new Map<string, number>();
     for (const id of ids) {
       let t = 0;
@@ -1448,25 +1434,17 @@ function buildSeries(args: {
       .filter((id) => (totalsById.get(id) ?? 0) > 0 || selectedTrainerIds.includes(id))
       .sort((a, b) => (totalsById.get(b) ?? 0) - (totalsById.get(a) ?? 0));
     const finalIds = orderedIds.length ? orderedIds : ids;
-    const rowLabels = periods.map((p) => p.key);
-    const values: number[][] = periods.map((p) => finalIds.map((id) => countFor(id, p)));
-    const rowsT: SeriesRow[] = periods.map((p, i) => {
+    const rowsT: SeriesRow[] = periods.map((p) => {
       const row: SeriesRow = { bucket: p.key };
-      finalIds.forEach((id, j) => { row[initialsOf(id)] = values[i][j]; });
+      for (const id of finalIds) row[initialsOf(id)] = countFor(id, p);
       return row;
     });
     return {
       rows: rowsT,
       seriesKeys: finalIds.map(initialsOf),
       isLineChart: false,
-      matrix: {
-        kind: "ranking",
-        rowLabels,
-        colLabels: finalIds.map(initialsOf),
-        colColors: finalIds.map((id) => trainerColor(id)),
-        values,
-        unit: "",
-      },
+      stackMap: Object.fromEntries(finalIds.map((id) => [initialsOf(id), "ent"])),
+      seriesColors: Object.fromEntries(finalIds.map((id) => [initialsOf(id), trainerColor(id)])),
     };
   }
 
