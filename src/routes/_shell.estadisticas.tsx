@@ -1293,14 +1293,12 @@ function buildSeries(args: {
       desglose === "dow" ? [...DOW_KEYS] :
       ["Total"];
     if (period === "historico") {
-      if (desglose === "total") {
-        const vals = rows.map((r) => Number(r["Total"]) || 0);
-        const media = vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
-        for (const r of rows) r["__media"] = media;
+      if (desglose === "dow") {
+        return { rows, seriesKeys, isLineChart: false, matrix: buildHeatmap(rows, seriesKeys, "€") };
       }
       return {
         rows, seriesKeys, isLineChart: true, areas: true,
-        media: desglose === "total",
+        mediaKeys: attachMedia(rows, seriesKeys, 0),
         labelEvery: desglose === "turno" ? 3 : 1,
       };
     }
