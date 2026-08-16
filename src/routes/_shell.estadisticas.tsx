@@ -1423,21 +1423,7 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico: si hay entrenadores seleccionados, comparar mes a mes con líneas.
-    if (period === "historico" && selectedTrainerIds.length > 0) {
-      const rowsT: SeriesRow[] = periods.map((p) => {
-        const row: SeriesRow = { bucket: p.key };
-        for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
-        return row;
-      });
-      return {
-        rows: rowsT,
-        seriesKeys: selectedTrainerIds.map(initialsOf),
-        isLineChart: true,
-        seriesColors: Object.fromEntries(selectedTrainerIds.map((id) => [initialsOf(id), trainerColor(id)])),
-      };
-    }
-    // histórico → tabla de ranking global: filas = meses, columnas = entrenadores.
+    // histórico → barras apiladas: X = meses, una serie por entrenador.
     const totalsById = new Map<string, number>();
     for (const id of ids) {
       let t = 0;
@@ -1448,25 +1434,17 @@ function buildSeries(args: {
       .filter((id) => (totalsById.get(id) ?? 0) > 0 || selectedTrainerIds.includes(id))
       .sort((a, b) => (totalsById.get(b) ?? 0) - (totalsById.get(a) ?? 0));
     const finalIds = orderedIds.length ? orderedIds : ids;
-    const rowLabels = periods.map((p) => p.key);
-    const values: number[][] = periods.map((p) => finalIds.map((id) => countFor(id, p)));
-    const rowsT: SeriesRow[] = periods.map((p, i) => {
+    const rowsT: SeriesRow[] = periods.map((p) => {
       const row: SeriesRow = { bucket: p.key };
-      finalIds.forEach((id, j) => { row[initialsOf(id)] = values[i][j]; });
+      for (const id of finalIds) row[initialsOf(id)] = countFor(id, p);
       return row;
     });
     return {
       rows: rowsT,
       seriesKeys: finalIds.map(initialsOf),
       isLineChart: false,
-      matrix: {
-        kind: "ranking",
-        rowLabels,
-        colLabels: finalIds.map(initialsOf),
-        colColors: finalIds.map((id) => trainerColor(id)),
-        values,
-        unit: "",
-      },
+      stackMap: Object.fromEntries(finalIds.map((id) => [initialsOf(id), "ent"])),
+      seriesColors: Object.fromEntries(finalIds.map((id) => [initialsOf(id), trainerColor(id)])),
     };
   }
 
@@ -1522,6 +1500,33 @@ function buildSeries(args: {
   // For metric = porEntrenador we produce multiple series per period.
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
   const isMultiSeries = metric === "porEntrenador";
+
+  // Sesiones por entrenador · histórico · con desglose y entrenadores
+  // seleccionados → comparar entrenadores entre sí: X = desglose, series = entrenadores.
+  if (
+    metric === "porEntrenador" &&
+    period === "historico" &&
+    desglose !== "total" &&
+    selectedTrainerIds.length > 0
+  ) {
+    const initialsOf2 = (id: string) => trainerMap.get(id)?.iniciales ?? "—";
+    const inRange = sessions.filter((s) => periods.some((p) => p.filter(s)) && countsAsTraining(s));
+    const rowsE: SeriesRow[] = bucketKeys.map((b) => {
+      const row: SeriesRow = { bucket: b };
+      for (const id of selectedTrainerIds) {
+        row[initialsOf2(id)] = inRange.filter((s) => s.trainer_id === id && bucketOf(s) === b).length;
+      }
+      return row;
+    });
+    const keysE = selectedTrainerIds.map(initialsOf2);
+    const nzE = rowsE.filter((r) => keysE.some((k) => Number(r[k]) !== 0));
+    return {
+      rows: nzE.length ? nzE : rowsE,
+      seriesKeys: keysE,
+      isLineChart: false,
+      seriesColors: Object.fromEntries(selectedTrainerIds.map((id) => [initialsOf2(id), trainerColor(id)])),
+    };
+  }
 
   const seriesKeysSet = new Set<string>();
   const acc = new Map<string, Map<string, number>>(); // bucket -> series -> value
@@ -1880,10 +1885,16 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto">
-        <table className="w-auto border-separate" style={{ borderSpacing: 1 }}>
+        <table
+          className="w-full table-fixed border-separate"
+          style={{ borderSpacing: 1, minWidth: 96 + matrix.colLabels.length * 52 }}
+        >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1" />
+              <th
+                className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1"
+                style={{ width: 96 }}
+              />
               {matrix.colLabels.map((c) => (
                 <th key={c} className="px-1.5 py-1 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
                   {c}
