@@ -1423,7 +1423,21 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico → tabla de ranking: filas = meses, columnas = entrenadores.
+    // histórico: si hay entrenadores seleccionados, comparar mes a mes con líneas.
+    if (period === "historico" && selectedTrainerIds.length > 0) {
+      const rowsT: SeriesRow[] = periods.map((p) => {
+        const row: SeriesRow = { bucket: p.key };
+        for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
+        return row;
+      });
+      return {
+        rows: rowsT,
+        seriesKeys: selectedTrainerIds.map(initialsOf),
+        isLineChart: true,
+        seriesColors: Object.fromEntries(selectedTrainerIds.map((id) => [initialsOf(id), trainerColor(id)])),
+      };
+    }
+    // histórico → tabla de ranking global: filas = meses, columnas = entrenadores.
     const totalsById = new Map<string, number>();
     for (const id of ids) {
       let t = 0;
