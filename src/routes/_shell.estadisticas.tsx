@@ -1885,10 +1885,16 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
   return (
     <div className="space-y-3">
       <div className="overflow-x-auto">
-        <table className="w-auto border-separate" style={{ borderSpacing: 1 }}>
+        <table
+          className="w-full table-fixed border-separate"
+          style={{ borderSpacing: 1, minWidth: 96 + matrix.colLabels.length * 52 }}
+        >
           <thead>
             <tr>
-              <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1" />
+              <th
+                className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1"
+                style={{ width: 96 }}
+              />
               {matrix.colLabels.map((c) => (
                 <th key={c} className="px-1.5 py-1 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
                   {c}
