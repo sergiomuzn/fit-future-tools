@@ -1471,6 +1471,7 @@ function buildSeries(args: {
       seriesKeys: ["Cancelada", "NC"],
       isLineChart: true,
       areas: true,
+      mediaKeys: attachMedia(rowsC, ["Cancelada", "NC"], 0),
       seriesColors: { Cancelada: MONTH_PALETTE[0], NC: MONTH_PALETTE[1] },
     };
   }
