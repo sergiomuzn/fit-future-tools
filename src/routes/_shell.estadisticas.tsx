@@ -1423,38 +1423,36 @@ function buildSeries(args: {
         seriesColors,
       };
     }
-    // histórico: X = meses, barras apiladas por entrenador seleccionado.
-    if (selectedTrainerIds.length === 0) {
-      const rowsT: SeriesRow[] = periods.map((p) => {
-        let total = 0;
-        for (const id of trainerMap.keys()) total += countFor(id, p);
-        return { bucket: p.key, Total: total };
-      });
-      return {
-        rows: rowsT,
-        seriesKeys: ["Total"],
-        isLineChart: false,
-        seriesColors: { Total: "#94a3b8" },
-      };
+    // histórico → tabla de ranking: filas = meses, columnas = entrenadores.
+    const totalsById = new Map<string, number>();
+    for (const id of ids) {
+      let t = 0;
+      for (const p of periods) t += countFor(id, p);
+      totalsById.set(id, t);
     }
-    const stackMapT: Record<string, string> = {};
-    const seriesColorsT: Record<string, string> = {};
-    for (const id of selectedTrainerIds) {
-      const k = initialsOf(id);
-      stackMapT[k] = "ent";
-      seriesColorsT[k] = trainerColor(id);
-    }
-    const rowsT: SeriesRow[] = periods.map((p) => {
+    const orderedIds = [...ids]
+      .filter((id) => (totalsById.get(id) ?? 0) > 0 || selectedTrainerIds.includes(id))
+      .sort((a, b) => (totalsById.get(b) ?? 0) - (totalsById.get(a) ?? 0));
+    const finalIds = orderedIds.length ? orderedIds : ids;
+    const rowLabels = periods.map((p) => p.key);
+    const values: number[][] = periods.map((p) => finalIds.map((id) => countFor(id, p)));
+    const rowsT: SeriesRow[] = periods.map((p, i) => {
       const row: SeriesRow = { bucket: p.key };
-      for (const id of selectedTrainerIds) row[initialsOf(id)] = countFor(id, p);
+      finalIds.forEach((id, j) => { row[initialsOf(id)] = values[i][j]; });
       return row;
     });
     return {
       rows: rowsT,
-      seriesKeys: selectedTrainerIds.map(initialsOf),
+      seriesKeys: finalIds.map(initialsOf),
       isLineChart: false,
-      stackMap: stackMapT,
-      seriesColors: seriesColorsT,
+      matrix: {
+        kind: "ranking",
+        rowLabels,
+        colLabels: finalIds.map(initialsOf),
+        colColors: finalIds.map((id) => trainerColor(id)),
+        values,
+        unit: "",
+      },
     };
   }
 
@@ -1719,26 +1717,47 @@ function buildSeries(args: {
     // Histórico de facturación / ocupación: áreas sombreadas, línea de media
     // en "sin desglosar" y etiquetas espaciadas en el desglose por turno.
     if (period === "historico" && metric === "ocupacion") {
-      const withMedia = desglose === "total";
-      if (withMedia && slots.length) {
-        const key = slots[0];
-        const vals = finalT.map((r) => Number(r[key]) || 0);
-        const media = vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
-        for (const r of finalT) r["__media"] = media;
-      }
       return {
         rows: finalT,
         seriesKeys: slots,
         isLineChart: true,
         areas: true,
-        media: withMedia,
+        mediaKeys: attachMedia(finalT, slots, 1),
         labelEvery: desglose === "turno" ? 3 : 1,
         unclassified: trackUnclassified ? unclassified : undefined,
       };
     }
     // Histórico (meses cronológicos consecutivos) → línea con puntos.
     // Comparar meses (selección puntual en paralelo) → barras.
-    return { rows: finalT, seriesKeys: slots, isLineChart: period === "historico", unclassified: trackUnclassified ? unclassified : undefined };
+    if (period === "historico") {
+      if (desglose === "dow" || desglose === "franja") {
+        return {
+          rows: finalT,
+          seriesKeys: slots,
+          isLineChart: false,
+          unclassified: trackUnclassified ? unclassified : undefined,
+          matrix: buildHeatmap(finalT, slots, metric === "ocupacion" ? "%" : ""),
+        };
+      }
+      if (desglose === "turno" && metric === "porEntrenador") {
+        return {
+          rows: finalT,
+          seriesKeys: slots,
+          isLineChart: false,
+          unclassified: trackUnclassified ? unclassified : undefined,
+          matrix: buildHeatmap(finalT, slots, ""),
+        };
+      }
+      return {
+        rows: finalT,
+        seriesKeys: slots,
+        isLineChart: true,
+        areas: true,
+        mediaKeys: attachMedia(finalT, slots, 0),
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
+    return { rows: finalT, seriesKeys: slots, isLineChart: false, unclassified: trackUnclassified ? unclassified : undefined };
   }
 
   // filter rows with all zero (for tipoSesion when nothing exists)
