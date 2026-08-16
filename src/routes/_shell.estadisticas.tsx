@@ -1791,3 +1791,194 @@ function periodMonthOfPeriod(_p: { key: string }, monthA: string): [number, numb
   return [ya, ma - 1];
 }
 
+
+// ============================================================
+// Matrices (mapa de calor y tabla de ranking)
+// ============================================================
+type MatrixData = {
+  kind: "heatmap" | "ranking";
+  rowLabels: string[];
+  colLabels: string[];
+  values: number[][]; // [fila][columna]
+  colColors?: string[];
+  unit?: string;
+};
+
+const HEAT_COLOR = "#00ADE2";
+const DOW_ORDER = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+
+// Media constante por serie → campo __media__<serie> en cada fila.
+function attachMedia(rows: SeriesRow[], keys: string[], decimals = 0): string[] {
+  const out: string[] = [];
+  if (!rows.length) return out;
+  const f = Math.pow(10, decimals);
+  for (const k of keys) {
+    const vals = rows.map((r) => Number(r[k]) || 0);
+    const avg = Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * f) / f;
+    const mk = `__media__${k}`;
+    for (const r of rows) r[mk] = avg;
+    out.push(mk);
+  }
+  return out;
+}
+
+// rows: una fila por mes (bucket = mes); keys: buckets del desglose.
+function buildHeatmap(rows: SeriesRow[], keys: string[], unit: string): MatrixData {
+  const isDow = keys.every((k) => DOW_ORDER.includes(k));
+  let rowLabels = [...keys];
+  if (isDow) {
+    rowLabels = DOW_ORDER.filter((d) => keys.includes(d));
+    // El domingo sólo se muestra si tiene algún valor.
+    rowLabels = rowLabels.filter((d) => d !== "Dom" || rows.some((r) => Number(r[d]) !== 0));
+  }
+  const colLabels = rows.map((r) => String(r.bucket));
+  const values = rowLabels.map((k) => rows.map((r) => Number(r[k]) || 0));
+  return { kind: "heatmap", rowLabels, colLabels, values, unit };
+}
+
+function hexToRgb(hex: string): [number, number, number] {
+  const h = hex.replace("#", "");
+  const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+  return [
+    parseInt(full.slice(0, 2), 16),
+    parseInt(full.slice(2, 4), 16),
+    parseInt(full.slice(4, 6), 16),
+  ];
+}
+
+// Interpola de blanco al color indicado según t ∈ [0,1].
+function mixWhite(hex: string, t: number): string {
+  const [r, g, b] = hexToRgb(hex);
+  const k = Math.max(0, Math.min(1, t));
+  const mix = (c: number) => Math.round(255 + (c - 255) * k);
+  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`;
+}
+
+function fmtVal(v: number, unit?: string): string {
+  const n = Number.isInteger(v) ? String(v) : String(Math.round(v * 10) / 10);
+  return unit ? `${n}${unit === "€" ? " €" : unit}` : n;
+}
+
+function HeatmapTable({ matrix }: { matrix: MatrixData }) {
+  const flat = matrix.values.flat();
+  const max = flat.length ? Math.max(...flat) : 0;
+  const min = flat.length ? Math.min(...flat) : 0;
+  return (
+    <div className="space-y-3">
+      <div className="overflow-x-auto">
+        <table className="w-full border-separate" style={{ borderSpacing: 2 }}>
+          <thead>
+            <tr>
+              <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-2 py-1" />
+              {matrix.colLabels.map((c) => (
+                <th key={c} className="px-2 py-1 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {matrix.rowLabels.map((r, i) => (
+              <tr key={r}>
+                <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold px-2 py-1 whitespace-nowrap">{r}</th>
+                {matrix.values[i].map((v, j) => {
+                  const t = max > 0 ? v / max : 0;
+                  const bg = v === 0 ? "#f1f5f9" : mixWhite(HEAT_COLOR, 0.12 + t * 0.88);
+                  const dark = v !== 0 && t > 0.55;
+                  return (
+                    <td
+                      key={j}
+                      className="rounded-md px-2 py-2 text-center text-xs font-semibold tabular-nums"
+                      style={{ backgroundColor: bg, color: dark ? "#ffffff" : "var(--color-foreground)" }}
+                      title={`${r} · ${matrix.colLabels[j]}: ${fmtVal(v, matrix.unit)}`}
+                    >
+                      {v === 0 ? "" : fmtVal(v, matrix.unit)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span>{fmtVal(min, matrix.unit)}</span>
+        <span
+          className="h-3 w-40 rounded-sm border"
+          style={{ background: `linear-gradient(to right, #ffffff, ${HEAT_COLOR})` }}
+        />
+        <span>{fmtVal(max, matrix.unit)}</span>
+      </div>
+    </div>
+  );
+}
+
+function RankingTable({ matrix }: { matrix: MatrixData }) {
+  const colTotals = matrix.colLabels.map((_, j) =>
+    matrix.values.reduce((a, row) => a + (row[j] ?? 0), 0),
+  );
+  const colMax = matrix.colLabels.map((_, j) =>
+    matrix.values.reduce((a, row) => Math.max(a, row[j] ?? 0), 0),
+  );
+  const rowTotals = matrix.values.map((row) => row.reduce((a, b) => a + b, 0));
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full border-separate" style={{ borderSpacing: 2 }}>
+        <thead>
+          <tr>
+            <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-2 py-1">Mes</th>
+            {matrix.colLabels.map((c, j) => (
+              <th key={c} className="px-2 py-1 text-[11px] font-semibold whitespace-nowrap">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: matrix.colColors?.[j] ?? HEAT_COLOR }} />
+                  {c}
+                </span>
+              </th>
+            ))}
+            <th className="px-2 py-1 text-[11px] font-semibold text-muted-foreground">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matrix.rowLabels.map((r, i) => {
+            const rowMax = Math.max(...matrix.values[i], 0);
+            return (
+              <tr key={r}>
+                <th className="sticky left-0 z-10 bg-card text-left text-xs font-medium px-2 py-1 whitespace-nowrap">{r}</th>
+                {matrix.values[i].map((v, j) => {
+                  const color = matrix.colColors?.[j] ?? HEAT_COLOR;
+                  const t = colMax[j] > 0 ? v / colMax[j] : 0;
+                  const isTop = v > 0 && v === rowMax;
+                  return (
+                    <td
+                      key={j}
+                      className="rounded-md px-2 py-2 text-center text-xs font-semibold tabular-nums"
+                      style={{
+                        backgroundColor: v === 0 ? "#f8fafc" : mixWhite(color, 0.12 + t * 0.88),
+                        color: v !== 0 && t > 0.55 ? "#ffffff" : "var(--color-foreground)",
+                      }}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {v === 0 ? "" : v}
+                        {isTop && <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: v !== 0 && t > 0.55 ? "#ffffff" : color }} />}
+                      </span>
+                    </td>
+                  );
+                })}
+                <td className="rounded-md bg-muted px-2 py-2 text-center text-xs font-semibold tabular-nums">{rowTotals[i]}</td>
+              </tr>
+            );
+          })}
+          <tr>
+            <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold px-2 py-1">Total</th>
+            {colTotals.map((t, j) => (
+              <td key={j} className="rounded-md bg-muted px-2 py-2 text-center text-xs font-bold tabular-nums">{t}</td>
+            ))}
+            <td className="rounded-md bg-muted px-2 py-2 text-center text-xs font-bold tabular-nums">
+              {colTotals.reduce((a, b) => a + b, 0)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
