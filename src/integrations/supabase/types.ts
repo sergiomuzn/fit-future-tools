@@ -295,6 +295,7 @@ export type Database = {
           id: string
           nombre: string
           notas: string | null
+          sexo: string | null
           telefono: string | null
         }
         Insert: {
@@ -306,6 +307,7 @@ export type Database = {
           id?: string
           nombre: string
           notas?: string | null
+          sexo?: string | null
           telefono?: string | null
         }
         Update: {
@@ -317,6 +319,7 @@ export type Database = {
           id?: string
           nombre?: string
           notas?: string | null
+          sexo?: string | null
           telefono?: string | null
         }
         Relationships: []
