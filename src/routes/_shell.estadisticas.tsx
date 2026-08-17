@@ -1132,11 +1132,11 @@ function buildSeries(args: {
   clientTipoMap: Map<string, BonoTipo>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
+  clientSexoMap?: Map<string, string>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
-  clientSexoMap?: never;
   unclassified?: UnclassifiedInfo;
   stackMap?: Record<string, string>;
   seriesColors?: Record<string, string>;
