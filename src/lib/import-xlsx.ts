@@ -57,7 +57,7 @@ function toActivo(value: string): boolean {
 function toSexo(value: string): string | null {
   const v = norm(value);
   if (!v) return null;
-  if (["hombre", "h", "masculino", "m", "male", "varon"].includes(v)) return "hombre";
+  if (["hombre", "h", "masculino", "male", "varon"].includes(v)) return "hombre";
   if (["mujer", "f", "femenino", "female"].includes(v)) return "mujer";
   return null;
 }
