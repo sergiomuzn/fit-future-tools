@@ -158,9 +158,7 @@ function StatsPage() {
     return m;
   }, [groupMembers]);
   const clientSexoMap = useMemo(() => {
-    const m = new Map<string, string[]>();
     const out = new Map<string, string>();
-    void m;
     for (const c of clients) out.set(c.id, (c as { sexo?: string | null }).sexo ?? "");
     return out;
   }, [clients]);
@@ -558,13 +556,14 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap }: {
   month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
+  clientSexoMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const { data: catalogoTiposList = [] } = useQuery({
