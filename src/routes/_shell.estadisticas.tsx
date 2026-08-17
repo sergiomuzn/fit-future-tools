@@ -893,6 +893,33 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             </div>
           </div>
         )}
+        {notice && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="space-y-1">
+                <div className="font-semibold text-amber-900 dark:text-amber-200">{notice.title}</div>
+                <ul className="list-disc pl-4 text-amber-900/90 dark:text-amber-100/90 space-y-0.5">
+                  {notice.items.map((it) => (
+                    <li key={it}>{it}</li>
+                  ))}
+                </ul>
+                {notice.samples && notice.samples.length > 0 && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-amber-800 dark:text-amber-200 hover:underline">
+                      Ver ejemplos ({notice.samples.length})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-1">
+                      {notice.samples.map((s) => (
+                        <li key={s} className="font-mono text-[11px]">{s}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
         {metric === "porEntrenador" && (
           <div className="mb-3 space-y-1.5">
             <div className="text-xs text-muted-foreground">
