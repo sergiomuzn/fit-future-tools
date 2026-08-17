@@ -43,6 +43,7 @@ export type ImportedClient = {
   email: string | null;
   fecha_inicio: string | null;
   cumpleanos: string | null;
+  sexo: string | null;
   notas: string | null;
   activo: boolean;
 };
@@ -51,6 +52,14 @@ function toActivo(value: string): boolean {
   const v = norm(value);
   if (!v) return true;
   return !["inactivo", "inactiva", "baja", "no", "false", "0", "desactivado", "inactive"].includes(v);
+}
+
+function toSexo(value: string): string | null {
+  const v = norm(value);
+  if (!v) return null;
+  if (["hombre", "h", "masculino", "m", "male", "varon"].includes(v)) return "hombre";
+  if (["mujer", "f", "femenino", "female"].includes(v)) return "mujer";
+  return null;
 }
 
 export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[] {
@@ -67,6 +76,7 @@ export function mapClientRows(rows: Record<string, unknown>[]): ImportedClient[]
       email: pick(row, ["email", "correo", "e-mail"]) || null,
       fecha_inicio: toDate(pick(row, ["fecha inicio", "fecha de inicio", "alta", "fecha_inicio"])),
       cumpleanos: toDate(pick(row, ["fecha de nacimiento", "fecha nacimiento", "nacimiento", "cumpleanos", "cumple"])),
+      sexo: toSexo(pick(row, ["sexo", "genero", "gender"])),
       notas: pick(row, ["notas", "nota", "observaciones"]) || null,
       activo: toActivo(pick(row, ["estado", "activo", "situacion", "status"])),
     });
