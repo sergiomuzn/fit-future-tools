@@ -41,7 +41,10 @@ const CLIENT_COLUMNS = [
   { key: "inicio", label: "Fecha inicio" },
   { key: "estado", label: "Estado" },
   { key: "nacimiento", label: "Fecha de nacimiento" },
+  { key: "sexo", label: "Sexo" },
 ];
+
+const SEXO_LABEL: Record<string, string> = { hombre: "Hombre", mujer: "Mujer" };
 
 export const Route = createFileRoute("/_shell/clientes")({
   component: ClientesPage,
@@ -59,6 +62,7 @@ function ClientesPage() {
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
   const [fTipo, setFTipo] = useState<string>("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
+  const [fSexo, setFSexo] = useState<string>("todos");
   const [fDesde, setFDesde] = useState("");
   const [fHasta, setFHasta] = useState("");
   const [importOpen, setImportOpen] = useState(false);
@@ -179,6 +183,7 @@ function ClientesPage() {
       if (fEstado === "inactivo" && c.activo) return false;
       if (fTipo !== "todos" && (tipoByClient.get(c.id) ?? "") !== fTipo) return false;
       if (fServicio !== "todos" && !(serviciosByClient.get(c.id) ?? []).includes(fServicio)) return false;
+      if (fSexo !== "todos" && (c.sexo ?? "") !== fSexo) return false;
       if (fDesde && (!c.fecha_inicio || c.fecha_inicio < fDesde)) return false;
       if (fHasta && (!c.fecha_inicio || c.fecha_inicio > fHasta)) return false;
       return true;
@@ -228,6 +233,7 @@ function ClientesPage() {
       email: editing.email ?? null,
       fecha_inicio: editing.fecha_inicio ?? null,
       cumpleanos: editing.cumpleanos ?? null,
+      sexo: editing.sexo ?? null,
       notas: editing.notas ?? null,
       activo: editing.activo ?? true,
     };
@@ -339,6 +345,7 @@ function ClientesPage() {
                   Email: c.email ?? "",
                   "Fecha inicio": c.fecha_inicio ?? "",
                   "Fecha de nacimiento": c.cumpleanos ?? "",
+                  Sexo: SEXO_LABEL[c.sexo ?? ""] ?? "",
                   Notas: c.notas ?? "",
                 })), "Clientes")}
               >
@@ -392,6 +399,17 @@ function ClientesPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
+            <Label>Sexo</Label>
+            <Select value={fSexo} onValueChange={setFSexo}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="hombre">Hombre</SelectItem>
+                <SelectItem value="mujer">Mujer</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
             <Label>Desde (fecha inicio)</Label>
             <Input type="date" value={fDesde} onChange={(e) => setFDesde(e.target.value)} />
           </div>
@@ -401,7 +419,7 @@ function ClientesPage() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); setFDesde(""); setFHasta(""); }}
+            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); setFSexo("todos"); setFDesde(""); setFHasta(""); }}
           >
             Limpiar filtros
           </Button>
@@ -418,6 +436,7 @@ function ClientesPage() {
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
               {show("nacimiento") && <TableHead>Fecha de nacimiento</TableHead>}
+              {show("sexo") && <TableHead>Sexo</TableHead>}
               <TableHead className="w-24"></TableHead>
             </TableRow>
           </TableHeader>
@@ -469,6 +488,7 @@ function ClientesPage() {
                   <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
                 </TableCell>}
                 {show("nacimiento") && <TableCell>{c.cumpleanos ?? "—"}</TableCell>}
+                {show("sexo") && <TableCell>{SEXO_LABEL[c.sexo ?? ""] ?? "—"}</TableCell>}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                   <Button variant="ghost" size="icon" onClick={() => remove(c.id)}><Trash2 className="h-4 w-4" /></Button>
@@ -500,6 +520,17 @@ function ClientesPage() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Fecha de inicio</Label><Input type="date" value={editing?.fecha_inicio ?? ""} onChange={(e) => setEditing({ ...editing, fecha_inicio: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Fecha de nacimiento</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Sexo</Label>
+              <Select value={editing?.sexo ?? "sin"} onValueChange={(v) => setEditing({ ...editing, sexo: v === "sin" ? null : v })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sin">Sin especificar</SelectItem>
+                  <SelectItem value="hombre">Hombre</SelectItem>
+                  <SelectItem value="mujer">Mujer</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5"><Label>Notas</Label><Textarea rows={2} value={editing?.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></div>
             {editing?.id && (
