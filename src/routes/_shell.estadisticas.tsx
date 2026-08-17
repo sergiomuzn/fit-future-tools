@@ -157,6 +157,11 @@ function StatsPage() {
     }
     return m;
   }, [groupMembers]);
+  const clientSexoMap = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const c of clients) out.set(c.id, (c as { sexo?: string | null }).sexo ?? "");
+    return out;
+  }, [clients]);
 
   // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
   // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
@@ -182,7 +187,7 @@ function StatsPage() {
 
       <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} />
     </div>
   );
 }
@@ -428,7 +433,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -445,6 +450,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
+  sexo: "Clientes por sexo",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
   franja: "Franja horaria (6:45–22:00)",
@@ -464,7 +470,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 // Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
-  if (metric === "altasBajas") {
+  if (metric === "altasBajas" || metric === "sexo") {
     return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
@@ -494,7 +500,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
   return true;
 }
 function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas") return desglose === "total";
+  if (metric === "altasBajas" || metric === "sexo") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
@@ -525,6 +531,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "Altas y bajas por mes:\n" +
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
       "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
+    sexo:
+      "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
   };
   const desgloseInfo: Partial<Record<Desglose, string>> = {
     franja: "Desglose por franja horaria: cada punto agrupa las sesiones que empiezan en esa hora (6:00–21:00).",
@@ -548,13 +556,14 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap }: {
   month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
+  clientSexoMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const { data: catalogoTiposList = [] } = useQuery({
@@ -668,8 +677,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
 
   function handleCsvExport() {
@@ -1123,6 +1132,7 @@ function buildSeries(args: {
   clientTipoMap: Map<string, BonoTipo>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
+  clientSexoMap?: Map<string, string>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
 }): {
@@ -1135,7 +1145,7 @@ function buildSeries(args: {
   labelEvery?: number;
   matrix?: MatrixData;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, selectedTrainerIds = [], catalogoTipos = [] } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
     "individual", "pareja", "grupal", "gympass", "prueba",
     ...catalogoTipos,
@@ -1194,6 +1204,35 @@ function buildSeries(args: {
       return { bucket: key, Altas: altas, Bajas: bajas };
     });
     return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
+  }
+
+  // -------- Clientes por sexo (clientes distintos con sesiones en el mes) --------
+  if (metric === "sexo") {
+    const buckets = collectMonthList("sessions");
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const ini = ymd(monthStart(y, m));
+      const fin = ymd(monthEnd(y, m));
+      const ids = new Set<string>();
+      for (const s of sessions) {
+        if (s.fecha < ini || s.fecha > fin) continue;
+        if (!countsAsTraining(s)) continue;
+        if (s.client_id) ids.add(s.client_id);
+        else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) ids.add(cid);
+      }
+      let hombres = 0, mujeres = 0, sin = 0;
+      for (const id of ids) {
+        const sx = clientSexoMap.get(id) ?? "";
+        if (sx === "hombre") hombres++;
+        else if (sx === "mujer") mujeres++;
+        else sin++;
+      }
+      return { bucket: key, Hombres: hombres, Mujeres: mujeres, "Sin especificar": sin };
+    });
+    return {
+      rows,
+      seriesKeys: ["Hombres", "Mujeres", "Sin especificar"],
+      isLineChart: period === "historico",
+    };
   }
 
   // -------- Facturación estimada (por turno, día de la semana o total) --------
