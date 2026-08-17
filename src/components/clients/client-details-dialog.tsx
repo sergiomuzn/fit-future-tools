@@ -73,6 +73,7 @@ export function ClientDetailsDialog({
                 <Field label="Email" value={client.email ?? "—"} />
                 <Field label="Fecha de inicio" value={client.fecha_inicio ?? "—"} />
                 <Field label="Fecha de nacimiento" value={client.cumpleanos ?? "—"} />
+                <Field label="Sexo" value={client.sexo === "hombre" ? "Hombre" : client.sexo === "mujer" ? "Mujer" : "—"} />
               </dl>
               {client.notas && (
                 <div className="mt-4">
