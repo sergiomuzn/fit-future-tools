@@ -41,6 +41,8 @@ function InvitacionPage() {
   const [nombre, setNombre] = useState("");
   const [apellido, setApellido] = useState("");
   const [telefono, setTelefono] = useState("");
+  const [fechaNacimiento, setFechaNacimiento] = useState("");
+  const [sexo, setSexo] = useState<"hombre" | "mujer" | "">("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -91,6 +93,8 @@ function InvitacionPage() {
     if (nombre.trim().length < 2) return toast.error("Escribe tu nombre");
     if (apellido.trim().length < 2) return toast.error("Escribe tu apellido");
     if (!existente && telefono.trim().length < 6) return toast.error("Escribe un teléfono válido");
+    if (!existente && !fechaNacimiento) return toast.error("Indica tu fecha de nacimiento");
+    if (!existente && !sexo) return toast.error("Indica tu sexo");
     if (!email.trim()) return toast.error("El correo es obligatorio");
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
@@ -104,7 +108,7 @@ function InvitacionPage() {
           code: codigo,
           nombre: nombre.trim(),
           apellido: apellido.trim(),
-          ...(existente ? {} : { telefono: telefono.trim() }),
+          ...(existente ? {} : { telefono: telefono.trim(), fechaNacimiento, sexo: sexo as "hombre" | "mujer" }),
           email: em.data,
           password,
           ...(existente ? {} : { bonoTipo: bonoTipo as BonoTipoCliente }),
@@ -215,6 +219,32 @@ function InvitacionPage() {
                 <div className="space-y-1.5">
                   <Label htmlFor="inv-tel">Teléfono</Label>
                   <Input id="inv-tel" type="tel" value={telefono} onChange={(e) => setTelefono(e.target.value)} required />
+                </div>
+              )}
+              {!existente && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="inv-nac">Fecha de nacimiento</Label>
+                    <Input
+                      id="inv-nac"
+                      type="date"
+                      value={fechaNacimiento}
+                      onChange={(e) => setFechaNacimiento(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sexo</Label>
+                    <Select value={sexo} onValueChange={(v) => setSexo(v as "hombre" | "mujer")}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="hombre">Hombre</SelectItem>
+                        <SelectItem value="mujer">Mujer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               )}
               <div className="space-y-1.5">
