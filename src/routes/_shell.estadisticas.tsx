@@ -162,6 +162,16 @@ function StatsPage() {
     for (const c of clients) out.set(c.id, (c as { sexo?: string | null }).sexo ?? "");
     return out;
   }, [clients]);
+  const clientNacMap = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const c of clients) out.set(c.id, c.cumpleanos ?? "");
+    return out;
+  }, [clients]);
+  const clientNombreMap = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const c of clients) out.set(c.id, c.nombre);
+    return out;
+  }, [clients]);
 
   // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
   // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
@@ -187,7 +197,7 @@ function StatsPage() {
 
       <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} clientNacMap={clientNacMap} clientNombreMap={clientNombreMap} />
     </div>
   );
 }
@@ -433,7 +443,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo" | "edad";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -451,6 +461,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
   sexo: "Clientes por sexo",
+  edad: "Clientes por edad",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
   franja: "Franja horaria (6:45–22:00)",
@@ -556,7 +567,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap }: {
   month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
@@ -564,6 +575,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
   clientSexoMap: Map<string, string>;
+  clientNacMap: Map<string, string>;
+  clientNombreMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const { data: catalogoTiposList = [] } = useQuery({
