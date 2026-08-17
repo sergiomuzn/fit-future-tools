@@ -157,6 +157,13 @@ function StatsPage() {
     }
     return m;
   }, [groupMembers]);
+  const clientSexoMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    const out = new Map<string, string>();
+    void m;
+    for (const c of clients) out.set(c.id, (c as { sexo?: string | null }).sexo ?? "");
+    return out;
+  }, [clients]);
 
   // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
   // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
@@ -182,7 +189,7 @@ function StatsPage() {
 
       <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} />
     </div>
   );
 }
