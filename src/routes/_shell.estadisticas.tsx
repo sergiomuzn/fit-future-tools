@@ -1206,6 +1206,35 @@ function buildSeries(args: {
     return { rows, seriesKeys: ["Altas", "Bajas"], isLineChart: period === "historico" };
   }
 
+  // -------- Clientes por sexo (clientes distintos con sesiones en el mes) --------
+  if (metric === "sexo") {
+    const buckets = collectMonthList("sessions");
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const ini = ymd(monthStart(y, m));
+      const fin = ymd(monthEnd(y, m));
+      const ids = new Set<string>();
+      for (const s of sessions) {
+        if (s.fecha < ini || s.fecha > fin) continue;
+        if (!countsAsTraining(s)) continue;
+        if (s.client_id) ids.add(s.client_id);
+        else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) ids.add(cid);
+      }
+      let hombres = 0, mujeres = 0, sin = 0;
+      for (const id of ids) {
+        const sx = clientSexoMap.get(id) ?? "";
+        if (sx === "hombre") hombres++;
+        else if (sx === "mujer") mujeres++;
+        else sin++;
+      }
+      return { bucket: key, Hombres: hombres, Mujeres: mujeres, "Sin especificar": sin };
+    });
+    return {
+      rows,
+      seriesKeys: ["Hombres", "Mujeres", "Sin especificar"],
+      isLineChart: period === "historico",
+    };
+  }
+
   // -------- Facturación estimada (por turno, día de la semana o total) --------
   // Precio por sesión derivado del bono real del cliente:
   //   • Individual / Pareja / Grupal / Prueba → precio del bono / sesiones incluidas.
