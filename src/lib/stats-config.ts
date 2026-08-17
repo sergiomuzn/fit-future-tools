@@ -6,7 +6,8 @@ export type StatsMetric =
   | "cancelaciones"
   | "porEntrenador"
   | "facturacion"
-  | "altasBajas";
+  | "altasBajas"
+  | "sexo";
 
 export type StatsDesglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 
@@ -36,6 +37,7 @@ export const STATS_METRICS: StatsMetric[] = [
   "porEntrenador",
   "facturacion",
   "altasBajas",
+  "sexo",
 ];
 
 export const STATS_DESGLOSES: StatsDesglose[] = [
@@ -53,6 +55,7 @@ export const STATS_METRIC_LABEL: Record<StatsMetric, string> = {
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
+  sexo: "Clientes por sexo",
 };
 
 export const STATS_DESGLOSE_LABEL: Record<StatsDesglose, string> = {
@@ -90,6 +93,7 @@ export const DEFAULT_COMPAT: StatsCompatMatrix = {
   porEntrenador: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   facturacion:   { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
   altasBajas:    { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
+  sexo:          { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
 };
 
 export const DEFAULT_KPIS: Record<StatsKpiKey, boolean> = {
