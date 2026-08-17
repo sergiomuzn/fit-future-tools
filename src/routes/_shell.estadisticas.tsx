@@ -481,7 +481,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 // Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
-  if (metric === "altasBajas" || metric === "sexo") {
+  if (metric === "altasBajas" || metric === "sexo" || metric === "edad") {
     return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
@@ -511,7 +511,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
   return true;
 }
 function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas" || metric === "sexo") return desglose === "total";
+  if (metric === "altasBajas" || metric === "sexo" || metric === "edad") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
@@ -691,9 +691,9 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
 
   function handleCsvExport() {
