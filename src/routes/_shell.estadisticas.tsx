@@ -1253,6 +1253,56 @@ function buildSeries(args: {
     };
   }
 
+  // -------- Clientes por edad (tramos, según fecha de nacimiento) --------
+  if (metric === "edad") {
+    const tramos = ["<18", "18-29", "30-39", "40-49", "50-59", "60+"];
+    const tramoDe = (edad: number): string => {
+      if (edad < 18) return "<18";
+      if (edad < 30) return "18-29";
+      if (edad < 40) return "30-39";
+      if (edad < 50) return "40-49";
+      if (edad < 60) return "50-59";
+      return "60+";
+    };
+    const buckets = collectMonthList("sessions");
+    const sinFecha = new Set<string>();
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const ini = ymd(monthStart(y, m));
+      const finD = monthEnd(y, m);
+      const fin = ymd(finD);
+      const ids = new Set<string>();
+      for (const s of sessions) {
+        if (s.fecha < ini || s.fecha > fin) continue;
+        if (!countsAsTraining(s)) continue;
+        if (s.client_id) ids.add(s.client_id);
+        else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) ids.add(cid);
+      }
+      const row: SeriesRow = { bucket: key };
+      for (const t of tramos) row[t] = 0;
+      for (const id of ids) {
+        const nac = clientNacMap.get(id) ?? "";
+        if (!nac) { sinFecha.add(id); continue; }
+        const [ny, nm, nd] = nac.split("-").map(Number);
+        if (!ny) { sinFecha.add(id); continue; }
+        let edad = finD.getFullYear() - ny;
+        const cumpleEsteAnio = new Date(finD.getFullYear(), (nm || 1) - 1, nd || 1);
+        if (cumpleEsteAnio > finD) edad -= 1;
+        if (edad < 0 || edad > 120) { sinFecha.add(id); continue; }
+        const t = tramoDe(edad);
+        row[t] = (row[t] as number) + 1;
+      }
+      return row;
+    });
+    const notice = sinFecha.size > 0
+      ? {
+          title: `${sinFecha.size} ${sinFecha.size === 1 ? "cliente sin fecha de nacimiento" : "clientes sin fecha de nacimiento"}`,
+          items: ["No se incluyen en ningún tramo de edad. Añade su fecha de nacimiento en la ficha del cliente."],
+          samples: Array.from(sinFecha).slice(0, 20).map((id) => clientNombreMap.get(id) ?? id),
+        }
+      : undefined;
+    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice };
+  }
+
   // -------- Facturación estimada (por turno, día de la semana o total) --------
   // Precio por sesión derivado del bono real del cliente:
   //   • Individual / Pareja / Grupal / Prueba → precio del bono / sesiones incluidas.
