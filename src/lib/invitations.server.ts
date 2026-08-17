@@ -73,6 +73,8 @@ export async function acceptInvitation(input: {
   nombre: string;
   apellido: string;
   telefono?: string;
+  fechaNacimiento?: string;
+  sexo?: "hombre" | "mujer";
   email: string;
   password: string;
   bonoTipo?: BonoTipoCliente;
@@ -145,6 +147,8 @@ export async function acceptInvitation(input: {
       .from("clients")
       .update({
         ...(input.telefono?.trim() ? { telefono: input.telefono.trim() } : {}),
+        ...(input.fechaNacimiento ? { cumpleanos: input.fechaNacimiento } : {}),
+        ...(input.sexo ? { sexo: input.sexo } : {}),
         email: input.email,
         activo: true,
       })
@@ -156,7 +160,16 @@ export async function acceptInvitation(input: {
   } else {
     const { data: client, error: clientError } = await supabaseAdmin
       .from("clients")
-      .insert([{ nombre: fullName, telefono: input.telefono?.trim() || null, email: input.email, activo: true }])
+      .insert([
+        {
+          nombre: fullName,
+          telefono: input.telefono?.trim() || null,
+          cumpleanos: input.fechaNacimiento || null,
+          sexo: input.sexo || null,
+          email: input.email,
+          activo: true,
+        },
+      ])
       .select("id")
       .single();
     if (clientError || !client) {
