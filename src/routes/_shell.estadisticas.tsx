@@ -162,6 +162,16 @@ function StatsPage() {
     for (const c of clients) out.set(c.id, (c as { sexo?: string | null }).sexo ?? "");
     return out;
   }, [clients]);
+  const clientNacMap = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const c of clients) out.set(c.id, c.cumpleanos ?? "");
+    return out;
+  }, [clients]);
+  const clientNombreMap = useMemo(() => {
+    const out = new Map<string, string>();
+    for (const c of clients) out.set(c.id, c.nombre);
+    return out;
+  }, [clients]);
 
   // Filtra sesiones según los ajustes de "Funcionamiento": si el usuario ha
   // desactivado "Contabilizar grupales sin asistentes", omitimos aquí las
@@ -187,7 +197,7 @@ function StatsPage() {
 
       <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} clientNacMap={clientNacMap} clientNombreMap={clientNombreMap} />
     </div>
   );
 }
@@ -433,7 +443,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo" | "edad";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -451,6 +461,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
   sexo: "Clientes por sexo",
+  edad: "Clientes por edad",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
   franja: "Franja horaria (6:45–22:00)",
@@ -470,7 +481,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 // Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
-  if (metric === "altasBajas" || metric === "sexo") {
+  if (metric === "altasBajas" || metric === "sexo" || metric === "edad") {
     return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
@@ -500,7 +511,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
   return true;
 }
 function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas" || metric === "sexo") return desglose === "total";
+  if (metric === "altasBajas" || metric === "sexo" || metric === "edad") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
@@ -533,6 +544,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
     sexo:
       "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
+    edad:
+      "Clientes por edad: número de clientes distintos con al menos una sesión contabilizada en el periodo, agrupados por tramos de edad calculados con su fecha de nacimiento. Los clientes sin fecha de nacimiento se indican en un aviso sobre la gráfica.",
   };
   const desgloseInfo: Partial<Record<Desglose, string>> = {
     franja: "Desglose por franja horaria: cada punto agrupa las sesiones que empiezan en esa hora (6:00–21:00).",
@@ -556,7 +569,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap }: {
+function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap }: {
   month: string;
   sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
@@ -564,6 +577,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
   clientSexoMap: Map<string, string>;
+  clientNacMap: Map<string, string>;
+  clientNombreMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const { data: catalogoTiposList = [] } = useQuery({
@@ -676,9 +691,9 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
 
   function handleCsvExport() {
@@ -870,6 +885,33 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                         <li key={s.id} className="font-mono text-[11px]">
                           {s.fecha} {s.hora} — {s.reason}
                         </li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+        {notice && (
+          <div className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+            <div className="flex items-start gap-2">
+              <Info className="h-4 w-4 mt-0.5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="space-y-1">
+                <div className="font-semibold text-amber-900 dark:text-amber-200">{notice.title}</div>
+                <ul className="list-disc pl-4 text-amber-900/90 dark:text-amber-100/90 space-y-0.5">
+                  {notice.items.map((it) => (
+                    <li key={it}>{it}</li>
+                  ))}
+                </ul>
+                {notice.samples && notice.samples.length > 0 && (
+                  <details className="mt-1">
+                    <summary className="cursor-pointer text-amber-800 dark:text-amber-200 hover:underline">
+                      Ver ejemplos ({notice.samples.length})
+                    </summary>
+                    <ul className="mt-1 space-y-0.5 pl-1">
+                      {notice.samples.map((s) => (
+                        <li key={s} className="font-mono text-[11px]">{s}</li>
                       ))}
                     </ul>
                   </details>
@@ -1133,11 +1175,14 @@ function buildSeries(args: {
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
   clientSexoMap?: Map<string, string>;
+  clientNacMap?: Map<string, string>;
+  clientNombreMap?: Map<string, string>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
   unclassified?: UnclassifiedInfo;
+  notice?: { title: string; items: string[]; samples?: string[] };
   stackMap?: Record<string, string>;
   seriesColors?: Record<string, string>;
   areas?: boolean;
@@ -1145,7 +1190,7 @@ function buildSeries(args: {
   labelEvery?: number;
   matrix?: MatrixData;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
     "individual", "pareja", "grupal", "gympass", "prueba",
     ...catalogoTipos,
@@ -1233,6 +1278,56 @@ function buildSeries(args: {
       seriesKeys: ["Hombres", "Mujeres", "Sin especificar"],
       isLineChart: period === "historico",
     };
+  }
+
+  // -------- Clientes por edad (tramos, según fecha de nacimiento) --------
+  if (metric === "edad") {
+    const tramos = ["<18", "18-29", "30-39", "40-49", "50-59", "60+"];
+    const tramoDe = (edad: number): string => {
+      if (edad < 18) return "<18";
+      if (edad < 30) return "18-29";
+      if (edad < 40) return "30-39";
+      if (edad < 50) return "40-49";
+      if (edad < 60) return "50-59";
+      return "60+";
+    };
+    const buckets = collectMonthList("sessions");
+    const sinFecha = new Set<string>();
+    const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
+      const ini = ymd(monthStart(y, m));
+      const finD = monthEnd(y, m);
+      const fin = ymd(finD);
+      const ids = new Set<string>();
+      for (const s of sessions) {
+        if (s.fecha < ini || s.fecha > fin) continue;
+        if (!countsAsTraining(s)) continue;
+        if (s.client_id) ids.add(s.client_id);
+        else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) ids.add(cid);
+      }
+      const row: SeriesRow = { bucket: key };
+      for (const t of tramos) row[t] = 0;
+      for (const id of ids) {
+        const nac = clientNacMap.get(id) ?? "";
+        if (!nac) { sinFecha.add(id); continue; }
+        const [ny, nm, nd] = nac.split("-").map(Number);
+        if (!ny) { sinFecha.add(id); continue; }
+        let edad = finD.getFullYear() - ny;
+        const cumpleEsteAnio = new Date(finD.getFullYear(), (nm || 1) - 1, nd || 1);
+        if (cumpleEsteAnio > finD) edad -= 1;
+        if (edad < 0 || edad > 120) { sinFecha.add(id); continue; }
+        const t = tramoDe(edad);
+        row[t] = (row[t] as number) + 1;
+      }
+      return row;
+    });
+    const notice = sinFecha.size > 0
+      ? {
+          title: `${sinFecha.size} ${sinFecha.size === 1 ? "cliente sin fecha de nacimiento" : "clientes sin fecha de nacimiento"}`,
+          items: ["No se incluyen en ningún tramo de edad. Añade su fecha de nacimiento en la ficha del cliente."],
+          samples: Array.from(sinFecha).slice(0, 20).map((id) => clientNombreMap.get(id) ?? id),
+        }
+      : undefined;
+    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice };
   }
 
   // -------- Facturación estimada (por turno, día de la semana o total) --------
