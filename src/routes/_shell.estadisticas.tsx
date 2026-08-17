@@ -428,7 +428,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
 // ============================================================
 // Comparison Module
 // ============================================================
-type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas";
+type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo";
 type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
@@ -445,6 +445,7 @@ const METRIC_LABEL: Record<Metric, string> = {
   porEntrenador: "Sesiones por entrenador",
   facturacion: "Facturación estimada (€)",
   altasBajas: "Altas y bajas por mes",
+  sexo: "Clientes por sexo",
 };
 const DESGLOSE_LABEL: Record<Desglose, string> = {
   franja: "Franja horaria (6:45–22:00)",
@@ -464,7 +465,7 @@ const PERIOD_LABEL: Record<PeriodMode, string> = {
 // Configuración → Estadísticas. Las restricciones de PERIODO se mantienen aquí.
 const NON_MVT_PERIODS: PeriodMode[] = ["mesUnico", "comparar", "historico"];
 function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodMode): boolean {
-  if (metric === "altasBajas") {
+  if (metric === "altasBajas" || metric === "sexo") {
     return desglose === "total";
   }
   // "Sin desglosar" es válido para cualquier métrica y periodo.
@@ -494,7 +495,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
   return true;
 }
 function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
-  if (metric === "altasBajas") return desglose === "total";
+  if (metric === "altasBajas" || metric === "sexo") return desglose === "total";
   if (desglose === "total") return true;
   if (desglose === "tipoSesion") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
@@ -525,6 +526,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "Altas y bajas por mes:\n" +
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
       "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
+    sexo:
+      "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
   };
   const desgloseInfo: Partial<Record<Desglose, string>> = {
     franja: "Desglose por franja horaria: cada punto agrupa las sesiones que empiezan en esa hora (6:00–21:00).",
