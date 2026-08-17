@@ -544,6 +544,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
     sexo:
       "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
+    edad:
+      "Clientes por edad: número de clientes distintos con al menos una sesión contabilizada en el periodo, agrupados por tramos de edad calculados con su fecha de nacimiento. Los clientes sin fecha de nacimiento se indican en un aviso sobre la gráfica.",
   };
   const desgloseInfo: Partial<Record<Desglose, string>> = {
     franja: "Desglose por franja horaria: cada punto agrupa las sesiones que empiezan en esa hora (6:00–21:00).",
