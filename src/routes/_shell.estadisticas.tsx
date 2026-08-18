@@ -1294,6 +1294,32 @@ function buildSeries(args: {
     };
     const buckets = collectMonthList("sessions");
     const sinFecha = new Set<string>();
+    // Edad media de todos los clientes contabilizados en el periodo mostrado
+    const lastFinD = buckets.length > 0 ? monthEnd(buckets[buckets.length - 1].y, buckets[buckets.length - 1].m) : new Date();
+    const firstIni = buckets.length > 0 ? ymd(monthStart(buckets[0].y, buckets[0].m)) : "";
+    const lastFin = ymd(lastFinD);
+    const allIds = new Set<string>();
+    for (const s of sessions) {
+      if (firstIni && (s.fecha < firstIni || s.fecha > lastFin)) continue;
+      if (!countsAsTraining(s)) continue;
+      if (s.client_id) allIds.add(s.client_id);
+      else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) allIds.add(cid);
+    }
+    let totalAge = 0;
+    let countAge = 0;
+    for (const id of allIds) {
+      const nac = clientNacMap.get(id) ?? "";
+      if (!nac) { sinFecha.add(id); continue; }
+      const [ny, nm, nd] = nac.split("-").map(Number);
+      if (!ny) { sinFecha.add(id); continue; }
+      let edad = lastFinD.getFullYear() - ny;
+      const cumpleEsteAnio = new Date(lastFinD.getFullYear(), (nm || 1) - 1, nd || 1);
+      if (cumpleEsteAnio > lastFinD) edad -= 1;
+      if (edad < 0 || edad > 120) { sinFecha.add(id); continue; }
+      totalAge += edad;
+      countAge++;
+    }
+    const avgAge = countAge > 0 ? Math.round(totalAge / countAge) : undefined;
     const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
       const ini = ymd(monthStart(y, m));
       const finD = monthEnd(y, m);
@@ -1328,7 +1354,7 @@ function buildSeries(args: {
           samples: Array.from(sinFecha).slice(0, 20).map((id) => clientNombreMap.get(id) ?? id),
         }
       : undefined;
-    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice };
+    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice, avgAge };
   }
 
   // -------- Facturación estimada (por turno, día de la semana o total) --------
