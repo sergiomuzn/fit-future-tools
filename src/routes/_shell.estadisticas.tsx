@@ -691,7 +691,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   };
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
   );
@@ -916,6 +916,17 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                     </ul>
                   </details>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+        {avgAge !== undefined && (
+          <div className="mb-3 rounded-md border border-primary/30 bg-primary/10 p-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary shrink-0" />
+              <div>
+                <span className="font-semibold">Edad media: {avgAge} años</span>
+                <p className="text-muted-foreground">Media de edad de los clientes contabilizados en el periodo.</p>
               </div>
             </div>
           </div>
@@ -1189,6 +1200,7 @@ function buildSeries(args: {
   mediaKeys?: string[];
   labelEvery?: number;
   matrix?: MatrixData;
+  avgAge?: number;
 } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
@@ -1293,6 +1305,32 @@ function buildSeries(args: {
     };
     const buckets = collectMonthList("sessions");
     const sinFecha = new Set<string>();
+    // Edad media de todos los clientes contabilizados en el periodo mostrado
+    const lastFinD = buckets.length > 0 ? monthEnd(buckets[buckets.length - 1].y, buckets[buckets.length - 1].m) : new Date();
+    const firstIni = buckets.length > 0 ? ymd(monthStart(buckets[0].y, buckets[0].m)) : "";
+    const lastFin = ymd(lastFinD);
+    const allIds = new Set<string>();
+    for (const s of sessions) {
+      if (firstIni && (s.fecha < firstIni || s.fecha > lastFin)) continue;
+      if (!countsAsTraining(s)) continue;
+      if (s.client_id) allIds.add(s.client_id);
+      else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) allIds.add(cid);
+    }
+    let totalAge = 0;
+    let countAge = 0;
+    for (const id of allIds) {
+      const nac = clientNacMap.get(id) ?? "";
+      if (!nac) { sinFecha.add(id); continue; }
+      const [ny, nm, nd] = nac.split("-").map(Number);
+      if (!ny) { sinFecha.add(id); continue; }
+      let edad = lastFinD.getFullYear() - ny;
+      const cumpleEsteAnio = new Date(lastFinD.getFullYear(), (nm || 1) - 1, nd || 1);
+      if (cumpleEsteAnio > lastFinD) edad -= 1;
+      if (edad < 0 || edad > 120) { sinFecha.add(id); continue; }
+      totalAge += edad;
+      countAge++;
+    }
+    const avgAge = countAge > 0 ? Math.round(totalAge / countAge) : undefined;
     const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
       const ini = ymd(monthStart(y, m));
       const finD = monthEnd(y, m);
@@ -1327,7 +1365,7 @@ function buildSeries(args: {
           samples: Array.from(sinFecha).slice(0, 20).map((id) => clientNombreMap.get(id) ?? id),
         }
       : undefined;
-    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice };
+    return { rows, seriesKeys: tramos, isLineChart: period === "historico", notice, avgAge };
   }
 
   // -------- Facturación estimada (por turno, día de la semana o total) --------
