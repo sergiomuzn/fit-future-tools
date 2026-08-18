@@ -920,6 +920,17 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             </div>
           </div>
         )}
+        {avgAge !== undefined && (
+          <div className="mb-3 rounded-md border border-primary/30 bg-primary/10 p-3 text-xs">
+            <div className="flex items-center gap-2">
+              <Info className="h-4 w-4 text-primary shrink-0" />
+              <div>
+                <span className="font-semibold">Edad media: {avgAge} años</span>
+                <p className="text-muted-foreground">Media de edad de los clientes contabilizados en el periodo.</p>
+              </div>
+            </div>
+          </div>
+        )}
         {metric === "porEntrenador" && (
           <div className="mb-3 space-y-1.5">
             <div className="text-xs text-muted-foreground">
