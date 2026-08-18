@@ -1189,6 +1189,7 @@ function buildSeries(args: {
   mediaKeys?: string[];
   labelEvery?: number;
   matrix?: MatrixData;
+  avgAge?: number;
 } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
   const knownTipos = Array.from(new Set<string>([
