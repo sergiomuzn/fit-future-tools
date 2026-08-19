@@ -23,7 +23,13 @@ import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 import { fuzzyMatch } from "@/lib/utils";
 
-type ClienteSinAcceso = { id: string; nombre: string; email: string | null; telefono: string | null };
+type ClienteSinAcceso = {
+  id: string;
+  nombre: string;
+  email: string | null;
+  telefono: string | null;
+  activo: boolean;
+};
 
 type Resultado = {
   cliente: string;
@@ -54,11 +60,15 @@ export function InvitarClientesDialog({
   const lastSelectedIdRef = useRef<string | null>(null);
 
   const { data: clientes = [], isLoading } = useQuery({
-    queryKey: ["clientes_sin_acceso", open],
+    queryKey: ["clientes_sin_acceso"],
     enabled: open,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
+    refetchInterval: open ? 15000 : false,
     queryFn: async () => {
       const [{ data: cs, error: e1 }, { data: ps, error: e2 }] = await Promise.all([
-        supabase.from("clients").select("id,nombre,email,telefono").eq("activo", true).order("nombre"),
+        supabase.from("clients").select("id,nombre,email,telefono,activo").order("nombre"),
         supabase.from("client_profiles").select("client_id,activo"),
       ]);
       if (e1) throw e1;
@@ -71,8 +81,10 @@ export function InvitarClientesDialog({
   });
 
   const { data: serviciosPorCliente = new Map<string, string[]>() } = useQuery({
-    queryKey: ["servicios_por_cliente", open],
+    queryKey: ["servicios_por_cliente"],
     enabled: open,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       const [{ data: cb }, { data: cat }] = await Promise.all([
         supabase.from("client_bonos").select("client_id,bono_catalogo_id,activo"),
@@ -216,7 +228,7 @@ export function InvitarClientesDialog({
           <DialogDescription>
             {resultados
               ? "Resumen de las invitaciones generadas."
-              : "Clientes activos que todavía no tienen acceso al portal."}
+              : "Clientes del centro que todavía no tienen acceso al portal."}
           </DialogDescription>
         </DialogHeader>
 
@@ -343,7 +355,14 @@ export function InvitarClientesDialog({
                       onClick={(e) => e.preventDefault()}
                     />
                     <span className="min-w-0 flex-1 pointer-events-none">
-                      <span className="block truncate text-sm font-medium">{c.nombre}</span>
+                      <span className="block truncate text-sm font-medium">
+                        {c.nombre}
+                        {!c.activo && (
+                          <span className="ml-2 rounded-full border px-1.5 py-0.5 text-[10px] font-normal text-muted-foreground align-middle">
+                            Inactivo
+                          </span>
+                        )}
+                      </span>
                       <span className="block truncate text-xs text-muted-foreground">
                         {c.email || "Sin email registrado"}
                       </span>
