@@ -22,10 +22,12 @@ export function abreviatura(nombre: string): string {
   return nombre.trim().slice(0, 2).toUpperCase();
 }
 
-/** Clases de color según el servicio: los grupos usan el color de grupo de la agenda. */
-export function slotColorClasses(slug: string, activo = true): string {
+/** Clases de color según el servicio: en admin los huecos de grupo usan el color de reservada de la app. */
+export function slotColorClasses(slug: string, activo = true, admin = false): string {
   if (!activo) return "bg-muted text-muted-foreground border-border";
-  if (/grupo/i.test(slug)) return "bg-state-grupo text-state-grupo-fg border-black/10";
+  if (/grupo/i.test(slug)) return admin
+    ? "bg-state-reservada text-state-reservada-fg border-black/10"
+    : "bg-state-grupo text-state-grupo-fg border-black/10";
   return "bg-state-reservada text-state-reservada-fg border-black/10";
 }
 
