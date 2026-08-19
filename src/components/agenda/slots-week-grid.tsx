@@ -199,7 +199,7 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                     onClick={() => onSelect?.(s)}
                     className={cn(
                       "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
-                      slotColorClasses(s.servicio_slug, s.activo),
+                      slotColorClasses(s.servicio_slug, s.activo, editable),
                     )}
                     style={{ top, height, left: `calc(${leftPct}% + 1px)`, width: `calc(${widthPct}% - 2px)` }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
