@@ -279,10 +279,6 @@ function AgendaPage() {
         {servicios.map((s) => (
           <Legend key={s.slug} hex={servicioColorOf(colores, s.slug) ?? undefined} label={s.nombre} />
         ))}
-        <Legend
-          hex={shade(servicioColorOf(colores, servicios[0]?.slug) ?? "#3CC0F3", REALIZADA_SHADE)}
-          label="Realizada (tono más oscuro)"
-        />
         <Legend color="bg-state-prueba" label="Prueba" />
         <Legend color="bg-state-cancelada" label="Cancelada" />
         <Legend color="bg-state-renovacion" label="Renovación" />
