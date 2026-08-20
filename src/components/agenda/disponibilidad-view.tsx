@@ -233,6 +233,16 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   });
 
   const moveMany = useMutation({
+    onMutate: (updates: { id: string; dia_semana: number; hora_inicio: string; hora_fin: string }[]) => {
+      // Actualización optimista: el hueco se queda ya en su nueva posición (sin parpadeo).
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      qc.setQueriesData<ServiceSlot[]>({ queryKey: ["service_slots"] }, (old) =>
+        old?.map((s) => {
+          const u = byId.get(s.id);
+          return u ? { ...s, dia_semana: u.dia_semana, hora_inicio: u.hora_inicio, hora_fin: u.hora_fin } : s;
+        }),
+      );
+    },
     mutationFn: async (updates: { id: string; dia_semana: number; hora_inicio: string; hora_fin: string }[]) => {
       const prev = rowsFromIds(updates.map((u) => u.id));
       for (const u of updates) {
