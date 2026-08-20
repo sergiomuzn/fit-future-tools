@@ -4,7 +4,6 @@ import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTA
 import { formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
-import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
 import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 
@@ -17,8 +16,7 @@ interface Props {
 const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function MonthView({ date, trainers, onSelectDay }: Props) {
-  const { colores } = useCenterConfig();
-  const { horario, specialsMap } = useCenterConfig();
+  const { colores, horario, specialsMap } = useCenterConfig();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
 
