@@ -164,7 +164,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
         capacidad: s.capacidad,
         trainer_id: s.trainer_id,
       }));
-      const { error } = await supabase.from("slot_structures").insert([{ nombre, slots: rows }]);
+      const { error } = await supabase.from("slot_structures").insert([{ nombre, slots: rows as unknown as never }]);
       if (error) throw error;
     },
     onSuccess: () => {
