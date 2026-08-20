@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClipboardPaste, Copy, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
+import { ClipboardPaste, Copy, Info, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import {
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { enterToSave } from "@/lib/enter-to-save";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-
 const NONE = "__none";
 
 function toMin(t: string) {
@@ -233,6 +233,16 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   });
 
   const moveMany = useMutation({
+    onMutate: (updates: { id: string; dia_semana: number; hora_inicio: string; hora_fin: string }[]) => {
+      // Actualización optimista: el hueco se queda ya en su nueva posición (sin parpadeo).
+      const byId = new Map(updates.map((u) => [u.id, u]));
+      qc.setQueriesData<ServiceSlot[]>({ queryKey: ["service_slots"] }, (old) =>
+        old?.map((s) => {
+          const u = byId.get(s.id);
+          return u ? { ...s, dia_semana: u.dia_semana, hora_inicio: u.hora_inicio, hora_fin: u.hora_fin } : s;
+        }),
+      );
+    },
     mutationFn: async (updates: { id: string; dia_semana: number; hora_inicio: string; hora_fin: string }[]) => {
       const prev = rowsFromIds(updates.map((u) => u.id));
       for (const u of updates) {
@@ -406,6 +416,20 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     createMany.mutate(clipboard.map((r) => ({ ...r, dia_semana: dia })));
   }
 
+  function saveEditing() {
+    if (!editing) return;
+    update.mutate({
+      id: editing.id,
+      patch: {
+        servicio_slug: editing.servicio_slug,
+        hora_inicio: toTime(toMin(editing.hora_inicio)),
+        hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
+        capacidad: Math.max(1, Number(editing.cap) || 1),
+        trainer_id: editing.trainer_id,
+      },
+    });
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b bg-card px-3 py-2 text-xs">
@@ -485,28 +509,31 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
               )}
               {structures.map((st) => (
                 <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)}>
-                  {st.nombre} · {(st.slots ?? []).length} huecos
+                  {st.nombre}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 text-xs leading-relaxed">
+              <p className="mb-2 font-medium text-sm">Cómo usar la agenda</p>
+              <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                <li>Arrastra sobre un día para crear un hueco.</li>
+                <li>Arrastra un hueco para moverlo.</li>
+                <li>Clic derecho: copiar y pegar día o selección.</li>
+                <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
+                <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
+                <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
-
-      {mode === "crear" && (
-        <div className="border-b bg-muted/60 px-4 py-1.5 text-xs text-muted-foreground">
-          Arrastra sobre un día para crear un hueco · arrastra un hueco para moverlo · clic derecho para
-          copiar y pegar (Ctrl/Cmd + C y Ctrl/Cmd + V) · deshacer con Ctrl/Cmd + Z · para mover varios a la
-          vez usa Seleccionar.
-        </div>
-      )}
-      {mode !== "crear" && (
-        <div className={cn("border-b px-4 py-1.5 text-xs font-medium", "bg-primary/90 text-primary-foreground")}>
-          {mode === "rapida"
-            ? "Creación rápida · arrastra sobre un día para definir la franja y generar varias sesiones."
-            : "Selección · arrastra para dibujar un rectángulo, Ctrl/Cmd + clic para añadir o quitar, arrastra los huecos para moverlos en bloque. Copia con Ctrl/Cmd + C y pega en el día donde tengas el ratón con Ctrl/Cmd + V; con clic derecho tienes el menú de copiar y pegar."}
-        </div>
-      )}
 
       <div className="min-h-0 flex-1">
         <SlotsWeekGrid
@@ -545,7 +572,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Creación rápida */}
       <Dialog open={!!quick} onOpenChange={(o) => !o && setQuick(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onKeyDown={enterToSave(confirmQuick)}>
           <DialogHeader>
             <DialogTitle>Creación rápida · {quick ? DIA_NOMBRE[quick.dia] : ""}</DialogTitle>
           </DialogHeader>
@@ -652,7 +679,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Guardar estructura */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onKeyDown={enterToSave(() => structName.trim() && saveStructure.mutate(structName.trim()))}
+        >
           <DialogHeader>
             <DialogTitle>Guardar estructura</DialogTitle>
           </DialogHeader>
@@ -678,7 +708,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Nuevo hueco simple */}
       <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onKeyDown={enterToSave(() => pending?.slug && create.mutate(pending))}
+        >
           <DialogHeader>
             <DialogTitle>Nuevo hueco</DialogTitle>
           </DialogHeader>
@@ -709,7 +742,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Detalle de hueco individual */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(saveEditing)}>
           <DialogHeader>
             <DialogTitle>Hueco disponible · {editing ? DIA_NOMBRE[editing.dia_semana] : ""}</DialogTitle>
           </DialogHeader>
@@ -787,23 +820,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-              <Button
-                onClick={() =>
-                  editing &&
-                  update.mutate({
-                    id: editing.id,
-                    patch: {
-                      servicio_slug: editing.servicio_slug,
-                      hora_inicio: toTime(toMin(editing.hora_inicio)),
-                      hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
-                      capacidad: Math.max(1, Number(editing.cap) || 1),
-                      trainer_id: editing.trainer_id,
-                    },
-                  })
-                }
-              >
-                Guardar
-              </Button>
+              <Button onClick={saveEditing}>Guardar</Button>
             </div>
           </DialogFooter>
         </DialogContent>

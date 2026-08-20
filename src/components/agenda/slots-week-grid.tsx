@@ -168,12 +168,11 @@ export function SlotsWeekGrid({
   const marqueeRef = useRef<{ x: number; y: number; additive: boolean; base: string[] } | null>(null);
   const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
   const moveRef = useRef<{ x: number; y: number; colW: number; ids: string[] } | null>(null);
+  const deltaRef = useRef<{ dias: number; min: number; ids: string[] } | null>(null);
   const draggedRef = useRef(false);
-  /** Desplazamiento ya confirmado: se mantiene hasta que llegan los datos nuevos (evita el parpadeo). */
-  const [ghost, setGhost] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
-
+  /** Al soltar mantenemos el desplazamiento hasta que llegan los datos nuevos (evita el parpadeo). */
   useEffect(() => {
-    setGhost(null);
+    setMoveDelta(null);
   }, [slots]);
 
   const byDia = useMemo(() => {
@@ -213,11 +212,13 @@ export function SlotsWeekGrid({
         const dy = e.clientY - mv.y;
         const dx = e.clientX - mv.x;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) draggedRef.current = true;
-        setMoveDelta({
+        const next = {
           dias: mv.colW > 0 ? Math.round(dx / mv.colW) : 0,
           min: Math.round(dy / SLOT_PX) * SLOT_MIN,
           ids: mv.ids,
-        });
+        };
+        deltaRef.current = next;
+        setMoveDelta(next);
       }
     }
     function onUp() {
@@ -227,13 +228,14 @@ export function SlotsWeekGrid({
       }
       if (moveRef.current) {
         moveRef.current = null;
-        setMoveDelta((d) => {
-          if (d && (d.dias !== 0 || d.min !== 0)) {
-            setGhost(d);
-            onMoveSelection?.(d.dias, d.min, d.ids);
-          }
-          return null;
-        });
+        const d = deltaRef.current;
+        deltaRef.current = null;
+        if (d && (d.dias !== 0 || d.min !== 0)) {
+          // Mantenemos la posición arrastrada hasta que llegan los datos nuevos.
+          onMoveSelection?.(d.dias, d.min, d.ids);
+        } else {
+          setMoveDelta(null);
+        }
       }
     }
     window.addEventListener("mousemove", onMove);
@@ -383,8 +385,7 @@ export function SlotsWeekGrid({
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 const isSel = selected.has(s.id);
-                const active = moveDelta ?? ghost;
-                const drag = active && active.ids.includes(s.id) ? active : null;
+                const drag = moveDelta && moveDelta.ids.includes(s.id) ? moveDelta : null;
                 const colW = colRefs.current.get(dia)?.getBoundingClientRect().width ?? 0;
                 return (
                   <button
