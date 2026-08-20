@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClipboardPaste, Copy, MousePointerSquareDashed, Save, Trash2, Wand2 } from "lucide-react";
+import { ClipboardPaste, Copy, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -67,7 +67,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const [mode, setMode] = useState<GridMode>("crear");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedDay, setCopiedDay] = useState<SlotTemplate[] | null>(null);
-  const [editing, setEditing] = useState<(ServiceSlot & { dur: number }) | null>(null);
+  const [editing, setEditing] = useState<(ServiceSlot & { dur: string; cap: string }) | null>(null);
   const [pending, setPending] = useState<{ dia: number; inicio: string; fin: string; slug: string } | null>(null);
   const [quick, setQuick] = useState<{
     dia: number;
@@ -109,12 +109,54 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     if (mode !== "seleccion") setSelectedIds([]);
   }, [mode]);
 
+  // ---- Historial para deshacer (Ctrl/Cmd + Z) ----
+  const undoRef = useRef<{ label: string; run: () => Promise<void> }[]>([]);
+  const [undoCount, setUndoCount] = useState(0);
+  function pushUndo(label: string, run: () => Promise<void>) {
+    undoRef.current.push({ label, run });
+    if (undoRef.current.length > 30) undoRef.current.shift();
+    setUndoCount(undoRef.current.length);
+  }
+  async function undo() {
+    const entry = undoRef.current.pop();
+    setUndoCount(undoRef.current.length);
+    if (!entry) return toast.info("No hay nada que deshacer");
+    try {
+      await entry.run();
+      invalidate();
+      toast.success(`Deshecho: ${entry.label}`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  }
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
+      const t = e.target as HTMLElement | null;
+      if (t && /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      e.preventDefault();
+      void undo();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const rowsFromIds = (ids: string[]) =>
+    ids.map((id) => slotById.get(id)).filter((s): s is ServiceSlot => !!s);
+
   const create = useMutation({
     mutationFn: async (p: { dia: number; inicio: string; fin: string; slug: string }) => {
-      const { error } = await supabase.from("service_slots").insert([
-        { servicio_slug: p.slug, dia_semana: p.dia, hora_inicio: p.inicio, hora_fin: p.fin, capacidad: 1 },
-      ]);
+      const { data, error } = await supabase
+        .from("service_slots")
+        .insert([
+          { servicio_slug: p.slug, dia_semana: p.dia, hora_inicio: p.inicio, hora_fin: p.fin, capacidad: 1 },
+        ])
+        .select("id");
       if (error) throw error;
+      const ids = (data ?? []).map((d) => d.id);
+      pushUndo("crear hueco", async () => {
+        await supabase.from("service_slots").delete().in("id", ids);
+      });
     },
     onSuccess: () => { invalidate(); setPending(null); toast.success("Hueco añadido"); },
     onError: (e: Error) => toast.error(e.message),
@@ -123,8 +165,12 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const createMany = useMutation({
     mutationFn: async (rows: SlotTemplate[]) => {
       if (rows.length === 0) return;
-      const { error } = await supabase.from("service_slots").insert(rows);
+      const { data, error } = await supabase.from("service_slots").insert(rows).select("id");
       if (error) throw error;
+      const ids = (data ?? []).map((d) => d.id);
+      pushUndo(`crear ${ids.length} huecos`, async () => {
+        await supabase.from("service_slots").delete().in("id", ids);
+      });
     },
     onSuccess: (_d, rows) => { invalidate(); toast.success(`${rows.length} huecos creados`); },
     onError: (e: Error) => toast.error(e.message),
@@ -132,8 +178,24 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   const update = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<ServiceSlot> }) => {
+      const prev = slotById.get(id);
       const { error } = await supabase.from("service_slots").update(patch).eq("id", id);
       if (error) throw error;
+      if (prev) {
+        pushUndo("editar hueco", async () => {
+          await supabase
+            .from("service_slots")
+            .update({
+              servicio_slug: prev.servicio_slug,
+              dia_semana: prev.dia_semana,
+              hora_inicio: prev.hora_inicio,
+              hora_fin: prev.hora_fin,
+              capacidad: prev.capacidad,
+              trainer_id: prev.trainer_id,
+            })
+            .eq("id", id);
+        });
+      }
     },
     onSuccess: () => { invalidate(); setEditing(null); },
     onError: (e: Error) => toast.error(e.message),
@@ -141,8 +203,14 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
+      const prev = rowsFromIds([id]);
       const { error } = await supabase.from("service_slots").delete().eq("id", id);
       if (error) throw error;
+      if (prev.length) {
+        pushUndo("eliminar hueco", async () => {
+          await supabase.from("service_slots").insert(prev);
+        });
+      }
     },
     onSuccess: () => { invalidate(); setEditing(null); toast.success("Hueco eliminado"); },
     onError: (e: Error) => toast.error(e.message),
@@ -151,8 +219,14 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const removeMany = useMutation({
     mutationFn: async (ids: string[]) => {
       if (ids.length === 0) return;
+      const prev = rowsFromIds(ids);
       const { error } = await supabase.from("service_slots").delete().in("id", ids);
       if (error) throw error;
+      if (prev.length) {
+        pushUndo(`eliminar ${prev.length} huecos`, async () => {
+          await supabase.from("service_slots").insert(prev);
+        });
+      }
     },
     onSuccess: (_d, ids) => { invalidate(); setSelectedIds([]); toast.success(`${ids.length} huecos eliminados`); },
     onError: (e: Error) => toast.error(e.message),
@@ -160,12 +234,23 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   const moveMany = useMutation({
     mutationFn: async (updates: { id: string; dia_semana: number; hora_inicio: string; hora_fin: string }[]) => {
+      const prev = rowsFromIds(updates.map((u) => u.id));
       for (const u of updates) {
         const { error } = await supabase
           .from("service_slots")
           .update({ dia_semana: u.dia_semana, hora_inicio: u.hora_inicio, hora_fin: u.hora_fin })
           .eq("id", u.id);
         if (error) throw error;
+      }
+      if (prev.length) {
+        pushUndo("mover huecos", async () => {
+          for (const p of prev) {
+            await supabase
+              .from("service_slots")
+              .update({ dia_semana: p.dia_semana, hora_inicio: p.hora_inicio, hora_fin: p.hora_fin })
+              .eq("id", p.id);
+          }
+        });
       }
     },
     onSuccess: () => invalidate(),
@@ -196,12 +281,17 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   const importStructure = useMutation({
     mutationFn: async (rows: SlotTemplate[]) => {
+      const prev = [...slots];
       const { error: delErr } = await supabase.from("service_slots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
       if (delErr) throw delErr;
       if (rows.length) {
         const { error } = await supabase.from("service_slots").insert(rows);
         if (error) throw error;
       }
+      pushUndo("importar estructura", async () => {
+        await supabase.from("service_slots").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+        if (prev.length) await supabase.from("service_slots").insert(prev);
+      });
     },
     onSuccess: () => { invalidate(); toast.success("Estructura aplicada a la semana"); },
     onError: (e: Error) => toast.error(e.message),
