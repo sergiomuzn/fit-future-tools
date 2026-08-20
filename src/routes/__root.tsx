@@ -89,7 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
       { name: "twitter:description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
-      { property: "og:image", content: "https://train-ly.lovable.app" },
+      
     ],
     links: [
       {
