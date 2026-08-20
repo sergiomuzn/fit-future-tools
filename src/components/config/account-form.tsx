@@ -110,7 +110,7 @@ export function AccountForm() {
         <CardHeader>
           <CardTitle>Nombre del centro</CardTitle>
           <CardDescription>
-            Se muestra en el menú lateral, en el acceso y en el portal de clientes.
+            Se muestra en la barra superior, en el acceso y en el portal de clientes.
           </CardDescription>
         </CardHeader>
         <CardContent>
