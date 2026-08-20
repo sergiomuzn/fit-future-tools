@@ -394,9 +394,10 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Color de fondo de una sesión asistida (más oscuro que el color base del servicio). */
-function asistidaColor(base: string): string {
-  return shade(base, REALIZADA_SHADE);
+/** Color de una clase: color del servicio, algo más oscuro si ya fue asistida. */
+function claseColor(c: ClaseGrupal): string | undefined {
+  if (!c.color) return undefined;
+  return c.asistida ? shade(c.color, REALIZADA_SHADE) : c.color;
 }
 
 function CalendarioClases({
@@ -509,24 +510,26 @@ function CalendarioClases({
                 >
                   <span className="text-center font-medium">{d.getDate()}</span>
                   {list.slice(0, 3).map((c) => {
-                    const base = c.color;
+                    const base = claseColor(c);
+                    const soloReservada = c.reservada && !c.asistida;
                     return (
                       <span
                         key={c.key}
                         className={cn(
                           "truncate rounded px-1 text-[10px] leading-4",
-                          !base && "bg-muted text-muted-foreground",
-                          base && !c.asistida && "border bg-muted",
-                          base && c.asistida && "text-white",
-                          c.reservada && !c.asistida && "font-semibold",
+                          !c.color && "bg-muted text-muted-foreground",
+                          c.color && !soloReservada && "text-white",
+                          soloReservada && "font-semibold",
                         )}
                         style={
-                          base
-                            ? c.asistida
-                              ? { backgroundColor: asistidaColor(base) }
-                              : c.reservada
-                                ? { backgroundColor: shade(base, 0.6), color: base, borderColor: base }
-                                : { color: base, borderColor: base }
+                          c.color
+                            ? soloReservada
+                              ? {
+                                  backgroundColor: "transparent",
+                                  color: base,
+                                  boxShadow: `inset 0 0 0 2px ${base}`,
+                                }
+                              : { backgroundColor: base }
                             : undefined
                         }
                       >
@@ -543,12 +546,12 @@ function CalendarioClases({
           </div>
           <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm border bg-muted" style={{ borderColor: leyendaBase }} /> Disponible
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: leyendaBase }} /> Disponible
             </span>
             <span className="flex items-center gap-1">
               <span
-                className="h-2.5 w-2.5 rounded-sm border"
-                style={{ backgroundColor: shade(leyendaBase, 0.6), borderColor: leyendaBase }}
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${leyendaBase}` }}
               />{" "}
               Reservada
             </span>
