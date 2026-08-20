@@ -1,7 +1,14 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MoreVertical } from "lucide-react";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, minToTime, pxToMin, timeToMin } from "./types";
 import { DIAS_ORDEN, hhmm, type ServiceSlot } from "@/lib/service-slots";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const DOW_SHORT: Record<number, string> = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 0: "Dom" };
 const DOW_LONG: Record<number, string> = {
@@ -89,6 +96,8 @@ function computeLayout(slots: ServiceSlot[]): LayoutInfo[] {
   return result;
 }
 
+export type GridMode = "crear" | "rapida" | "seleccion";
+
 interface Props {
   slots: ServiceSlot[];
   nombreServicio?: (slug: string) => string;
@@ -97,14 +106,49 @@ interface Props {
   onSelect?: (slot: ServiceSlot) => void;
   /** Días a mostrar. Por defecto la semana completa. */
   dias?: readonly number[];
+  /** Modo de interacción de la cuadrícula. */
+  mode?: GridMode;
+  /** Ids seleccionados (modo selección). */
+  selectedIds?: string[];
+  onSelectedChange?: (ids: string[]) => void;
+  /** Mueve la selección en bloque (días y minutos de desplazamiento). */
+  onMoveSelection?: (deltaDias: number, deltaMin: number) => void;
+  onCopyDay?: (dia: number) => void;
+  onPasteDay?: (dia: number) => void;
+  onClearDay?: (dia: number) => void;
+  canPaste?: boolean;
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
-export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreate, onSelect, dias = DIAS_ORDEN }: Props) {
+export function SlotsWeekGrid({
+  slots,
+  nombreServicio,
+  editable = false,
+  onCreate,
+  onSelect,
+  dias = DIAS_ORDEN,
+  mode = "crear",
+  selectedIds = [],
+  onSelectedChange,
+  onMoveSelection,
+  onCopyDay,
+  onPasteDay,
+  onClearDay,
+  canPaste = false,
+}: Props) {
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const [draft, setDraft] = useState<{ dia: number; from: number; to: number } | null>(null);
   const dragRef = useRef<{ dia: number; anchor: number } | null>(null);
   const single = dias.length === 1;
+  const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selecting = mode === "seleccion";
+
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const colRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+  const marqueeRef = useRef<{ x: number; y: number; additive: boolean; base: string[] } | null>(null);
+  const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number } | null>(null);
+  const moveRef = useRef<{ x: number; y: number; colW: number } | null>(null);
 
   const byDia = useMemo(() => {
     const m = new Map<number, LayoutInfo[]>();
@@ -119,9 +163,62 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
     return Math.max(0, Math.min(pxToMin(e.clientY - rect.top), (HOUR_END - HOUR_START) * 60));
   }
 
+  // ---- Selección por rectángulo y movimiento en bloque ----
+  useEffect(() => {
+    if (!selecting) return;
+    function onMove(e: MouseEvent) {
+      if (marqueeRef.current) {
+        const m = marqueeRef.current;
+        setMarquee({ x1: m.x, y1: m.y, x2: e.clientX, y2: e.clientY });
+        const left = Math.min(m.x, e.clientX);
+        const right = Math.max(m.x, e.clientX);
+        const top = Math.min(m.y, e.clientY);
+        const bottom = Math.max(m.y, e.clientY);
+        const hit: string[] = [];
+        bodyRef.current?.querySelectorAll<HTMLElement>("[data-slot-id]").forEach((el) => {
+          const r = el.getBoundingClientRect();
+          if (r.left < right && r.right > left && r.top < bottom && r.bottom > top) {
+            hit.push(el.dataset["slotId"]!);
+          }
+        });
+        const next = m.additive ? Array.from(new Set([...m.base, ...hit])) : hit;
+        onSelectedChange?.(next);
+      } else if (moveRef.current) {
+        const mv = moveRef.current;
+        const dy = e.clientY - mv.y;
+        const dx = e.clientX - mv.x;
+        setMoveDelta({
+          dias: mv.colW > 0 ? Math.round(dx / mv.colW) : 0,
+          min: Math.round(dy / SLOT_PX) * SLOT_MIN,
+        });
+      }
+    }
+    function onUp() {
+      if (marqueeRef.current) {
+        marqueeRef.current = null;
+        setMarquee(null);
+      }
+      if (moveRef.current) {
+        moveRef.current = null;
+        setMoveDelta((d) => {
+          if (d && (d.dias !== 0 || d.min !== 0)) onMoveSelection?.(d.dias, d.min);
+          return null;
+        });
+      }
+    }
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+    };
+  }, [selecting, onSelectedChange, onMoveSelection]);
+
+  const showMenu = !!(onCopyDay || onPasteDay || onClearDay);
+
   return (
     <div className="h-full overflow-y-auto overflow-x-hidden select-none">
-      <div className={cn("flex", !single && "min-w-[860px]")}>
+      <div className={cn("flex", !single && "min-w-[860px]")} ref={bodyRef}>
         <div className="w-14 shrink-0">
           <div className="sticky top-0 z-20 h-10 border-b bg-background" />
           <div className="relative text-[10px] text-muted-foreground" style={{ height: TOTAL_PX, marginTop: 8 }}>
@@ -139,25 +236,72 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
 
         {dias.map((dia) => (
           <div key={dia} className="flex-1 min-w-[110px]">
-            <div className="sticky top-0 z-20 h-10 w-full border-b bg-background text-xs font-medium flex items-center justify-center">
+            <div className="sticky top-0 z-20 h-10 w-full border-b bg-background text-xs font-medium flex items-center justify-center gap-1">
               {single ? DOW_LONG[dia] : DOW_SHORT[dia]}
+              {showMenu && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label={`Opciones de ${DOW_LONG[dia]}`}
+                    >
+                      <MoreVertical className="h-3.5 w-3.5" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => onCopyDay?.(dia)}>Copiar día</DropdownMenuItem>
+                    <DropdownMenuItem disabled={!canPaste} onSelect={() => onPasteDay?.(dia)}>
+                      Pegar día
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onSelect={() => onClearDay?.(dia)}>
+                      Vaciar día
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
             <div
-              className={cn("relative border-l", editable && "cursor-crosshair")}
+              ref={(el) => {
+                if (el) colRefs.current.set(dia, el);
+                else colRefs.current.delete(dia);
+              }}
+              className={cn(
+                "relative border-l",
+                editable && !selecting && "cursor-crosshair",
+                selecting && "cursor-default",
+              )}
               style={{ height: TOTAL_PX, marginTop: 8 }}
+              onContextMenu={(e) => {
+                if (!showMenu) return;
+                e.preventDefault();
+              }}
               onMouseDown={(e) => {
+                if (selecting) {
+                  marqueeRef.current = {
+                    x: e.clientX,
+                    y: e.clientY,
+                    additive: e.ctrlKey || e.metaKey,
+                    base: selectedIds,
+                  };
+                  setMarquee({ x1: e.clientX, y1: e.clientY, x2: e.clientX, y2: e.clientY });
+                  if (!(e.ctrlKey || e.metaKey)) onSelectedChange?.([]);
+                  return;
+                }
                 if (!editable) return;
                 const min = offsetMin(e, e.currentTarget);
                 dragRef.current = { dia, anchor: min };
                 setDraft({ dia, from: min, to: min + SLOT_MIN });
               }}
               onMouseMove={(e) => {
+                if (selecting) return;
                 if (!editable || !dragRef.current || dragRef.current.dia !== dia) return;
                 const min = offsetMin(e, e.currentTarget);
                 const a = dragRef.current.anchor;
                 setDraft({ dia, from: Math.min(a, min), to: Math.max(a + SLOT_MIN, min) });
               }}
               onMouseUp={() => {
+                if (selecting) return;
                 if (!editable || !dragRef.current || !draft) return;
                 dragRef.current = null;
                 if (draft.to > draft.from) onCreate?.(dia, minToTime(draft.from), minToTime(draft.to));
@@ -189,17 +333,46 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
                 const leftPct = 4 + col * colWidthPct;
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
+                const isSel = selected.has(s.id);
+                const drag = isSel && moveDelta ? moveDelta : null;
+                const colW = colRefs.current.get(dia)?.getBoundingClientRect().width ?? 0;
                 return (
                   <button
                     key={s.id}
                     type="button"
-                    onMouseDown={(e) => e.stopPropagation()}
-                    onClick={() => onSelect?.(s)}
+                    data-slot-id={s.id}
+                    onMouseDown={(e) => {
+                      e.stopPropagation();
+                      if (!selecting) return;
+                      if (e.ctrlKey || e.metaKey) {
+                        onSelectedChange?.(
+                          isSel ? selectedIds.filter((id) => id !== s.id) : [...selectedIds, s.id],
+                        );
+                        return;
+                      }
+                      if (!isSel) onSelectedChange?.([s.id]);
+                      moveRef.current = { x: e.clientX, y: e.clientY, colW };
+                      setMoveDelta({ dias: 0, min: 0 });
+                    }}
+                    onClick={() => {
+                      if (selecting) return;
+                      onSelect?.(s);
+                    }}
                     className={cn(
-                      "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
+                      "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border transition-shadow",
                       slotColorClasses(s.servicio_slug, s.activo),
+                      isSel && "ring-2 ring-primary ring-offset-1 z-10",
+                      drag && "opacity-80",
                     )}
-                    style={{ top, height, left: `calc(${leftPct}% + 1px)`, width: `calc(${widthPct}% - 2px)` }}
+                    style={{
+                      top,
+                      height,
+                      left: `calc(${leftPct}% + 1px)`,
+                      width: `calc(${widthPct}% - 2px)`,
+                      transform: drag
+                        ? `translate(${drag.dias * colW}px, ${(drag.min / SLOT_MIN) * SLOT_PX}px)`
+                        : undefined,
+                    }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
                   >
                     {height <= 22 ? (
@@ -231,6 +404,18 @@ export function SlotsWeekGrid({ slots, nombreServicio, editable = false, onCreat
           </div>
         ))}
       </div>
+
+      {marquee && (
+        <div
+          className="fixed z-50 rounded border border-primary/70 bg-primary/10 pointer-events-none"
+          style={{
+            left: Math.min(marquee.x1, marquee.x2),
+            top: Math.min(marquee.y1, marquee.y2),
+            width: Math.abs(marquee.x2 - marquee.x1),
+            height: Math.abs(marquee.y2 - marquee.y1),
+          }}
+        />
+      )}
     </div>
   );
 }

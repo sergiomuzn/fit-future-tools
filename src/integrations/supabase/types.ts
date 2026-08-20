@@ -527,6 +527,7 @@ export type Database = {
           id: string
           nota: string | null
           servicio_slug: string
+          trainer_id: string | null
           updated_at: string
         }
         Insert: {
@@ -539,6 +540,7 @@ export type Database = {
           id?: string
           nota?: string | null
           servicio_slug: string
+          trainer_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -551,9 +553,18 @@ export type Database = {
           id?: string
           nota?: string | null
           servicio_slug?: string
+          trainer_id?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "service_slots_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       servicios: {
         Row: {
@@ -672,6 +683,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      slot_structures: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          slots: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          slots?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          slots?: Json
+          updated_at?: string
+        }
+        Relationships: []
       }
       special_days: {
         Row: {
