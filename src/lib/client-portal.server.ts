@@ -99,12 +99,15 @@ async function loadBlocks(from: string, to: string) {
     supabaseAdmin.from("groups").select("id,nombre,capacidad,activo,acceso_clientes"),
     supabaseAdmin.from("trainers").select("id,nombre"),
   ]);
-  const { data: cfgColores } = await supabaseAdmin
-    .from("center_config")
-    .select("colores")
-    .eq("id", true)
-    .maybeSingle();
+  const [{ data: cfgColores }, { data: servicios }] = await Promise.all([
+    supabaseAdmin.from("center_config").select("colores").eq("id", true).maybeSingle(),
+    supabaseAdmin.from("servicios").select("slug"),
+  ]);
   const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
+  const slugs = (servicios ?? []).map((s) => s.slug as string);
+  const defaultGroupSlug =
+    slugs.find((s) => s.includes("grupo")) ?? slugs[0] ?? null;
+
 
   const groupById = new Map((groups ?? []).map((g) => [g.id, g]));
   const trainerById = new Map((trainers ?? []).map((t) => [t.id, t]));
