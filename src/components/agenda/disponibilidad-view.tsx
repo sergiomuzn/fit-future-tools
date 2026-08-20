@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClipboardPaste, Copy, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
+import { ClipboardPaste, Copy, Info, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ import {
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { enterToSave } from "@/lib/enter-to-save";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,8 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
-
 const NONE = "__none";
 
 function toMin(t: string) {
