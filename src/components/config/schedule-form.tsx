@@ -14,7 +14,7 @@ import {
   type HorarioBase, type Precios, type TipoColores,
 } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
-import { servicioColorKey, defaultServicioColor } from "@/lib/colors";
+import { servicioColorKey, defaultServicioColor, servicioColorOf } from "@/lib/colors";
 
 const DAY_LABELS: Record<string, string> = {
   "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves",
@@ -152,14 +152,24 @@ export function ColoresBonoForm() {
   const [local, setLocal] = useState<Precios>(precios);
   const [localColores, setLocalColores] = useState<TipoColores>(colores);
   const { data: catalogo = [] } = useQuery({
-    queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("tipo").order("orden")).data as { tipo: string }[] ?? [],
+    queryKey: ["bonos_catalogo", "tipos-colores"],
+    queryFn: async () =>
+      ((await supabase.from("bonos_catalogo").select("tipo, servicio_slug").order("orden")).data ??
+        []) as { tipo: string; servicio_slug: string | null }[],
   });
+  /** Tipos existentes en el catálogo (+ prueba siempre) y su servicio de referencia. */
   const tipoKeys = useMemo(() => {
-    const s = new Set<string>(["individual", "pareja", "grupal", "gympass", "prueba"]);
-    for (const c of catalogo) if (c.tipo) s.add(c.tipo);
-    return Array.from(s);
+    const map = new Map<string, string | null>();
+    map.set("prueba", null);
+    for (const c of catalogo) if (c.tipo && !map.has(c.tipo)) map.set(c.tipo, c.servicio_slug ?? null);
+    return Array.from(map.entries());
   }, [catalogo]);
+
+  /** Color por defecto de un tipo = color de su servicio (prueba conserva su verde). */
+  const defaultColorOf = (tipo: string, slug: string | null) => {
+    if (tipo === "prueba") return DEFAULT_TIPO_COLORES.prueba ?? "#1CDB14";
+    return (slug ? servicioColorOf(colores, slug) : null) ?? DEFAULT_TIPO_COLORES[tipo] ?? "#888888";
+  };
 
   useEffect(() => {
     if (!isLoading) {
@@ -180,7 +190,11 @@ export function ColoresBonoForm() {
     invalidate();
   }
 
-  const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
+  const COLOR_ROWS = tipoKeys.map(([k, slug]) => ({
+    key: k,
+    label: formatTipoBono(k),
+    fallback: defaultColorOf(k, slug),
+  }));
   const dirty = JSON.stringify(localColores) !== JSON.stringify(colores);
 
   return (
@@ -199,12 +213,12 @@ export function ColoresBonoForm() {
                   <input
                     type="color"
                     className="h-9 w-12 rounded border border-input bg-background cursor-pointer"
-                    value={localColores[row.key] ?? "#888888"}
+                    value={localColores[row.key] ?? row.fallback}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                   <Input
                     className="font-mono uppercase"
-                    value={localColores[row.key] ?? "#888888"}
+                    value={localColores[row.key] ?? row.fallback}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                 </div>
@@ -212,7 +226,17 @@ export function ColoresBonoForm() {
             ))}
           </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              setLocalColores({
+                ...localColores,
+                ...Object.fromEntries(tipoKeys.map(([k, slug]) => [k, defaultColorOf(k, slug)])),
+              })
+            }
+          >
+            Restablecer defaults
+          </Button>
           <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
