@@ -97,8 +97,11 @@ function ShellInner() {
         <SidebarHeader className="border-b h-12 px-2 py-0">
           <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
             <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-              {centroNombre}
+              Trainly
             </div>
+            <span className="hidden font-display text-lg font-bold group-data-[collapsible=icon]:block">
+              T
+            </span>
             <div className="group-data-[collapsible=icon]:hidden">
               <ThemeToggle />
             </div>
@@ -161,6 +164,10 @@ function ShellInner() {
       <main className="flex-1 min-w-0 overflow-hidden flex flex-col">
         <div className="flex h-12 items-center gap-2 border-b bg-card px-2 py-0">
           <SidebarTrigger />
+          <div className="hidden md:flex items-center gap-1.5 text-sm">
+            <Building2 className="h-4 w-4 text-muted-foreground" />
+            <span className="font-display font-semibold tracking-tight">{centroNombre}</span>
+          </div>
           <span className="font-display text-sm font-semibold tracking-tight md:hidden">{centroNombre}</span>
           <div className="ml-auto">
             <NotificationsBell />
