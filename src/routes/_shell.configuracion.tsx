@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HorarioForm, PreciosForm, ColoresBonoForm } from "@/components/config/schedule-form";
+import { HorarioForm, PreciosForm, ColoresBonoForm, ColoresServiciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { CatalogoManager } from "@/components/config/catalogo-manager";
 import { ServiciosManager } from "@/components/config/servicios-manager";
@@ -65,6 +65,7 @@ function ConfigPage() {
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
           <ServiciosManager />
+          <ColoresServiciosForm />
           <CatalogoManager />
           <ColoresBonoForm />
         </TabsContent>
