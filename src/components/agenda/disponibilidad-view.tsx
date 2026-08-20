@@ -88,6 +88,21 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const dias = view === "dia" && date ? [date.getDay()] : undefined;
   const diasActivos = dias ?? DIAS_ORDEN;
   const invalidate = () => qc.invalidateQueries({ queryKey: ["service_slots"] });
+  const previewSlots = useMemo<ServiceSlot[]>(
+    () =>
+      (importing?.slots ?? []).map((t, i) => ({
+        id: `preview-${i}`,
+        servicio_slug: t.servicio_slug,
+        dia_semana: t.dia_semana,
+        hora_inicio: t.hora_inicio,
+        hora_fin: t.hora_fin,
+        capacidad: t.capacidad,
+        activo: true,
+        nota: null,
+        trainer_id: t.trainer_id,
+      })),
+    [importing],
+  );
   const slotById = useMemo(() => new Map(slots.map((s) => [s.id, s])), [slots]);
 
   useEffect(() => {
@@ -490,6 +505,35 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setQuick(null)}>Cancelar</Button>
             <Button disabled={!quick?.slug} onClick={confirmQuick}>Crear sesiones</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Importar estructura (aviso + previsualización) */}
+      <Dialog open={!!importing} onOpenChange={(o) => !o && setImporting(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Importar «{importing?.nombre}»</DialogTitle>
+          </DialogHeader>
+          <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Al importar esta estructura se borrarán todos los huecos actuales de la semana
+            ({slots.length}) y se sustituirán por los {(importing?.slots ?? []).length} de la plantilla.
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="h-[50vh] min-h-0 rounded border">
+            <SlotsWeekGrid slots={previewSlots} nombreServicio={nombreServicio} />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setImporting(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                importStructure.mutate(importing?.slots ?? []);
+                setImporting(null);
+              }}
+            >
+              Sí, importar y reemplazar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
