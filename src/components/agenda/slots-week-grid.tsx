@@ -429,7 +429,9 @@ export function SlotsWeekGrid({
                       transform: drag
                         ? `translate(${drag.dias * colW}px, ${(drag.min / SLOT_MIN) * SLOT_PX}px)`
                         : undefined,
-                      transition: moveDelta ? "none" : "transform 80ms linear",
+                      // Sin transición: el hueco sigue al ratón igual que en la agenda,
+                      // evitando el efecto de "venir desde el lateral" al soltar.
+                      transition: "none",
                     }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
                   >
