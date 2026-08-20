@@ -119,7 +119,7 @@ async function loadBlocks(from: string, to: string) {
     if (arr) arr.push(s);
     else blocks.set(key, [s]);
   }
-  return { blocks, groupById, trainerById, colores };
+  return { blocks, groupById, trainerById, colores, defaultGroupSlug };
 }
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
