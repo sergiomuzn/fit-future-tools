@@ -495,28 +495,31 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
               )}
               {structures.map((st) => (
                 <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)}>
-                  {st.nombre} · {(st.slots ?? []).length} huecos
+                  {st.nombre}
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
+                <Info className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-80 text-xs leading-relaxed">
+              <p className="mb-2 font-medium text-sm">Cómo usar la agenda</p>
+              <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                <li>Arrastra sobre un día para crear un hueco.</li>
+                <li>Arrastra un hueco para moverlo.</li>
+                <li>Clic derecho: copiar y pegar día o selección.</li>
+                <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
+                <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
+                <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
+              </ul>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
-
-      {mode === "crear" && (
-        <div className="border-b bg-muted/60 px-4 py-1.5 text-xs text-muted-foreground">
-          Arrastra sobre un día para crear un hueco · arrastra un hueco para moverlo · clic derecho para
-          copiar y pegar (Ctrl/Cmd + C y Ctrl/Cmd + V) · deshacer con Ctrl/Cmd + Z · para mover varios a la
-          vez usa Seleccionar.
-        </div>
-      )}
-      {mode !== "crear" && (
-        <div className={cn("border-b px-4 py-1.5 text-xs font-medium", "bg-primary/90 text-primary-foreground")}>
-          {mode === "rapida"
-            ? "Creación rápida · arrastra sobre un día para definir la franja y generar varias sesiones."
-            : "Selección · arrastra para dibujar un rectángulo, Ctrl/Cmd + clic para añadir o quitar, arrastra los huecos para moverlos en bloque. Copia con Ctrl/Cmd + C y pega en el día donde tengas el ratón con Ctrl/Cmd + V; con clic derecho tienes el menú de copiar y pegar."}
-        </div>
-      )}
 
       <div className="min-h-0 flex-1">
         <SlotsWeekGrid
