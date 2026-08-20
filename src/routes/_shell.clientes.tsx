@@ -27,6 +27,8 @@ import { ExpandableSearch } from "@/components/expandable-search";
 import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { useCenterConfig } from "@/lib/center-schedule";
+import { tipoColorOf, servicioColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useServicios } from "@/lib/servicios";
@@ -164,13 +166,7 @@ function ClientesPage() {
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
   const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
-  const TIPO_CLASS: Record<string, string> = {
-    prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-    individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-    pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-    grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-    gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
-  };
+  const { colores } = useCenterConfig();
 
   const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
   const searched = (matchesExact.length > 0 || !q.trim()
@@ -455,7 +451,10 @@ function ClientesPage() {
                         {rows.map((r, i) => (
                           <div key={i} className="h-6 flex items-center">
                             {r.slug ? (
-                              <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                              <span
+                                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={chipStyle(servicioColorOf(colores, r.slug)!)}
+                              >
                                 {nombreServicio(r.slug)}
                               </span>
                             ) : <span className="text-muted-foreground">—</span>}
@@ -474,7 +473,12 @@ function ClientesPage() {
                         {rows.map((r, i) => (
                           <div key={i} className="h-6 flex items-center">
                             {r.tipo ? (
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[r.tipo] ?? "bg-muted text-muted-foreground border"}`}>{TIPO_LABEL[r.tipo] ?? r.tipo}</span>
+                              <span
+                                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                                style={chipStyle(tipoColorOf(colores, r.tipo)!)}
+                              >
+                                {TIPO_LABEL[r.tipo] ?? r.tipo}
+                              </span>
                             ) : <span className="text-muted-foreground">—</span>}
                           </div>
                         ))}
