@@ -4,6 +4,8 @@ import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTA
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
+import { useCenterConfig } from "@/lib/center-schedule";
+import { sessionFillColor } from "@/lib/colors";
 
 interface Props {
   date: Date;
@@ -54,6 +56,7 @@ function layoutDay(sessions: Session[]) {
 }
 
 export function WeekView({ date, trainers, onSelectDay }: Props) {
+  const { colores } = useCenterConfig();
   const weekStart = useMemo(() => startOfWeek(date), [date]);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => {
@@ -165,15 +168,16 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
                     const name = session.titulo ?? (session.client_id ? clientMap.get(session.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (
                       <button
                         key={session.id}
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
+                          fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
                         )}
-                        style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)` }}
+                        style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
                         title={`${session.hora_inicio.slice(0, 5)} ${name}`}
                       >
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
