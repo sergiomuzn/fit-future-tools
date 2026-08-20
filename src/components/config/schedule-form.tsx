@@ -14,7 +14,7 @@ import {
   type HorarioBase, type Precios, type TipoColores,
 } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
-import { servicioColorKey, defaultServicioColor } from "@/lib/colors";
+import { servicioColorKey, defaultServicioColor, servicioColorOf } from "@/lib/colors";
 
 const DAY_LABELS: Record<string, string> = {
   "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves",
@@ -190,7 +190,11 @@ export function ColoresBonoForm() {
     invalidate();
   }
 
-  const COLOR_ROWS = tipoKeys.map((k) => ({ key: k, label: formatTipoBono(k) }));
+  const COLOR_ROWS = tipoKeys.map(([k, slug]) => ({
+    key: k,
+    label: formatTipoBono(k),
+    fallback: defaultColorOf(k, slug),
+  }));
   const dirty = JSON.stringify(localColores) !== JSON.stringify(colores);
 
   return (
@@ -209,12 +213,12 @@ export function ColoresBonoForm() {
                   <input
                     type="color"
                     className="h-9 w-12 rounded border border-input bg-background cursor-pointer"
-                    value={localColores[row.key] ?? "#888888"}
+                    value={localColores[row.key] ?? row.fallback}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                   <Input
                     className="font-mono uppercase"
-                    value={localColores[row.key] ?? "#888888"}
+                    value={localColores[row.key] ?? row.fallback}
                     onChange={(e) => setLocalColores({ ...localColores, [row.key]: e.target.value })}
                   />
                 </div>
@@ -222,7 +226,16 @@ export function ColoresBonoForm() {
             ))}
           </div>
         <div className="flex justify-end gap-2 pt-2">
-          <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
+          <Button
+            variant="outline"
+            onClick={() =>
+              setLocalColores(
+                Object.fromEntries(tipoKeys.map(([k, slug]) => [k, defaultColorOf(k, slug)])) as TipoColores,
+              )
+            }
+          >
+            Restablecer defaults
+          </Button>
           <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
