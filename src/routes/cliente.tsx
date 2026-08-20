@@ -394,10 +394,9 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-/** Color de una clase: color del servicio, algo más oscuro si ya fue asistida. */
-function claseColor(c: ClaseGrupal): string | undefined {
-  if (!c.color) return undefined;
-  return c.asistida ? shade(c.color, REALIZADA_SHADE) : c.color;
+/** Color de fondo de una sesión asistida (más oscuro que el color base del servicio). */
+function asistidaColor(base: string): string {
+  return shade(base, REALIZADA_SHADE);
 }
 
 function CalendarioClases({
@@ -510,21 +509,21 @@ function CalendarioClases({
                 >
                   <span className="text-center font-medium">{d.getDate()}</span>
                   {list.slice(0, 3).map((c) => {
-                    const base = claseColor(c);
+                    const base = c.color;
                     return (
                       <span
                         key={c.key}
                         className={cn(
                           "truncate rounded px-1 text-[10px] leading-4",
-                          !c.color && "bg-muted text-muted-foreground",
-                          c.color && !c.asistida && "border bg-muted",
-                          c.color && c.asistida && "text-white",
+                          !base && "bg-muted text-muted-foreground",
+                          base && !c.asistida && "border bg-muted",
+                          base && c.asistida && "text-white",
                           c.reservada && !c.asistida && "font-semibold",
                         )}
                         style={
-                          c.color
+                          base
                             ? c.asistida
-                              ? { backgroundColor: shade(base, REALIZADA_SHADE) }
+                              ? { backgroundColor: asistidaColor(base) }
                               : c.reservada
                                 ? { backgroundColor: shade(base, 0.6), color: base, borderColor: base }
                                 : { color: base, borderColor: base }
