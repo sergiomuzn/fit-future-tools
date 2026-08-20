@@ -13,6 +13,8 @@ import {
   DEFAULT_TIPO_COLORES,
   type HorarioBase, type Precios, type TipoColores,
 } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
+import { servicioColorKey, defaultServicioColor } from "@/lib/colors";
 
 const DAY_LABELS: Record<string, string> = {
   "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves",
@@ -186,7 +188,8 @@ export function ColoresBonoForm() {
       <CardHeader><CardTitle>Colores por tipo de bono</CardTitle></CardHeader>
       <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Se usan en el desglose "Tipo de sesión" de Estadísticas.
+            Se usan en todas las columnas de "Tipo de bono" (Clientes, Bonos, Facturación)
+            y en el desglose "Tipo de sesión" de Estadísticas.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {COLOR_ROWS.map((row) => (
