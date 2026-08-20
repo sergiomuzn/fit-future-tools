@@ -4,6 +4,7 @@ import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTA
 import { formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
+import { sessionFillColor } from "@/lib/colors";
 import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 
 interface Props {
@@ -15,7 +16,7 @@ interface Props {
 const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function MonthView({ date, trainers, onSelectDay }: Props) {
-  const { horario, specialsMap } = useCenterConfig();
+  const { colores, horario, specialsMap } = useCenterConfig();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
 
@@ -106,14 +107,16 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                   {list.slice(0, 4).map((s) => {
                     const isGroup = s.ocupacion === 2;
                     const name = s.titulo ?? (s.client_id ? clientMap.get(s.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
                     return (
                       <button
                         key={s.id}
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
                           "truncate rounded px-1 text-left text-[10px] leading-tight",
-                          isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
+                          fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
                         )}
+                        style={{ backgroundColor: fill ?? undefined }}
                         title={`${s.hora_inicio.slice(0, 5)} ${name}`}
                       >
                         {s.hora_inicio.slice(0, 5)} {name.toUpperCase()}

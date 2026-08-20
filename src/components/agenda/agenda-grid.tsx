@@ -6,6 +6,8 @@ import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useCenterConfig } from "@/lib/center-schedule";
+import { sessionFillColor } from "@/lib/colors";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -110,6 +112,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
+  const { colores } = useCenterConfig();
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
@@ -619,6 +622,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
+              const fill = sessionFillColor(colores, session as any, estadoForColor);
               return (
                 <div
                   key={session.id}
@@ -626,9 +630,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   className={cn(
                     "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
-                    isGroup
-                      ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
-                      : ESTADO_BG[estadoForColor],
+                    fill
+                      ? "text-white"
+                      : isGroup
+                        ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
+                        : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
                     isPorConfirmar && "ring-1 ring-inset ring-white/40",
                   )}
@@ -638,6 +644,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     left: `calc(${leftPct}% + 1px)`,
                     width: `calc(${widthPct}% - 3px)`,
                     opacity: isMoving ? 0.7 : 1,
+                    backgroundColor: fill ?? undefined,
                     backgroundImage: isPorConfirmar
                       ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 6px, transparent 6px 12px)"
                       : undefined,

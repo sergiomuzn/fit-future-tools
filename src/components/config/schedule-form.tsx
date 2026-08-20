@@ -13,6 +13,8 @@ import {
   DEFAULT_TIPO_COLORES,
   type HorarioBase, type Precios, type TipoColores,
 } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
+import { servicioColorKey, defaultServicioColor } from "@/lib/colors";
 
 const DAY_LABELS: Record<string, string> = {
   "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves",
@@ -186,7 +188,8 @@ export function ColoresBonoForm() {
       <CardHeader><CardTitle>Colores por tipo de bono</CardTitle></CardHeader>
       <CardContent className="space-y-3">
           <p className="text-xs text-muted-foreground">
-            Se usan en el desglose "Tipo de sesión" de Estadísticas.
+            Se usan en todas las columnas de "Tipo de bono" (Clientes, Bonos, Facturación)
+            y en el desglose "Tipo de sesión" de Estadísticas.
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {COLOR_ROWS.map((row) => (
@@ -210,6 +213,80 @@ export function ColoresBonoForm() {
           </div>
         <div className="flex justify-end gap-2 pt-2">
           <Button variant="outline" onClick={() => setLocalColores(DEFAULT_TIPO_COLORES)}>Restablecer defaults</Button>
+          <Button onClick={save} disabled={!dirty}>Guardar</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+export function ColoresServiciosForm() {
+  const { horario, precios, colores, invalidate, isLoading } = useCenterConfig();
+  const { data: servicios = [] } = useServicios();
+  const [localColores, setLocalColores] = useState<TipoColores>(colores);
+
+  useEffect(() => {
+    if (!isLoading) setLocalColores(colores);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading]);
+
+  const colorOf = (slug: string) => localColores[servicioColorKey(slug)] ?? defaultServicioColor(slug);
+
+  async function save() {
+    const { error } = await supabase.from("center_config").update({
+      horario_base: horario as unknown as never,
+      precios: precios as unknown as never,
+      colores: localColores as unknown as never,
+    }).eq("id", true);
+    if (error) return toast.error(error.message);
+    toast.success("Colores de servicios guardados");
+    invalidate();
+  }
+
+  const dirty = JSON.stringify(localColores) !== JSON.stringify(colores);
+
+  return (
+    <Card>
+      <CardHeader><CardTitle>Colores por servicio</CardTitle></CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Cada servicio define el color de sus sesiones en la Agenda y el color de la columna
+          "Servicio". Las sesiones ya realizadas se muestran en un tono algo más oscuro del
+          mismo color.
+        </p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {servicios.map((s) => (
+            <div key={s.id}>
+              <Label>{s.nombre}</Label>
+              <div className="flex items-center gap-2 mt-1">
+                <input
+                  type="color"
+                  className="h-9 w-12 rounded border border-input bg-background cursor-pointer"
+                  value={colorOf(s.slug)}
+                  onChange={(e) => setLocalColores({ ...localColores, [servicioColorKey(s.slug)]: e.target.value })}
+                />
+                <Input
+                  className="font-mono uppercase"
+                  value={colorOf(s.slug)}
+                  onChange={(e) => setLocalColores({ ...localColores, [servicioColorKey(s.slug)]: e.target.value })}
+                />
+              </div>
+            </div>
+          ))}
+          {servicios.length === 0 && (
+            <p className="text-xs text-muted-foreground">Crea primero un servicio.</p>
+          )}
+        </div>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              const next = { ...localColores };
+              for (const s of servicios) delete next[servicioColorKey(s.slug)];
+              setLocalColores(next);
+            }}
+          >
+            Restablecer defaults
+          </Button>
           <Button onClick={save} disabled={!dirty}>Guardar</Button>
         </div>
       </CardContent>
