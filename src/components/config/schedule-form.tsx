@@ -229,9 +229,10 @@ export function ColoresBonoForm() {
           <Button
             variant="outline"
             onClick={() =>
-              setLocalColores(
-                Object.fromEntries(tipoKeys.map(([k, slug]) => [k, defaultColorOf(k, slug)])) as TipoColores,
-              )
+              setLocalColores({
+                ...localColores,
+                ...Object.fromEntries(tipoKeys.map(([k, slug]) => [k, defaultColorOf(k, slug)])),
+              })
             }
           >
             Restablecer defaults
