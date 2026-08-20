@@ -169,11 +169,9 @@ export function SlotsWeekGrid({
   const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
   const moveRef = useRef<{ x: number; y: number; colW: number; ids: string[] } | null>(null);
   const draggedRef = useRef(false);
-  /** Desplazamiento ya confirmado: se mantiene hasta que llegan los datos nuevos (evita el parpadeo). */
-  const [ghost, setGhost] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
-
+  /** Al soltar mantenemos el desplazamiento hasta que llegan los datos nuevos (evita el parpadeo). */
   useEffect(() => {
-    setGhost(null);
+    setMoveDelta(null);
   }, [slots]);
 
   const byDia = useMemo(() => {
@@ -229,8 +227,8 @@ export function SlotsWeekGrid({
         moveRef.current = null;
         setMoveDelta((d) => {
           if (d && (d.dias !== 0 || d.min !== 0)) {
-            setGhost(d);
             onMoveSelection?.(d.dias, d.min, d.ids);
+            return d;
           }
           return null;
         });
@@ -383,8 +381,7 @@ export function SlotsWeekGrid({
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 const isSel = selected.has(s.id);
-                const active = moveDelta ?? ghost;
-                const drag = active && active.ids.includes(s.id) ? active : null;
+                const drag = moveDelta && moveDelta.ids.includes(s.id) ? moveDelta : null;
                 const colW = colRefs.current.get(dia)?.getBoundingClientRect().width ?? 0;
                 return (
                   <button
