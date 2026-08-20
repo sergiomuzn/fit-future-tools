@@ -6,6 +6,8 @@ import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useCenterConfig } from "@/lib/center-schedule";
+import { sessionFillColor } from "@/lib/colors";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -110,6 +112,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
+  const { colores } = useCenterConfig();
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
