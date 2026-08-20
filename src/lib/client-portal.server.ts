@@ -72,14 +72,25 @@ type Row = {
   recurrencia_id: string | null;
   no_contabilizar: boolean;
   por_confirmar: boolean;
+  servicio_slug: string | null;
 };
+
+const FALLBACK_SERVICIO_PALETTE = [
+  "#3CC0F3", "#7C6CF6", "#F59E0B", "#E959DE", "#14B8A6", "#F43F5E", "#22C55E", "#0EA5E9",
+];
+
+function defaultServicioColor(slug: string): string {
+  let h = 0;
+  for (let i = 0; i < slug.length; i++) h = (h * 31 + slug.charCodeAt(i)) >>> 0;
+  return FALLBACK_SERVICIO_PALETTE[h % FALLBACK_SERVICIO_PALETTE.length];
+}
 
 async function loadBlocks(from: string, to: string) {
   const [{ data: sessions }, { data: groups }, { data: trainers }] = await Promise.all([
     supabaseAdmin
       .from("sessions")
       .select(
-        "id,group_id,fecha,hora_inicio,hora_fin,estado,client_id,trainer_id,titulo,booked_by_user_id,booking_tipo,recurrencia_id,no_contabilizar,por_confirmar",
+        "id,group_id,fecha,hora_inicio,hora_fin,estado,client_id,trainer_id,titulo,booked_by_user_id,booking_tipo,recurrencia_id,no_contabilizar,por_confirmar,servicio_slug",
       )
       .eq("ocupacion", 2)
       .not("group_id", "is", null)
@@ -88,6 +99,12 @@ async function loadBlocks(from: string, to: string) {
     supabaseAdmin.from("groups").select("id,nombre,capacidad,activo,acceso_clientes"),
     supabaseAdmin.from("trainers").select("id,nombre"),
   ]);
+  const { data: cfgColores } = await supabaseAdmin
+    .from("center_config")
+    .select("colores")
+    .eq("id", true)
+    .maybeSingle();
+  const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
 
   const groupById = new Map((groups ?? []).map((g) => [g.id, g]));
   const trainerById = new Map((trainers ?? []).map((t) => [t.id, t]));
@@ -99,12 +116,12 @@ async function loadBlocks(from: string, to: string) {
     if (arr) arr.push(s);
     else blocks.set(key, [s]);
   }
-  return { blocks, groupById, trainerById };
+  return { blocks, groupById, trainerById, colores };
 }
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
   const { from, to } = portalRange();
-  const { blocks, groupById, trainerById } = await loadBlocks(from, to);
+  const { blocks, groupById, trainerById, colores } = await loadBlocks(from, to);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
@@ -127,6 +144,10 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       reservada: !!mine,
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
+      servicioSlug: first.servicio_slug ?? null,
+      color: first.servicio_slug
+        ? (colores[`srv:${first.servicio_slug}`] ?? defaultServicioColor(first.servicio_slug))
+        : null,
     });
   }
   out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
@@ -336,6 +357,12 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
       .lte("fecha", to),
     supabaseAdmin.from("trainers").select("id,nombre"),
   ]);
+  const { data: cfgColores } = await supabaseAdmin
+    .from("center_config")
+    .select("colores")
+    .eq("id", true)
+    .maybeSingle();
+  const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
   const trainerById = new Map((trainers ?? []).map((t) => [t.id, t.nombre]));
   return (sessions ?? [])
     .map((s) => ({
@@ -364,7 +391,7 @@ export async function addAttendeeToBlock(params: {
   const { data: rows } = await supabaseAdmin
     .from("sessions")
     .select(
-      "id,group_id,fecha,hora_inicio,hora_fin,estado,client_id,trainer_id,titulo,booked_by_user_id,booking_tipo,recurrencia_id,no_contabilizar,por_confirmar",
+      "id,group_id,fecha,hora_inicio,hora_fin,estado,client_id,trainer_id,titulo,booked_by_user_id,booking_tipo,recurrencia_id,no_contabilizar,por_confirmar,servicio_slug",
     )
     .eq("group_id", params.groupId)
     .eq("fecha", params.fecha)

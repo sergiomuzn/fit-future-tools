@@ -27,6 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import { shade, REALIZADA_SHADE } from "@/lib/colors";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
@@ -393,6 +394,12 @@ function ymd(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Color de una clase: color del servicio, algo más oscuro si ya fue asistida. */
+function claseColor(c: ClaseGrupal): string | undefined {
+  if (!c.color) return undefined;
+  return c.asistida ? shade(c.color, REALIZADA_SHADE) : c.color;
+}
+
 function CalendarioClases({
   clases,
   onBook,
@@ -463,6 +470,7 @@ function CalendarioClases({
   const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
+  const leyendaBase = clases.find((c) => c.color)?.color ?? "#3CC0F3";
 
   return (
     <div className="space-y-4">
@@ -506,12 +514,10 @@ function CalendarioClases({
                       key={c.key}
                       className={cn(
                         "truncate rounded px-1 text-[10px] leading-4",
-                        c.asistida
-                          ? "bg-state-asistida text-state-asistida-fg"
-                          : c.reservada
-                            ? "bg-state-reservada text-state-reservada-fg"
-                            : "bg-muted text-muted-foreground",
+                        c.color ? "text-white" : "bg-muted text-muted-foreground",
+                        c.reservada && !c.asistida && "ring-1 ring-inset ring-white/70 font-semibold",
                       )}
+                      style={c.color ? { backgroundColor: claseColor(c) } : undefined}
                     >
                       {c.horaInicio} {c.nombre}
                     </span>
@@ -525,13 +531,21 @@ function CalendarioClases({
           </div>
           <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm bg-muted" /> Disponible
+              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: leyendaBase }} /> Disponible
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm bg-state-reservada" /> Reservada
+              <span
+                className="h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-white/70"
+                style={{ backgroundColor: leyendaBase }}
+              />{" "}
+              Reservada
             </span>
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm bg-state-asistida" /> Asistida
+              <span
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ backgroundColor: shade(leyendaBase, REALIZADA_SHADE) }}
+              />{" "}
+              Asistida
             </span>
           </div>
         </CardContent>

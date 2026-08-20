@@ -38,6 +38,9 @@ export function shade(hex: string, amount: number): string {
   return `#${[f(r), f(g), f(b)].map((c) => c.toString(16).padStart(2, "0")).join("")}`;
 }
 
+/** Cuánto se oscurece una sesión ya realizada / asistida respecto a su color base. */
+export const REALIZADA_SHADE = -0.1;
+
 export function tipoColorOf(colores: TipoColores, tipo?: string | null): string | null {
   if (!tipo) return null;
   return colores[tipo] ?? DEFAULT_TIPO_COLORES[tipo] ?? "#888888";
@@ -68,7 +71,7 @@ export function sessionFillColor(
   if (estado === "prueba" || estado === "cancelada" || estado === "renovacion") return null;
   const base = servicioColorOf(colores, session.servicio_slug ?? null);
   if (!base) return null;
-  return estado === "realizada" ? shade(base, -0.22) : base;
+  return estado === "realizada" ? shade(base, REALIZADA_SHADE) : base;
 }
 
 export function useColores() {
