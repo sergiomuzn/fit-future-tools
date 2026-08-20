@@ -124,7 +124,7 @@ async function loadBlocks(from: string, to: string) {
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
   const { from, to } = portalRange();
-  const { blocks, groupById, trainerById, colores } = await loadBlocks(from, to);
+  const { blocks, groupById, trainerById, colores, defaultGroupSlug } = await loadBlocks(from, to);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
@@ -133,6 +133,8 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
     if (!group || group.activo === false || group.acceso_clientes === false) continue;
     const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
     const trainerId = rows.find((r) => r.trainer_id)?.trainer_id ?? null;
+    const slug =
+      rows.find((r) => r.servicio_slug)?.servicio_slug ?? defaultGroupSlug ?? null;
     out.push({
       key,
       groupId: group.id,
@@ -147,12 +149,11 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       reservada: !!mine,
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
-      servicioSlug: first.servicio_slug ?? null,
-      color: first.servicio_slug
-        ? (colores[`srv:${first.servicio_slug}`] ?? defaultServicioColor(first.servicio_slug))
-        : null,
+      servicioSlug: slug,
+      color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
     });
   }
+
   out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
   return out;
 }
