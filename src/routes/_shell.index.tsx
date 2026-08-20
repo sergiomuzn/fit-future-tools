@@ -40,7 +40,7 @@ function AgendaPage() {
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
   const activeServicio = servicioSlug === "__all" ? "" : servicioSlug;
   const [paintServicio, setPaintServicio] = useState<string | null>(null);
-  const { horario, specialsMap } = useCenterConfig();
+  const { horario, specialsMap, colores } = useCenterConfig();
   const sched = getDayScheduleFor(date, horario, specialsMap);
   const special = specialsMap.get(ymd(date));
 
