@@ -348,7 +348,10 @@ export function BonosPanel() {
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
                       {servicioDe(b) ? (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={chipStyle(servicioColorOf(tipoColores, catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug)!)}
+                        >
                           {servicioDe(b)}
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
@@ -358,7 +361,7 @@ export function BonosPanel() {
                 {show("tipo") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo);
-                    const color = t ? tipoColores[t] ?? "#888888" : null;
+                    const color = tipoColorOf(tipoColores, t);
                     return (
                       <div key={b.id} className={SUB}>
                         {t && color ? (
