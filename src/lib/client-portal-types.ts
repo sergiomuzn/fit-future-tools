@@ -46,6 +46,9 @@ export interface ClaseGrupal {
   reservada: boolean;
   asistida: boolean;
   miSesionId: string | null;
+  servicioSlug: string | null;
+  /** Color base del servicio (configurable en Configuración > Colores por servicio). */
+  color: string | null;
 }
 
 export interface PortalProfile {
