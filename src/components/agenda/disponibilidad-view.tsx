@@ -558,7 +558,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Creación rápida */}
       <Dialog open={!!quick} onOpenChange={(o) => !o && setQuick(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md" onKeyDown={enterToSave(confirmQuick)}>
           <DialogHeader>
             <DialogTitle>Creación rápida · {quick ? DIA_NOMBRE[quick.dia] : ""}</DialogTitle>
           </DialogHeader>
@@ -665,7 +665,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Guardar estructura */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onKeyDown={enterToSave(() => structName.trim() && saveStructure.mutate(structName.trim()))}
+        >
           <DialogHeader>
             <DialogTitle>Guardar estructura</DialogTitle>
           </DialogHeader>
@@ -691,7 +694,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Nuevo hueco simple */}
       <Dialog open={!!pending} onOpenChange={(o) => !o && setPending(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onKeyDown={enterToSave(() => pending?.slug && create.mutate(pending))}
+        >
           <DialogHeader>
             <DialogTitle>Nuevo hueco</DialogTitle>
           </DialogHeader>
@@ -722,7 +728,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Detalle de hueco individual */}
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(saveEditing)}>
           <DialogHeader>
             <DialogTitle>Hueco disponible · {editing ? DIA_NOMBRE[editing.dia_semana] : ""}</DialogTitle>
           </DialogHeader>
