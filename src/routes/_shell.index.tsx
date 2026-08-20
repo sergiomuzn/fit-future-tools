@@ -14,7 +14,7 @@ import { useServicios } from "@/lib/servicios";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
-import { servicioColorOf, shade, REALIZADA_SHADE } from "@/lib/colors";
+import { servicioColorOf } from "@/lib/colors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
