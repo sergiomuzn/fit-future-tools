@@ -152,14 +152,24 @@ export function ColoresBonoForm() {
   const [local, setLocal] = useState<Precios>(precios);
   const [localColores, setLocalColores] = useState<TipoColores>(colores);
   const { data: catalogo = [] } = useQuery({
-    queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("tipo").order("orden")).data as { tipo: string }[] ?? [],
+    queryKey: ["bonos_catalogo", "tipos-colores"],
+    queryFn: async () =>
+      ((await supabase.from("bonos_catalogo").select("tipo, servicio_slug").order("orden")).data ??
+        []) as { tipo: string; servicio_slug: string | null }[],
   });
+  /** Tipos existentes en el catálogo (+ prueba siempre) y su servicio de referencia. */
   const tipoKeys = useMemo(() => {
-    const s = new Set<string>(["individual", "pareja", "grupal", "gympass", "prueba"]);
-    for (const c of catalogo) if (c.tipo) s.add(c.tipo);
-    return Array.from(s);
+    const map = new Map<string, string | null>();
+    map.set("prueba", null);
+    for (const c of catalogo) if (c.tipo && !map.has(c.tipo)) map.set(c.tipo, c.servicio_slug ?? null);
+    return Array.from(map.entries());
   }, [catalogo]);
+
+  /** Color por defecto de un tipo = color de su servicio (prueba conserva su verde). */
+  const defaultColorOf = (tipo: string, slug: string | null) => {
+    if (tipo === "prueba") return DEFAULT_TIPO_COLORES.prueba ?? "#1CDB14";
+    return (slug ? servicioColorOf(colores, slug) : null) ?? DEFAULT_TIPO_COLORES[tipo] ?? "#888888";
+  };
 
   useEffect(() => {
     if (!isLoading) {
