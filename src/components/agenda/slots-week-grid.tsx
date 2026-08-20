@@ -168,6 +168,7 @@ export function SlotsWeekGrid({
   const marqueeRef = useRef<{ x: number; y: number; additive: boolean; base: string[] } | null>(null);
   const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
   const moveRef = useRef<{ x: number; y: number; colW: number; ids: string[] } | null>(null);
+  const deltaRef = useRef<{ dias: number; min: number; ids: string[] } | null>(null);
   const draggedRef = useRef(false);
   /** Al soltar mantenemos el desplazamiento hasta que llegan los datos nuevos (evita el parpadeo). */
   useEffect(() => {
@@ -211,11 +212,13 @@ export function SlotsWeekGrid({
         const dy = e.clientY - mv.y;
         const dx = e.clientX - mv.x;
         if (Math.abs(dx) > 3 || Math.abs(dy) > 3) draggedRef.current = true;
-        setMoveDelta({
+        const next = {
           dias: mv.colW > 0 ? Math.round(dx / mv.colW) : 0,
           min: Math.round(dy / SLOT_PX) * SLOT_MIN,
           ids: mv.ids,
-        });
+        };
+        deltaRef.current = next;
+        setMoveDelta(next);
       }
     }
     function onUp() {
@@ -225,13 +228,14 @@ export function SlotsWeekGrid({
       }
       if (moveRef.current) {
         moveRef.current = null;
-        setMoveDelta((d) => {
-          if (d && (d.dias !== 0 || d.min !== 0)) {
-            onMoveSelection?.(d.dias, d.min, d.ids);
-            return d;
-          }
-          return null;
-        });
+        const d = deltaRef.current;
+        deltaRef.current = null;
+        if (d && (d.dias !== 0 || d.min !== 0)) {
+          // Mantenemos la posición arrastrada hasta que llegan los datos nuevos.
+          onMoveSelection?.(d.dias, d.min, d.ids);
+        } else {
+          setMoveDelta(null);
+        }
       }
     }
     window.addEventListener("mousemove", onMove);
