@@ -68,7 +68,7 @@ export function sessionFillColor(
   if (estado === "prueba" || estado === "cancelada" || estado === "renovacion") return null;
   const base = servicioColorOf(colores, session.servicio_slug ?? null);
   if (!base) return null;
-  return estado === "realizada" ? shade(base, -0.22) : base;
+  return estado === "realizada" ? shade(base, REALIZADA_SHADE) : base;
 }
 
 export function useColores() {
