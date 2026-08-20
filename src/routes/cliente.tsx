@@ -550,8 +550,8 @@ function CalendarioClases({
             </span>
             <span className="flex items-center gap-1">
               <span
-                className="h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-white/70"
-                style={{ backgroundColor: leyendaBase }}
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${leyendaBase}` }}
               />{" "}
               Reservada
             </span>
