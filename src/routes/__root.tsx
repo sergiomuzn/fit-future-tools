@@ -80,15 +80,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Fitness 360 — Gestión Centro de Entrenamiento" },
-      { name: "description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
-      { property: "og:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
-      { property: "og:description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
+      { title: "Trainly — Gestión Centro de Entrenamiento" },
+      { name: "description", content: "Sistema de gestión interno de Trainly. Clientes, bonos, agenda y estadísticas" },
+      { property: "og:title", content: "Trainly — Gestión Centro de Entrenamiento" },
+      { property: "og:description", content: "Sistema de gestión interno de Trainly. Clientes, bonos, agenda y estadísticas" },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Fitness 360 — Gestión Centro de Entrenamiento" },
-      { name: "twitter:description", content: "Sistema de gestión interno de Fitness 360. Clientes, bonos, agenda y estadísticas" },
+      { name: "twitter:title", content: "Trainly — Gestión Centro de Entrenamiento" },
+      { name: "twitter:description", content: "Sistema de gestión interno de Trainly. Clientes, bonos, agenda y estadísticas" },
       
     ],
     links: [
