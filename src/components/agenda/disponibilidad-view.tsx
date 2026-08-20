@@ -416,6 +416,20 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     createMany.mutate(clipboard.map((r) => ({ ...r, dia_semana: dia })));
   }
 
+  function saveEditing() {
+    if (!editing) return;
+    update.mutate({
+      id: editing.id,
+      patch: {
+        servicio_slug: editing.servicio_slug,
+        hora_inicio: toTime(toMin(editing.hora_inicio)),
+        hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
+        capacidad: Math.max(1, Number(editing.cap) || 1),
+        trainer_id: editing.trainer_id,
+      },
+    });
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex flex-wrap items-center gap-2 border-b bg-card px-3 py-2 text-xs">
@@ -806,23 +820,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
             </Button>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
-              <Button
-                onClick={() =>
-                  editing &&
-                  update.mutate({
-                    id: editing.id,
-                    patch: {
-                      servicio_slug: editing.servicio_slug,
-                      hora_inicio: toTime(toMin(editing.hora_inicio)),
-                      hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
-                      capacidad: Math.max(1, Number(editing.cap) || 1),
-                      trainer_id: editing.trainer_id,
-                    },
-                  })
-                }
-              >
-                Guardar
-              </Button>
+              <Button onClick={saveEditing}>Guardar</Button>
             </div>
           </DialogFooter>
         </DialogContent>
