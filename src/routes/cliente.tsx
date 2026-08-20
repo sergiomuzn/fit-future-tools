@@ -509,19 +509,34 @@ function CalendarioClases({
                   )}
                 >
                   <span className="text-center font-medium">{d.getDate()}</span>
-                  {list.slice(0, 3).map((c) => (
-                    <span
-                      key={c.key}
-                      className={cn(
-                        "truncate rounded px-1 text-[10px] leading-4",
-                        c.color ? "text-white" : "bg-muted text-muted-foreground",
-                        c.reservada && !c.asistida && "ring-1 ring-inset ring-white/70 font-semibold",
-                      )}
-                      style={c.color ? { backgroundColor: claseColor(c) } : undefined}
-                    >
-                      {c.horaInicio} {c.nombre}
-                    </span>
-                  ))}
+                  {list.slice(0, 3).map((c) => {
+                    const base = claseColor(c);
+                    const soloReservada = c.reservada && !c.asistida;
+                    return (
+                      <span
+                        key={c.key}
+                        className={cn(
+                          "truncate rounded px-1 text-[10px] leading-4",
+                          !c.color && "bg-muted text-muted-foreground",
+                          c.color && !soloReservada && "text-white",
+                          soloReservada && "font-semibold",
+                        )}
+                        style={
+                          c.color
+                            ? soloReservada
+                              ? {
+                                  backgroundColor: "transparent",
+                                  color: base,
+                                  boxShadow: `inset 0 0 0 2px ${base}`,
+                                }
+                              : { backgroundColor: base }
+                            : undefined
+                        }
+                      >
+                        {c.horaInicio} {c.nombre}
+                      </span>
+                    );
+                  })}
                   {list.length > 3 && (
                     <span className="px-1 text-[10px] text-muted-foreground">+{list.length - 3} más</span>
                   )}
@@ -535,8 +550,8 @@ function CalendarioClases({
             </span>
             <span className="flex items-center gap-1">
               <span
-                className="h-2.5 w-2.5 rounded-sm ring-1 ring-inset ring-white/70"
-                style={{ backgroundColor: leyendaBase }}
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${leyendaBase}` }}
               />{" "}
               Reservada
             </span>
