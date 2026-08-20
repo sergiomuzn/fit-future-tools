@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Copy, MousePointerSquareDashed, Save, Trash2, Wand2 } from "lucide-react";
+import { ClipboardPaste, Copy, MousePointerSquareDashed, Save, Trash2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import {
   useSlotStructures,
   type ServiceSlot,
   type SlotTemplate,
+  type SlotStructure,
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -72,11 +73,13 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     dia: number;
     inicio: string;
     fin: string;
-    dur: number;
+    dur: string;
     plazas: number;
     slug: string;
     trainerId: string;
   } | null>(null);
+  const [clipboard, setClipboard] = useState<SlotTemplate[] | null>(null);
+  const [importing, setImporting] = useState<SlotStructure | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
   const [structName, setStructName] = useState("");
 
@@ -85,6 +88,21 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const dias = view === "dia" && date ? [date.getDay()] : undefined;
   const diasActivos = dias ?? DIAS_ORDEN;
   const invalidate = () => qc.invalidateQueries({ queryKey: ["service_slots"] });
+  const previewSlots = useMemo<ServiceSlot[]>(
+    () =>
+      (importing?.slots ?? []).map((t, i) => ({
+        id: `preview-${i}`,
+        servicio_slug: t.servicio_slug,
+        dia_semana: t.dia_semana,
+        hora_inicio: t.hora_inicio,
+        hora_fin: t.hora_fin,
+        capacidad: t.capacidad,
+        activo: true,
+        nota: null,
+        trainer_id: t.trainer_id,
+      })),
+    [importing],
+  );
   const slotById = useMemo(() => new Map(slots.map((s) => [s.id, s])), [slots]);
 
   useEffect(() => {
@@ -195,7 +213,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
       dia,
       inicio: hhmm(inicio),
       fin: hhmm(fin),
-      dur: 60,
+      dur: "60",
       plazas: 1,
       slug: servicioSlug || paintServicioSlug || servicios[0]?.slug || "",
       trainerId: NONE,
@@ -208,7 +226,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     if (!quick) return null;
     const ini = toMin(quick.inicio);
     const finReq = toMin(quick.fin);
-    const dur = Math.max(5, quick.dur);
+    const dur = Math.max(5, Number(quick.dur) || 60);
     const bruto = Math.max(dur, finReq - ini);
     const n = Math.ceil(bruto / dur);
     const finAjustado = ini + n * dur;
@@ -256,9 +274,9 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   }
 
   // ---- Selección múltiple ----
-  function moveSelection(deltaDias: number, deltaMin: number) {
+  function moveSelection(deltaDias: number, deltaMin: number, ids: string[]) {
     const orden = [...diasActivos];
-    const updates = selectedIds
+    const updates = ids
       .map((id) => slotById.get(id))
       .filter((s): s is ServiceSlot => !!s)
       .map((s) => {
@@ -274,19 +292,28 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     if (updates.length) moveMany.mutate(updates);
   }
 
-  function duplicateSelectionTo(dia: number) {
-    const rows: SlotTemplate[] = selectedIds
+  // ---- Copiar / pegar selección ----
+  function copySelection() {
+    const rows = selectedIds
       .map((id) => slotById.get(id))
-      .filter((s): s is ServiceSlot => !!s)
-      .map((s) => ({
+      .filter((x): x is ServiceSlot => !!x);
+    if (!rows.length) return;
+    setClipboard(
+      rows.map((s) => ({
         servicio_slug: s.servicio_slug,
-        dia_semana: dia,
+        dia_semana: s.dia_semana,
         hora_inicio: s.hora_inicio,
         hora_fin: s.hora_fin,
         capacidad: s.capacidad,
         trainer_id: s.trainer_id,
-      }));
-    if (rows.length) createMany.mutate(rows);
+      })),
+    );
+    toast.success(`${rows.length} huecos copiados`);
+  }
+
+  function pasteSelection(dia: number) {
+    if (!clipboard?.length) return;
+    createMany.mutate(clipboard.map((r) => ({ ...r, dia_semana: dia })));
   }
 
   return (
@@ -321,20 +348,24 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
             >
               <Trash2 className="h-3.5 w-3.5" /> Eliminar
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-8 gap-1.5" disabled={!selectedIds.length}>
-                  <Copy className="h-3.5 w-3.5" /> Duplicar en…
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start">
-                {DIAS_ORDEN.map((d) => (
-                  <DropdownMenuItem key={d} onSelect={() => duplicateSelectionTo(d)}>
-                    {DIA_NOMBRE[d]}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              disabled={!selectedIds.length}
+              onClick={copySelection}
+            >
+              <Copy className="h-3.5 w-3.5" /> Copiar
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 gap-1.5"
+              disabled={!clipboard?.length}
+              onClick={() => pasteSelection(diasActivos[0]!)}
+            >
+              <ClipboardPaste className="h-3.5 w-3.5" /> Pegar
+            </Button>
           </>
         )}
 
@@ -354,7 +385,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                 <DropdownMenuItem disabled>No hay ninguna guardada</DropdownMenuItem>
               )}
               {structures.map((st) => (
-                <DropdownMenuItem key={st.id} onSelect={() => importStructure.mutate(st.slots ?? [])}>
+                <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)}>
                   {st.nombre} · {(st.slots ?? []).length} huecos
                 </DropdownMenuItem>
               ))}
@@ -363,11 +394,17 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
         </div>
       </div>
 
+      {mode === "crear" && (
+        <div className="border-b bg-muted/60 px-4 py-1.5 text-xs text-muted-foreground">
+          Arrastra sobre un día para crear un hueco · arrastra un hueco para moverlo · clic derecho para
+          copiar y pegar (Ctrl/Cmd + C y Ctrl/Cmd + V) · para mover varios a la vez usa Seleccionar.
+        </div>
+      )}
       {mode !== "crear" && (
         <div className={cn("border-b px-4 py-1.5 text-xs font-medium", "bg-primary/90 text-primary-foreground")}>
           {mode === "rapida"
             ? "Creación rápida · arrastra sobre un día para definir la franja y generar varias sesiones."
-            : "Selección · arrastra para dibujar un rectángulo, Ctrl/Cmd + clic para añadir o quitar, arrastra los huecos para moverlos en bloque."}
+            : "Selección · arrastra para dibujar un rectángulo, Ctrl/Cmd + clic para añadir o quitar, arrastra los huecos para moverlos en bloque. Copia con Ctrl/Cmd + C y pega en el día donde tengas el ratón con Ctrl/Cmd + V; con clic derecho tienes el menú de copiar y pegar."}
         </div>
       )}
 
@@ -385,6 +422,11 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           onPasteDay={pasteDay}
           onClearDay={clearDay}
           canPaste={!!copiedDay?.length}
+          onCopySelection={copySelection}
+          onPasteSelection={pasteSelection}
+          canPasteSelection={!!clipboard?.length}
+          hasSelection={selectedIds.length > 0}
+          onDeleteSelection={() => selectedIds.length && removeMany.mutate(selectedIds)}
           onCreate={(dia, inicio, fin) => {
             if (mode === "rapida") return openQuick(dia, inicio, fin);
             const slug = servicioSlug || paintServicioSlug || "";
@@ -419,7 +461,11 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                     min={5}
                     step={5}
                     value={quick.dur}
-                    onChange={(e) => setQuick({ ...quick, dur: Math.max(5, Number(e.target.value) || 5) })}
+                    onChange={(e) => setQuick({ ...quick, dur: e.target.value })}
+                    onBlur={(e) => {
+                      const n = Number(e.target.value);
+                      setQuick((q) => (q ? { ...q, dur: String(n >= 5 ? n : 60) } : q));
+                    }}
                   />
                 </div>
                 <div className="space-y-1.5">
@@ -465,6 +511,35 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setQuick(null)}>Cancelar</Button>
             <Button disabled={!quick?.slug} onClick={confirmQuick}>Crear sesiones</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Importar estructura (aviso + previsualización) */}
+      <Dialog open={!!importing} onOpenChange={(o) => !o && setImporting(null)}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Importar «{importing?.nombre}»</DialogTitle>
+          </DialogHeader>
+          <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            Al importar esta estructura se borrarán todos los huecos actuales de la semana
+            ({slots.length}) y se sustituirán por los {(importing?.slots ?? []).length} de la plantilla.
+            Esta acción no se puede deshacer.
+          </p>
+          <div className="h-[50vh] min-h-0 rounded border">
+            <SlotsWeekGrid slots={previewSlots} nombreServicio={nombreServicio} />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setImporting(null)}>Cancelar</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                importStructure.mutate(importing?.slots ?? []);
+                setImporting(null);
+              }}
+            >
+              Sí, importar y reemplazar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

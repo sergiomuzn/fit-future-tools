@@ -9,8 +9,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 
-const DOW_SHORT: Record<number, string> = { 1: "Lun", 2: "Mar", 3: "Mié", 4: "Jue", 5: "Vie", 6: "Sáb", 0: "Dom" };
 const DOW_LONG: Record<number, string> = {
   1: "Lunes", 2: "Martes", 3: "Miércoles", 4: "Jueves", 5: "Viernes", 6: "Sábado", 0: "Domingo",
 };
@@ -111,12 +117,19 @@ interface Props {
   /** Ids seleccionados (modo selección). */
   selectedIds?: string[];
   onSelectedChange?: (ids: string[]) => void;
-  /** Mueve la selección en bloque (días y minutos de desplazamiento). */
-  onMoveSelection?: (deltaDias: number, deltaMin: number) => void;
+  /** Mueve los huecos indicados (días y minutos de desplazamiento). */
+  onMoveSelection?: (deltaDias: number, deltaMin: number, ids: string[]) => void;
   onCopyDay?: (dia: number) => void;
   onPasteDay?: (dia: number) => void;
   onClearDay?: (dia: number) => void;
   canPaste?: boolean;
+  /** Copia los huecos seleccionados al portapapeles interno. */
+  onCopySelection?: () => void;
+  /** Pega los huecos copiados en el día indicado. */
+  onPasteSelection?: (dia: number) => void;
+  canPasteSelection?: boolean;
+  hasSelection?: boolean;
+  onDeleteSelection?: () => void;
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
@@ -135,6 +148,11 @@ export function SlotsWeekGrid({
   onPasteDay,
   onClearDay,
   canPaste = false,
+  onCopySelection,
+  onPasteSelection,
+  canPasteSelection = false,
+  hasSelection = false,
+  onDeleteSelection,
 }: Props) {
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const [draft, setDraft] = useState<{ dia: number; from: number; to: number } | null>(null);
@@ -145,10 +163,18 @@ export function SlotsWeekGrid({
 
   const bodyRef = useRef<HTMLDivElement>(null);
   const colRefs = useRef<Map<number, HTMLDivElement>>(new Map());
+  const hoverDia = useRef<number | null>(null);
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
   const marqueeRef = useRef<{ x: number; y: number; additive: boolean; base: string[] } | null>(null);
-  const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number } | null>(null);
-  const moveRef = useRef<{ x: number; y: number; colW: number } | null>(null);
+  const [moveDelta, setMoveDelta] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
+  const moveRef = useRef<{ x: number; y: number; colW: number; ids: string[] } | null>(null);
+  const draggedRef = useRef(false);
+  /** Desplazamiento ya confirmado: se mantiene hasta que llegan los datos nuevos (evita el parpadeo). */
+  const [ghost, setGhost] = useState<{ dias: number; min: number; ids: string[] } | null>(null);
+
+  useEffect(() => {
+    setGhost(null);
+  }, [slots]);
 
   const byDia = useMemo(() => {
     const m = new Map<number, LayoutInfo[]>();
@@ -163,9 +189,8 @@ export function SlotsWeekGrid({
     return Math.max(0, Math.min(pxToMin(e.clientY - rect.top), (HOUR_END - HOUR_START) * 60));
   }
 
-  // ---- Selección por rectángulo y movimiento en bloque ----
+  // ---- Selección por rectángulo y movimiento (individual o en bloque) ----
   useEffect(() => {
-    if (!selecting) return;
     function onMove(e: MouseEvent) {
       if (marqueeRef.current) {
         const m = marqueeRef.current;
@@ -187,9 +212,11 @@ export function SlotsWeekGrid({
         const mv = moveRef.current;
         const dy = e.clientY - mv.y;
         const dx = e.clientX - mv.x;
+        if (Math.abs(dx) > 3 || Math.abs(dy) > 3) draggedRef.current = true;
         setMoveDelta({
           dias: mv.colW > 0 ? Math.round(dx / mv.colW) : 0,
           min: Math.round(dy / SLOT_PX) * SLOT_MIN,
+          ids: mv.ids,
         });
       }
     }
@@ -201,7 +228,10 @@ export function SlotsWeekGrid({
       if (moveRef.current) {
         moveRef.current = null;
         setMoveDelta((d) => {
-          if (d && (d.dias !== 0 || d.min !== 0)) onMoveSelection?.(d.dias, d.min);
+          if (d && (d.dias !== 0 || d.min !== 0)) {
+            setGhost(d);
+            onMoveSelection?.(d.dias, d.min, d.ids);
+          }
           return null;
         });
       }
@@ -212,12 +242,31 @@ export function SlotsWeekGrid({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [selecting, onSelectedChange, onMoveSelection]);
+  }, [onSelectedChange, onMoveSelection]);
+
+  // ---- Atajos de teclado: Ctrl/Cmd + C / V ----
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      const target = e.target as HTMLElement | null;
+      if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
+      const k = e.key.toLowerCase();
+      if (k === "c" && hasSelection) {
+        e.preventDefault();
+        onCopySelection?.();
+      } else if (k === "v" && canPasteSelection) {
+        e.preventDefault();
+        onPasteSelection?.(hoverDia.current ?? dias[0]!);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [hasSelection, canPasteSelection, onCopySelection, onPasteSelection, dias]);
 
   const showMenu = !!(onCopyDay || onPasteDay || onClearDay);
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-hidden select-none">
+    <div className="h-full overflow-y-auto overflow-x-auto select-none">
       <div className={cn("flex", !single && "min-w-[860px]")} ref={bodyRef}>
         <div className="w-14 shrink-0">
           <div className="sticky top-0 z-20 h-10 border-b bg-background" />
@@ -237,7 +286,7 @@ export function SlotsWeekGrid({
         {dias.map((dia) => (
           <div key={dia} className="flex-1 min-w-[110px]">
             <div className="sticky top-0 z-20 h-10 w-full border-b bg-background text-xs font-medium flex items-center justify-center gap-1">
-              {single ? DOW_LONG[dia] : DOW_SHORT[dia]}
+              {DOW_LONG[dia]}
               {showMenu && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -261,6 +310,8 @@ export function SlotsWeekGrid({
                 </DropdownMenu>
               )}
             </div>
+            <ContextMenu>
+              <ContextMenuTrigger asChild>
             <div
               ref={(el) => {
                 if (el) colRefs.current.set(dia, el);
@@ -272,11 +323,9 @@ export function SlotsWeekGrid({
                 selecting && "cursor-default",
               )}
               style={{ height: TOTAL_PX, marginTop: 8 }}
-              onContextMenu={(e) => {
-                if (!showMenu) return;
-                e.preventDefault();
-              }}
+              onMouseEnter={() => { hoverDia.current = dia; }}
               onMouseDown={(e) => {
+                if (e.button !== 0) return;
                 if (selecting) {
                   marqueeRef.current = {
                     x: e.clientX,
@@ -334,7 +383,8 @@ export function SlotsWeekGrid({
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 const isSel = selected.has(s.id);
-                const drag = isSel && moveDelta ? moveDelta : null;
+                const active = moveDelta ?? ghost;
+                const drag = active && active.ids.includes(s.id) ? active : null;
                 const colW = colRefs.current.get(dia)?.getBoundingClientRect().width ?? 0;
                 return (
                   <button
@@ -342,27 +392,34 @@ export function SlotsWeekGrid({
                     type="button"
                     data-slot-id={s.id}
                     onMouseDown={(e) => {
+                      if (e.button !== 0) return;
                       e.stopPropagation();
-                      if (!selecting) return;
-                      if (e.ctrlKey || e.metaKey) {
-                        onSelectedChange?.(
-                          isSel ? selectedIds.filter((id) => id !== s.id) : [...selectedIds, s.id],
-                        );
+                      draggedRef.current = false;
+                      if (selecting) {
+                        if (e.ctrlKey || e.metaKey) {
+                          onSelectedChange?.(
+                            isSel ? selectedIds.filter((id) => id !== s.id) : [...selectedIds, s.id],
+                          );
+                          return;
+                        }
+                        const ids = isSel ? selectedIds : [s.id];
+                        if (!isSel) onSelectedChange?.([s.id]);
+                        moveRef.current = { x: e.clientX, y: e.clientY, colW, ids };
+                        setMoveDelta({ dias: 0, min: 0, ids });
                         return;
                       }
-                      if (!isSel) onSelectedChange?.([s.id]);
-                      moveRef.current = { x: e.clientX, y: e.clientY, colW };
-                      setMoveDelta({ dias: 0, min: 0 });
+                      // Modo normal: arrastrar un hueco individual.
+                      moveRef.current = { x: e.clientX, y: e.clientY, colW, ids: [s.id] };
                     }}
                     onClick={() => {
-                      if (selecting) return;
+                      if (selecting || draggedRef.current) return;
                       onSelect?.(s);
                     }}
                     className={cn(
-                      "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border transition-shadow",
+                      "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
                       slotColorClasses(s.servicio_slug, s.activo),
-                      isSel && "ring-2 ring-primary ring-offset-1 z-10",
-                      drag && "opacity-80",
+                      isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
+                      drag && "opacity-80 z-40",
                     )}
                     style={{
                       top,
@@ -372,6 +429,7 @@ export function SlotsWeekGrid({
                       transform: drag
                         ? `translate(${drag.dias * colW}px, ${(drag.min / SLOT_MIN) * SLOT_PX}px)`
                         : undefined,
+                      transition: moveDelta ? "none" : "transform 80ms linear",
                     }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
                   >
@@ -401,6 +459,31 @@ export function SlotsWeekGrid({
                 />
               )}
             </div>
+              </ContextMenuTrigger>
+              <ContextMenuContent className="w-52">
+                <ContextMenuItem disabled={!hasSelection} onSelect={() => onCopySelection?.()}>
+                  Copiar selección <span className="ml-auto text-xs text-muted-foreground">Ctrl+C</span>
+                </ContextMenuItem>
+                <ContextMenuItem disabled={!canPasteSelection} onSelect={() => onPasteSelection?.(dia)}>
+                  Pegar aquí <span className="ml-auto text-xs text-muted-foreground">Ctrl+V</span>
+                </ContextMenuItem>
+                <ContextMenuItem
+                  disabled={!hasSelection}
+                  className="text-destructive"
+                  onSelect={() => onDeleteSelection?.()}
+                >
+                  Eliminar selección
+                </ContextMenuItem>
+                <ContextMenuSeparator />
+                <ContextMenuItem onSelect={() => onCopyDay?.(dia)}>Copiar día</ContextMenuItem>
+                <ContextMenuItem disabled={!canPaste} onSelect={() => onPasteDay?.(dia)}>
+                  Pegar día
+                </ContextMenuItem>
+                <ContextMenuItem className="text-destructive" onSelect={() => onClearDay?.(dia)}>
+                  Vaciar día
+                </ContextMenuItem>
+              </ContextMenuContent>
+            </ContextMenu>
           </div>
         ))}
       </div>
