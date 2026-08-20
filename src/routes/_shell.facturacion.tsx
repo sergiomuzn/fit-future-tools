@@ -38,6 +38,7 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function FacturacionPage() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
+  const { colores } = useCenterConfig();
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
