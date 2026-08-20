@@ -14,6 +14,7 @@ import { useServicios } from "@/lib/servicios";
 import { useAgendaDate } from "@/lib/agenda-context";
 import { cn } from "@/lib/utils";
 import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
+import { servicioColorOf, shade, REALIZADA_SHADE } from "@/lib/colors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -275,8 +276,13 @@ function AgendaPage() {
 
       {view !== "historial" && (
       <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-        <Legend color="bg-state-reservada" label="Reservada" />
-        <Legend color="bg-state-realizada" label="Realizada" />
+        {servicios.map((s) => (
+          <Legend key={s.slug} hex={servicioColorOf(colores, s.slug) ?? undefined} label={s.nombre} />
+        ))}
+        <Legend
+          hex={shade(servicioColorOf(colores, servicios[0]?.slug) ?? "#3CC0F3", REALIZADA_SHADE)}
+          label="Realizada (tono más oscuro)"
+        />
         <Legend color="bg-state-prueba" label="Prueba" />
         <Legend color="bg-state-cancelada" label="Cancelada" />
         <Legend color="bg-state-renovacion" label="Renovación" />
@@ -287,10 +293,10 @@ function AgendaPage() {
   );
 }
 
-function Legend({ color, label }: { color: string; label: string }) {
+function Legend({ color, hex, label }: { color?: string; hex?: string; label: string }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className={`h-3 w-3 rounded-sm ${color}`} />
+      <span className={`h-3 w-3 rounded-sm ${color ?? ""}`} style={hex ? { backgroundColor: hex } : undefined} />
       {label}
     </div>
   );
