@@ -461,6 +461,15 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
         <div className="ml-auto flex items-center gap-2">
           {copiedDay && <span className="text-muted-foreground">Día copiado ({copiedDay.length})</span>}
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 gap-1.5"
+            disabled={undoCount === 0}
+            onClick={() => void undo()}
+          >
+            <Undo2 className="h-3.5 w-3.5" /> Deshacer
+          </Button>
           <Button size="sm" variant="outline" className="h-8 gap-1.5" onClick={() => setSaveOpen(true)}>
             <Save className="h-3.5 w-3.5" /> Guardar estructura
           </Button>
@@ -523,7 +532,13 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
             if (slug) create.mutate({ dia, inicio, fin, slug });
             else setPending({ dia, inicio, fin, slug: servicios[0]?.slug ?? "" });
           }}
-          onSelect={(s) => setEditing({ ...s, dur: toMin(s.hora_fin) - toMin(s.hora_inicio) })}
+          onSelect={(s) =>
+            setEditing({
+              ...s,
+              dur: String(toMin(s.hora_fin) - toMin(s.hora_inicio)),
+              cap: String(s.capacidad),
+            })
+          }
         />
       </div>
 
@@ -607,7 +622,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
       {/* Importar estructura (aviso + previsualización) */}
       <Dialog open={!!importing} onOpenChange={(o) => !o && setImporting(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="w-[95vw] sm:max-w-[1100px]">
           <DialogHeader>
             <DialogTitle>Importar «{importing?.nombre}»</DialogTitle>
           </DialogHeader>
@@ -729,7 +744,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                     min={5}
                     step={5}
                     value={editing.dur}
-                    onChange={(e) => setEditing({ ...editing, dur: Math.max(5, Number(e.target.value) || 5) })}
+                    onChange={(e) => setEditing({ ...editing, dur: e.target.value })}
+                    onBlur={(e) =>
+                      setEditing((ed) => (ed ? { ...ed, dur: String(Math.max(5, Number(e.target.value) || 60)) } : ed))
+                    }
                   />
                 </div>
               </div>
@@ -738,8 +756,11 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                 <Input
                   type="number"
                   min={1}
-                  value={editing.capacidad}
-                  onChange={(e) => setEditing({ ...editing, capacidad: Math.max(1, Number(e.target.value) || 1) })}
+                  value={editing.cap}
+                  onChange={(e) => setEditing({ ...editing, cap: e.target.value })}
+                  onBlur={(e) =>
+                    setEditing((ed) => (ed ? { ...ed, cap: String(Math.max(1, Number(e.target.value) || 1)) } : ed))
+                  }
                 />
               </div>
               <div className="space-y-1.5">
@@ -773,8 +794,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                     patch: {
                       servicio_slug: editing.servicio_slug,
                       hora_inicio: toTime(toMin(editing.hora_inicio)),
-                      hora_fin: toTime(toMin(editing.hora_inicio) + editing.dur),
-                      capacidad: editing.capacidad,
+                      hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
+                      capacidad: Math.max(1, Number(editing.cap) || 1),
                       trainer_id: editing.trainer_id,
                     },
                   })
