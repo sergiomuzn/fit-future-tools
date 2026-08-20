@@ -394,6 +394,12 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
         </div>
       </div>
 
+      {mode === "crear" && (
+        <div className="border-b bg-muted/60 px-4 py-1.5 text-xs text-muted-foreground">
+          Arrastra sobre un día para crear un hueco · arrastra un hueco para moverlo · clic derecho para
+          copiar y pegar (Ctrl/Cmd + C y Ctrl/Cmd + V) · para mover varios a la vez usa Seleccionar.
+        </div>
+      )}
       {mode !== "crear" && (
         <div className={cn("border-b px-4 py-1.5 text-xs font-medium", "bg-primary/90 text-primary-foreground")}>
           {mode === "rapida"
