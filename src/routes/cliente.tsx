@@ -511,25 +511,25 @@ function CalendarioClases({
                   <span className="text-center font-medium">{d.getDate()}</span>
                   {list.slice(0, 3).map((c) => {
                     const base = claseColor(c);
-                    const soloReservada = c.reservada && !c.asistida;
+                    const reservada = c.reservada && !c.asistida;
                     return (
                       <span
                         key={c.key}
                         className={cn(
                           "truncate rounded px-1 text-[10px] leading-4",
                           !c.color && "bg-muted text-muted-foreground",
-                          c.color && !soloReservada && "text-white",
-                          soloReservada && "font-semibold",
+                          c.color && reservada && "text-white",
+                          c.color && !reservada && "font-medium text-foreground",
                         )}
                         style={
                           c.color
-                            ? soloReservada
-                              ? {
-                                  backgroundColor: "transparent",
-                                  color: base,
-                                  boxShadow: `inset 0 0 0 2px ${base}`,
+                            ? reservada
+                              ? { backgroundColor: base }
+                              : {
+                                  backgroundColor: "hsl(var(--muted))",
+                                  color: "hsl(var(--foreground))",
+                                  boxShadow: `inset 0 0 0 1.5px ${base}`,
                                 }
-                              : { backgroundColor: base }
                             : undefined
                         }
                       >
@@ -546,12 +546,16 @@ function CalendarioClases({
           </div>
           <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
             <span className="flex items-center gap-1">
-              <span className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: leyendaBase }} /> Disponible
+              <span
+                className="h-2.5 w-2.5 rounded-sm"
+                style={{ backgroundColor: "hsl(var(--muted))", boxShadow: `inset 0 0 0 1.5px ${leyendaBase}` }}
+              />{" "}
+              Disponible
             </span>
             <span className="flex items-center gap-1">
               <span
                 className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: "transparent", boxShadow: `inset 0 0 0 2px ${leyendaBase}` }}
+                style={{ backgroundColor: leyendaBase }}
               />{" "}
               Reservada
             </span>
