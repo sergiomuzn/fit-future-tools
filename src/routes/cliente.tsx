@@ -12,6 +12,7 @@ import {
   getMyPortalProfile,
   listSesionesPersonales,
   getMiResumen,
+  getPortalPreferencias,
 } from "@/lib/client-portal.functions";
 import {
   accesoIncluyeGrupos,
@@ -32,7 +33,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
 import { DIAS_SEMANA_LONG } from "@/lib/db";
 import { useCenterName } from "@/lib/center-schedule";
-import { useBehaviorConfig } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/cliente")({
   ssr: false,
@@ -59,7 +59,6 @@ function formatFecha(fecha: string): string {
 
 function ClientePortal() {
   const centroNombre = useCenterName();
-  const behavior = useBehaviorConfig();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchProfile = useServerFn(getMyPortalProfile);
@@ -68,7 +67,13 @@ function ClientePortal() {
   const cancelar = useServerFn(cancelarReserva);
   const fetchPersonales = useServerFn(listSesionesPersonales);
   const fetchResumen = useServerFn(getMiResumen);
+  const fetchPrefs = useServerFn(getPortalPreferencias);
   const [tab, setTab] = useState("clases");
+
+  const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false } } = useQuery({
+    queryKey: ["portal-prefs"],
+    queryFn: () => fetchPrefs({ data: undefined }),
+  });
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["portal-profile"],

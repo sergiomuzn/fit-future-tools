@@ -521,3 +521,22 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     },
   ]);
 }
+/** Preferencias del centro que afectan a la vista del cliente. */
+export async function getPortalPrefs(): Promise<{
+  clienteVeCanceladas: boolean;
+  canceladasNCSumanTotal: boolean;
+}> {
+  const { data } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+    cliente_ve_canceladas?: boolean;
+    canceladas_nc_suman?: boolean;
+  };
+  return {
+    clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
+    canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
+  };
+}
