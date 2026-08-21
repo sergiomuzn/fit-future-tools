@@ -44,9 +44,19 @@ export function BehaviorForm() {
     setCfg(getBehaviorConfig());
     void (async () => {
       const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
-      const avisos = (data?.avisos ?? {}) as { umbral_sesiones?: number; avisar_renovacion?: boolean };
+      const avisos = (data?.avisos ?? {}) as {
+        umbral_sesiones?: number;
+        avisar_renovacion?: boolean;
+        cliente_ve_canceladas?: boolean;
+        canceladas_nc_suman?: boolean;
+      };
       setAvisoUmbral(avisos.umbral_sesiones ?? 2);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
+      setCfg((prev) => ({
+        ...prev,
+        clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
+        canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
+      }));
     })();
   }, []);
 
@@ -59,7 +69,14 @@ export function BehaviorForm() {
     writeBehaviorConfig(cfg);
     const { error } = await supabase
       .from("center_config")
-      .update({ avisos: { umbral_sesiones: avisoUmbral, avisar_renovacion: avisoRenovacion } })
+      .update({
+        avisos: {
+          umbral_sesiones: avisoUmbral,
+          avisar_renovacion: avisoRenovacion,
+          cliente_ve_canceladas: cfg.clienteVeCanceladas,
+          canceladas_nc_suman: cfg.canceladasNCSumanTotal,
+        },
+      })
       .eq("id", true);
     setDirty(false);
     if (error) {
