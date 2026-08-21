@@ -22,6 +22,7 @@ import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisti
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 
@@ -89,6 +90,12 @@ const ShellClientesRoute = ShellClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => ShellRoute,
 } as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicWebhooksWellhubRoute =
   ApiPublicWebhooksWellhubRouteImport.update({
     id: '/api/public/webhooks/wellhub',
@@ -117,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
@@ -133,6 +141,7 @@ export interface FileRoutesByTo {
   '/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -151,6 +160,7 @@ export interface FileRoutesById {
   '/_shell/': typeof ShellIndexRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/invitacion/$codigo'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/auth'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/transactional/preview'
   id:
     | '__root__'
     | '/_shell'
@@ -202,6 +214,7 @@ export interface FileRouteTypes {
     | '/_shell/'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -213,6 +226,7 @@ export interface RootRouteChildren {
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
+  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -308,6 +322,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShellClientesRouteImport
       parentRoute: typeof ShellRoute
     }
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/wellhub': {
       id: '/api/public/webhooks/wellhub'
       path: '/api/public/webhooks/wellhub'
@@ -356,6 +377,7 @@ const rootRouteChildren: RootRouteChildren = {
   InvitacionCodigoRoute: InvitacionCodigoRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
+  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
