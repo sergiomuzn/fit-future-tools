@@ -179,7 +179,7 @@ function ClientePortal() {
       <main className="mx-auto max-w-3xl px-4 py-4">
         <Tabs value={activeTab} onValueChange={setTab}>
           <TabsList className="mb-4">
-            {verGrupos && <TabsTrigger value="clases">Clases grupales</TabsTrigger>}
+            {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
             {verGrupos && (
               <TabsTrigger value="reservas">
@@ -519,7 +519,7 @@ function CalendarioClases({
                           "truncate rounded px-1 text-[10px] leading-4",
                           !c.color && "bg-muted text-muted-foreground",
                           c.color && reservada && "text-white",
-                          c.color && !reservada && "font-medium text-foreground",
+                          c.color && !reservada && "font-medium",
                         )}
                         style={
                           c.color
@@ -527,7 +527,7 @@ function CalendarioClases({
                               ? { backgroundColor: base }
                               : {
                                   backgroundColor: "hsl(var(--muted))",
-                                  color: "hsl(var(--foreground))",
+                                  color: base,
                                   boxShadow: `inset 0 0 0 1.5px ${base}`,
                                 }
                             : undefined
