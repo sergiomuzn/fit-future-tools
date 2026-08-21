@@ -116,3 +116,9 @@ export const getMiResumen = createServerFn({ method: "POST" })
     const { getClientSummary } = await import("./client-portal.server");
     return getClientSummary(context.userId);
   });
+export const getPortalPreferencias = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async (): Promise<{ clienteVeCanceladas: boolean; canceladasNCSumanTotal: boolean }> => {
+    const { getPortalPrefs } = await import("./client-portal.server");
+    return getPortalPrefs();
+  });
