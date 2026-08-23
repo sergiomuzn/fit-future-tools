@@ -299,7 +299,7 @@ export function InvitarClientesInline() {
             <span className="text-xs text-muted-foreground">{seleccionados.length} seleccionados</span>
           </div>
 
-          <ScrollArea className="h-80 rounded-md border">
+          <ScrollArea className="h-56 rounded-md border">
             <div className="divide-y">
               {isLoading && <p className="p-3 text-sm text-muted-foreground">Cargando…</p>}
               {!isLoading && clientesFiltrados.length === 0 && (
