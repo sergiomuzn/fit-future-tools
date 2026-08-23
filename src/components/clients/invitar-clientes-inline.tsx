@@ -225,7 +225,7 @@ export function InvitarClientesInline() {
               <MailX className="h-3.5 w-3.5" /> {pendientes} pendientes de envío manual
             </Badge>
           </div>
-          <ScrollArea className="h-80">
+          <ScrollArea className="h-56">
             <div className="space-y-2 pr-3">
               {resultados.map((r) => (
                 <div
