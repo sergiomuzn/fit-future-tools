@@ -80,7 +80,6 @@ export function AccesosPanel() {
   const [email, setEmail] = useState("");
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
 
