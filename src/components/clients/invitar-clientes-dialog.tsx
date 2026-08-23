@@ -52,7 +52,7 @@ export function InvitarClientesDialog({
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const [seleccionados, setSeleccionados] = useState<string[]>([]);
-  const [acceso, setAcceso] = useState<string[]>(["grupos"]);
+  const [acceso, setAcceso] = useState<string[]>([]);
   const [fServicio, setFServicio] = useState<string>("todos");
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<Resultado[] | null>(null);
