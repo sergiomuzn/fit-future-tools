@@ -268,7 +268,7 @@ export function SlotsWeekGrid({
   const showMenu = !!(onCopyDay || onPasteDay || onClearDay);
 
   return (
-    <div className="h-full overflow-y-auto overflow-x-auto select-none">
+    <div className="h-full overflow-y-auto overflow-x-hidden select-none">
       <div className={cn("flex", !single && "min-w-[860px]")} ref={bodyRef}>
         <div className="w-14 shrink-0">
           <div className="sticky top-0 z-20 h-10 border-b bg-background" />

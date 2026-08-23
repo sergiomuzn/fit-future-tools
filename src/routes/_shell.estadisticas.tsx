@@ -976,7 +976,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             <HeatmapTable matrix={matrix} />
           )
         ) : (
-        <div className="h-[420px] overflow-x-auto">
+        <div className="h-[420px] overflow-x-hidden">
           <div
             className="h-full"
             style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
@@ -2056,7 +2056,7 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
   const min = flat.length ? Math.min(...flat) : 0;
   return (
     <div className="space-y-3">
-      <div className="overflow-x-auto">
+      <div className="overflow-x-hidden">
         <table
           className="w-full table-fixed border-separate"
           style={{ borderSpacing: 1, minWidth: 96 + matrix.colLabels.length * 52 }}
@@ -2119,7 +2119,7 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
   );
   const rowTotals = matrix.values.map((row) => row.reduce((a, b) => a + b, 0));
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-hidden">
       <table className="w-full border-separate" style={{ borderSpacing: 2 }}>
         <thead>
           <tr>
