@@ -7,6 +7,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Info, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import {
+  BOOKING_MODES,
+  DEFAULT_BOOKING_MODE,
+  parseBookingMode,
+  type BookingMode,
+} from "@/lib/booking-mode";
 import {
   type BehaviorConfig,
   DEFAULT_BEHAVIOR_CONFIG,
@@ -39,6 +47,8 @@ export function BehaviorForm() {
   const [dirty, setDirty] = useState(false);
   const [avisoUmbral, setAvisoUmbral] = useState(2);
   const [avisoRenovacion, setAvisoRenovacion] = useState(true);
+  const [modoReservas, setModoReservas] = useState<BookingMode>(DEFAULT_BOOKING_MODE);
+  const qc = useQueryClient();
 
   useEffect(() => {
     setCfg(getBehaviorConfig());
@@ -49,7 +59,9 @@ export function BehaviorForm() {
         avisar_renovacion?: boolean;
         cliente_ve_canceladas?: boolean;
         canceladas_nc_suman?: boolean;
+        modo_reservas?: string;
       };
+      setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 2);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
       setCfg((prev) => ({
@@ -75,6 +87,7 @@ export function BehaviorForm() {
           avisar_renovacion: avisoRenovacion,
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
+          modo_reservas: modoReservas,
         },
       })
       .eq("id", true);
@@ -83,6 +96,7 @@ export function BehaviorForm() {
       toast.error("No se pudieron guardar los avisos al cliente");
       return;
     }
+    await qc.invalidateQueries({ queryKey: ["booking-mode"] });
     toast.success("Configuración de funcionamiento guardada");
   }
 
@@ -90,6 +104,7 @@ export function BehaviorForm() {
     setCfg(DEFAULT_BEHAVIOR_CONFIG);
     setAvisoUmbral(2);
     setAvisoRenovacion(true);
+    setModoReservas(DEFAULT_BOOKING_MODE);
     setDirty(true);
   }
 
@@ -180,6 +195,34 @@ export function BehaviorForm() {
               </SelectContent>
             </Select>
           </Row>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Modo de reservas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RadioGroup
+            value={modoReservas}
+            onValueChange={(v) => {
+              setModoReservas(parseBookingMode(v));
+              setDirty(true);
+            }}
+            className="space-y-3"
+          >
+            {BOOKING_MODES.map((m) => (
+              <div key={m.value} className="flex items-start gap-3">
+                <RadioGroupItem value={m.value} id={`modo-${m.value}`} className="mt-1" />
+                <Label htmlFor={`modo-${m.value}`} className="cursor-pointer font-normal">
+                  <span className="text-sm font-medium">{m.label}</span>
+                  <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                    {m.description}
+                  </span>
+                </Label>
+              </div>
+            ))}
+          </RadioGroup>
         </CardContent>
       </Card>
 
