@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Plus, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -77,9 +78,9 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const servicioLabel = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
-  const [modo, setModo] = useState<"enlace" | "email">("enlace");
   const [email, setEmail] = useState("");
-  const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
@@ -137,24 +138,25 @@ export function AccesosPanel() {
   }
 
   const createInvitation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (vars: { enviarEmail: boolean; email?: string }) => {
       const acceso = toAcceso(seleccion);
       if (!acceso) throw new Error("Selecciona al menos un servicio");
-      if (modo === "email" && !email.trim()) throw new Error("Indica el email del cliente");
+      if (vars.enviarEmail && !vars.email?.trim()) throw new Error("Indica el email del cliente");
       return crearInvitacion({
         data: {
           acceso,
-          email: modo === "email" ? email.trim() : undefined,
-          enviarEmail: modo === "email",
+          email: vars.enviarEmail ? vars.email!.trim() : undefined,
+          enviarEmail: vars.enviarEmail,
           origin: window.location.origin,
         },
       });
     },
-    onSuccess: async (res) => {
+    onSuccess: async (res, vars) => {
       setEmail("");
-      setSeleccion(["grupos"]);
+      setSeleccion([]);
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
-      if (modo === "email") {
+      if (vars.enviarEmail) {
+        setEmailDialogOpen(false);
         if (res.enviado) toast.success("Invitación enviada por correo");
         else toast.warning(res.motivo ?? "Invitación creada, pero el correo no se pudo enviar");
         return;
@@ -263,55 +265,23 @@ export function AccesosPanel() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Cómo enviar la invitación</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant={modo === "enlace" ? "default" : "outline"}
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setModo("enlace")}
-                  >
-                    <Link2 className="h-4 w-4" /> Copiar enlace
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={modo === "email" ? "default" : "outline"}
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setModo("email")}
-                  >
-                    <Mail className="h-4 w-4" /> Enviar por correo
-                  </Button>
-                </div>
-              </div>
-
-              {modo === "email" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="inv-email">Email del cliente</Label>
-                  <Input
-                    id="inv-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-72"
-                    placeholder="cliente@email.com"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Recibirá un correo con el enlace y su email ya rellenado en el registro.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  onClick={() => createInvitation.mutate()}
+                  onClick={() => createInvitation.mutate({ enviarEmail: false })}
                   disabled={createInvitation.isPending}
                   className="gap-1.5"
                 >
-                  <Plus className="h-4 w-4" />
-                  {modo === "email" ? "Enviar invitación" : "Generar enlace"}
+                  <Link2 className="h-4 w-4" />
+                  Generar enlace
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setEmailDialogOpen(true)}
+                  disabled={createInvitation.isPending}
+                  className="gap-1.5"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por correo
                 </Button>
                 <span className="text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</span>
               </div>
@@ -506,6 +476,40 @@ export function AccesosPanel() {
               }}
             >
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar invitación por correo</DialogTitle>
+            <DialogDescription>
+              Selecciona el email del cliente. Recibirá un correo con el enlace y su email ya rellenado en el registro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-email-dialog">Email del cliente</Label>
+              <Input
+                id="inv-email-dialog"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="cliente@email.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={createInvitation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={createInvitation.isPending || !email.trim()}
+              onClick={() => createInvitation.mutate({ enviarEmail: true, email })}
+            >
+              {createInvitation.isPending ? "Enviando..." : "Enviar"}
             </Button>
           </DialogFooter>
         </DialogContent>
