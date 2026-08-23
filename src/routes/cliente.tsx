@@ -612,6 +612,8 @@ function ClaseCardImpl({
             <span className="font-medium">{clase.nombre}</span>
             {clase.asistida ? (
               <Badge variant="secondary">Asistida</Badge>
+            ) : clase.porConfirmar ? (
+              <Badge variant="outline">Pendiente de confirmar</Badge>
             ) : (
               clase.reservada && <Badge variant="secondary">Reservada</Badge>
             )}
