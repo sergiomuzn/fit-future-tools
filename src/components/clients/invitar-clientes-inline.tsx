@@ -250,29 +250,9 @@ export function InvitarClientesInline() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Acceso a servicios</Label>
-            <div className="flex flex-wrap items-center gap-4">
-              {servicios.length === 0 && (
-                <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
-              )}
-              {servicios.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={acceso.includes(s.slug)}
-                    onCheckedChange={(v) =>
-                      setAcceso((prev) => (v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug)))
-                    }
-                  />
-                  {s.nombre}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Filtrar por servicio</Label>
+            <Label>Servicio</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={fServicio === "todos" ? "default" : "outline"}
