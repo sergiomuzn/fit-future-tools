@@ -99,7 +99,7 @@ export function StatsConfigForm() {
               Activa qué desgloses estarán disponibles para cada métrica. Los sombreados en amarillo son combinaciones
               no recomendadas: podrás usarlas pero Estadísticas mostrará un aviso porque el cálculo puede no ser fiable.
             </p>
-            <div className="overflow-x-auto">
+            <div className="overflow-x-hidden">
               <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left">
