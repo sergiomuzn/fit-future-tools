@@ -16,6 +16,13 @@ import {
   type BookingMode,
 } from "@/lib/booking-mode";
 import {
+  DEFAULT_CONFIRMACION_RESERVAS,
+  parseConfirmacionReservas,
+  type ConfirmacionReservasConfig,
+} from "@/lib/booking-confirmation";
+import { useServicios } from "@/lib/servicios";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
   type BehaviorConfig,
   DEFAULT_BEHAVIOR_CONFIG,
   getBehaviorConfig,
@@ -48,6 +55,10 @@ export function BehaviorForm() {
   const [avisoUmbral, setAvisoUmbral] = useState(2);
   const [avisoRenovacion, setAvisoRenovacion] = useState(true);
   const [modoReservas, setModoReservas] = useState<BookingMode>(DEFAULT_BOOKING_MODE);
+  const [confirmacion, setConfirmacion] = useState<ConfirmacionReservasConfig>(
+    DEFAULT_CONFIRMACION_RESERVAS,
+  );
+  const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
   useEffect(() => {
@@ -60,7 +71,9 @@ export function BehaviorForm() {
         cliente_ve_canceladas?: boolean;
         canceladas_nc_suman?: boolean;
         modo_reservas?: string;
+        confirmacion_reservas?: unknown;
       };
+      setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 2);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
@@ -88,6 +101,7 @@ export function BehaviorForm() {
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
+          confirmacion_reservas: confirmacion,
         },
       })
       .eq("id", true);
@@ -97,6 +111,7 @@ export function BehaviorForm() {
       return;
     }
     await qc.invalidateQueries({ queryKey: ["booking-mode"] });
+    await qc.invalidateQueries({ queryKey: ["confirmacion-reservas"] });
     toast.success("Configuración de funcionamiento guardada");
   }
 
@@ -105,6 +120,7 @@ export function BehaviorForm() {
     setAvisoUmbral(2);
     setAvisoRenovacion(true);
     setModoReservas(DEFAULT_BOOKING_MODE);
+    setConfirmacion(DEFAULT_CONFIRMACION_RESERVAS);
     setDirty(true);
   }
 
@@ -223,6 +239,54 @@ export function BehaviorForm() {
               </div>
             ))}
           </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Confirmación de reservas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Las reservas del cliente necesitan confirmación"
+            description="Si lo activas, cuando un cliente reserva desde su portal la sesión queda pendiente (por confirmar) hasta que la confirmes o la canceles desde la agenda. Desactivado por defecto."
+          >
+            <Switch
+              checked={confirmacion.activo}
+              onCheckedChange={(v) => {
+                setConfirmacion((c) => ({ ...c, activo: v }));
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {confirmacion.activo && (
+            <div className="py-3">
+              <Label className="text-sm font-medium">Servicios que requieren confirmación</Label>
+              <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                Marca los servicios cuyas reservas deben confirmarse. Si no marcas ninguno, se
+                aplicará a todos los servicios.
+              </p>
+              <div className="mt-3 space-y-2">
+                {servicios.map((s) => (
+                  <label key={s.slug} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={confirmacion.servicios.includes(s.slug)}
+                      onCheckedChange={(v) => {
+                        setConfirmacion((c) => ({
+                          ...c,
+                          servicios: v
+                            ? [...c.servicios, s.slug]
+                            : c.servicios.filter((x) => x !== s.slug),
+                        }));
+                        setDirty(true);
+                      }}
+                    />
+                    {s.nombre}
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
