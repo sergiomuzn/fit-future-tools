@@ -1,14 +1,22 @@
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useServicios } from "@/lib/servicios";
-import { useServiceSlots } from "@/lib/service-slots";
+import type { ServiceSlot } from "@/lib/service-slots";
 import { SlotsWeekGrid } from "@/components/agenda/slots-week-grid";
+import { listHuecos } from "@/lib/client-portal.functions";
 
 /** Vista semanal (estilo agenda) de los huecos disponibles de los servicios del cliente. */
 export function HorarioDisponible({ servicios: slugs }: { servicios: string[] }) {
   const { data: servicios = [] } = useServicios();
-  const { data: slots = [], isLoading } = useServiceSlots(slugs);
+  const fetchHuecos = useServerFn(listHuecos);
+  const { data, isLoading } = useQuery({
+    queryKey: ["huecos-cliente", slugs.slice().sort().join(",")],
+    queryFn: () => fetchHuecos({ data: { slugs } }),
+    enabled: slugs.length > 0,
+  });
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
-  const activos = slots.filter((s) => s.activo);
+  const activos = (data?.slots ?? []) as ServiceSlot[];
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Cargando horario…</p>;
   if (activos.length === 0)
