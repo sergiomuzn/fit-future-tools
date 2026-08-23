@@ -358,7 +358,7 @@ export function InvitarClientesInline() {
               disabled={seleccionados.length === 0 || !accesoValue || enviar.isPending}
               onClick={intentarEnviar}
             >
-              <Send className="h-4 w-4" /> Enviar invitaciones
+              <Send className="h-4 w-4" /> Invitar seleccionados
             </Button>
           </div>
         </div>
