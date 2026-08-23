@@ -110,10 +110,14 @@ export function InvitarClientesInline() {
   }, [clientes, fServicio, serviciosPorCliente, busqueda]);
 
   const accesoValue = useMemo(() => {
-    if (acceso.length === 0) return null;
-    if (acceso.includes("personal") && acceso.includes("grupos") && acceso.length === 2) return "ambos";
-    return acceso.join(",");
-  }, [acceso]);
+    if (acceso.length > 0) {
+      if (acceso.includes("personal") && acceso.includes("grupos") && acceso.length === 2) return "ambos";
+      return acceso.join(",");
+    }
+    // Sin selección explícita: se deriva del filtro de servicio activo
+    if (fServicio !== "todos" && fServicio !== "sin") return fServicio;
+    return "ambos";
+  }, [acceso, fServicio]);
 
   const todosSeleccionados =
     clientesFiltrados.length > 0 && clientesFiltrados.every((c) => seleccionados.includes(c.id));
