@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -77,9 +78,9 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const servicioLabel = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
-  const [modo, setModo] = useState<"enlace" | "email">("enlace");
   const [email, setEmail] = useState("");
-  const [seleccion, setSeleccion] = useState<string[]>(["grupos"]);
+  const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
@@ -137,24 +138,25 @@ export function AccesosPanel() {
   }
 
   const createInvitation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (vars: { enviarEmail: boolean; email?: string }) => {
       const acceso = toAcceso(seleccion);
       if (!acceso) throw new Error("Selecciona al menos un servicio");
-      if (modo === "email" && !email.trim()) throw new Error("Indica el email del cliente");
+      if (vars.enviarEmail && !vars.email?.trim()) throw new Error("Indica el email del cliente");
       return crearInvitacion({
         data: {
           acceso,
-          email: modo === "email" ? email.trim() : undefined,
-          enviarEmail: modo === "email",
+          email: vars.enviarEmail ? vars.email!.trim() : undefined,
+          enviarEmail: vars.enviarEmail,
           origin: window.location.origin,
         },
       });
     },
-    onSuccess: async (res) => {
+    onSuccess: async (res, vars) => {
       setEmail("");
-      setSeleccion(["grupos"]);
+      setSeleccion([]);
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
-      if (modo === "email") {
+      if (vars.enviarEmail) {
+        setEmailDialogOpen(false);
         if (res.enviado) toast.success("Invitación enviada por correo");
         else toast.warning(res.motivo ?? "Invitación creada, pero el correo no se pudo enviar");
         return;
