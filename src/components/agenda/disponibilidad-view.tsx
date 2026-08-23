@@ -432,7 +432,15 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="min-w-0">
+          <span className="font-medium">Modo de reservas: {modoInfo.label}</span>
+          <span className="block text-muted-foreground">{modoInfo.description}</span>
+        </p>
+      </div>
       <div className="flex flex-wrap items-center gap-2 border-b bg-card px-3 py-2 text-xs">
+
         <Button
           size="sm"
           variant={mode === "rapida" ? "default" : "outline"}
