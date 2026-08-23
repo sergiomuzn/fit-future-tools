@@ -2,18 +2,17 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Ban, Trash2, RotateCcw, Mail, Link2, Pencil } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Link2, Pencil, ChevronDown } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -77,11 +76,12 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const servicioLabel = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
-  const [email, setEmail] = useState("");
   const [seleccion, setSeleccion] = useState<string[]>([]);
-  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
+  const [openInvitaciones, setOpenInvitaciones] = useState(false);
+  const [openClientes, setOpenClientes] = useState(false);
+  const [verRevocados, setVerRevocados] = useState(false);
 
   const crearInvitacion = useServerFn(crearInvitacionCliente);
   const actualizarAcceso = useServerFn(actualizarAccesoCliente);
@@ -136,29 +136,16 @@ export function AccesosPanel() {
   }
 
   const createInvitation = useMutation({
-    mutationFn: async (vars: { enviarEmail: boolean; email?: string }) => {
+    mutationFn: async () => {
       const acceso = toAcceso(seleccion);
       if (!acceso) throw new Error("Selecciona al menos un servicio");
-      if (vars.enviarEmail && !vars.email?.trim()) throw new Error("Indica el email del cliente");
       return crearInvitacion({
-        data: {
-          acceso,
-          email: vars.enviarEmail ? vars.email!.trim() : undefined,
-          enviarEmail: vars.enviarEmail,
-          origin: window.location.origin,
-        },
+        data: { acceso, enviarEmail: false, origin: window.location.origin },
       });
     },
-    onSuccess: async (res, vars) => {
-      setEmail("");
+    onSuccess: async (res) => {
       setSeleccion([]);
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
-      if (vars.enviarEmail) {
-        setEmailDialogOpen(false);
-        if (res.enviado) toast.success("Invitación enviada por correo");
-        else toast.warning(res.motivo ?? "Invitación creada, pero el correo no se pudo enviar");
-        return;
-      }
       try {
         await navigator.clipboard.writeText(res.url);
         toast.success("Invitación creada y enlace copiado");
@@ -225,174 +212,188 @@ export function AccesosPanel() {
   }
 
   const conAcceso = profiles.filter((p) => p.activo);
+  const revocados = profiles.filter((p) => !p.activo);
+  const pendientes = invitations.filter(
+    (inv) => !inv.revoked_at && !inv.used_at && new Date(inv.expires_at).getTime() >= Date.now(),
+  );
 
   return (
-    <div className="grid grid-cols-3 gap-6 items-start">
-      {/* ---------- Nueva invitación ---------- */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Nueva invitación</h2>
+    <div className="space-y-6">
+      {/* ================= Zona de acción ================= */}
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base">Registrar un cliente nuevo con acceso</CardTitle>
+            <CardTitle className="text-base">Nueva invitación</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-1.5">
-              <Label>Acceso a servicios</Label>
-              <div className="flex min-h-9 flex-wrap items-center gap-4">
-                {servicios.length === 0 && (
-                  <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
-                )}
-                {servicios.map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                      checked={seleccion.includes(s.slug)}
-                      onCheckedChange={(v) =>
-                        setSeleccion((prev) =>
-                          v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
-                        )
-                      }
-                    />
-                    {s.nombre}
-                  </label>
-                ))}
-              </div>
+            <div className="flex min-h-9 flex-wrap items-center gap-4">
+              {servicios.length === 0 && (
+                <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
+              )}
+              {servicios.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={seleccion.includes(s.slug)}
+                    onCheckedChange={(v) =>
+                      setSeleccion((prev) =>
+                        v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
+                      )
+                    }
+                  />
+                  {s.nombre}
+                </label>
+              ))}
             </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                onClick={() => createInvitation.mutate({ enviarEmail: false })}
-                disabled={createInvitation.isPending}
-                className="gap-1.5"
-              >
-                <Link2 className="h-4 w-4" />
-                Generar enlace
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setEmailDialogOpen(true)}
-                disabled={createInvitation.isPending}
-                className="gap-1.5"
-              >
-                <Mail className="h-4 w-4" />
-                Enviar por correo
-              </Button>
-              <span className="text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</span>
-            </div>
+            <Button
+              onClick={() => createInvitation.mutate()}
+              disabled={createInvitation.isPending || seleccion.length === 0}
+              className="gap-1.5"
+            >
+              <Link2 className="h-4 w-4" />
+              Generar enlace
+            </Button>
           </CardContent>
         </Card>
 
-        <div className="space-y-2">
-          <h3 className="text-sm font-medium text-muted-foreground">
-            Invitaciones ({invitations.length})
-          </h3>
-          {invitations.length === 0 && <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>}
-          {invitations.map((inv) => {
-            const status = invitationStatus(inv);
-            return (
-              <Card key={inv.id}>
-                <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openClientDetails({ email: inv.email, nombre: inv.nombre })}
-                        className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      >
-                        {inv.nombre || inv.email || "Invitación"}
-                      </button>
-                      <Badge variant={status.variant}>{status.label}</Badge>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Invitar clientes existentes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <InvitarClientesInline />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ================= Zona de registro ================= */}
+      <div className="space-y-3">
+        <Collapsible open={openInvitaciones} onOpenChange={setOpenInvitaciones}>
+          <Card>
+            <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4 text-left">
+              <span className="text-sm font-semibold">Invitaciones pendientes ({pendientes.length})</span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${openInvitaciones ? "rotate-180" : ""}`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-2 pt-0">
+                {invitations.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>
+                )}
+                {invitations.map((inv) => {
+                  const status = invitationStatus(inv);
+                  return (
+                    <div
+                      key={inv.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openClientDetails({ email: inv.email, nombre: inv.nombre })}
+                            className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            {inv.nombre || inv.email || "Invitación"}
+                          </button>
+                          <Badge variant={status.variant}>{status.label}</Badge>
+                        </div>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
+                          {new Date(inv.expires_at).toLocaleDateString("es-ES")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} className="gap-1.5">
+                          <Copy className="h-3.5 w-3.5" /> Copiar
+                        </Button>
+                        {!inv.used_at && !inv.revoked_at && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => revokeInvitation.mutate(inv.id)}
+                            className="gap-1.5"
+                          >
+                            <Ban className="h-3.5 w-3.5" /> Revocar
+                          </Button>
+                        )}
+                        <Button variant="ghost" size="sm" onClick={() => deleteInvitation.mutate(inv.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
-                    <p className="truncate text-xs text-muted-foreground">
-                      {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
-                      {new Date(inv.expires_at).toLocaleDateString("es-ES")}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} className="gap-1.5">
-                      <Copy className="h-3.5 w-3.5" /> Copiar
-                    </Button>
-                    {!inv.used_at && !inv.revoked_at && (
-                      <Button variant="ghost" size="sm" onClick={() => revokeInvitation.mutate(inv.id)} className="gap-1.5">
+                  );
+                })}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        <Collapsible open={openClientes} onOpenChange={setOpenClientes}>
+          <Card>
+            <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 p-4 text-left">
+              <span className="text-sm font-semibold">Clientes con acceso ({conAcceso.length})</span>
+              <ChevronDown
+                className={`h-4 w-4 shrink-0 transition-transform ${openClientes ? "rotate-180" : ""}`}
+              />
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent className="space-y-2 pt-0">
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Checkbox checked={verRevocados} onCheckedChange={(v) => setVerRevocados(v === true)} />
+                  Mostrar accesos revocados ({revocados.length})
+                </label>
+
+                {conAcceso.length === 0 && (
+                  <p className="text-sm text-muted-foreground">Ningún cliente con acceso todavía.</p>
+                )}
+                {conAcceso.map((p) => (
+                  <div
+                    key={p.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openClientDetails({ clientId: p.client_id, email: p.email, nombre: p.nombre })}
+                          className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          {p.nombre}
+                        </button>
+                        <Badge variant="secondary">Activo</Badge>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {formatAcceso(p.acceso, servicioLabel)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => setEditing({ id: p.id, nombre: p.nombre, seleccion: fromAcceso(p.acceso) })}
+                      >
+                        <Pencil className="h-3.5 w-3.5" /> Editar acceso
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => toggleAccess.mutate({ id: p.id, activo: false })}
+                      >
                         <Ban className="h-3.5 w-3.5" /> Revocar
                       </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => deleteInvitation.mutate(inv.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
+                ))}
 
-      {/* ---------- Invitar clientes existentes ---------- */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Invitar clientes existentes</h2>
-        <p className="text-sm text-muted-foreground">
-          Envía el acceso al portal de reservas a clientes que ya están dados de alta.
-        </p>
-        <InvitarClientesInline />
-      </section>
-
-      {/* ---------- Clientes con acceso ---------- */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold">Clientes con acceso</h2>
-        <div className="space-y-2">
-          {conAcceso.length === 0 && (
-            <p className="text-sm text-muted-foreground">Ningún cliente con acceso todavía.</p>
-          )}
-          {conAcceso.map((p) => (
-            <Card key={p.id}>
-              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => openClientDetails({ clientId: p.client_id, email: p.email, nombre: p.nombre })}
-                      className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                {verRevocados &&
+                  revocados.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3"
                     >
-                      {p.nombre}
-                    </button>
-                    <Badge variant="secondary">Activo</Badge>
-                  </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {formatAcceso(p.acceso, servicioLabel)}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() =>
-                      setEditing({ id: p.id, nombre: p.nombre, seleccion: fromAcceso(p.acceso) })
-                    }
-                  >
-                    <Pencil className="h-3.5 w-3.5" /> Editar acceso
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => toggleAccess.mutate({ id: p.id, activo: false })}
-                  >
-                    <Ban className="h-3.5 w-3.5" /> Revocar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-
-          {profiles.some((p) => !p.activo) && (
-            <>
-              <h3 className="pt-2 text-sm font-medium text-muted-foreground">Accesos revocados</h3>
-              {profiles
-                .filter((p) => !p.activo)
-                .map((p) => (
-                  <Card key={p.id}>
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="font-medium">{p.nombre}</span>
@@ -407,14 +408,13 @@ export function AccesosPanel() {
                       >
                         <RotateCcw className="h-3.5 w-3.5" /> Reactivar
                       </Button>
-                    </CardContent>
-                  </Card>
-                ))}
-            </>
-          )}
-        </div>
-      </section>
-
+                    </div>
+                  ))}
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+      </div>
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
@@ -422,6 +422,7 @@ export function AccesosPanel() {
             <DialogTitle>Acceso de {editing?.nombre}</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
+            <Label className="text-sm text-muted-foreground">Servicios</Label>
             {servicios.map((s) => (
               <label key={s.id} className="flex items-center gap-2 text-sm">
                 <Checkbox
@@ -458,40 +459,6 @@ export function AccesosPanel() {
               }}
             >
               Guardar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Enviar invitación por correo</DialogTitle>
-            <DialogDescription>
-              Selecciona el email del cliente. Recibirá un correo con el enlace y su email ya rellenado en el registro.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <Label htmlFor="inv-email-dialog">Email del cliente</Label>
-              <Input
-                id="inv-email-dialog"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="cliente@email.com"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={createInvitation.isPending}>
-              Cancelar
-            </Button>
-            <Button
-              disabled={createInvitation.isPending || !email.trim()}
-              onClick={() => createInvitation.mutate({ enviarEmail: true, email })}
-            >
-              {createInvitation.isPending ? "Enviando..." : "Enviar"}
             </Button>
           </DialogFooter>
         </DialogContent>
