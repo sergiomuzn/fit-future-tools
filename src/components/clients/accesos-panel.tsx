@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Mail, Link2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -23,7 +22,7 @@ import { accesoClienteLabel, type AccesoCliente } from "@/lib/client-portal-type
 import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
 import { crearInvitacionCliente, actualizarAccesoCliente } from "@/lib/accesos.functions";
-import { InvitarClientesDialog } from "./invitar-clientes-dialog";
+import { InvitarClientesInline } from "./invitar-clientes-inline";
 import { ClientDetailsDialog } from "./client-details-dialog";
 import type { Client } from "@/lib/db";
 
@@ -81,7 +80,6 @@ export function AccesosPanel() {
   const [email, setEmail] = useState("");
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [emailDialogOpen, setEmailDialogOpen] = useState(false);
-  const [bulkOpen, setBulkOpen] = useState(false);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
 
@@ -229,210 +227,198 @@ export function AccesosPanel() {
   const conAcceso = profiles.filter((p) => p.activo);
 
   return (
-    <div className="space-y-4">
-      <Tabs defaultValue="nueva">
-        <TabsList>
-          <TabsTrigger value="nueva">Nueva invitación</TabsTrigger>
-          <TabsTrigger value="gestion">Invitar clientes ({conAcceso.length})</TabsTrigger>
-        </TabsList>
-
-        {/* ---------- Nueva invitación ---------- */}
-        <TabsContent value="nueva" className="mt-3 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Registrar un cliente nuevo con acceso</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>Acceso a servicios</Label>
-                <div className="flex min-h-9 flex-wrap items-center gap-4">
-                  {servicios.length === 0 && (
-                    <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
-                  )}
-                  {servicios.map((s) => (
-                    <label key={s.id} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={seleccion.includes(s.slug)}
-                        onCheckedChange={(v) =>
-                          setSeleccion((prev) =>
-                            v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
-                          )
-                        }
-                      />
-                      {s.nombre}
-                    </label>
-                  ))}
-                </div>
+    <div className="space-y-6">
+      {/* ---------- Nueva invitación ---------- */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Nueva invitación</h2>
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Registrar un cliente nuevo con acceso</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Acceso a servicios</Label>
+              <div className="flex min-h-9 flex-wrap items-center gap-4">
+                {servicios.length === 0 && (
+                  <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
+                )}
+                {servicios.map((s) => (
+                  <label key={s.id} className="flex items-center gap-2 text-sm">
+                    <Checkbox
+                      checked={seleccion.includes(s.slug)}
+                      onCheckedChange={(v) =>
+                        setSeleccion((prev) =>
+                          v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
+                        )
+                      }
+                    />
+                    {s.nombre}
+                  </label>
+                ))}
               </div>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  onClick={() => createInvitation.mutate({ enviarEmail: false })}
-                  disabled={createInvitation.isPending}
-                  className="gap-1.5"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Generar enlace
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => setEmailDialogOpen(true)}
-                  disabled={createInvitation.isPending}
-                  className="gap-1.5"
-                >
-                  <Mail className="h-4 w-4" />
-                  Enviar por correo
-                </Button>
-                <span className="text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</span>
-              </div>
-            </CardContent>
-          </Card>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                onClick={() => createInvitation.mutate({ enviarEmail: false })}
+                disabled={createInvitation.isPending}
+                className="gap-1.5"
+              >
+                <Link2 className="h-4 w-4" />
+                Generar enlace
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setEmailDialogOpen(true)}
+                disabled={createInvitation.isPending}
+                className="gap-1.5"
+              >
+                <Mail className="h-4 w-4" />
+                Enviar por correo
+              </Button>
+              <span className="text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</span>
+            </div>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Invitaciones ({invitations.length})
-            </h3>
-            {invitations.length === 0 && <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>}
-            {invitations.map((inv) => {
-              const status = invitationStatus(inv);
-              return (
-                <Card key={inv.id}>
-                  <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openClientDetails({ email: inv.email, nombre: inv.nombre })}
-                          className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                        >
-                          {inv.nombre || inv.email || "Invitación"}
-                        </button>
-                        <Badge variant={status.variant}>{status.label}</Badge>
-                      </div>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
-                        {new Date(inv.expires_at).toLocaleDateString("es-ES")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} className="gap-1.5">
-                        <Copy className="h-3.5 w-3.5" /> Copiar
-                      </Button>
-                      {!inv.used_at && !inv.revoked_at && (
-                        <Button variant="ghost" size="sm" onClick={() => revokeInvitation.mutate(inv.id)} className="gap-1.5">
-                          <Ban className="h-3.5 w-3.5" /> Revocar
-                        </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => deleteInvitation.mutate(inv.id)}>
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </TabsContent>
-
-        {/* ---------- Invitar clientes + gestión ---------- */}
-        <TabsContent value="gestion" className="mt-3 space-y-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between gap-3">
-                <CardTitle className="text-base">Invitar clientes existentes</CardTitle>
-                <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setBulkOpen(true)}>
-                  <Users className="h-4 w-4" /> Invitar clientes
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Envía el acceso al portal de reservas a clientes que ya están dados de alta.
-              </p>
-            </CardContent>
-          </Card>
-
-          <div className="space-y-2">
-            <h3 className="text-sm font-medium text-muted-foreground">
-              Clientes con acceso ({conAcceso.length})
-            </h3>
-            {conAcceso.length === 0 && (
-              <p className="text-sm text-muted-foreground">Ningún cliente con acceso todavía.</p>
-            )}
-            {conAcceso.map((p) => (
-              <Card key={p.id}>
+        <div className="space-y-2">
+          <h3 className="text-sm font-medium text-muted-foreground">
+            Invitaciones ({invitations.length})
+          </h3>
+          {invitations.length === 0 && <p className="text-sm text-muted-foreground">Sin invitaciones todavía.</p>}
+          {invitations.map((inv) => {
+            const status = invitationStatus(inv);
+            return (
+              <Card key={inv.id}>
                 <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => openClientDetails({ clientId: p.client_id, email: p.email, nombre: p.nombre })}
+                        onClick={() => openClientDetails({ email: inv.email, nombre: inv.nombre })}
                         className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
-                        {p.nombre}
+                        {inv.nombre || inv.email || "Invitación"}
                       </button>
-                      <Badge variant="secondary">Activo</Badge>
+                      <Badge variant={status.variant}>{status.label}</Badge>
                     </div>
                     <p className="truncate text-xs text-muted-foreground">
-                      {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {formatAcceso(p.acceso, servicioLabel)}
+                      {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
+                      {new Date(inv.expires_at).toLocaleDateString("es-ES")}
                     </p>
                   </div>
                   <div className="flex items-center gap-1">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() =>
-                        setEditing({ id: p.id, nombre: p.nombre, seleccion: fromAcceso(p.acceso) })
-                      }
-                    >
-                      <Pencil className="h-3.5 w-3.5" /> Editar acceso
+                    <Button variant="ghost" size="sm" onClick={() => copyLink(inv.code)} className="gap-1.5">
+                      <Copy className="h-3.5 w-3.5" /> Copiar
                     </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="gap-1.5"
-                      onClick={() => toggleAccess.mutate({ id: p.id, activo: false })}
-                    >
-                      <Ban className="h-3.5 w-3.5" /> Revocar
+                    {!inv.used_at && !inv.revoked_at && (
+                      <Button variant="ghost" size="sm" onClick={() => revokeInvitation.mutate(inv.id)} className="gap-1.5">
+                        <Ban className="h-3.5 w-3.5" /> Revocar
+                      </Button>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => deleteInvitation.mutate(inv.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </CardContent>
               </Card>
-            ))}
+            );
+          })}
+        </div>
+      </section>
 
-            {profiles.some((p) => !p.activo) && (
-              <>
-                <h3 className="pt-2 text-sm font-medium text-muted-foreground">Accesos revocados</h3>
-                {profiles
-                  .filter((p) => !p.activo)
-                  .map((p) => (
-                    <Card key={p.id}>
-                      <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{p.nombre}</span>
-                            <Badge variant="destructive">Revocado</Badge>
-                          </div>
-                          <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+      <hr />
+
+      {/* ---------- Invitar clientes existentes ---------- */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Invitar clientes existentes</h2>
+        <p className="text-sm text-muted-foreground">
+          Envía el acceso al portal de reservas a clientes que ya están dados de alta.
+        </p>
+        <InvitarClientesInline />
+      </section>
+
+      <hr />
+
+      {/* ---------- Clientes con acceso ---------- */}
+      <section className="space-y-4">
+        <h2 className="text-lg font-semibold">Clientes con acceso</h2>
+        <div className="space-y-2">
+          {conAcceso.length === 0 && (
+            <p className="text-sm text-muted-foreground">Ningún cliente con acceso todavía.</p>
+          )}
+          {conAcceso.map((p) => (
+            <Card key={p.id}>
+              <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openClientDetails({ clientId: p.client_id, email: p.email, nombre: p.nombre })}
+                      className="rounded text-left font-medium hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      {p.nombre}
+                    </button>
+                    <Badge variant="secondary">Activo</Badge>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">
+                    {p.email} · {bonoTipoClienteLabel(p.bono_tipo)} · {formatAcceso(p.acceso, servicioLabel)}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() =>
+                      setEditing({ id: p.id, nombre: p.nombre, seleccion: fromAcceso(p.acceso) })
+                    }
+                  >
+                    <Pencil className="h-3.5 w-3.5" /> Editar acceso
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-1.5"
+                    onClick={() => toggleAccess.mutate({ id: p.id, activo: false })}
+                  >
+                    <Ban className="h-3.5 w-3.5" /> Revocar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+
+          {profiles.some((p) => !p.activo) && (
+            <>
+              <h3 className="pt-2 text-sm font-medium text-muted-foreground">Accesos revocados</h3>
+              {profiles
+                .filter((p) => !p.activo)
+                .map((p) => (
+                  <Card key={p.id}>
+                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{p.nombre}</span>
+                          <Badge variant="destructive">Revocado</Badge>
                         </div>
-                        <Button
-                          size="sm"
-                          className="gap-1.5"
-                          onClick={() => toggleAccess.mutate({ id: p.id, activo: true })}
-                        >
-                          <RotateCcw className="h-3.5 w-3.5" /> Reactivar
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  ))}
-              </>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+                        <p className="truncate text-xs text-muted-foreground">{p.email}</p>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="gap-1.5"
+                        onClick={() => toggleAccess.mutate({ id: p.id, activo: true })}
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" /> Reactivar
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+            </>
+          )}
+        </div>
+      </section>
 
-      <InvitarClientesDialog open={bulkOpen} onOpenChange={setBulkOpen} />
 
       <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
