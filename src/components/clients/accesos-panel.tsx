@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Plus, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -476,6 +476,40 @@ export function AccesosPanel() {
               }}
             >
               Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar invitación por correo</DialogTitle>
+            <DialogDescription>
+              Selecciona el email del cliente. Recibirá un correo con el enlace y su email ya rellenado en el registro.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="inv-email-dialog">Email del cliente</Label>
+              <Input
+                id="inv-email-dialog"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="cliente@email.com"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEmailDialogOpen(false)} disabled={createInvitation.isPending}>
+              Cancelar
+            </Button>
+            <Button
+              disabled={createInvitation.isPending || !email.trim()}
+              onClick={() => createInvitation.mutate({ enviarEmail: true, email })}
+            >
+              {createInvitation.isPending ? "Enviando..." : "Enviar"}
             </Button>
           </DialogFooter>
         </DialogContent>
