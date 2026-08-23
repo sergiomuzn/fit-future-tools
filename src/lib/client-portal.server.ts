@@ -147,6 +147,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       capacidad: Math.max(1, group.capacidad ?? 1),
       ocupadas: rows.filter((r) => !!r.client_id).length,
       reservada: !!mine,
+      porConfirmar: !!mine?.por_confirmar && mine?.estado === "reservada",
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: slug,
@@ -391,6 +392,7 @@ export async function addAttendeeToBlock(params: {
   clientId: string;
   bookedByUserId: string | null;
   bookingTipo: BonoTipoCliente;
+  porConfirmar?: boolean;
 }): Promise<string> {
   const { data: rows } = await supabaseAdmin
     .from("sessions")
@@ -420,6 +422,7 @@ export async function addAttendeeToBlock(params: {
     client_id: params.clientId,
     booked_by_user_id: params.bookedByUserId,
     booking_tipo: params.bookingTipo,
+    ...(params.porConfirmar ? { por_confirmar: true, estado: "reservada" as never } : {}),
   };
 
   if (placeholder) {
@@ -443,7 +446,7 @@ export async function addAttendeeToBlock(params: {
         trainer_id: template.trainer_id,
         recurrencia_id: template.recurrencia_id,
         no_contabilizar: template.no_contabilizar,
-        por_confirmar: template.por_confirmar,
+        por_confirmar: params.porConfirmar ? true : template.por_confirmar,
       },
     ])
     .select("id")
@@ -452,11 +455,39 @@ export async function addAttendeeToBlock(params: {
   return inserted!.id;
 }
 
+/** ¿La reserva de este bloque necesita confirmación del admin? */
+async function bookingNeedsConfirmation(
+  groupId: string,
+  fecha: string,
+  horaInicio: string,
+): Promise<boolean> {
+  const { parseConfirmacionReservas, requiereConfirmacion } = await import("./booking-confirmation");
+  const [{ data: cfg }, { data: rows }] = await Promise.all([
+    supabaseAdmin.from("center_config").select("avisos").eq("id", true).maybeSingle(),
+    supabaseAdmin
+      .from("sessions")
+      .select("servicio_slug")
+      .eq("group_id", groupId)
+      .eq("fecha", fecha)
+      .eq("hora_inicio", horaInicio),
+  ]);
+  const conf = parseConfirmacionReservas(
+    (((cfg as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+      confirmacion_reservas?: unknown;
+    }).confirmacion_reservas,
+  );
+  const slug =
+    (rows ?? []).map((r) => (r as { servicio_slug: string | null }).servicio_slug).find(Boolean) ??
+    null;
+  return requiereConfirmacion(conf, slug);
+}
+
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
   const profile = await getPortalProfile(userId);
   if (!profile) throw new Error("Cuenta de cliente no activa");
   const clientId = await requireClientRow(userId);
   const [groupId, fecha, horaInicio] = key.split("|");
+  const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio);
   await addAttendeeToBlock({
     groupId,
     fecha,
@@ -464,6 +495,7 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     clientId,
     bookedByUserId: userId,
     bookingTipo: profile.bonoTipo,
+    porConfirmar,
   });
 
   const { data: group } = await supabaseAdmin
@@ -476,7 +508,9 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     {
       targetRole: "admin",
       tipo: "reserva_creada",
-      titulo: `Reserva creada por ${profile.nombre}`,
+      titulo: porConfirmar
+        ? `Reserva pendiente de confirmar de ${profile.nombre}`
+        : `Reserva creada por ${profile.nombre}`,
       mensaje: `en ${group?.nombre ?? "Clase grupal"} (${describeSesion(fecha, horaInicio)})`,
     },
   ]);

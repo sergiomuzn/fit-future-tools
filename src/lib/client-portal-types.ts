@@ -44,6 +44,8 @@ export interface ClaseGrupal {
   capacidad: number;
   ocupadas: number;
   reservada: boolean;
+  /** Reserva pendiente de que el admin la confirme. */
+  porConfirmar: boolean;
   asistida: boolean;
   miSesionId: string | null;
   servicioSlug: string | null;
