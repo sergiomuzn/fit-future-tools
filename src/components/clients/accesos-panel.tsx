@@ -2,14 +2,13 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Ban, Trash2, RotateCcw, Users, Mail, Link2, Pencil } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Mail, Link2, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
@@ -23,7 +22,7 @@ import { accesoClienteLabel, type AccesoCliente } from "@/lib/client-portal-type
 import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
 import { crearInvitacionCliente, actualizarAccesoCliente } from "@/lib/accesos.functions";
-import { InvitarClientesDialog } from "./invitar-clientes-dialog";
+import { InvitarClientesInline } from "./invitar-clientes-inline";
 import { ClientDetailsDialog } from "./client-details-dialog";
 import type { Client } from "@/lib/db";
 
