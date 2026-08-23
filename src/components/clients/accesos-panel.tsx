@@ -227,7 +227,7 @@ export function AccesosPanel() {
   const conAcceso = profiles.filter((p) => p.activo);
 
   return (
-    <div className="space-y-6">
+    <div className="grid grid-cols-3 gap-6 items-start">
       {/* ---------- Nueva invitación ---------- */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Nueva invitación</h2>
@@ -327,8 +327,6 @@ export function AccesosPanel() {
         </div>
       </section>
 
-      <hr />
-
       {/* ---------- Invitar clientes existentes ---------- */}
       <section className="space-y-4">
         <h2 className="text-lg font-semibold">Invitar clientes existentes</h2>
@@ -337,8 +335,6 @@ export function AccesosPanel() {
         </p>
         <InvitarClientesInline />
       </section>
-
-      <hr />
 
       {/* ---------- Clientes con acceso ---------- */}
       <section className="space-y-4">
