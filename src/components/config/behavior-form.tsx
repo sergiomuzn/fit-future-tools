@@ -101,7 +101,10 @@ export function BehaviorForm() {
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
-          confirmacion_reservas: confirmacion,
+          confirmacion_reservas: {
+            activo: confirmacion.activo,
+            servicios: confirmacion.servicios,
+          },
         },
       })
       .eq("id", true);
