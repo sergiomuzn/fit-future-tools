@@ -265,55 +265,23 @@ export function AccesosPanel() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label>Cómo enviar la invitación</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant={modo === "enlace" ? "default" : "outline"}
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setModo("enlace")}
-                  >
-                    <Link2 className="h-4 w-4" /> Copiar enlace
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={modo === "email" ? "default" : "outline"}
-                    size="sm"
-                    className="gap-1.5"
-                    onClick={() => setModo("email")}
-                  >
-                    <Mail className="h-4 w-4" /> Enviar por correo
-                  </Button>
-                </div>
-              </div>
-
-              {modo === "email" && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="inv-email">Email del cliente</Label>
-                  <Input
-                    id="inv-email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-72"
-                    placeholder="cliente@email.com"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Recibirá un correo con el enlace y su email ya rellenado en el registro.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <Button
-                  onClick={() => createInvitation.mutate()}
+                  onClick={() => createInvitation.mutate({ enviarEmail: false })}
                   disabled={createInvitation.isPending}
                   className="gap-1.5"
                 >
-                  <Plus className="h-4 w-4" />
-                  {modo === "email" ? "Enviar invitación" : "Generar enlace"}
+                  <Link2 className="h-4 w-4" />
+                  Generar enlace
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setEmailDialogOpen(true)}
+                  disabled={createInvitation.isPending}
+                  className="gap-1.5"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por correo
                 </Button>
                 <span className="text-xs text-muted-foreground">El enlace caduca a los 7 días si no se usa.</span>
               </div>
