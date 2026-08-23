@@ -122,3 +122,13 @@ export const getPortalPreferencias = createServerFn({ method: "POST" })
     const { getPortalPrefs } = await import("./client-portal.server");
     return getPortalPrefs();
   });
+
+export const listHuecos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ slugs: z.array(z.string().max(64)).max(20) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { getPortalProfile, listHuecosDisponibles } = await import("./client-portal.server");
+    const profile = await getPortalProfile(context.userId);
+    if (!profile) throw new Error("Cuenta de cliente no activa");
+    return listHuecosDisponibles(data.slugs);
+  });

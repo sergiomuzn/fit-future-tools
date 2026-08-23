@@ -19,6 +19,7 @@ import {
   type SlotStructure,
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
+import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -55,6 +56,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { data: slots = [] } = useServiceSlots();
+  const { data: modoReservas } = useBookingMode();
+  const modoInfo = bookingModeInfo(modoReservas);
   const { data: structures = [] } = useSlotStructures();
   const { data: trainers = [] } = useQuery({
     queryKey: ["trainers"],
@@ -432,7 +435,15 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        <p className="min-w-0">
+          <span className="font-medium">Modo de reservas: {modoInfo.label}</span>
+          <span className="block text-muted-foreground">{modoInfo.description}</span>
+        </p>
+      </div>
       <div className="flex flex-wrap items-center gap-2 border-b bg-card px-3 py-2 text-xs">
+
         <Button
           size="sm"
           variant={mode === "rapida" ? "default" : "outline"}

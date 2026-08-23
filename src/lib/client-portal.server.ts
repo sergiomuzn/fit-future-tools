@@ -540,3 +540,83 @@ export async function getPortalPrefs(): Promise<{
     canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
   };
 }
+
+/* ------------------------------------------------------------------ */
+/* Huecos de reserva según el modo configurado                         */
+/* ------------------------------------------------------------------ */
+
+export interface HuecoDisponible {
+  id: string;
+  servicio_slug: string;
+  dia_semana: number;
+  hora_inicio: string;
+  hora_fin: string;
+  capacidad: number;
+  activo: boolean;
+  nota: string | null;
+  trainer_id: string | null;
+}
+
+/**
+ * Devuelve los huecos visibles para el cliente aplicando el modo de reservas.
+ * Cada hueco se evalúa contra la próxima ocurrencia de su día dentro de 7 días.
+ */
+export async function listHuecosDisponibles(
+  slugs: string[],
+): Promise<{ modo: string; slots: HuecoDisponible[] }> {
+  const { parseBookingMode, slotVisibleForMode } = await import("./booking-mode");
+
+  const { data: cfg } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const modo = parseBookingMode(
+    (((cfg as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as { modo_reservas?: string })
+      .modo_reservas,
+  );
+
+  let q = supabaseAdmin
+    .from("service_slots")
+    .select("id,servicio_slug,dia_semana,hora_inicio,hora_fin,capacidad,activo,nota,trainer_id")
+    .eq("activo", true)
+    .order("dia_semana")
+    .order("hora_inicio");
+  if (slugs.length > 0) q = q.in("servicio_slug", slugs);
+  const { data } = await q;
+  const slots = (data ?? []) as HuecoDisponible[];
+
+  if (modo === "independiente" || slots.length === 0) return { modo, slots };
+
+  // Próxima ocurrencia (hoy incluido) de cada día de la semana
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dateByDow = new Map<number, string>();
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    if (!dateByDow.has(d.getDay())) dateByDow.set(d.getDay(), iso(d));
+  }
+  const fechas = Array.from(dateByDow.values());
+
+  const { data: sesiones } = await supabaseAdmin
+    .from("sessions")
+    .select("fecha,hora_inicio,hora_fin,estado")
+    .in("fecha", fechas)
+    .neq("estado", "cancelada");
+
+  const byFecha = new Map<string, { inicio: string; fin: string }[]>();
+  for (const s of (sesiones ?? []) as { fecha: string; hora_inicio: string; hora_fin: string }[]) {
+    const arr = byFecha.get(s.fecha) ?? [];
+    arr.push({ inicio: s.hora_inicio, fin: s.hora_fin });
+    byFecha.set(s.fecha, arr);
+  }
+
+  const visibles = slots.filter((s) => {
+    const fecha = dateByDow.get(s.dia_semana);
+    const sesionesDia = fecha ? (byFecha.get(fecha) ?? []) : [];
+    return slotVisibleForMode({ inicio: s.hora_inicio, fin: s.hora_fin }, sesionesDia, modo);
+  });
+
+  return { modo, slots: visibles };
+}
