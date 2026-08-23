@@ -19,6 +19,7 @@ import {
   type SlotStructure,
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
+import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -55,6 +56,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { data: slots = [] } = useServiceSlots();
+  const { data: modoReservas } = useBookingMode();
+  const modoInfo = bookingModeInfo(modoReservas);
   const { data: structures = [] } = useSlotStructures();
   const { data: trainers = [] } = useQuery({
     queryKey: ["trainers"],
