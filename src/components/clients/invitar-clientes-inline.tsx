@@ -110,10 +110,14 @@ export function InvitarClientesInline() {
   }, [clientes, fServicio, serviciosPorCliente, busqueda]);
 
   const accesoValue = useMemo(() => {
-    if (acceso.length === 0) return null;
-    if (acceso.includes("personal") && acceso.includes("grupos") && acceso.length === 2) return "ambos";
-    return acceso.join(",");
-  }, [acceso]);
+    if (acceso.length > 0) {
+      if (acceso.includes("personal") && acceso.includes("grupos") && acceso.length === 2) return "ambos";
+      return acceso.join(",");
+    }
+    // Sin selección explícita: se deriva del filtro de servicio activo
+    if (fServicio !== "todos" && fServicio !== "sin") return fServicio;
+    return "ambos";
+  }, [acceso, fServicio]);
 
   const todosSeleccionados =
     clientesFiltrados.length > 0 && clientesFiltrados.every((c) => seleccionados.includes(c.id));
@@ -221,7 +225,7 @@ export function InvitarClientesInline() {
               <MailX className="h-3.5 w-3.5" /> {pendientes} pendientes de envío manual
             </Badge>
           </div>
-          <ScrollArea className="h-80">
+          <ScrollArea className="h-56">
             <div className="space-y-2 pr-3">
               {resultados.map((r) => (
                 <div
@@ -246,29 +250,9 @@ export function InvitarClientesInline() {
           </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           <div className="space-y-1.5">
-            <Label>Acceso a servicios</Label>
-            <div className="flex flex-wrap items-center gap-4">
-              {servicios.length === 0 && (
-                <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
-              )}
-              {servicios.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={acceso.includes(s.slug)}
-                    onCheckedChange={(v) =>
-                      setAcceso((prev) => (v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug)))
-                    }
-                  />
-                  {s.nombre}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label>Filtrar por servicio</Label>
+            <Label>Servicio</Label>
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant={fServicio === "todos" ? "default" : "outline"}
@@ -315,7 +299,7 @@ export function InvitarClientesInline() {
             <span className="text-xs text-muted-foreground">{seleccionados.length} seleccionados</span>
           </div>
 
-          <ScrollArea className="h-80 rounded-md border">
+          <ScrollArea className="h-56 rounded-md border">
             <div className="divide-y">
               {isLoading && <p className="p-3 text-sm text-muted-foreground">Cargando…</p>}
               {!isLoading && clientesFiltrados.length === 0 && (
@@ -374,7 +358,7 @@ export function InvitarClientesInline() {
               disabled={seleccionados.length === 0 || !accesoValue || enviar.isPending}
               onClick={intentarEnviar}
             >
-              <Send className="h-4 w-4" /> Enviar invitaciones
+              <Send className="h-4 w-4" /> Invitar seleccionados
             </Button>
           </div>
         </div>
