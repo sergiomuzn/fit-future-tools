@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
@@ -20,6 +20,7 @@ import {
 import { accesoClienteLabel, type AccesoCliente } from "@/lib/client-portal-types";
 import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
+import { cn } from "@/lib/utils";
 import { crearInvitacionCliente, actualizarAccesoCliente } from "@/lib/accesos.functions";
 import { InvitarClientesInline } from "./invitar-clientes-inline";
 import { ClientDetailsDialog } from "./client-details-dialog";
@@ -76,7 +77,10 @@ export function AccesosPanel() {
   const { data: servicios = [] } = useServicios();
   const servicioLabel = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
+  const [expanded, setExpanded] = useState<"new" | "existing" | null>(null);
   const [seleccion, setSeleccion] = useState<string[]>([]);
+  const [generated, setGenerated] = useState<{ code: string; url: string } | null>(null);
+
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
   const [openInvitaciones, setOpenInvitaciones] = useState(false);
@@ -143,11 +147,11 @@ export function AccesosPanel() {
         data: { acceso, enviarEmail: false, origin: window.location.origin },
       });
     },
-    onSuccess: async (res) => {
-      setSeleccion([]);
+    onSuccess: (res) => {
+      setGenerated({ code: res.code, url: res.url });
       qc.invalidateQueries({ queryKey: ["client_invitations"] });
       try {
-        await navigator.clipboard.writeText(res.url);
+        void navigator.clipboard.writeText(res.url);
         toast.success("Invitación creada y enlace copiado");
       } catch {
         toast.success("Invitación creada");
@@ -217,50 +221,97 @@ export function AccesosPanel() {
     (inv) => !inv.revoked_at && !inv.used_at && new Date(inv.expires_at).getTime() >= Date.now(),
   );
 
+  function toggleCard(next: "new" | "existing") {
+    setExpanded((prev) => (prev === next ? null : next));
+  }
+
+  function resetGenerated() {
+    setGenerated(null);
+    setSeleccion([]);
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden">
       {/* ================= Zona de acción ================= */}
-      <div className="grid gap-6 lg:grid-cols-2 items-start">
-        <Card>
+      <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+        <Card className="h-full flex flex-col">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Nueva invitación</CardTitle>
+            <CardDescription>Genera un enlace de acceso para un cliente nuevo</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex min-h-9 flex-wrap items-center gap-4">
-              {servicios.length === 0 && (
-                <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
-              )}
-              {servicios.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 text-sm">
-                  <Checkbox
-                    checked={seleccion.includes(s.slug)}
-                    onCheckedChange={(v) =>
-                      setSeleccion((prev) =>
-                        v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
-                      )
-                    }
-                  />
-                  {s.nombre}
-                </label>
-              ))}
-            </div>
-            <Button
-              onClick={() => createInvitation.mutate()}
-              disabled={createInvitation.isPending || seleccion.length === 0}
-              className="gap-1.5"
-            >
-              <Link2 className="h-4 w-4" />
-              Generar enlace
-            </Button>
+          <CardContent
+            className={cn(
+              "flex-1 flex flex-col",
+              expanded !== "new" ? "items-center justify-center" : "items-start justify-start",
+            )}
+          >
+            {expanded !== "new" ? (
+              <Button onClick={() => toggleCard("new")} className="gap-1.5">
+                <Link2 className="h-4 w-4" />
+                Generar enlace
+              </Button>
+            ) : !generated ? (
+              <div className="w-full space-y-4">
+                <div className="flex min-h-9 flex-wrap items-center gap-4">
+                  {servicios.length === 0 && (
+                    <span className="text-sm text-muted-foreground">Sin servicios configurados</span>
+                  )}
+                  {servicios.map((s) => (
+                    <label key={s.id} className="flex items-center gap-2 text-sm">
+                      <Checkbox
+                        checked={seleccion.includes(s.slug)}
+                        onCheckedChange={(v) =>
+                          setSeleccion((prev) =>
+                            v === true ? [...prev, s.slug] : prev.filter((x) => x !== s.slug),
+                          )
+                        }
+                      />
+                      {s.nombre}
+                    </label>
+                  ))}
+                </div>
+                <Button
+                  onClick={() => createInvitation.mutate()}
+                  disabled={createInvitation.isPending || seleccion.length === 0}
+                  className="gap-1.5"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Generar enlace
+                </Button>
+              </div>
+            ) : (
+              <div className="w-full space-y-3">
+                <p className="text-sm text-muted-foreground">Enlace generado:</p>
+                <div className="flex items-center gap-2 rounded-md border p-2">
+                  <span className="min-w-0 flex-1 truncate text-sm">{generated.url}</span>
+                  <Button variant="ghost" size="sm" onClick={() => copyLink(generated.code)} className="gap-1.5">
+                    <Copy className="h-3.5 w-3.5" /> Copiar
+                  </Button>
+                </div>
+                <Button variant="outline" onClick={resetGenerated}>
+                  Generar otro enlace
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="h-full flex flex-col">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Invitar clientes existentes</CardTitle>
+            <CardDescription>Envía acceso a clientes ya registrados</CardDescription>
           </CardHeader>
-          <CardContent>
-            <InvitarClientesInline />
+          <CardContent
+            className={cn(
+              "flex-1 flex flex-col",
+              expanded !== "existing" ? "items-center justify-center" : "items-start justify-start",
+            )}
+          >
+            {expanded !== "existing" ? (
+              <Button onClick={() => toggleCard("existing")}>Seleccionar clientes</Button>
+            ) : (
+              <InvitarClientesInline />
+            )}
           </CardContent>
         </Card>
       </div>
