@@ -178,15 +178,12 @@ function ClientePortal() {
           <TabsList className="mb-4">
             {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
-            {verGrupos && (
-              <TabsTrigger value="reservas">
-                Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}
-              </TabsTrigger>
-            )}
-            {verPersonal && <TabsTrigger value="personal">Entrenamiento personal</TabsTrigger>}
-            {misServicios.length > 0 && (
-              <TabsTrigger value="horario">Horario disponible</TabsTrigger>
-            )}
+            <TabsTrigger value="reservas">
+              Mis reservas
+              {misReservas.length + personales.length
+                ? ` (${misReservas.length + personales.length})`
+                : ""}
+            </TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
