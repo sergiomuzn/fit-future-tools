@@ -17,12 +17,11 @@ import {
 import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
-  accesoServicios,
+
   type ClaseGrupal,
   type ResumenCliente,
   type SesionPersonal,
 } from "@/lib/client-portal-types";
-import { HorarioDisponible } from "@/components/cliente/horario-disponible";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +87,6 @@ function ClientePortal() {
 
   const verGrupos = accesoIncluyeGrupos(profile?.acceso);
   const verPersonal = accesoIncluyePersonal(profile?.acceso);
-  const misServicios = accesoServicios(profile?.acceso).filter((s) => s !== "grupos");
 
   const { data: resumen } = useQuery({
     queryKey: ["portal-resumen"],
@@ -132,17 +130,9 @@ function ClientePortal() {
 
   const misReservas = clases.filter((c) => c.reservada);
 
-  const defaultTab = verGrupos ? "clases" : "personal";
+  const defaultTab = verGrupos ? "clases" : "reservas";
   const activeTab =
-    tab === "bono"
-      ? "bono"
-      : tab === "horario"
-        ? misServicios.length > 0
-          ? "horario"
-          : defaultTab
-        : (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos)
-        ? defaultTab
-        : tab;
+    tab === "bono" || tab === "reservas" ? tab : verGrupos ? tab : defaultTab;
 
   if (!loadingProfile && !profile) {
     return (
@@ -186,15 +176,12 @@ function ClientePortal() {
           <TabsList className="mb-4">
             {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
-            {verGrupos && (
-              <TabsTrigger value="reservas">
-                Mis reservas{misReservas.length ? ` (${misReservas.length})` : ""}
-              </TabsTrigger>
-            )}
-            {verPersonal && <TabsTrigger value="personal">Entrenamiento personal</TabsTrigger>}
-            {misServicios.length > 0 && (
-              <TabsTrigger value="horario">Horario disponible</TabsTrigger>
-            )}
+            <TabsTrigger value="reservas">
+              Mis reservas
+              {misReservas.length + personales.length
+                ? ` (${misReservas.length + personales.length})`
+                : ""}
+            </TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
@@ -228,7 +215,10 @@ function ClientePortal() {
           </TabsContent>
 
           <TabsContent value="reservas" className="space-y-2">
-            {misReservas.length === 0 && (
+            {(isLoading || loadingPersonales) && (
+              <p className="text-sm text-muted-foreground">Cargando reservas…</p>
+            )}
+            {misReservas.length === 0 && personales.length === 0 && !isLoading && !loadingPersonales && (
               <p className="text-sm text-muted-foreground">Todavía no tienes reservas.</p>
             )}
             {misReservas.map((c) => (
@@ -240,15 +230,6 @@ function ClientePortal() {
                 busy={bookMutation.isPending || cancelMutation.isPending}
               />
             ))}
-          </TabsContent>
-
-          <TabsContent value="personal" className="space-y-2">
-            {loadingPersonales && <p className="text-sm text-muted-foreground">Cargando sesiones…</p>}
-            {!loadingPersonales && personales.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No tienes entrenamientos personales programados en las próximas semanas.
-              </p>
-            )}
             {personales.map((s) => (
               <SesionPersonalCard key={s.id} sesion={s} />
             ))}
@@ -256,10 +237,6 @@ function ClientePortal() {
 
           <TabsContent value="bono">
             <ResumenBono resumen={resumen ?? null} sumarNC={behavior.canceladasNCSumanTotal} />
-          </TabsContent>
-
-          <TabsContent value="horario">
-            <HorarioDisponible servicios={misServicios} />
           </TabsContent>
         </Tabs>
       </main>
