@@ -155,13 +155,97 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
     });
   }
 
+  out.push(...(await listPropagatedHuecos(userId)));
   out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
   return out;
+}
+
+/**
+ * Huecos de la semana tipo ya propagados a fechas concretas
+ * (`service_slot_instances`): son las sesiones que el cliente puede reservar.
+ */
+export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[]> {
+  const { from, to } = portalRange();
+  const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
+    await Promise.all([
+      supabaseAdmin
+        .from("service_slot_instances")
+        .select("id,servicio_slug,fecha,hora_inicio,hora_fin,capacidad,trainer_id,activo")
+        .eq("activo", true)
+        .gte("fecha", from)
+        .lte("fecha", to),
+      supabaseAdmin
+        .from("sessions")
+        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,por_confirmar")
+        .is("group_id", null)
+        .gte("fecha", from)
+        .lte("fecha", to)
+        .neq("estado", "cancelada"),
+      supabaseAdmin.from("trainers").select("id,nombre"),
+      supabaseAdmin.from("center_config").select("colores").eq("id", true).maybeSingle(),
+      supabaseAdmin.from("servicios").select("slug,nombre"),
+    ]);
+
+  const trainerById = new Map((trainers ?? []).map((t) => [t.id, t.nombre as string]));
+  const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
+  const nombreServicio = new Map(
+    (servicios ?? []).map((s) => [s.slug as string, s.nombre as string]),
+  );
+
+  type Sesion = {
+    id: string;
+    fecha: string;
+    hora_inicio: string;
+    servicio_slug: string | null;
+    client_id: string | null;
+    estado: string;
+    booked_by_user_id: string | null;
+    por_confirmar: boolean;
+  };
+  const sesionesPorHueco = new Map<string, Sesion[]>();
+  for (const s of (sesiones ?? []) as Sesion[]) {
+    const k = `${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`;
+    const arr = sesionesPorHueco.get(k) ?? [];
+    arr.push(s);
+    sesionesPorHueco.set(k, arr);
+  }
+
+  return ((instancias ?? []) as {
+    id: string;
+    servicio_slug: string;
+    fecha: string;
+    hora_inicio: string;
+    hora_fin: string;
+    capacidad: number;
+    trainer_id: string | null;
+  }[]).map((h) => {
+    const rows = sesionesPorHueco.get(`${h.servicio_slug}|${h.fecha}|${h.hora_inicio.slice(0, 5)}`) ?? [];
+    const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
+    return {
+      key: `hueco|${h.id}`,
+      groupId: "",
+      nombre: nombreServicio.get(h.servicio_slug) ?? h.servicio_slug,
+      fecha: h.fecha,
+      horaInicio: h.hora_inicio.slice(0, 5),
+      horaFin: h.hora_fin.slice(0, 5),
+      duracionMin: minutesBetween(h.hora_inicio, h.hora_fin),
+      entrenador: h.trainer_id ? (trainerById.get(h.trainer_id) ?? null) : null,
+      capacidad: Math.max(1, h.capacidad ?? 1),
+      ocupadas: rows.filter((r) => !!r.client_id).length,
+      reservada: !!mine,
+      porConfirmar: !!mine?.por_confirmar && mine?.estado === "reservada",
+      asistida: mine?.estado === "realizada",
+      miSesionId: mine?.id ?? null,
+      servicioSlug: h.servicio_slug,
+      color: colores[`srv:${h.servicio_slug}`] ?? defaultServicioColor(h.servicio_slug),
+    } satisfies ClaseGrupal;
+  });
 }
 
 export async function listMyBookings(userId: string): Promise<ClaseGrupal[]> {
   return (await listUpcomingClasses(userId)).filter((c) => c.reservada);
 }
+
 
 /** Resumen del cliente: bono, último pago, próxima sesión y cancelaciones. */
 const DEFAULT_TIPO_COLORES: Record<string, string> = {
@@ -482,12 +566,90 @@ async function bookingNeedsConfirmation(
   return requiereConfirmacion(conf, slug);
 }
 
+/** Reserva de un hueco propagado (`service_slot_instances`). */
+async function bookHuecoForUser(
+  userId: string,
+  clientId: string,
+  profile: PortalProfile,
+  instanceId: string,
+): Promise<void> {
+  const { data: hueco } = await supabaseAdmin
+    .from("service_slot_instances")
+    .select("id,servicio_slug,fecha,hora_inicio,hora_fin,capacidad,trainer_id,activo")
+    .eq("id", instanceId)
+    .maybeSingle();
+  if (!hueco || hueco.activo === false) throw new Error("Este hueco ya no está disponible");
+
+  const { data: existentes } = await supabaseAdmin
+    .from("sessions")
+    .select("id,client_id,booked_by_user_id")
+    .is("group_id", null)
+    .eq("fecha", hueco.fecha)
+    .eq("hora_inicio", hueco.hora_inicio)
+    .eq("servicio_slug", hueco.servicio_slug)
+    .neq("estado", "cancelada");
+  const rows = (existentes ?? []) as { id: string; client_id: string | null; booked_by_user_id: string | null }[];
+  if (rows.some((r) => r.booked_by_user_id === userId)) throw new Error("Ya tienes esta reserva");
+  if (rows.filter((r) => !!r.client_id).length >= Math.max(1, hueco.capacidad ?? 1)) {
+    throw new Error("Este hueco está completo");
+  }
+
+  const { parseConfirmacionReservas, requiereConfirmacion } = await import("./booking-confirmation");
+  const { data: cfg } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const conf = parseConfirmacionReservas(
+    (((cfg as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+      confirmacion_reservas?: unknown;
+    }).confirmacion_reservas,
+  );
+  const porConfirmar = requiereConfirmacion(conf, hueco.servicio_slug);
+
+
+  const { error } = await supabaseAdmin.from("sessions").insert({
+    client_id: clientId,
+    trainer_id: hueco.trainer_id,
+    fecha: hueco.fecha,
+    hora_inicio: hueco.hora_inicio,
+    hora_fin: hueco.hora_fin,
+    estado: "reservada",
+    ocupacion: 1,
+    servicio_slug: hueco.servicio_slug,
+    booked_by_user_id: userId,
+    booking_tipo: profile.bonoTipo,
+    por_confirmar: porConfirmar,
+  });
+  if (error) throw new Error(error.message);
+
+  const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
+  await crearNotificaciones([
+    {
+      targetRole: "admin",
+      tipo: "reserva_creada",
+      titulo: porConfirmar
+        ? `Reserva pendiente de confirmar de ${profile.nombre}`
+        : `Reserva creada por ${profile.nombre}`,
+      mensaje: `en ${hueco.servicio_slug} (${describeSesion(hueco.fecha, hueco.hora_inicio)})`,
+    },
+  ]);
+}
+
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
+
   const profile = await getPortalProfile(userId);
   if (!profile) throw new Error("Cuenta de cliente no activa");
   const clientId = await requireClientRow(userId);
+
+  if (key.startsWith("hueco|")) {
+    await bookHuecoForUser(userId, clientId, profile, key.slice("hueco|".length));
+    return;
+  }
+
   const [groupId, fecha, horaInicio] = key.split("|");
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio);
+
   await addAttendeeToBlock({
     groupId,
     fecha,
@@ -519,39 +681,47 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
 export async function cancelBookingForUser(userId: string, sessionId: string): Promise<void> {
   const { data: row } = await supabaseAdmin
     .from("sessions")
-    .select("id,group_id,fecha,hora_inicio,titulo,booked_by_user_id")
+    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
 
-  const { count } = await supabaseAdmin
-    .from("sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("group_id", row.group_id!)
-    .eq("fecha", row.fecha)
-    .eq("hora_inicio", row.hora_inicio);
-
-  if ((count ?? 0) <= 1) {
-    // Mantener el bloque en la agenda como plaza libre.
-    await supabaseAdmin
-      .from("sessions")
-      .update({ client_id: null, booked_by_user_id: null, booking_tipo: null })
-      .eq("id", sessionId);
-  } else {
+  if (!row.group_id) {
+    // Reserva de un hueco propagado: se elimina la sesión, el hueco vuelve a ofertarse.
     await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+  } else {
+    const { count } = await supabaseAdmin
+      .from("sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("group_id", row.group_id)
+      .eq("fecha", row.fecha)
+      .eq("hora_inicio", row.hora_inicio);
+
+    if ((count ?? 0) <= 1) {
+      // Mantener el bloque en la agenda como plaza libre.
+      await supabaseAdmin
+        .from("sessions")
+        .update({ client_id: null, booked_by_user_id: null, booking_tipo: null })
+        .eq("id", sessionId);
+    } else {
+      await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+    }
   }
 
   const [profile, { data: group }] = await Promise.all([
     getPortalProfile(userId),
-    supabaseAdmin.from("groups").select("nombre").eq("id", row.group_id!).maybeSingle(),
+    row.group_id
+      ? supabaseAdmin.from("groups").select("nombre").eq("id", row.group_id).maybeSingle()
+      : Promise.resolve({ data: null as { nombre: string } | null }),
   ]);
+
   const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
   await crearNotificaciones([
     {
       targetRole: "admin",
       tipo: "reserva_cancelada_cliente",
       titulo: `Reserva cancelada por ${profile?.nombre ?? "Cliente"}`,
-      mensaje: `en ${row.titulo || group?.nombre || "Clase grupal"} (${describeSesion(row.fecha, row.hora_inicio)})`,
+      mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})`,
     },
   ]);
 }

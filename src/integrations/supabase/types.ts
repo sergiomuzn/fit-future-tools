@@ -516,6 +516,66 @@ export type Database = {
         }
         Relationships: []
       }
+      service_slot_instances: {
+        Row: {
+          activo: boolean
+          capacidad: number
+          created_at: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          origen: string
+          service_slot_id: string | null
+          servicio_slug: string
+          trainer_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          origen?: string
+          service_slot_id?: string | null
+          servicio_slug: string
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          capacidad?: number
+          created_at?: string
+          fecha?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          origen?: string
+          service_slot_id?: string | null
+          servicio_slug?: string
+          trainer_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_slot_instances_service_slot_id_fkey"
+            columns: ["service_slot_id"]
+            isOneToOne: false
+            referencedRelation: "service_slots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_slot_instances_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_slots: {
         Row: {
           activo: boolean
