@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ClipboardPaste, Copy, Info, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
+import { CalendarPlus, ClipboardPaste, Copy, Info, MousePointerSquareDashed, Save, Trash2, Undo2, Wand2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import {
   type SlotStructure,
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
+import { PropagarDialog } from "./propagar-dialog";
 import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -84,6 +85,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const [clipboard, setClipboard] = useState<SlotTemplate[] | null>(null);
   const [importing, setImporting] = useState<SlotStructure | null>(null);
   const [saveOpen, setSaveOpen] = useState(false);
+  const [propagarOpen, setPropagarOpen] = useState(false);
   const [structName, setStructName] = useState("");
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
@@ -496,6 +498,10 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
         <div className="ml-auto flex items-center gap-2">
           {copiedDay && <span className="text-muted-foreground">Día copiado ({copiedDay.length})</span>}
+          <Button size="sm" className="h-8 gap-1.5" onClick={() => setPropagarOpen(true)}>
+            <CalendarPlus className="h-3.5 w-3.5" /> Propagar a la agenda
+          </Button>
+
           <Button
             size="sm"
             variant="outline"
@@ -687,6 +693,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <PropagarDialog open={propagarOpen} onOpenChange={setPropagarOpen} servicioSlug={servicioSlug} />
 
       {/* Guardar estructura */}
       <Dialog open={saveOpen} onOpenChange={setSaveOpen}>

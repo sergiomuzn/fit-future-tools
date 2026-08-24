@@ -25,6 +25,7 @@ import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
+import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
@@ -108,6 +109,12 @@ const ApiPublicWebhooksClaspassRoute =
     path: '/api/public/webhooks/claspass',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksPropagarHuecosRoute =
+  ApiPublicHooksPropagarHuecosRouteImport.update({
+    id: '/api/public/hooks/propagar-huecos',
+    path: '/api/public/hooks/propagar-huecos',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByFullPath {
   '/facturacion': typeof ShellFacturacionRoute
   '/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
+  '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -139,6 +147,7 @@ export interface FileRoutesByTo {
   '/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
+  '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -158,6 +167,7 @@ export interface FileRoutesById {
   '/_shell/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
+  '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -177,6 +187,7 @@ export interface FileRouteTypes {
     | '/facturacion'
     | '/grupos'
     | '/invitacion/$codigo'
+    | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
     | '/lovable/email/transactional/preview'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/grupos'
     | '/invitacion/$codigo'
     | '/'
+    | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
     | '/lovable/email/transactional/preview'
@@ -212,6 +224,7 @@ export interface FileRouteTypes {
     | '/_shell/grupos'
     | '/invitacion/$codigo'
     | '/_shell/'
+    | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
     | '/lovable/email/transactional/preview'
@@ -224,6 +237,7 @@ export interface RootRouteChildren {
   PerfilRoute: typeof PerfilRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
+  ApiPublicHooksPropagarHuecosRoute: typeof ApiPublicHooksPropagarHuecosRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -343,6 +357,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksClaspassRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/propagar-huecos': {
+      id: '/api/public/hooks/propagar-huecos'
+      path: '/api/public/hooks/propagar-huecos'
+      fullPath: '/api/public/hooks/propagar-huecos'
+      preLoaderRoute: typeof ApiPublicHooksPropagarHuecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -375,6 +396,7 @@ const rootRouteChildren: RootRouteChildren = {
   PerfilRoute: PerfilRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   InvitacionCodigoRoute: InvitacionCodigoRoute,
+  ApiPublicHooksPropagarHuecosRoute: ApiPublicHooksPropagarHuecosRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
