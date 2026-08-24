@@ -132,17 +132,9 @@ function ClientePortal() {
 
   const misReservas = clases.filter((c) => c.reservada);
 
-  const defaultTab = verGrupos ? "clases" : "personal";
+  const defaultTab = verGrupos ? "clases" : "reservas";
   const activeTab =
-    tab === "bono"
-      ? "bono"
-      : tab === "horario"
-        ? misServicios.length > 0
-          ? "horario"
-          : defaultTab
-        : (tab === "personal" && !verPersonal) || (tab !== "personal" && !verGrupos)
-        ? defaultTab
-        : tab;
+    tab === "bono" || tab === "reservas" ? tab : verGrupos ? tab : defaultTab;
 
   if (!loadingProfile && !profile) {
     return (
