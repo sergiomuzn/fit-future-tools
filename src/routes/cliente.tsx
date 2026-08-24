@@ -217,7 +217,10 @@ function ClientePortal() {
           </TabsContent>
 
           <TabsContent value="reservas" className="space-y-2">
-            {misReservas.length === 0 && (
+            {(isLoading || loadingPersonales) && (
+              <p className="text-sm text-muted-foreground">Cargando reservas…</p>
+            )}
+            {misReservas.length === 0 && personales.length === 0 && !isLoading && !loadingPersonales && (
               <p className="text-sm text-muted-foreground">Todavía no tienes reservas.</p>
             )}
             {misReservas.map((c) => (
@@ -229,15 +232,6 @@ function ClientePortal() {
                 busy={bookMutation.isPending || cancelMutation.isPending}
               />
             ))}
-          </TabsContent>
-
-          <TabsContent value="personal" className="space-y-2">
-            {loadingPersonales && <p className="text-sm text-muted-foreground">Cargando sesiones…</p>}
-            {!loadingPersonales && personales.length === 0 && (
-              <p className="text-sm text-muted-foreground">
-                No tienes entrenamientos personales programados en las próximas semanas.
-              </p>
-            )}
             {personales.map((s) => (
               <SesionPersonalCard key={s.id} sesion={s} />
             ))}
@@ -245,10 +239,6 @@ function ClientePortal() {
 
           <TabsContent value="bono">
             <ResumenBono resumen={resumen ?? null} sumarNC={behavior.canceladasNCSumanTotal} />
-          </TabsContent>
-
-          <TabsContent value="horario">
-            <HorarioDisponible servicios={misServicios} />
           </TabsContent>
         </Tabs>
       </main>
