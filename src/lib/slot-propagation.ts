@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export * from "./slot-propagation-core";
-import type { SlotInstance } from "./slot-propagation-core";
+import { parsePropagacionSemanas, type SlotInstance } from "./slot-propagation-core";
 
 /* ------------------------------------------------------------------ */
 /* Configuración de propagación automática                             */
