@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { bookingModeInfo, useBookingMode, DEFAULT_BOOKING_MODE } from "@/lib/booking-mode";
+import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 import { useServiceSlots } from "@/lib/service-slots";
 import {
   buildPropagationPlan,
