@@ -642,6 +642,11 @@ async function bookHuecoForUser(
     .maybeSingle();
   if (!hueco || hueco.activo === false) throw new Error("Este hueco ya no está disponible");
 
+  const abierto = await buildAperturaFilter();
+  if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
+    throw new Error("El centro está cerrado en ese horario");
+  }
+
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
     .select("id,client_id,booked_by_user_id")
