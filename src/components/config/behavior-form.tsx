@@ -371,7 +371,7 @@ export function BehaviorForm() {
         <CardContent>
           <Row
             title="Avisar cuando le queden pocas sesiones"
-            description="El cliente recibe un aviso en su buzón cada vez que consume una sesión y su saldo queda por debajo de este número (incluye 0 y saldos negativos)."
+            description="Elige desde cuántas sesiones restantes se avisa al cliente. Recibirá un aviso en su buzón cada vez que realice una sesión y su saldo quede en ese número o por debajo (incluye 0 y saldos negativos)."
           >
             <Select
               value={String(avisoUmbral)}
