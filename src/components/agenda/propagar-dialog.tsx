@@ -371,9 +371,11 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                 </p>
               </div>
               <Switch
-                checked={autoActivo}
-                disabled={guardarAuto.isPending}
-                onCheckedChange={(v) => guardarAuto.mutate({ propagacion_auto: v })}
+                checked={autoChecked}
+                onCheckedChange={(v) => {
+                  setAutoOpt(v);
+                  guardarAuto.mutate({ propagacion_auto: v });
+                }}
               />
             </div>
             <div className="flex items-end gap-2">
