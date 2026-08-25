@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
 export * from "./slot-propagation-core";
-import type { SlotInstance } from "./slot-propagation-core";
+import { parsePropagacionSemanas, type SlotInstance } from "./slot-propagation-core";
 
 /* ------------------------------------------------------------------ */
 /* Configuración de propagación automática                             */
@@ -23,6 +23,23 @@ export function usePropagacionAuto() {
         .maybeSingle();
       const avisos = (data?.avisos ?? {}) as { propagacion_auto?: unknown };
       return parsePropagacionAuto(avisos.propagacion_auto);
+    },
+    staleTime: 30_000,
+  });
+}
+
+/** Nº de semanas por delante que genera la propagación automática. */
+export function usePropagacionSemanas() {
+  return useQuery({
+    queryKey: ["propagacion-semanas"],
+    queryFn: async (): Promise<number> => {
+      const { data } = await supabase
+        .from("center_config")
+        .select("avisos")
+        .eq("id", true)
+        .maybeSingle();
+      const avisos = (data?.avisos ?? {}) as { propagacion_semanas?: unknown };
+      return parsePropagacionSemanas(avisos.propagacion_semanas);
     },
     staleTime: 30_000,
   });

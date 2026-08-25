@@ -4,6 +4,7 @@ import {
   buildPropagationPlan,
   instanceKey,
   mondayOf,
+  parsePropagacionSemanas,
   weekDates,
   type PlantillaSlot,
 } from "./slot-propagation-core";
@@ -12,7 +13,7 @@ import {
  * Propagación automática: genera los huecos de la semana tipo para las
  * próximas `semanas` semanas (por defecto 2), respetando el modo de reservas.
  */
-export async function propagarSemanasAuto(semanas = 2): Promise<{
+export async function propagarSemanasAuto(semanasArg?: number): Promise<{
   ok: boolean;
   creados: number;
   motivo?: string;
@@ -22,11 +23,17 @@ export async function propagarSemanasAuto(semanas = 2): Promise<{
     .select("avisos")
     .eq("id", true)
     .maybeSingle();
-  const avisos = (config?.avisos ?? {}) as { propagacion_auto?: unknown; modo_reservas?: unknown };
+  const avisos = (config?.avisos ?? {}) as {
+    propagacion_auto?: unknown;
+    propagacion_semanas?: unknown;
+    modo_reservas?: unknown;
+  };
   if (avisos.propagacion_auto !== true) {
     return { ok: true, creados: 0, motivo: "Propagación automática desactivada" };
   }
   const modo = parseBookingMode(avisos.modo_reservas);
+  const semanas = semanasArg ?? parsePropagacionSemanas(avisos.propagacion_semanas);
+
 
   const base = mondayOf(new Date());
   const fechas = Array.from({ length: semanas }, (_, i) => {
