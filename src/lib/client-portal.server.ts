@@ -225,6 +225,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
  */
 export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[]> {
   const { from, to } = portalRange();
+  const abierto = await buildAperturaFilter();
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
     await Promise.all([
       supabaseAdmin
