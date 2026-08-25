@@ -20,7 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_shell/")({
-  validateSearch: (search: Record<string, unknown>) => ({
+  validateSearch: (search: { tab?: string; servicio?: string }): { tab?: string; servicio?: string } => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
     servicio: typeof search.servicio === "string" ? search.servicio : undefined,
   }),
