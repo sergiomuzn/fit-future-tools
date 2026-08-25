@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useServicios } from "@/lib/servicios";
+import { capacidadDeServicio, useServicios } from "@/lib/servicios";
 import {
   DIAS_ORDEN,
   DIA_NOMBRE,
@@ -325,7 +325,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
       inicio: hhmm(inicio),
       fin: hhmm(fin),
       dur: "60",
-      plazas: 1,
+      plazas: capacidadDeServicio(servicios, servicioSlug || paintServicioSlug || servicios[0]?.slug || ""),
       slug: servicioSlug || paintServicioSlug || servicios[0]?.slug || "",
       trainerId: NONE,
     });
