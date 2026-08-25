@@ -390,22 +390,21 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                   max={12}
                   value={semanasInput}
                   onChange={(e) => setSemanasInput(e.target.value)}
+                  onBlur={() => {
+                    const n = Math.min(12, Math.max(1, Number(semanasInput) || 1));
+                    setSemanasInput(String(n));
+                    if (n !== autoSemanas) {
+                      guardarAuto.mutate({ propagacion_semanas: n });
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.currentTarget.blur();
+                    }
+                  }}
                   className="h-8 w-[90px]"
                 />
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8"
-                disabled={guardarAuto.isPending}
-                onClick={() => {
-                  const n = Math.min(12, Math.max(1, Number(semanasInput) || 1));
-                  setSemanasInput(String(n));
-                  guardarAuto.mutate({ propagacion_semanas: n });
-                }}
-              >
-                Guardar
-              </Button>
               <span className="pb-2 text-[11px] text-muted-foreground">
                 Actual: {autoSemanas} semana(s)
               </span>
