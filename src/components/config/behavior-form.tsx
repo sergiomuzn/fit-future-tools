@@ -384,12 +384,13 @@ export function BehaviorForm() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Menos de 1 sesión</SelectItem>
-                <SelectItem value="2">Menos de 2 sesiones</SelectItem>
-                <SelectItem value="3">Menos de 3 sesiones</SelectItem>
-                <SelectItem value="4">Menos de 4 sesiones</SelectItem>
-                <SelectItem value="5">Menos de 5 sesiones</SelectItem>
-                <SelectItem value="10">Menos de 10 sesiones</SelectItem>
+                <SelectItem value="0">Desde 0 sesiones restantes</SelectItem>
+                <SelectItem value="1">Desde 1 sesión restante</SelectItem>
+                <SelectItem value="2">Desde 2 sesiones restantes</SelectItem>
+                <SelectItem value="3">Desde 3 sesiones restantes</SelectItem>
+                <SelectItem value="4">Desde 4 sesiones restantes</SelectItem>
+                <SelectItem value="5">Desde 5 sesiones restantes</SelectItem>
+                <SelectItem value="10">Desde 10 sesiones restantes</SelectItem>
               </SelectContent>
             </Select>
           </Row>
