@@ -19,6 +19,65 @@ function minutesBetween(a: string, b: string): number {
   return bh * 60 + bm - (ah * 60 + am);
 }
 
+function hm(v: string): number {
+  const [h, m] = v.slice(0, 5).split(":").map(Number);
+  return h * 60 + m;
+}
+
+type DaySlot = { open: string; close: string } | null;
+const DEFAULT_HORARIO_BASE: Record<string, DaySlot> = {
+  "0": null,
+  "1": { open: "06:45", close: "22:00" },
+  "2": { open: "06:45", close: "22:00" },
+  "3": { open: "06:45", close: "22:00" },
+  "4": { open: "06:45", close: "22:00" },
+  "5": { open: "06:45", close: "22:00" },
+  "6": { open: "09:00", close: "14:00" },
+};
+
+/**
+ * Devuelve un predicado que indica si el centro está abierto para el tramo
+ * dado, teniendo en cuenta el horario base y los días especiales
+ * (cerrado / horario especial) definidos en configuración → calendario.
+ */
+export async function buildAperturaFilter(): Promise<
+  (fecha: string, horaInicio: string, horaFin: string) => boolean
+> {
+  const [{ data: cfg }, { data: specials }] = await Promise.all([
+    supabaseAdmin.from("center_config").select("horario_base").eq("id", true).maybeSingle(),
+    supabaseAdmin.from("special_days").select("fecha,tipo,hora_apertura,hora_cierre"),
+  ]);
+  const horario =
+    ((cfg as { horario_base?: Record<string, DaySlot> } | null)?.horario_base as
+      | Record<string, DaySlot>
+      | undefined) ?? DEFAULT_HORARIO_BASE;
+  const specialByDate = new Map(
+    ((specials ?? []) as {
+      fecha: string;
+      tipo: string;
+      hora_apertura: string | null;
+      hora_cierre: string | null;
+    }[]).map((s) => [s.fecha, s]),
+  );
+
+  return (fecha, horaInicio, horaFin) => {
+    const sp = specialByDate.get(fecha);
+    let ventana: { openMin: number; closeMin: number } | null = null;
+    if (sp) {
+      if (sp.tipo === "cerrado") return false;
+      if (sp.hora_apertura && sp.hora_cierre) {
+        ventana = { openMin: hm(sp.hora_apertura), closeMin: hm(sp.hora_cierre) };
+      }
+    }
+    if (!ventana) {
+      const base = horario[String(new Date(`${fecha}T00:00:00`).getDay())] ?? null;
+      if (!base) return false;
+      ventana = { openMin: hm(base.open), closeMin: hm(base.close) };
+    }
+    return hm(horaInicio) >= ventana.openMin && hm(horaFin) <= ventana.closeMin;
+  };
+}
+
 /** Rango: hoy → domingo de la semana actual + 2 semanas. */
 export function portalRange(): { from: string; to: string } {
   const today = new Date();
