@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import { HorarioForm, PreciosForm, ColoresBonoForm, ColoresServiciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
-import { CatalogoManager } from "@/components/config/catalogo-manager";
-import { ServiciosManager } from "@/components/config/servicios-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
@@ -64,9 +62,10 @@ function ConfigPage() {
         </TabsContent>
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
-          <ServiciosManager />
+          <p className="text-xs text-muted-foreground">
+            Los servicios y sus bonos se crean y configuran en el apartado Servicios. Aquí solo se ajustan sus colores.
+          </p>
           <ColoresServiciosForm />
-          <CatalogoManager />
           <ColoresBonoForm />
         </TabsContent>
 

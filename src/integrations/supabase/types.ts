@@ -628,6 +628,7 @@ export type Database = {
       }
       servicios: {
         Row: {
+          capacidad_default: number
           created_at: string
           id: string
           nombre: string
@@ -636,6 +637,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          capacidad_default?: number
           created_at?: string
           id?: string
           nombre: string
@@ -644,6 +646,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          capacidad_default?: number
           created_at?: string
           id?: string
           nombre?: string
