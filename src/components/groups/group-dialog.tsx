@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useServicios } from "@/lib/servicios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -31,6 +32,12 @@ export function GroupDialog({ open, onClose, group }: Props) {
   const qc = useQueryClient();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const isNew = !group;
+  const { data: servicios = [] } = useServicios();
+  // Capacidad predeterminada: la configurada en el servicio grupal (Servicios).
+  const capacidadDefaultGrupo = useMemo(() => {
+    const grupal = servicios.find((s) => /grup/i.test(s.slug));
+    return Math.max(1, grupal?.capacidad_default ?? 6);
+  }, [servicios]);
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState<number | "">(6);
   const [activo, setActivo] = useState(true);
@@ -81,11 +88,11 @@ export function GroupDialog({ open, onClose, group }: Props) {
   useEffect(() => {
     if (!open) return;
     setNombre(group?.nombre ?? "");
-    setCapacidad(group?.capacidad ?? 6);
+    setCapacidad(group?.capacidad ?? capacidadDefaultGrupo);
     setActivo(group?.activo ?? true);
     setNotas(group?.notas ?? "");
     setAcceso(group?.acceso_clientes ?? true);
-  }, [open, group]);
+  }, [open, group, capacidadDefaultGrupo]);
 
   // Compute stats
   const stats = useMemo(() => {
