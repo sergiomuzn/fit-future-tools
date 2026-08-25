@@ -22,7 +22,7 @@ import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { PropagarDialog } from "./propagar-dialog";
 import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
 import {
   DropdownMenu,
@@ -437,13 +437,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-start gap-2 border-b bg-muted/40 px-3 py-2 text-xs">
-        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-        <p className="min-w-0">
-          <span className="font-medium">Modo de reservas: {modoInfo.label}</span>
-          <span className="block text-muted-foreground">{modoInfo.description}</span>
-        </p>
-      </div>
       <div className="flex flex-wrap items-center gap-2 border-b bg-card px-3 py-2 text-xs">
 
         <Button
@@ -531,24 +524,29 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
-                <Info className="h-4 w-4" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-80 text-xs leading-relaxed">
-              <p className="mb-2 font-medium text-sm">Cómo usar la agenda</p>
-              <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-                <li>Arrastra sobre un día para crear un hueco.</li>
-                <li>Arrastra un hueco para moverlo.</li>
-                <li>Clic derecho: copiar y pegar día o selección.</li>
-                <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
-                <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
-                <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
-              </ul>
-            </PopoverContent>
-          </Popover>
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
+                  <Info className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent align="end" className="w-80 text-xs leading-relaxed">
+                <p className="mb-2 text-sm font-medium">Modo de reservas: {modoInfo.label}</p>
+                <p className="mb-2 text-muted-foreground">{modoInfo.description}</p>
+                <p className="mb-2 text-sm font-medium">Cómo usar la agenda</p>
+                <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                  <li>Arrastra sobre un día para crear un hueco.</li>
+                  <li>Arrastra un hueco para moverlo.</li>
+                  <li>Clic derecho: copiar y pegar día o selección.</li>
+                  <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
+                  <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
+                  <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
+                </ul>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
         </div>
       </div>
 
