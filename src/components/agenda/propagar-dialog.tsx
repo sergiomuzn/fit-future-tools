@@ -259,8 +259,16 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Calendario por semanas */}
-          <div className="rounded-lg border bg-card p-3">
+          {/* Propagación específica */}
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Propagación específica</div>
+              <p className="text-xs text-muted-foreground">
+                Selecciona las semanas concretas a las que quieres propagar la semana tipo. Los días
+                marcados en rojo son días en los que el centro no abre.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
             <div className="mb-2 flex items-center justify-between">
               <Button
                 variant="ghost"
