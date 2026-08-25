@@ -18,6 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { bookingModeInfo, useBookingMode, DEFAULT_BOOKING_MODE } from "@/lib/booking-mode";
+import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 import { useServiceSlots } from "@/lib/service-slots";
 import {
   buildPropagationPlan,
@@ -53,11 +54,20 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   const { data: slots = [] } = useServiceSlots();
   const { data: autoActivo = false } = usePropagacionAuto();
   const { data: autoSemanas = 2 } = usePropagacionSemanas();
+  const { horario, specialsMap } = useCenterConfig();
 
   const hoyMonday = useMemo(() => mondayOf(new Date()), []);
   const [mes, setMes] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [semanasSel, setSemanasSel] = useState<string[]>([ymdLocal(hoyMonday)]);
   const [semanasInput, setSemanasInput] = useState(String(autoSemanas));
+  /** Valor optimista del interruptor para que responda al instante. */
+  const [autoOpt, setAutoOpt] = useState<boolean | null>(null);
+  const autoChecked = autoOpt ?? autoActivo;
+
+  /** Días cerrados (festivos/cierres o día no laborable del horario base). */
+  function diaCerrado(fecha: string): boolean {
+    return !getDayScheduleFor(new Date(`${fecha}T00:00:00`), horario, specialsMap);
+  }
 
   /** Semanas (lunes) que tocan el mes visible. */
   const semanasMes = useMemo(() => {
@@ -222,7 +232,10 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         toast.success("Semanas de propagación automática actualizadas");
       }
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setAutoOpt(null);
+      toast.error(e.message);
+    },
   });
 
   function toggleSemana(monday: string) {
@@ -249,8 +262,16 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* Calendario por semanas */}
-          <div className="rounded-lg border bg-card p-3">
+          {/* Propagación específica */}
+          <div className="space-y-3 rounded-md border p-3">
+            <div className="min-w-0">
+              <div className="text-sm font-medium">Propagación específica</div>
+              <p className="text-xs text-muted-foreground">
+                Selecciona las semanas concretas a las que quieres propagar la semana tipo. Los días
+                marcados en rojo son días en los que el centro no abre.
+              </p>
+            </div>
+            <div className="rounded-lg border bg-card p-3">
             <div className="mb-2 flex items-center justify-between">
               <Button
                 variant="ghost"
@@ -304,13 +325,17 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                     {s.fechas.map((f) => {
                       const d = new Date(`${f}T00:00:00`);
                       const fuera = d.getMonth() !== mes.getMonth();
+                      const cerrado = diaCerrado(f);
                       return (
                         <span
                           key={f}
+                          title={cerrado ? "El centro no abre este día" : undefined}
                           className={cn(
                             "flex h-7 items-center justify-center rounded",
                             sel && "font-semibold text-primary",
-                            fuera && "text-muted-foreground/40",
+                            cerrado && "bg-destructive/10 font-semibold text-destructive",
+                            fuera && !cerrado && "text-muted-foreground/40",
+                            fuera && cerrado && "opacity-50",
                           )}
                         >
                           {d.getDate()}
@@ -333,6 +358,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                 </button>
               )}
             </div>
+            </div>
           </div>
 
           <Separator />
@@ -348,9 +374,11 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                 </p>
               </div>
               <Switch
-                checked={autoActivo}
-                disabled={guardarAuto.isPending}
-                onCheckedChange={(v) => guardarAuto.mutate({ propagacion_auto: v })}
+                checked={autoChecked}
+                onCheckedChange={(v) => {
+                  setAutoOpt(v);
+                  guardarAuto.mutate({ propagacion_auto: v });
+                }}
               />
             </div>
             <div className="flex items-end gap-2">
