@@ -349,8 +349,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
 
             <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
               <span>
-                {semanasSel.length} semana(s) seleccionada(s) · {plantilla.length} huecos/semana en
-                plantilla
+                {semanasSel.length} semana(s) seleccionada(s)
               </span>
               {semanasSel.length > 0 && (
                 <button className="underline" onClick={() => setSemanasSel([])}>
@@ -435,7 +434,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
               Cerrar
             </Button>
             <Button onClick={() => propagar.mutate()} disabled={total === 0 || propagar.isPending}>
-              {propagar.isPending ? "Propagando…" : `Propagar ${total || ""}`.trim()}
+              {propagar.isPending ? "Propagando…" : "Propagar"}
             </Button>
           </div>
         </DialogFooter>
