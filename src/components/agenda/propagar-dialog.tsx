@@ -232,7 +232,10 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         toast.success("Semanas de propagación automática actualizadas");
       }
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      setAutoOpt(null);
+      toast.error(e.message);
+    },
   });
 
   function toggleSemana(monday: string) {
