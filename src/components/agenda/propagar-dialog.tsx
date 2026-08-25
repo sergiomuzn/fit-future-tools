@@ -54,11 +54,20 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   const { data: slots = [] } = useServiceSlots();
   const { data: autoActivo = false } = usePropagacionAuto();
   const { data: autoSemanas = 2 } = usePropagacionSemanas();
+  const { horario, specialsMap } = useCenterConfig();
 
   const hoyMonday = useMemo(() => mondayOf(new Date()), []);
   const [mes, setMes] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [semanasSel, setSemanasSel] = useState<string[]>([ymdLocal(hoyMonday)]);
   const [semanasInput, setSemanasInput] = useState(String(autoSemanas));
+  /** Valor optimista del interruptor para que responda al instante. */
+  const [autoOpt, setAutoOpt] = useState<boolean | null>(null);
+  const autoChecked = autoOpt ?? autoActivo;
+
+  /** Días cerrados (festivos/cierres o día no laborable del horario base). */
+  function diaCerrado(fecha: string): boolean {
+    return !getDayScheduleFor(new Date(`${fecha}T00:00:00`), horario, specialsMap);
+  }
 
   /** Semanas (lunes) que tocan el mes visible. */
   const semanasMes = useMemo(() => {
