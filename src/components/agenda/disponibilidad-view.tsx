@@ -154,7 +154,13 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
       const { data, error } = await supabase
         .from("service_slots")
         .insert([
-          { servicio_slug: p.slug, dia_semana: p.dia, hora_inicio: p.inicio, hora_fin: p.fin, capacidad: 1 },
+          {
+            servicio_slug: p.slug,
+            dia_semana: p.dia,
+            hora_inicio: p.inicio,
+            hora_fin: p.fin,
+            capacidad: capacidadDeServicio(servicios, p.slug),
+          },
         ])
         .select("id");
       if (error) throw error;
