@@ -22,7 +22,7 @@ import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { PropagarDialog } from "./propagar-dialog";
 import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
 import {
   DropdownMenu,
