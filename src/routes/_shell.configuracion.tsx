@@ -10,8 +10,6 @@ import {
 } from "@/components/ui/tooltip";
 import { HorarioForm, PreciosForm, ColoresBonoForm, ColoresServiciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
-import { CatalogoManager } from "@/components/config/catalogo-manager";
-import { ServiciosManager } from "@/components/config/servicios-manager";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
