@@ -52,7 +52,7 @@ function Row({
 export function BehaviorForm() {
   const [cfg, setCfg] = useState<BehaviorConfig>(DEFAULT_BEHAVIOR_CONFIG);
   const [dirty, setDirty] = useState(false);
-  const [avisoUmbral, setAvisoUmbral] = useState(2);
+  const [avisoUmbral, setAvisoUmbral] = useState(1);
   const [avisoRenovacion, setAvisoRenovacion] = useState(true);
   const [modoReservas, setModoReservas] = useState<BookingMode>(DEFAULT_BOOKING_MODE);
   const [confirmacion, setConfirmacion] = useState<ConfirmacionReservasConfig>(
@@ -75,7 +75,7 @@ export function BehaviorForm() {
       };
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
-      setAvisoUmbral(avisos.umbral_sesiones ?? 2);
+      setAvisoUmbral(avisos.umbral_sesiones ?? 1);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
       setCfg((prev) => ({
         ...prev,
@@ -120,7 +120,7 @@ export function BehaviorForm() {
 
   function reset() {
     setCfg(DEFAULT_BEHAVIOR_CONFIG);
-    setAvisoUmbral(2);
+    setAvisoUmbral(1);
     setAvisoRenovacion(true);
     setModoReservas(DEFAULT_BOOKING_MODE);
     setConfirmacion(DEFAULT_CONFIRMACION_RESERVAS);
