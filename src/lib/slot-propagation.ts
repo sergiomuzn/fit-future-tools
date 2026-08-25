@@ -28,6 +28,28 @@ export function usePropagacionAuto() {
   });
 }
 
+export function parsePropagacionSemanas(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 ? Math.min(12, Math.round(n)) : 2;
+}
+
+/** Nº de semanas por delante que genera la propagación automática. */
+export function usePropagacionSemanas() {
+  return useQuery({
+    queryKey: ["propagacion-semanas"],
+    queryFn: async (): Promise<number> => {
+      const { data } = await supabase
+        .from("center_config")
+        .select("avisos")
+        .eq("id", true)
+        .maybeSingle();
+      const avisos = (data?.avisos ?? {}) as { propagacion_semanas?: unknown };
+      return parsePropagacionSemanas(avisos.propagacion_semanas);
+    },
+    staleTime: 30_000,
+  });
+}
+
 /** Instancias propagadas en un rango de fechas (vista de administrador). */
 export function useSlotInstances(from: string, to: string) {
   return useQuery({
