@@ -62,9 +62,10 @@ function ConfigPage() {
         </TabsContent>
 
         <TabsContent value="bonos" className="pt-4 space-y-6">
-          <ServiciosManager />
+          <p className="text-xs text-muted-foreground">
+            Los servicios y sus bonos se crean y configuran en el apartado Servicios. Aquí solo se ajustan sus colores.
+          </p>
           <ColoresServiciosForm />
-          <CatalogoManager />
           <ColoresBonoForm />
         </TabsContent>
 
