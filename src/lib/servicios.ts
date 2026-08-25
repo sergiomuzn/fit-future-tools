@@ -6,6 +6,8 @@ export interface Servicio {
   slug: string;
   nombre: string;
   orden: number;
+  /** Plazas por sesión que se ofertan por defecto en agenda y reservas. */
+  capacidad_default: number;
 }
 
 export function slugifyServicio(nombre: string): string {
@@ -24,10 +26,20 @@ export function useServicios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("servicios")
-        .select("id,slug,nombre,orden")
+        .select("id,slug,nombre,orden,capacidad_default")
         .order("orden");
       if (error) throw error;
-      return (data ?? []) as Servicio[];
+      return (data ?? []).map((s) => ({
+        ...s,
+        capacidad_default: Math.max(1, (s as { capacidad_default?: number }).capacidad_default ?? 1),
+      })) as Servicio[];
     },
   });
+}
+
+/** Capacidad por defecto configurada para un servicio (1 si no se conoce). */
+export function capacidadDeServicio(servicios: Servicio[], slug?: string | null): number {
+  if (!slug) return 1;
+  const s = servicios.find((x) => x.slug === slug);
+  return Math.max(1, s?.capacidad_default ?? 1);
 }
