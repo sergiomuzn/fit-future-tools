@@ -322,13 +322,17 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                     {s.fechas.map((f) => {
                       const d = new Date(`${f}T00:00:00`);
                       const fuera = d.getMonth() !== mes.getMonth();
+                      const cerrado = diaCerrado(f);
                       return (
                         <span
                           key={f}
+                          title={cerrado ? "El centro no abre este día" : undefined}
                           className={cn(
                             "flex h-7 items-center justify-center rounded",
                             sel && "font-semibold text-primary",
-                            fuera && "text-muted-foreground/40",
+                            cerrado && "bg-destructive/10 font-semibold text-destructive",
+                            fuera && !cerrado && "text-muted-foreground/40",
+                            fuera && cerrado && "opacity-50",
                           )}
                         >
                           {d.getDate()}
@@ -350,6 +354,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                   Limpiar
                 </button>
               )}
+            </div>
             </div>
           </div>
 
