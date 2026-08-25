@@ -4,6 +4,7 @@ import {
   buildPropagationPlan,
   instanceKey,
   mondayOf,
+  parsePropagacionSemanas,
   weekDates,
   type PlantillaSlot,
 } from "./slot-propagation-core";

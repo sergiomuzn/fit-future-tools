@@ -130,3 +130,9 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
   return { rows, porFecha, omitidosPorModo, yaExistentes };
 }
 
+
+/** Nº de semanas por delante de la propagación automática (1-12, por defecto 2). */
+export function parsePropagacionSemanas(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) && n >= 1 ? Math.min(12, Math.round(n)) : 2;
+}

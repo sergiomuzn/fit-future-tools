@@ -28,11 +28,6 @@ export function usePropagacionAuto() {
   });
 }
 
-export function parsePropagacionSemanas(v: unknown): number {
-  const n = Number(v);
-  return Number.isFinite(n) && n >= 1 ? Math.min(12, Math.round(n)) : 2;
-}
-
 /** Nº de semanas por delante que genera la propagación automática. */
 export function usePropagacionSemanas() {
   return useQuery({
