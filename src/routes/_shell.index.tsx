@@ -20,6 +20,10 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const Route = createFileRoute("/_shell/")({
+  validateSearch: (search: Record<string, unknown>) => ({
+    tab: typeof search.tab === "string" ? search.tab : undefined,
+    servicio: typeof search.servicio === "string" ? search.servicio : undefined,
+  }),
   component: AgendaPage,
 });
 
@@ -27,6 +31,7 @@ const DOW = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado
 const MONTHS = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
 
 function AgendaPage() {
+  const { tab: tabParam, servicio: servicioParam } = Route.useSearch();
   const { date, setDate, agendaTabRequest } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
@@ -38,6 +43,11 @@ function AgendaPage() {
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
+  // Acceso directo desde Servicios → "Ver reservas de este servicio".
+  useEffect(() => {
+    if (tabParam === "reservas") setView("disponibilidad");
+    if (servicioParam) setServicioSlug(servicioParam);
+  }, [tabParam, servicioParam]);
   const activeServicio = servicioSlug === "__all" ? "" : servicioSlug;
   const [paintServicio, setPaintServicio] = useState<string | null>(null);
   const { horario, specialsMap, colores } = useCenterConfig();
