@@ -23,6 +23,8 @@ import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenado
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
@@ -97,6 +99,16 @@ const LovableEmailTransactionalPreviewRoute =
     path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksWellhubRoute =
   ApiPublicWebhooksWellhubRouteImport.update({
     id: '/api/public/webhooks/wellhub',
@@ -132,6 +144,8 @@ export interface FileRoutesByFullPath {
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
@@ -150,6 +164,8 @@ export interface FileRoutesByTo {
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
@@ -170,6 +186,8 @@ export interface FileRoutesById {
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
+  '/lovable/email/auth/preview': typeof LovableEmailAuthPreviewRoute
+  '/lovable/email/auth/webhook': typeof LovableEmailAuthWebhookRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
@@ -190,6 +208,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -208,6 +228,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
   id:
     | '__root__'
@@ -227,6 +249,8 @@ export interface FileRouteTypes {
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
+    | '/lovable/email/auth/preview'
+    | '/lovable/email/auth/webhook'
     | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
@@ -240,6 +264,8 @@ export interface RootRouteChildren {
   ApiPublicHooksPropagarHuecosRoute: typeof ApiPublicHooksPropagarHuecosRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
+  LovableEmailAuthPreviewRoute: typeof LovableEmailAuthPreviewRoute
+  LovableEmailAuthWebhookRoute: typeof LovableEmailAuthWebhookRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
@@ -343,6 +369,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/lovable/email/auth/webhook': {
+      id: '/lovable/email/auth/webhook'
+      path: '/lovable/email/auth/webhook'
+      fullPath: '/lovable/email/auth/webhook'
+      preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/webhooks/wellhub': {
       id: '/api/public/webhooks/wellhub'
       path: '/api/public/webhooks/wellhub'
@@ -399,6 +439,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicHooksPropagarHuecosRoute: ApiPublicHooksPropagarHuecosRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
+  LovableEmailAuthPreviewRoute: LovableEmailAuthPreviewRoute,
+  LovableEmailAuthWebhookRoute: LovableEmailAuthWebhookRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
