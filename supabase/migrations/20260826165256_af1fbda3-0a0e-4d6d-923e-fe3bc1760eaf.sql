@@ -1,0 +1,1 @@
+UPDATE public.sessions SET servicio_slug = CASE WHEN COALESCE(ocupacion,1) >= 2 OR group_id IS NOT NULL THEN 'grupos' ELSE 'personal' END WHERE servicio_slug IS NULL;
