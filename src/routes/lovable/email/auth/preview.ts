@@ -18,7 +18,7 @@ const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
 }
 
 // Configuration
-const SITE_NAME = "Fitness 360"
+const SITE_NAME = "Tracli"
 const ROOT_DOMAIN = "tracli.app"
 
 // Sample data for preview mode ONLY (not used in actual email sending).
