@@ -27,7 +27,7 @@ function ServiciosPage() {
   const editing = servicios.find((s) => s.slug === editingSlug) ?? null;
 
   return (
-    <div className="page-tabbed min-h-screen p-6 space-y-4">
+    <div className="page-tabbed min-h-full p-6 space-y-4">
       <div className="flex min-h-10 items-center justify-between gap-2">
         <div>
           <h1 className="text-2xl font-display font-semibold">Servicios</h1>
