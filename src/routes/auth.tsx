@@ -40,7 +40,7 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-display text-2xl">TRA</CardTitle>
+          <CardTitle className="font-display text-2xl">TRACLI</CardTitle>
           {!isCliente && <CardDescription>Accede a la gestión del centro</CardDescription>}
         </CardHeader>
         <CardContent>
