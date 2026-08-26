@@ -37,10 +37,10 @@ export const Route = createFileRoute("/cliente")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Mis clases · Fitness 360" },
-      { name: "description", content: "Reserva y gestiona tus clases grupales en Fitness 360." },
-      { property: "og:title", content: "Mis clases · Fitness 360" },
-      { property: "og:description", content: "Reserva y gestiona tus clases grupales en Fitness 360." },
+      { title: "Mis clases · Tracli" },
+      { name: "description", content: "Reserva y gestiona tus clases grupales en Tracli." },
+      { property: "og:title", content: "Mis clases · Tracli" },
+      { property: "og:description", content: "Reserva y gestiona tus clases grupales en Tracli." },
     ],
   }),
   beforeLoad: async () => {

@@ -97,7 +97,7 @@ function ShellInner() {
         <SidebarHeader className="border-b h-12 px-2 py-0">
           <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
             <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-              Trainly
+              Tracli
             </div>
             <span className="hidden font-display text-lg font-bold group-data-[collapsible=icon]:block">
               T

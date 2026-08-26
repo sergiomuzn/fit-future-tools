@@ -19,7 +19,7 @@ interface InvitacionClienteProps {
 }
 
 function InvitacionCliente({
-  centro = 'Fitness 360',
+  centro = 'Tracli',
   url = 'https://example.com/invitacion/codigo',
   servicios = '',
 }: InvitacionClienteProps) {
@@ -67,9 +67,9 @@ export const template = {
   component: InvitacionCliente,
   displayName: 'Invitación cliente',
   subject: (data: Record<string, any>) =>
-    `Tu acceso al portal de reservas de ${data['centro'] ?? 'Fitness 360'}`,
+    `Tu acceso al portal de reservas de ${data['centro'] ?? 'Tracli'}`,
   previewData: {
-    centro: 'Fitness 360',
+    centro: 'Tracli',
     url: 'https://example.com/invitacion/abc123',
     servicios: 'Grupos',
   },

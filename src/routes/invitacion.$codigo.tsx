@@ -16,10 +16,10 @@ export const Route = createFileRoute("/invitacion/$codigo")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Invitación · Fitness 360" },
-      { name: "description", content: "Crea tu cuenta de cliente en Fitness 360 y reserva tus clases grupales." },
-      { property: "og:title", content: "Invitación · Fitness 360" },
-      { property: "og:description", content: "Crea tu cuenta de cliente en Fitness 360 y reserva tus clases grupales." },
+      { title: "Invitación · Tracli" },
+      { name: "description", content: "Crea tu cuenta de cliente en Tracli y reserva tus clases grupales." },
+      { property: "og:title", content: "Invitación · Tracli" },
+      { property: "og:description", content: "Crea tu cuenta de cliente en Tracli y reserva tus clases grupales." },
     ],
   }),
   component: InvitacionPage,

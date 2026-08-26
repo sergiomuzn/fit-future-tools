@@ -8,5 +8,5 @@ export const getCenterName = createServerFn({ method: "GET" }).handler(async () 
     .select("nombre")
     .eq("id", true)
     .maybeSingle();
-  return { nombre: (data?.nombre ?? "").trim() || "Fitness 360" };
+  return { nombre: (data?.nombre ?? "").trim() || "Tracli" };
 });

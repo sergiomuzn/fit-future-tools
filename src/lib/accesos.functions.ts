@@ -48,7 +48,7 @@ export const crearInvitacionCliente = createServerFn({ method: "POST" })
         const { sendTemplateEmail } = await import("./email-templates/send-email");
         const { data: centro } = await context.supabase.rpc("get_center_nombre");
         const res = await sendTemplateEmail("invitacion-cliente", data.email, {
-          templateData: { centro: centro ?? "Fitness 360", url, servicios: data.acceso },
+          templateData: { centro: centro ?? "Tracli", url, servicios: data.acceso },
           idempotencyKey: `invitacion-cliente-${code}`,
         });
         enviado = res.sent;
