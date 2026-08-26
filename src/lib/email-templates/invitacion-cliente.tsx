@@ -19,7 +19,7 @@ interface InvitacionClienteProps {
 }
 
 function InvitacionCliente({
-  centro = 'Fitness 360',
+  centro = 'Tracli',
   url = 'https://example.com/invitacion/codigo',
   servicios = '',
 }: InvitacionClienteProps) {
