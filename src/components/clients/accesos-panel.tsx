@@ -265,7 +265,9 @@ export function AccesosPanel() {
         <Card className="h-full flex flex-col">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Nueva invitación</CardTitle>
-            <CardDescription>Genera un enlace de acceso para un cliente nuevo</CardDescription>
+            <CardDescription>
+              Genera un enlace o envía la invitación por correo a un cliente nuevo
+            </CardDescription>
           </CardHeader>
           <CardContent
             className={cn(
