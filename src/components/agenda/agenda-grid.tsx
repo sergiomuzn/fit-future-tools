@@ -447,7 +447,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
+      <div ref={scrollRef} className="h-full overflow-y-auto">
         <div className="flex" style={{ minHeight: TOTAL_PX }}>
           {/* time gutter (scrolls with sessions) */}
           <div className="w-14 shrink-0 bg-card/40 text-xs">
