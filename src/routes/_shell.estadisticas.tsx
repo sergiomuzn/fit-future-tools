@@ -17,6 +17,8 @@ import {
   type HorarioBase, type SpecialDay,
 } from "@/lib/center-schedule";
 import { trainerColor } from "@/lib/trainer-colors";
+import { useServicios } from "@/lib/servicios";
+import { servicioColorOf } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
@@ -585,7 +587,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const { data: serviciosList = [] } = useServicios();
   const catalogoTiposList = useMemo(() => serviciosList.map((sv) => sv.slug), [serviciosList]);
   const servicioNombreMap = useMemo(
-    () => new Map(serviciosList.map((sv) => [sv.slug, sv.nombre])),
+    () => new Map<string, string>(serviciosList.map((sv) => [sv.slug, sv.nombre])),
     [serviciosList],
   );
   const [metric, setMetric] = useState<Metric>("sesiones");
