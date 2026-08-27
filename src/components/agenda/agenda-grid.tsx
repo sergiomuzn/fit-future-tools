@@ -109,6 +109,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const qc = useQueryClient();
   const isoDate = formatDateISO(date);
   const gridRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const draftRef = useRef<DraftSession | null>(null);
+  const autoScrollRef = useRef<{ dir: number; speed: number; raf: number | null; lastY: number }>({ dir: 0, speed: 0, raf: null, lastY: 0 });
 
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
@@ -219,31 +222,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const y = e.clientY - rect.top;
     const m = Math.max(0, pxToMin(y));
     dragStartRef.current = m;
-    setDraft({ startMin: m, endMin: m + 30 });
-  }
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (dragStartRef.current === null) return;
-    const rect = gridRef.current!.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const m = snapMin(pxToMinRaw(y));
-    const start = dragStartRef.current;
-    const end = Math.max(m, start + 15);
-    setDraft({ startMin: start, endMin: end });
-  }
-  function onMouseUp() {
-    if (dragStartRef.current !== null && draft) {
-      setDialogSession({
-        fecha: isoDate,
-        hora_inicio: minToTime(draft.startMin),
-        hora_fin: minToTime(draft.endMin),
-        trainer_id: paintTrainerId,
-        estado: "reservada",
-        ocupacion: 1,
-      });
-      setDialogOpen(true);
-    }
-    dragStartRef.current = null;
-    setDraft(null);
+    const d = { startMin: m, endMin: m + 30 };
+    draftRef.current = d;
+    setDraft(d);
   }
 
   // Drag-to-move existing
@@ -342,7 +323,30 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }
 
   useEffect(() => {
+    function stopAutoScroll() {
+      if (autoScrollRef.current.raf !== null) {
+        cancelAnimationFrame(autoScrollRef.current.raf);
+        autoScrollRef.current.raf = null;
+      }
+      autoScrollRef.current.dir = 0;
+    }
     function up() {
+      stopAutoScroll();
+      if (dragStartRef.current !== null && draftRef.current) {
+        const d = draftRef.current;
+        setDialogSession({
+          fecha: isoDate,
+          hora_inicio: minToTime(d.startMin),
+          hora_fin: minToTime(d.endMin),
+          trainer_id: paintTrainerId,
+          estado: "reservada",
+          ocupacion: 1,
+        });
+        setDialogOpen(true);
+        dragStartRef.current = null;
+        draftRef.current = null;
+        setDraft(null);
+      }
       if (moving && movePreview !== null) {
         if (movedRef.current) suppressClickRef.current = true;
         const snapped = snapMin(movePreview);
@@ -376,8 +380,48 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       setResizing(null);
       setResizePreview(null);
     }
+    function autoScrollTick() {
+      if (autoScrollRef.current.dir === 0 || !scrollRef.current || !gridRef.current) {
+        autoScrollRef.current.raf = null;
+        return;
+      }
+      const scrollEl = scrollRef.current;
+      scrollEl.scrollTop += autoScrollRef.current.dir * autoScrollRef.current.speed;
+      const maxScroll = scrollEl.scrollHeight - scrollEl.clientHeight;
+      scrollEl.scrollTop = Math.max(0, Math.min(scrollEl.scrollTop, maxScroll));
+
+      const rect = gridRef.current.getBoundingClientRect();
+      const clientY = autoScrollRef.current.lastY;
+      if (moving) {
+        const y = clientY - rect.top - moving.offset;
+        const next = Math.max(0, snapMin(pxToMinRaw(y)));
+        setMovePreview((prev) => {
+          if (prev !== null && prev !== next) movedRef.current = true;
+          return next;
+        });
+      } else if (resizing) {
+        const m = Math.max(0, snapMin(pxToMinRaw(clientY - rect.top)));
+        if (resizing.edge === "top") {
+          const newStart = Math.min(m, resizing.endMin - SLOT_MIN);
+          setResizePreview({ startMin: newStart, endMin: resizing.endMin });
+        } else {
+          const newEnd = Math.max(m, resizing.startMin + SLOT_MIN);
+          setResizePreview({ startMin: resizing.startMin, endMin: newEnd });
+        }
+      } else if (dragStartRef.current !== null) {
+        const y = clientY - rect.top;
+        const m = snapMin(pxToMinRaw(y));
+        const start = dragStartRef.current;
+        const end = Math.max(m, start + 15);
+        const d = { startMin: start, endMin: end };
+        draftRef.current = d;
+        setDraft(d);
+      }
+      autoScrollRef.current.raf = requestAnimationFrame(autoScrollTick);
+    }
     function move(e: MouseEvent) {
       if (!gridRef.current) return;
+      autoScrollRef.current.lastY = e.clientY;
       const rect = gridRef.current.getBoundingClientRect();
       if (moving) {
         const y = e.clientY - rect.top - moving.offset;
@@ -395,15 +439,40 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           const newEnd = Math.max(m, resizing.startMin + SLOT_MIN);
           setResizePreview({ startMin: resizing.startMin, endMin: newEnd });
         }
+      } else if (dragStartRef.current !== null) {
+        const y = e.clientY - rect.top;
+        const m = snapMin(pxToMinRaw(y));
+        const start = dragStartRef.current;
+        const end = Math.max(m, start + 15);
+        const d = { startMin: start, endMin: end };
+        draftRef.current = d;
+        setDraft(d);
+      }
+      if (scrollRef.current && (moving || resizing || dragStartRef.current !== null)) {
+        const sRect = scrollRef.current.getBoundingClientRect();
+        const MARGIN = 40;
+        if (e.clientY < sRect.top + MARGIN) {
+          autoScrollRef.current.dir = -1;
+          autoScrollRef.current.speed = Math.min(20, Math.max(4, (sRect.top + MARGIN - e.clientY) / 4));
+        } else if (e.clientY > sRect.bottom - MARGIN) {
+          autoScrollRef.current.dir = 1;
+          autoScrollRef.current.speed = Math.min(20, Math.max(4, (e.clientY - (sRect.bottom - MARGIN)) / 4));
+        } else {
+          autoScrollRef.current.dir = 0;
+        }
+        if (autoScrollRef.current.dir !== 0 && autoScrollRef.current.raf === null) {
+          autoScrollRef.current.raf = requestAnimationFrame(autoScrollTick);
+        }
       }
     }
     window.addEventListener("mousemove", move);
     window.addEventListener("mouseup", up);
     return () => {
+      stopAutoScroll();
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions]);
+  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId]);
 
   // Dialog
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
@@ -466,7 +535,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   return (
     <>
-      <div className="h-full overflow-y-auto">
+      <div ref={scrollRef} className="h-full overflow-y-auto">
         <div className="flex" style={{ minHeight: TOTAL_PX }}>
           {/* time gutter (scrolls with sessions) */}
           <div className="w-14 shrink-0 bg-card/40 text-xs">
@@ -498,8 +567,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             className="relative w-full select-none"
             style={{ height: TOTAL_PX, marginTop: 8 }}
             onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
           >
             {/* hour lines */}
             {hours.map((h) => (
