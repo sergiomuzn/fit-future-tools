@@ -266,40 +266,11 @@ export function AccesosPanel() {
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Nueva invitación</CardTitle>
             <CardDescription>
-              Genera un enlace o envía la invitación por correo a un cliente nuevo
+              Selecciona los servicios y genera un enlace o envía la invitación por correo
             </CardDescription>
           </CardHeader>
-          <CardContent
-            className={cn(
-              "flex-1 flex flex-col",
-              expanded !== "new" ? "items-center justify-center" : "items-start justify-start",
-            )}
-          >
-            {expanded !== "new" ? (
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <Button
-                  onClick={() => {
-                    setModoInvitacion("enlace");
-                    toggleCard("new");
-                  }}
-                  className="gap-1.5"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Generar enlace
-                </Button>
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    setModoInvitacion("email");
-                    toggleCard("new");
-                  }}
-                  className="gap-1.5"
-                >
-                  <Mail className="h-4 w-4" />
-                  Enviar por correo
-                </Button>
-              </div>
-            ) : !generated ? (
+          <CardContent className="flex-1 flex flex-col items-start justify-start">
+            {!generated ? (
               <div className="w-full space-y-4">
                 <div className="flex min-h-9 flex-wrap items-center gap-4">
                   {servicios.length === 0 && (
@@ -319,49 +290,23 @@ export function AccesosPanel() {
                     </label>
                   ))}
                 </div>
-                {modoInvitacion === "email" && (
-                  <div className="space-y-1.5">
-                    <Label htmlFor="email-invitacion">Correo del cliente</Label>
-                    <Input
-                      id="email-invitacion"
-                      type="email"
-                      placeholder="cliente@correo.com"
-                      value={emailInvitacion}
-                      onChange={(e) => setEmailInvitacion(e.target.value)}
-                    />
-                  </div>
-                )}
                 <div className="flex flex-wrap items-center gap-2">
-                  {modoInvitacion === "enlace" ? (
-                    <Button
-                      onClick={() => createInvitation.mutate()}
-                      disabled={createInvitation.isPending || seleccion.length === 0}
-                      className="gap-1.5"
-                    >
-                      <Link2 className="h-4 w-4" />
-                      Generar enlace
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={() => enviarInvitacionEmail.mutate()}
-                      disabled={
-                        enviarInvitacionEmail.isPending ||
-                        seleccion.length === 0 ||
-                        emailInvitacion.trim() === ""
-                      }
-                      className="gap-1.5"
-                    >
-                      <Mail className="h-4 w-4" />
-                      {enviarInvitacionEmail.isPending ? "Enviando…" : "Enviar invitación"}
-                    </Button>
-                  )}
                   <Button
-                    variant="ghost"
-                    onClick={() =>
-                      setModoInvitacion((m) => (m === "email" ? "enlace" : "email"))
-                    }
+                    onClick={() => createInvitation.mutate()}
+                    disabled={createInvitation.isPending || seleccion.length === 0}
+                    className="gap-1.5"
                   >
-                    {modoInvitacion === "email" ? "Usar enlace" : "Enviar por correo"}
+                    <Link2 className="h-4 w-4" />
+                    Generar enlace
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setOpenEmailDialog(true)}
+                    disabled={seleccion.length === 0}
+                    className="gap-1.5"
+                  >
+                    <Mail className="h-4 w-4" />
+                    Enviar por correo
                   </Button>
                 </div>
               </div>
