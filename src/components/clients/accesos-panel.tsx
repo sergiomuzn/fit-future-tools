@@ -81,6 +81,8 @@ export function AccesosPanel() {
   const [expanded, setExpanded] = useState<"new" | "existing" | null>(null);
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [generated, setGenerated] = useState<{ code: string; url: string } | null>(null);
+  const [emailInvitacion, setEmailInvitacion] = useState("");
+  const [modoInvitacion, setModoInvitacion] = useState<"enlace" | "email">("enlace");
 
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
