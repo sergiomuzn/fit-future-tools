@@ -123,10 +123,11 @@ export async function acceptInvitation(input: {
     }
     const { data: existingProfile } = await supabaseAdmin
       .from("client_profiles")
-      .select("id")
+      .select("id,activo")
       .eq("id", existingUser.id)
       .maybeSingle();
-    if (existingProfile) {
+    // Solo bloquea si el acceso sigue activo; si fue revocado se reutiliza la cuenta
+    if (existingProfile && (existingProfile as { activo?: boolean }).activo) {
       return { ok: false, error: "Ese correo ya tiene un acceso activo" };
     }
     const { error: updUserError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
