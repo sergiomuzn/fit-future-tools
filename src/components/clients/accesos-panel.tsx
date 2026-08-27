@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Copy, Ban, Trash2, RotateCcw, Link2, Pencil, ChevronDown } from "lucide-react";
+import { Copy, Ban, Trash2, RotateCcw, Link2, Pencil, ChevronDown, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -80,6 +81,8 @@ export function AccesosPanel() {
   const [expanded, setExpanded] = useState<"new" | "existing" | null>(null);
   const [seleccion, setSeleccion] = useState<string[]>([]);
   const [generated, setGenerated] = useState<{ code: string; url: string } | null>(null);
+  const [emailInvitacion, setEmailInvitacion] = useState("");
+  const [modoInvitacion, setModoInvitacion] = useState<"enlace" | "email">("enlace");
 
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [editing, setEditing] = useState<{ id: string; nombre: string; seleccion: string[] } | null>(null);
@@ -155,6 +158,31 @@ export function AccesosPanel() {
         toast.success("Invitación creada y enlace copiado");
       } catch {
         toast.success("Invitación creada");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const enviarInvitacionEmail = useMutation({
+    mutationFn: async () => {
+      const acceso = toAcceso(seleccion);
+      if (!acceso) throw new Error("Selecciona al menos un servicio");
+      const email = emailInvitacion.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Introduce un correo válido");
+      return crearInvitacion({
+        data: { acceso, email, enviarEmail: true, origin: window.location.origin },
+      });
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["client_invitations"] });
+      if (res.enviado) {
+        toast.success("Invitación enviada por correo");
+        setEmailInvitacion("");
+        setSeleccion([]);
+        setExpanded(null);
+      } else {
+        setGenerated({ code: res.code, url: res.url });
+        toast.error(res.motivo ?? "No se pudo enviar el correo; usa el enlace");
       }
     },
     onError: (e: Error) => toast.error(e.message),
@@ -237,7 +265,9 @@ export function AccesosPanel() {
         <Card className="h-full flex flex-col">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Nueva invitación</CardTitle>
-            <CardDescription>Genera un enlace de acceso para un cliente nuevo</CardDescription>
+            <CardDescription>
+              Genera un enlace o envía la invitación por correo a un cliente nuevo
+            </CardDescription>
           </CardHeader>
           <CardContent
             className={cn(
@@ -246,10 +276,29 @@ export function AccesosPanel() {
             )}
           >
             {expanded !== "new" ? (
-              <Button onClick={() => toggleCard("new")} className="gap-1.5">
-                <Link2 className="h-4 w-4" />
-                Generar enlace
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  onClick={() => {
+                    setModoInvitacion("enlace");
+                    toggleCard("new");
+                  }}
+                  className="gap-1.5"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Generar enlace
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setModoInvitacion("email");
+                    toggleCard("new");
+                  }}
+                  className="gap-1.5"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por correo
+                </Button>
+              </div>
             ) : !generated ? (
               <div className="w-full space-y-4">
                 <div className="flex min-h-9 flex-wrap items-center gap-4">
@@ -270,14 +319,51 @@ export function AccesosPanel() {
                     </label>
                   ))}
                 </div>
-                <Button
-                  onClick={() => createInvitation.mutate()}
-                  disabled={createInvitation.isPending || seleccion.length === 0}
-                  className="gap-1.5"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Generar enlace
-                </Button>
+                {modoInvitacion === "email" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email-invitacion">Correo del cliente</Label>
+                    <Input
+                      id="email-invitacion"
+                      type="email"
+                      placeholder="cliente@correo.com"
+                      value={emailInvitacion}
+                      onChange={(e) => setEmailInvitacion(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {modoInvitacion === "enlace" ? (
+                    <Button
+                      onClick={() => createInvitation.mutate()}
+                      disabled={createInvitation.isPending || seleccion.length === 0}
+                      className="gap-1.5"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Generar enlace
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => enviarInvitacionEmail.mutate()}
+                      disabled={
+                        enviarInvitacionEmail.isPending ||
+                        seleccion.length === 0 ||
+                        emailInvitacion.trim() === ""
+                      }
+                      className="gap-1.5"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {enviarInvitacionEmail.isPending ? "Enviando…" : "Enviar invitación"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setModoInvitacion((m) => (m === "email" ? "enlace" : "email"))
+                    }
+                  >
+                    {modoInvitacion === "email" ? "Usar enlace" : "Enviar por correo"}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="w-full space-y-3">
