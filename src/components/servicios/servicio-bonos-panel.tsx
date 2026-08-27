@@ -14,13 +14,12 @@ interface Props {
 
 interface Draft {
   nombre: string;
-  tipo: string;
   sesiones: string;
   duracion: string;
   precio: string;
 }
 
-const EMPTY: Draft = { nombre: "", tipo: "individual", sesiones: "10", duracion: "60", precio: "0" };
+const EMPTY: Draft = { nombre: "", sesiones: "10", duracion: "60", precio: "0" };
 
 /** Gestión de los bonos ofrecidos por un servicio (crear, editar y eliminar). */
 export function ServicioBonosPanel({ servicioSlug }: Props) {
@@ -61,7 +60,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     const { error } = await supabase.from("bonos_catalogo").insert({
       servicio_slug: servicioSlug,
       nombre,
-      tipo: draft.tipo.trim() || "individual",
+      tipo: servicioSlug,
       sesiones_incluidas: Math.max(0, Number(draft.sesiones) || 0),
       duracion_min: draft.duracion ? Math.max(0, Number(draft.duracion) || 0) : null,
       precio: Number(draft.precio) || 0,
@@ -96,7 +95,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <TableHeader>
             <TableRow>
               <TableHead>Nombre</TableHead>
-              <TableHead className="w-24">Tipo</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
               <TableHead className="w-24">Precio</TableHead>
@@ -113,16 +111,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     onBlur={(e) => {
                       const v = e.target.value.trim();
                       if (v && v !== b.nombre) updateRow.mutate({ id: b.id, patch: { nombre: v } });
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    className="h-8"
-                    defaultValue={b.tipo}
-                    onBlur={(e) => {
-                      const v = e.target.value.trim().toLowerCase();
-                      if (v && v !== b.tipo) updateRow.mutate({ id: b.id, patch: { tipo: v } });
                     }}
                   />
                 </TableCell>
@@ -178,10 +166,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     onChange={(e) => setDraft({ ...draft, nombre: e.target.value })} />
                 </TableCell>
                 <TableCell>
-                  <Input className="h-8" value={draft.tipo}
-                    onChange={(e) => setDraft({ ...draft, tipo: e.target.value.toLowerCase() })} />
-                </TableCell>
-                <TableCell>
                   <Input type="number" min={0} className="h-8" value={draft.sesiones}
                     onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })} />
                 </TableCell>
@@ -198,7 +182,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             )}
             {!isLoading && bonos.length === 0 && !adding && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
                   Este servicio todavía no ofrece bonos.
                 </TableCell>
               </TableRow>
