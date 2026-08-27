@@ -178,10 +178,11 @@ export function AccesosPanel() {
       if (res.enviado) {
         toast.success("Invitación enviada por correo");
         setEmailInvitacion("");
+        setOpenEmailDialog(false);
         setSeleccion([]);
-        setExpanded(null);
       } else {
         setGenerated({ code: res.code, url: res.url });
+        setOpenEmailDialog(false);
         toast.error(res.motivo ?? "No se pudo enviar el correo; usa el enlace");
       }
     },
