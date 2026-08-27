@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { validateInvitation, registerFromInvitation, resendVerificationEmail } from "@/lib/client-portal.functions";
-import { BONO_TIPO_CLIENTE, type BonoTipoCliente } from "@/lib/client-portal-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCenterName } from "@/lib/center-schedule";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/invitacion/$codigo")({
   ssr: false,
@@ -46,7 +46,8 @@ function InvitacionPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [bonoTipo, setBonoTipo] = useState<BonoTipoCliente | "">("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [existente, setExistente] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -99,7 +100,6 @@ function InvitacionPage() {
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
-    if (!existente && !bonoTipo) return toast.error("Selecciona tu tipo de bono");
 
     setLoading(true);
     try {
@@ -111,7 +111,6 @@ function InvitacionPage() {
           ...(existente ? {} : { telefono: telefono.trim(), fechaNacimiento, sexo: sexo as "hombre" | "mujer" }),
           email: em.data,
           password,
-          ...(existente ? {} : { bonoTipo: bonoTipo as BonoTipoCliente }),
         },
       });
       if (!res.ok) {
