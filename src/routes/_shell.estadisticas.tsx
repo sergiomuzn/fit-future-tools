@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase, formatTipoBono, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
+import { supabase, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,8 @@ import {
   type HorarioBase, type SpecialDay,
 } from "@/lib/center-schedule";
 import { trainerColor } from "@/lib/trainer-colors";
+import { useServicios } from "@/lib/servicios";
+import { servicioColorOf } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
@@ -116,7 +118,8 @@ function StatsPage() {
     for (const cb of sorted) {
       if (m.has(cb.client_id)) continue;
       const cat = cb.bono_catalogo_id ? catMap.get(cb.bono_catalogo_id) : null;
-      if (cat?.tipo) m.set(cb.client_id, cat.tipo);
+      const slug = cat?.servicio_slug ?? cb.servicio_slug;
+      if (slug) m.set(cb.client_id, slug);
     }
     return m;
   }, [clientBonos, catalogo]);
@@ -467,7 +470,7 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   franja: "Franja horaria (6:45–22:00)",
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
-  tipoSesion: "Tipo de sesión",
+  tipoSesion: "Servicio",
   total: "Sin desglosar",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
@@ -552,7 +555,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     turno: "Desglose por turno: mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     dow: "Desglose por día de la semana: se suma en cada día (Lun–Dom) el total del periodo.",
     tipoSesion:
-      "Desglose por tipo de sesión: se agrupa por el tipo del bono activo del cliente al momento de la sesión (Individual, Pareja, Grupal, Gympass). Los colores se configuran en Configuración → Tipos de bonos y precios.",
+      "Desglose por servicio: se agrupa por el servicio de la sesión (o el del bono activo del cliente). Los colores se configuran en Configuración → Colores por servicio.",
     total: "Sin desglosar: se muestra el valor total del periodo sin subdivisiones.",
   };
   const periodInfo: Record<PeriodMode, string> = {
@@ -581,13 +584,12 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   clientNombreMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
-  const { data: catalogoTiposList = [] } = useQuery({
-    queryKey: ["bonos_catalogo_tipos"],
-    queryFn: async () => {
-      const { data } = await supabase.from("bonos_catalogo").select("tipo");
-      return Array.from(new Set(((data ?? []) as { tipo: string }[]).map((r) => r.tipo)));
-    },
-  });
+  const { data: serviciosList = [] } = useServicios();
+  const catalogoTiposList = useMemo(() => serviciosList.map((sv) => sv.slug), [serviciosList]);
+  const servicioNombreMap = useMemo(
+    () => new Map<string, string>(serviciosList.map((sv) => [sv.slug, sv.nombre])),
+    [serviciosList],
+  );
   const [metric, setMetric] = useState<Metric>("sesiones");
   const [desglose, setDesglose] = useState<Desglose>("total");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
@@ -692,8 +694,8 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, canceladasModo],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, servicioNombreMap, canceladasModo],
   );
 
   function handleCsvExport() {
@@ -723,9 +725,12 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    // Buscar el color por tipo de bono a partir del label (formatTipoBono).
-    for (const [tipoKey, hex] of Object.entries(tipoColores)) {
-      if (formatTipoBono(tipoKey).toLowerCase() === lower) return hex;
+    // Color del servicio a partir de su nombre.
+    for (const sv of serviciosList) {
+      if (sv.nombre.toLowerCase() === lower) {
+        const hex = servicioColorOf(tipoColores, sv.slug);
+        if (hex) return hex;
+      }
     }
     return palette[idx % palette.length];
   };
@@ -1190,6 +1195,7 @@ function buildSeries(args: {
   clientNombreMap?: Map<string, string>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
+  servicioNombres?: Map<string, string>;
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
   unclassified?: UnclassifiedInfo;
@@ -1202,20 +1208,14 @@ function buildSeries(args: {
   matrix?: MatrixData;
   avgAge?: number;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [] } = args;
-  const knownTipos = Array.from(new Set<string>([
-    "individual", "pareja", "grupal", "gympass", "prueba",
-    ...catalogoTipos,
-  ]));
-  const tipoOf = (s: Session): Session["tipo"] => {
-    // Cualquier sesión con grupo cuenta siempre como "grupal",
-    // aunque no tenga clientes asignados.
-    if (s.group_id) return "grupal";
-    if (s.client_id) {
-      const t = clientTipoMap.get(s.client_id);
-      if (t) return t as Session["tipo"];
-    }
-    return s.tipo;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], servicioNombres } = args;
+  const knownTipos = Array.from(new Set<string>(catalogoTipos));
+  const labelTipo = (t: string) => servicioNombres?.get(t) ?? t;
+  // Servicio de la sesión (o el del bono activo del cliente).
+  const tipoOf = (s: Session): string | null => {
+    if (s.servicio_slug) return s.servicio_slug;
+    if (s.client_id) return clientTipoMap.get(s.client_id) ?? null;
+    return null;
   };
 
   // Lista cronológica de meses según el modo de periodo.
@@ -1646,7 +1646,7 @@ function buildSeries(args: {
     if (desglose === "turno") return ["Mañana", "Tarde"];
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
-    return knownTipos.map((t) => formatTipoBono(t));
+    return knownTipos.map((t) => labelTipo(t));
   })();
 
   const bucketOf = (s: Session): string | null => {
@@ -1662,11 +1662,11 @@ function buildSeries(args: {
       const idx = d.getDay(); // 0=Dom
       return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][idx];
     }
-    // tipoSesion → tipo de bono del cliente
+    // tipoSesion → servicio de la sesión
     const t = tipoOf(s);
     if (!t) return null;
-    if (!knownTipos.includes(t as string)) return null;
-    return formatTipoBono(t as string);
+    if (!knownTipos.includes(t)) return null;
+    return labelTipo(t);
   };
 
   // For metric = porEntrenador we produce multiple series per period.

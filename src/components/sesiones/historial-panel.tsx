@@ -12,22 +12,7 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatNameTitle } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
-
-const TIPO_LABEL: Record<string, string> = {
-  individual: "Individual",
-  pareja: "Pareja",
-  grupal: "Grupal",
-  prueba: "Prueba",
-  gympass: "Gympass",
-};
-
-const TIPO_CLASS: Record<string, string> = {
-  prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-  individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-  grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
-};
+import { useServicios } from "@/lib/servicios";
 
 
 export function HistorialPanel() {
@@ -36,7 +21,7 @@ export function HistorialPanel() {
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [estadoFilter, setEstadoFilter] = useState<string>("todos");
-  const [tipoFilter, setTipoFilter] = useState<string>("todos");
+  const [servicioFilter, setServicioFilter] = useState<string>("todos");
   const [desde, setDesde] = useState<string>("");
   const [hasta, setHasta] = useState<string>("");
 
@@ -77,25 +62,25 @@ export function HistorialPanel() {
     queryFn: async () => (await supabase.from("groups").select("*")).data as Group[] ?? [],
   });
 
+  const { data: servicios = [] } = useServicios();
   const clientMap = new Map(clients.map((c) => [c.id, c]));
   const trainerMap = new Map(trainers.map((t) => [t.id, t]));
   const catalogoMap = new Map(catalogo.map((b) => [b.id, b]));
   const groupMap = new Map(groups.map((g) => [g.id, g]));
-  // Bono activo por cliente (fallback: más reciente por created_at)
-  const clientBonoTipo = new Map<string, string>();
+  const servMap = new Map(servicios.map((sv) => [sv.slug, sv.nombre]));
+  // Servicio del bono activo por cliente (fallback: más reciente por created_at)
+  const clientBonoServicio = new Map<string, string>();
   const sortedBonos = [...clientBonos].sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""));
   for (const cb of sortedBonos) {
-    if (clientBonoTipo.has(cb.client_id)) continue;
+    if (clientBonoServicio.has(cb.client_id)) continue;
     const cat = cb.bono_catalogo_id ? catalogoMap.get(cb.bono_catalogo_id) : null;
-    if (cat?.tipo) clientBonoTipo.set(cb.client_id, cat.tipo);
+    const slug = cat?.servicio_slug ?? cb.servicio_slug;
+    if (slug) clientBonoServicio.set(cb.client_id, slug);
   }
-  const tipoForSession = (s: Session): string | null => {
-    if (s.ocupacion === 2) return "grupal";
-    if (s.client_id) {
-      const t = clientBonoTipo.get(s.client_id);
-      if (t) return t;
-    }
-    return s.tipo ?? null;
+  const servicioForSession = (s: Session): string | null => {
+    if (s.servicio_slug) return s.servicio_slug;
+    if (s.client_id) return clientBonoServicio.get(s.client_id) ?? null;
+    return null;
   };
 
   // Nombre a mostrar: si es grupo, nombre del grupo; si no, cliente o título.
@@ -134,14 +119,11 @@ export function HistorialPanel() {
       if (estadoFilter === "cancelada_nc" && !(s.estado === "cancelada" && s.no_contabilizar)) return false;
       if (estadoFilter !== "cancelada" && estadoFilter !== "cancelada_nc" && s.estado !== estadoFilter) return false;
     }
-    if (tipoFilter !== "todos" && tipoForSession(s) !== tipoFilter) return false;
+    if (servicioFilter !== "todos" && servicioForSession(s) !== servicioFilter) return false;
     return true;
   });
 
-  const tipoOptions = Array.from(
-    new Set([...Object.keys(TIPO_LABEL), ...catalogo.map((c) => c.tipo).filter(Boolean) as string[]]),
-  );
-  const filtrosActivos = estadoFilter !== "todos" || tipoFilter !== "todos" || !!desde || !!hasta;
+  const filtrosActivos = estadoFilter !== "todos" || servicioFilter !== "todos" || !!desde || !!hasta;
 
   async function updateIncidencia(id: string, val: string) {
     const { error } = await supabase.from("sessions").update({ incidencia: val || null }).eq("id", id);
@@ -176,7 +158,7 @@ export function HistorialPanel() {
           Fecha: s.fecha,
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: nameForSession(s),
-          Tipo: (() => { const t = tipoForSession(s); return t ? TIPO_LABEL[t] ?? t : ""; })(),
+          Servicio: (() => { const sl = servicioForSession(s); return sl ? servMap.get(sl) ?? sl : ""; })(),
           Entrenador: s.trainer_id ? trainerMap.get(s.trainer_id)?.nombre ?? "" : "",
           Estado: s.estado === "cancelada" && s.no_contabilizar ? "Cancelada NC" : ESTADO_LABEL[s.estado],
           Ocupación: s.ocupacion,
@@ -202,13 +184,13 @@ export function HistorialPanel() {
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs text-muted-foreground">Tipo de bono</Label>
-          <Select value={tipoFilter} onValueChange={setTipoFilter}>
+          <Label className="text-xs text-muted-foreground">Servicio</Label>
+          <Select value={servicioFilter} onValueChange={setServicioFilter}>
             <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="todos">Todos los tipos</SelectItem>
-              {tipoOptions.map((t) => (
-                <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? t}</SelectItem>
+              <SelectItem value="todos">Todos los servicios</SelectItem>
+              {servicios.map((sv) => (
+                <SelectItem key={sv.slug} value={sv.slug}>{sv.nombre}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -225,7 +207,7 @@ export function HistorialPanel() {
           <Button
             variant="ghost"
             className="h-9"
-            onClick={() => { setEstadoFilter("todos"); setTipoFilter("todos"); setDesde(""); setHasta(""); }}
+            onClick={() => { setEstadoFilter("todos"); setServicioFilter("todos"); setDesde(""); setHasta(""); }}
           >
             <X className="h-4 w-4 mr-1" /> Limpiar filtros
           </Button>
@@ -239,7 +221,7 @@ export function HistorialPanel() {
               <TableHead>Fecha</TableHead>
               <TableHead>Hora</TableHead>
               <TableHead>Cliente / Grupo</TableHead>
-              <TableHead>Tipo</TableHead>
+              <TableHead>Servicio</TableHead>
               <TableHead>Entrenador</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Incidencia</TableHead>
@@ -253,10 +235,10 @@ export function HistorialPanel() {
                 <TableCell>{nameForSession(s)}</TableCell>
                 <TableCell>
                   {(() => {
-                    const t = tipoForSession(s);
-                    return t ? (
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[t] ?? ""}`}>
-                        {TIPO_LABEL[t] ?? t}
+                    const sl = servicioForSession(s);
+                    return sl ? (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                        {servMap.get(sl) ?? sl}
                       </span>
                     ) : (
                       <span className="text-muted-foreground">—</span>

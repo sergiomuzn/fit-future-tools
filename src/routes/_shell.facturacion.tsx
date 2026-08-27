@@ -28,8 +28,7 @@ import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
-import { useCenterConfig } from "@/lib/center-schedule";
-import { tipoColorOf, chipStyle } from "@/lib/colors";
+import { useServicios } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -38,7 +37,8 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function FacturacionPage() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
-  const { colores } = useCenterConfig();
+  const { data: servicios = [] } = useServicios();
+  const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
@@ -268,7 +268,6 @@ function FacturacionPage() {
               <TableHead>Fecha</TableHead>
               <TableHead>Cobrador</TableHead>
               <TableHead>Cliente</TableHead>
-              <TableHead>Tipo</TableHead>
               <TableHead>Bono</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Nota</TableHead>
@@ -278,8 +277,6 @@ function FacturacionPage() {
           <TableBody>
             {filteredInvoices.map((i) => {
               const cat = catMap.get(i.bono_catalogo_id ?? "");
-              const tipo = cat?.tipo;
-              const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
               return (
               <TableRow key={i.id}>
                 <TableCell>{i.fecha}</TableCell>
@@ -298,7 +295,6 @@ function FacturacionPage() {
                     ) : <span className="text-muted-foreground italic">Sin cliente</span>;
                   })()}
                 </TableCell>
-                <TableCell>{tipo ? <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={chipStyle(tipoColorOf(colores, tipo)!)}>{TIPO_LABEL[tipo] ?? tipo}</span> : <span className="text-muted-foreground">—</span>}</TableCell>
                 <TableCell>{prettyBonoNombre(cat?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{i.nota ?? "—"}</TableCell>
@@ -352,7 +348,7 @@ function FacturacionPage() {
                 <SelectContent>
                   <SelectItem value="__none__">Sin bono</SelectItem>
                   {sortCatalogo(catalogo).map((b) => {
-                    const label = b.tipo.charAt(0).toUpperCase() + b.tipo.slice(1);
+                    const label = servMap.get(b.servicio_slug) ?? b.servicio_slug;
                     return (
                       <SelectItem key={b.id} value={b.id}>{label} · {prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
                     );

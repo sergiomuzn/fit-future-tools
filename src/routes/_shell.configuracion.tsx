@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HorarioForm, PreciosForm, ColoresBonoForm, ColoresServiciosForm } from "@/components/config/schedule-form";
+import { HorarioForm, PreciosForm, ColoresServiciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
@@ -66,7 +66,6 @@ function ConfigPage() {
             Los servicios y sus bonos se crean y configuran en el apartado Servicios. Aquí solo se ajustan sus colores.
           </p>
           <ColoresServiciosForm />
-          <ColoresBonoForm />
         </TabsContent>
 
         <TabsContent value="estadisticas" className="pt-4 space-y-6">

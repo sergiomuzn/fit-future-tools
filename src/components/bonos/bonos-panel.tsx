@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, formatTipoBono, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { useCenterConfig } from "@/lib/center-schedule";
-import { tipoColorOf, servicioColorOf, chipStyle } from "@/lib/colors";
+import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
@@ -26,7 +26,6 @@ import { useBehaviorConfig } from "@/lib/behavior-config";
 
 const BONO_COLUMNS = [
   { key: "servicio", label: "Servicio" },
-  { key: "tipo", label: "Tipo de bono" },
   { key: "teoricas", label: "Teóricas" },
   { key: "realizadas", label: "Realizadas" },
   { key: "restantes", label: "Restantes" },
@@ -43,12 +42,11 @@ export function BonosPanel() {
   const { show, menu: columnsMenu, visibleCount } = useColumnVisibility("bonos-columns", BONO_COLUMNS);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
-  const [sortBy, setSortBy] = useState<"nombre" | "tipo" | "estado">("nombre");
+  const [sortBy, setSortBy] = useState<"nombre" | "estado">("nombre");
   const [q, setQ] = useState("");
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
-  const [fTipo, setFTipo] = useState<string>("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
   const [addOpen, setAddOpen] = useState(false);
   const [nuevo, setNuevo] = useState<{
@@ -96,8 +94,6 @@ export function BonosPanel() {
     return slug ? servMap.get(slug) ?? slug : null;
   };
 
-  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
-  const tipoRank: Record<string, number> = { prueba: 0, individual: 1, pareja: 2, grupal: 3, gympass: 4 };
 
   function estadoRank(b: ClientBono): number {
     const tipoBono = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
@@ -114,16 +110,6 @@ export function BonosPanel() {
       const rb = estadoRank(b);
       if (ra !== rb) return ra - rb;
     }
-    if (sortBy === "nombre") {
-      const na = clientMap.get(a.client_id)?.nombre ?? "";
-      const nb = clientMap.get(b.client_id)?.nombre ?? "";
-      return na.localeCompare(nb, "es", { sensitivity: "base" });
-    }
-    const ta = (catMap.get(a.bono_catalogo_id ?? "")?.tipo ?? a.tipo);
-    const tb = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo);
-    const ra = ta ? tipoRank[ta] : 99;
-    const rb = tb ? tipoRank[tb] : 99;
-    if (ra !== rb) return ra - rb;
     const na = clientMap.get(a.client_id)?.nombre ?? "";
     const nb = clientMap.get(b.client_id)?.nombre ?? "";
     return na.localeCompare(nb, "es", { sensitivity: "base" });
@@ -147,7 +133,6 @@ export function BonosPanel() {
 
     if (fEstado === "activo" && !activo) return false;
     if (fEstado === "agotado" && activo) return false;
-    if (fTipo !== "todos" && t !== fTipo) return false;
     if (fServicio !== "todos") {
       const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
@@ -161,7 +146,6 @@ export function BonosPanel() {
     return [
       client?.nombre ?? "",
       servicioDe(b) ?? "",
-      (cat?.tipo ?? b.tipo) ? TIPO_LABEL[(cat?.tipo ?? b.tipo)] ?? (cat?.tipo ?? b.tipo) : "",
       prettyBonoNombre(b.ultimo_bono_nombre),
       b.ultimo_bono_fecha ?? "",
     ].join(" ");
@@ -273,18 +257,7 @@ export function BonosPanel() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Tipo de bono</Label>
-            <Select value={fTipo} onValueChange={setFTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {[...new Set(catalogo.map((c) => c.tipo))].filter((t) => t !== "prueba").map((t) => (
-                  <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? formatTipoBono(t)}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
+
             <Label>Servicio</Label>
             <Select value={fServicio} onValueChange={setFServicio}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -298,7 +271,7 @@ export function BonosPanel() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); }}
+            onClick={() => { setFEstado("todos"); setFServicio("todos"); }}
           >
             Limpiar filtros
           </Button>
@@ -314,12 +287,8 @@ export function BonosPanel() {
                 </button>
               </TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
-              {show("tipo") && <TableHead>
-                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("tipo")}>
-                  Tipo de bono <ArrowUpDown className={`h-3 w-3 ${sortBy === "tipo" ? "text-foreground" : "opacity-40"}`} />
-                </button>
-              </TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
+
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
               {show("restantes") && <TableHead>Restantes</TableHead>}
               {show("estado") && <TableHead>
@@ -359,21 +328,7 @@ export function BonosPanel() {
                     </div>
                   ))}
                 </TableCell>}
-                {show("tipo") && <TableCell>
-                  {g.bonos.map((b) => {
-                    const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo);
-                    const color = tipoColorOf(tipoColores, t);
-                    return (
-                      <div key={b.id} className={SUB}>
-                        {t && color ? (
-                          <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${color}26`, color }}>
-                            {TIPO_LABEL[t] ?? formatTipoBono(t)}
-                          </span>
-                        ) : <span className="text-muted-foreground">—</span>}
-                      </div>
-                    );
-                  })}
-                </TableCell>}
+
                 {show("teoricas") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
@@ -458,7 +413,7 @@ export function BonosPanel() {
                 <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecciona bono" /></SelectTrigger>
                   <SelectContent>
-                    {sortCatalogo(catalogo).map((c) => <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>)}
+                    {sortCatalogo(catalogo).map((c) => <SelectItem key={c.id} value={c.id}>{prettyBonoNombre(c.nombre)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -544,7 +499,7 @@ export function BonosPanel() {
                  <SelectContent>
                    <SelectItem value="__none__">Sin bono</SelectItem>
                    {sortCatalogo(catalogo).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{TIPO_LABEL[c.tipo]} · {prettyBonoNombre(c.nombre)}</SelectItem>
+                    <SelectItem key={c.id} value={c.id}>{prettyBonoNombre(c.nombre)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>

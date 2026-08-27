@@ -28,7 +28,7 @@ import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
-import { tipoColorOf, servicioColorOf, chipStyle } from "@/lib/colors";
+import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useServicios } from "@/lib/servicios";
@@ -38,7 +38,6 @@ import { useColumnVisibility } from "@/components/columns-menu";
 
 const CLIENT_COLUMNS = [
   { key: "servicio", label: "Servicio" },
-  { key: "tipo", label: "Tipo de bono" },
   { key: "telefono", label: "Teléfono" },
   { key: "inicio", label: "Fecha inicio" },
   { key: "estado", label: "Estado" },
@@ -62,7 +61,6 @@ function ClientesPage() {
   const [tab, setTab] = useState<"clientes" | "accesos" | "bonos">("clientes");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "inactivo">("todos");
-  const [fTipo, setFTipo] = useState<string>("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
   const [fSexo, setFSexo] = useState<string>("todos");
   const [fDesde, setFDesde] = useState("");
@@ -165,7 +163,6 @@ function ClientesPage() {
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
-  const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
   const { colores } = useCenterConfig();
 
   const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
@@ -177,7 +174,6 @@ function ClientesPage() {
     .filter((c) => {
       if (fEstado === "activo" && !c.activo) return false;
       if (fEstado === "inactivo" && c.activo) return false;
-      if (fTipo !== "todos" && (tipoByClient.get(c.id) ?? "") !== fTipo) return false;
       if (fServicio !== "todos" && !(serviciosByClient.get(c.id) ?? []).includes(fServicio)) return false;
       if (fSexo !== "todos" && (c.sexo ?? "") !== fSexo) return false;
       if (fDesde && (!c.fecha_inicio || c.fecha_inicio < fDesde)) return false;
@@ -334,7 +330,6 @@ function ClientesPage() {
               <DropdownMenuItem
                 onSelect={() => exportToXlsx("clientes", filtered.map((c) => ({
                   Nombre: formatNameTitle(c.nombre),
-                  "Tipo de bono": (TIPO_LABEL[tipoByClient.get(c.id) ?? ""] ?? ""),
                   Servicio: (serviciosByClient.get(c.id) ?? []).map(nombreServicio).join(", "),
                   Estado: c.activo ? "Activo" : "Inactivo",
                   Teléfono: c.telefono ?? "",
@@ -371,18 +366,6 @@ function ClientesPage() {
             </Select>
           </div>
           <div className="space-y-1.5">
-            <Label>Tipo de bono</Label>
-            <Select value={fTipo} onValueChange={setFTipo}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="todos">Todos</SelectItem>
-                {[...new Set(catalogo.map((c) => c.tipo))].map((t) => (
-                  <SelectItem key={t} value={t}>{TIPO_LABEL[t] ?? t}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
             <Label>Servicio</Label>
             <Select value={fServicio} onValueChange={setFServicio}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -415,7 +398,7 @@ function ClientesPage() {
           </div>
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFTipo("todos"); setFServicio("todos"); setFSexo("todos"); setFDesde(""); setFHasta(""); }}
+            onClick={() => { setFEstado("todos"); setFServicio("todos"); setFSexo("todos"); setFDesde(""); setFHasta(""); }}
           >
             Limpiar filtros
           </Button>
@@ -427,7 +410,6 @@ function ClientesPage() {
             <TableRow>
               <TableHead>Nombre</TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
-              {show("tipo") && <TableHead>Tipo de bono</TableHead>}
               {show("telefono") && <TableHead>Teléfono</TableHead>}
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
@@ -456,28 +438,6 @@ function ClientesPage() {
                                 style={chipStyle(servicioColorOf(colores, r.slug)!)}
                               >
                                 {nombreServicio(r.slug)}
-                              </span>
-                            ) : <span className="text-muted-foreground">—</span>}
-                          </div>
-                        ))}
-                      </div>
-                    );
-                  })()}
-                </TableCell>}
-                {show("tipo") && <TableCell>
-                  {(() => {
-                    const rows = bonosByClient.get(c.id) ?? [];
-                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
-                    return (
-                      <div className="flex flex-col gap-1">
-                        {rows.map((r, i) => (
-                          <div key={i} className="h-6 flex items-center">
-                            {r.tipo ? (
-                              <span
-                                className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={chipStyle(tipoColorOf(colores, r.tipo)!)}
-                              >
-                                {TIPO_LABEL[r.tipo] ?? r.tipo}
                               </span>
                             ) : <span className="text-muted-foreground">—</span>}
                           </div>

@@ -10,15 +10,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn, formatNameTitle } from "@/lib/utils";
 import { useServicios } from "@/lib/servicios";
 
-const TIPO_LABEL: Record<string, string> = { prueba: "Prueba", individual: "Individual", pareja: "Pareja", grupal: "Grupal", gympass: "Gympass" };
-const TIPO_CLASS: Record<string, string> = {
-  individual: "bg-blue-500/15 text-blue-600 dark:text-blue-300",
-  pareja: "bg-purple-500/15 text-purple-600 dark:text-purple-300",
-  grupal: "bg-amber-500/15 text-amber-600 dark:text-amber-300",
-  prueba: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300",
-  gympass: "bg-pink-500/15 text-pink-600 dark:text-pink-300",
-};
-
 export type ClientDetailsTab = "info" | "historial" | "calendario";
 
 export function ClientDetailsDialog({
@@ -91,7 +82,6 @@ export function ClientDetailsDialog({
                     <TableRow>
                       <TableHead>Bono</TableHead>
                       <TableHead>Servicio</TableHead>
-                      <TableHead>Tipo</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Realizadas</TableHead>
                       <TableHead>Restantes al cerrar</TableHead>
@@ -109,7 +99,6 @@ export function ClientDetailsDialog({
                               {servMap.get(slug) ?? slug}
                             </span>
                           ) : "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{(cat?.tipo ?? b.tipo) ? <span className={`text-xs px-2 py-0.5 rounded-full ${TIPO_CLASS[(cat?.tipo ?? b.tipo)!] ?? "bg-muted"} whitespace-nowrap`}>{TIPO_LABEL[(cat?.tipo ?? b.tipo)!] ?? (cat?.tipo ?? b.tipo)}</span> : "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
                           <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
