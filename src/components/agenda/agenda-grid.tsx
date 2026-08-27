@@ -109,6 +109,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const qc = useQueryClient();
   const isoDate = formatDateISO(date);
   const gridRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const draftRef = useRef<DraftSession | null>(null);
+  const autoScrollRef = useRef<{ dir: number; speed: number; raf: number | null; lastY: number }>({ dir: 0, speed: 0, raf: null, lastY: 0 });
 
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
