@@ -319,14 +319,51 @@ export function AccesosPanel() {
                     </label>
                   ))}
                 </div>
-                <Button
-                  onClick={() => createInvitation.mutate()}
-                  disabled={createInvitation.isPending || seleccion.length === 0}
-                  className="gap-1.5"
-                >
-                  <Link2 className="h-4 w-4" />
-                  Generar enlace
-                </Button>
+                {modoInvitacion === "email" && (
+                  <div className="space-y-1.5">
+                    <Label htmlFor="email-invitacion">Correo del cliente</Label>
+                    <Input
+                      id="email-invitacion"
+                      type="email"
+                      placeholder="cliente@correo.com"
+                      value={emailInvitacion}
+                      onChange={(e) => setEmailInvitacion(e.target.value)}
+                    />
+                  </div>
+                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {modoInvitacion === "enlace" ? (
+                    <Button
+                      onClick={() => createInvitation.mutate()}
+                      disabled={createInvitation.isPending || seleccion.length === 0}
+                      className="gap-1.5"
+                    >
+                      <Link2 className="h-4 w-4" />
+                      Generar enlace
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => enviarInvitacionEmail.mutate()}
+                      disabled={
+                        enviarInvitacionEmail.isPending ||
+                        seleccion.length === 0 ||
+                        emailInvitacion.trim() === ""
+                      }
+                      className="gap-1.5"
+                    >
+                      <Mail className="h-4 w-4" />
+                      {enviarInvitacionEmail.isPending ? "Enviando…" : "Enviar invitación"}
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      setModoInvitacion((m) => (m === "email" ? "enlace" : "email"))
+                    }
+                  >
+                    {modoInvitacion === "email" ? "Usar enlace" : "Enviar por correo"}
+                  </Button>
+                </div>
               </div>
             ) : (
               <div className="w-full space-y-3">
