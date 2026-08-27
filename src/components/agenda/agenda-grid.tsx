@@ -479,8 +479,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             className="relative w-full select-none"
             style={{ height: TOTAL_PX, marginTop: 8 }}
             onMouseDown={onMouseDown}
-            onMouseMove={onMouseMove}
-            onMouseUp={onMouseUp}
           >
             {/* hour lines */}
             {hours.map((h) => (
