@@ -180,18 +180,21 @@ export async function acceptInvitation(input: {
     clientId = client.id;
   }
 
-  const { error: profileError } = await supabaseAdmin.from("client_profiles").insert([
-    {
-      id: userId,
-      nombre: fullName,
-      email: input.email,
-      bono_tipo: input.bonoTipo ?? "grupal_directo",
-      client_id: clientId,
-      invitation_id: invitation?.id ?? null,
-      acceso: (invitation as { acceso?: string } | null)?.acceso ?? "grupos",
-    },
-  ]);
-  if (profileError) {
+  const { error: profileError } = await supabaseAdmin.from("client_profiles").upsert(
+    [
+      {
+        id: userId,
+        nombre: fullName,
+        email: input.email,
+        bono_tipo: input.bonoTipo ?? "grupal_directo",
+        client_id: clientId,
+        invitation_id: invitation?.id ?? null,
+        acceso: (invitation as { acceso?: string } | null)?.acceso ?? "grupos",
+        activo: true,
+      },
+    ],
+    { onConflict: "id" },
+  );
     await cleanupUser();
     return { ok: false, error: profileError.message };
   }
