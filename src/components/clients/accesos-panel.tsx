@@ -547,6 +547,37 @@ export function AccesosPanel() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={openEmailDialog} onOpenChange={setOpenEmailDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Enviar invitación por correo</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5 py-4">
+            <Label htmlFor="email-invitacion-dialog">Correo del cliente</Label>
+            <Input
+              id="email-invitacion-dialog"
+              type="email"
+              placeholder="cliente@correo.com"
+              value={emailInvitacion}
+              onChange={(e) => setEmailInvitacion(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenEmailDialog(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => enviarInvitacionEmail.mutate()}
+              disabled={enviarInvitacionEmail.isPending || emailInvitacion.trim() === ""}
+              className="gap-1.5"
+            >
+              <Mail className="h-4 w-4" />
+              {enviarInvitacionEmail.isPending ? "Enviando…" : "Enviar invitación"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <ClientDetailsDialog
         client={viewingClient}
         defaultTab="info"
