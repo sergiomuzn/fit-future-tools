@@ -117,6 +117,12 @@ function InvitacionPage() {
         setLoading(false);
         return toast.error(res.error);
       }
+      if (res.alreadyVerified) {
+        setLoading(false);
+        toast.success("Acceso activado. Tu correo ya estaba verificado");
+        await navigate({ to: "/auth" });
+        return;
+      }
       const sent = await resend({
         data: { email: em.data, redirectTo: `${window.location.origin}/auth` },
       });
