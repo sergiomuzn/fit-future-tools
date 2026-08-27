@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { toast } from "sonner";
 import { validateInvitation, registerFromInvitation, resendVerificationEmail } from "@/lib/client-portal.functions";
-import { BONO_TIPO_CLIENTE, type BonoTipoCliente } from "@/lib/client-portal-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCenterName } from "@/lib/center-schedule";
+import { Eye, EyeOff } from "lucide-react";
 
 export const Route = createFileRoute("/invitacion/$codigo")({
   ssr: false,
@@ -46,7 +46,8 @@ function InvitacionPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
-  const [bonoTipo, setBonoTipo] = useState<BonoTipoCliente | "">("");
+  const [showPass, setShowPass] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [existente, setExistente] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -99,7 +100,6 @@ function InvitacionPage() {
     if (!em.success) return toast.error(em.error.issues[0].message);
     if (password.length < 8) return toast.error("La contraseña debe tener mínimo 8 caracteres");
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
-    if (!existente && !bonoTipo) return toast.error("Selecciona tu tipo de bono");
 
     setLoading(true);
     try {
@@ -111,7 +111,6 @@ function InvitacionPage() {
           ...(existente ? {} : { telefono: telefono.trim(), fechaNacimiento, sexo: sexo as "hombre" | "mujer" }),
           email: em.data,
           password,
-          ...(existente ? {} : { bonoTipo: bonoTipo as BonoTipoCliente }),
         },
       });
       if (!res.ok) {
@@ -253,29 +252,46 @@ function InvitacionPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inv-pass">Contraseña (mín. 8)</Label>
-                <Input id="inv-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <div className="relative">
+                  <Input
+                    id="inv-pass"
+                    type={showPass ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inv-pass2">Repetir contraseña</Label>
-                <Input id="inv-pass2" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-              </div>
-              {!existente && (
-                <div className="space-y-1.5">
-                  <Label>Tipo de bono</Label>
-                  <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu tipo de bono" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BONO_TIPO_CLIENTE.map((b) => (
-                        <SelectItem key={b.value} value={b.value}>
-                          {b.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="relative">
+                  <Input
+                    id="inv-pass2"
+                    type={showConfirm ? "text" : "password"}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-              )}
+              </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Activando…" : existente ? "Activar acceso" : "Crear cuenta"}
               </Button>
