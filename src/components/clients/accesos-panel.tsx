@@ -276,10 +276,29 @@ export function AccesosPanel() {
             )}
           >
             {expanded !== "new" ? (
-              <Button onClick={() => toggleCard("new")} className="gap-1.5">
-                <Link2 className="h-4 w-4" />
-                Generar enlace
-              </Button>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                <Button
+                  onClick={() => {
+                    setModoInvitacion("enlace");
+                    toggleCard("new");
+                  }}
+                  className="gap-1.5"
+                >
+                  <Link2 className="h-4 w-4" />
+                  Generar enlace
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setModoInvitacion("email");
+                    toggleCard("new");
+                  }}
+                  className="gap-1.5"
+                >
+                  <Mail className="h-4 w-4" />
+                  Enviar por correo
+                </Button>
+              </div>
             ) : !generated ? (
               <div className="w-full space-y-4">
                 <div className="flex min-h-9 flex-wrap items-center gap-4">
