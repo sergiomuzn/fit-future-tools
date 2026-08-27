@@ -123,10 +123,11 @@ export async function acceptInvitation(input: {
     }
     const { data: existingProfile } = await supabaseAdmin
       .from("client_profiles")
-      .select("id")
+      .select("id,activo")
       .eq("id", existingUser.id)
       .maybeSingle();
-    if (existingProfile) {
+    // Solo bloquea si el acceso sigue activo; si fue revocado se reutiliza la cuenta
+    if (existingProfile && (existingProfile as { activo?: boolean }).activo) {
       return { ok: false, error: "Ese correo ya tiene un acceso activo" };
     }
     const { error: updUserError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.id, {
@@ -179,17 +180,21 @@ export async function acceptInvitation(input: {
     clientId = client.id;
   }
 
-  const { error: profileError } = await supabaseAdmin.from("client_profiles").insert([
-    {
-      id: userId,
-      nombre: fullName,
-      email: input.email,
-      bono_tipo: input.bonoTipo ?? "grupal_directo",
-      client_id: clientId,
-      invitation_id: invitation?.id ?? null,
-      acceso: (invitation as { acceso?: string } | null)?.acceso ?? "grupos",
-    },
-  ]);
+  const { error: profileError } = await supabaseAdmin.from("client_profiles").upsert(
+    [
+      {
+        id: userId,
+        nombre: fullName,
+        email: input.email,
+        bono_tipo: input.bonoTipo ?? "grupal_directo",
+        client_id: clientId,
+        invitation_id: invitation?.id ?? null,
+        acceso: (invitation as { acceso?: string } | null)?.acceso ?? "grupos",
+        activo: true,
+      },
+    ],
+    { onConflict: "id" },
+  );
   if (profileError) {
     await cleanupUser();
     return { ok: false, error: profileError.message };
