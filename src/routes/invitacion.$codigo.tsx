@@ -253,29 +253,49 @@ function InvitacionPage() {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inv-pass">Contraseña (mín. 8)</Label>
-                <Input id="inv-pass" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                <div className="relative">
+                  <Input
+                    id="inv-pass"
+                    type={showPass ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPass((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showPass ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showPass ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="inv-pass2">Repetir contraseña</Label>
-                <Input id="inv-pass2" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
-              </div>
-              {!existente && (
-                <div className="space-y-1.5">
-                  <Label>Tipo de bono</Label>
-                  <Select value={bonoTipo} onValueChange={(v) => setBonoTipo(v as BonoTipoCliente)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona tu tipo de bono" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {BONO_TIPO_CLIENTE.map((b) => (
-                        <SelectItem key={b.value} value={b.value}>
-                          {b.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="relative">
+                  <Input
+                    id="inv-pass2"
+                    type={showConfirm ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    required
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirm((s) => !s)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={showConfirm ? "Ocultar contraseña" : "Mostrar contraseña"}
+                  >
+                    {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
                 </div>
-              )}
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Activando…" : existente ? "Activar acceso" : "Crear cuenta"}
               </Button>
