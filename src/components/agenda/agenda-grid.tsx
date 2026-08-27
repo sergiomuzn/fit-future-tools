@@ -222,31 +222,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const y = e.clientY - rect.top;
     const m = Math.max(0, pxToMin(y));
     dragStartRef.current = m;
-    setDraft({ startMin: m, endMin: m + 30 });
-  }
-  function onMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (dragStartRef.current === null) return;
-    const rect = gridRef.current!.getBoundingClientRect();
-    const y = e.clientY - rect.top;
-    const m = snapMin(pxToMinRaw(y));
-    const start = dragStartRef.current;
-    const end = Math.max(m, start + 15);
-    setDraft({ startMin: start, endMin: end });
-  }
-  function onMouseUp() {
-    if (dragStartRef.current !== null && draft) {
-      setDialogSession({
-        fecha: isoDate,
-        hora_inicio: minToTime(draft.startMin),
-        hora_fin: minToTime(draft.endMin),
-        trainer_id: paintTrainerId,
-        estado: "reservada",
-        ocupacion: 1,
-      });
-      setDialogOpen(true);
-    }
-    dragStartRef.current = null;
-    setDraft(null);
+    const d = { startMin: m, endMin: m + 30 };
+    draftRef.current = d;
+    setDraft(d);
   }
 
   // Drag-to-move existing
