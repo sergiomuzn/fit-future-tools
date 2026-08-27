@@ -163,6 +163,31 @@ export function AccesosPanel() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const enviarInvitacionEmail = useMutation({
+    mutationFn: async () => {
+      const acceso = toAcceso(seleccion);
+      if (!acceso) throw new Error("Selecciona al menos un servicio");
+      const email = emailInvitacion.trim();
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Introduce un correo válido");
+      return crearInvitacion({
+        data: { acceso, email, enviarEmail: true, origin: window.location.origin },
+      });
+    },
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["client_invitations"] });
+      if (res.enviado) {
+        toast.success("Invitación enviada por correo");
+        setEmailInvitacion("");
+        setSeleccion([]);
+        setExpanded(null);
+      } else {
+        setGenerated({ code: res.code, url: res.url });
+        toast.error(res.motivo ?? "No se pudo enviar el correo; usa el enlace");
+      }
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const guardarAcceso = useMutation({
     mutationFn: async ({ id, acceso }: { id: string; acceso: string }) =>
       actualizarAcceso({ data: { profileId: id, acceso } }),
