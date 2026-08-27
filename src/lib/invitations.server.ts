@@ -195,6 +195,7 @@ export async function acceptInvitation(input: {
     ],
     { onConflict: "id" },
   );
+  if (profileError) {
     await cleanupUser();
     return { ok: false, error: profileError.message };
   }
