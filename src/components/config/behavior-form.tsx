@@ -21,6 +21,11 @@ import {
   type ConfirmacionReservasConfig,
 } from "@/lib/booking-confirmation";
 import { useServicios } from "@/lib/servicios";
+import {
+  ANTELACION_OPCIONES,
+  DEFAULT_ANTELACION_MIN,
+  parseAntelacion,
+} from "@/lib/booking-antelacion";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   type BehaviorConfig,
@@ -58,6 +63,7 @@ export function BehaviorForm() {
   const [confirmacion, setConfirmacion] = useState<ConfirmacionReservasConfig>(
     DEFAULT_CONFIRMACION_RESERVAS,
   );
+  const [antelacion, setAntelacion] = useState<number>(DEFAULT_ANTELACION_MIN);
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -72,7 +78,9 @@ export function BehaviorForm() {
         canceladas_nc_suman?: boolean;
         modo_reservas?: string;
         confirmacion_reservas?: unknown;
+        antelacion_reserva_min?: unknown;
       };
+      setAntelacion(parseAntelacion(avisos.antelacion_reserva_min));
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 1);
@@ -101,6 +109,7 @@ export function BehaviorForm() {
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
+          antelacion_reserva_min: antelacion,
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
@@ -124,6 +133,7 @@ export function BehaviorForm() {
     setAvisoRenovacion(true);
     setModoReservas(DEFAULT_BOOKING_MODE);
     setConfirmacion(DEFAULT_CONFIRMACION_RESERVAS);
+    setAntelacion(DEFAULT_ANTELACION_MIN);
     setDirty(true);
   }
 
@@ -250,6 +260,29 @@ export function BehaviorForm() {
           <CardTitle>Confirmación de reservas</CardTitle>
         </CardHeader>
         <CardContent>
+          <Row
+            title="Antelación mínima para reservar"
+            description="Tiempo mínimo que debe faltar para el inicio de una sesión para que el cliente pueda reservarla. Las sesiones que ya han comenzado o pasado nunca se pueden reservar. Con “Sin margen” se puede reservar hasta el minuto exacto de inicio."
+          >
+            <Select
+              value={String(antelacion)}
+              onValueChange={(v) => {
+                setAntelacion(Number(v));
+                setDirty(true);
+              }}
+            >
+              <SelectTrigger className="w-[160px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ANTELACION_OPCIONES.map((o) => (
+                  <SelectItem key={o.value} value={String(o.value)}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
           <Row
             title="Las reservas del cliente necesitan confirmación"
             description="Si lo activas, cuando un cliente reserva desde su portal la sesión queda pendiente (por confirmar) hasta que la confirmes o la canceles desde la agenda. Desactivado por defecto."

@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { parseAntelacion, puedeReservarse } from "./booking-antelacion";
 import type {
   AccesoCliente,
   BonoResumen,
@@ -87,6 +88,19 @@ export function portalRange(): { from: string; to: string } {
   const to = new Date(from);
   to.setDate(to.getDate() + daysToSunday + 14);
   return { from: iso(from), to: iso(to) };
+}
+
+/** Margen de antelación configurado (minutos) para reservas de clientes. */
+export async function getAntelacionReservaMin(): Promise<number> {
+  const { data } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+    antelacion_reserva_min?: unknown;
+  };
+  return parseAntelacion(avisos.antelacion_reserva_min);
 }
 
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
@@ -183,7 +197,8 @@ async function loadBlocks(from: string, to: string) {
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
   const { from, to } = portalRange();
-  const { blocks, groupById, trainerById, colores, defaultGroupSlug } = await loadBlocks(from, to);
+  const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion] =
+    await Promise.all([loadBlocks(from, to), getAntelacionReservaMin()]);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
@@ -210,6 +225,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: slug,
+      reservable: puedeReservarse(first.fecha, first.hora_inicio, antelacion),
       color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
     });
   }
@@ -225,7 +241,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
  */
 export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[]> {
   const { from, to } = portalRange();
-  const abierto = await buildAperturaFilter();
+  const [abierto, antelacion] = await Promise.all([buildAperturaFilter(), getAntelacionReservaMin()]);
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
     await Promise.all([
       supabaseAdmin
@@ -299,6 +315,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: h.servicio_slug,
+      reservable: puedeReservarse(h.fecha, h.hora_inicio, antelacion),
       color: colores[`srv:${h.servicio_slug}`] ?? defaultServicioColor(h.servicio_slug),
     } satisfies ClaseGrupal;
   });
@@ -646,6 +663,7 @@ async function bookHuecoForUser(
   if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
     throw new Error("El centro está cerrado en ese horario");
   }
+  await assertReservable(hueco.fecha, hueco.hora_inicio);
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
@@ -703,6 +721,17 @@ async function bookHuecoForUser(
   ]);
 }
 
+/** Bloquea reservas de sesiones pasadas o fuera del margen de antelación. */
+async function assertReservable(fecha: string, horaInicio: string): Promise<void> {
+  const antelacion = await getAntelacionReservaMin();
+  if (puedeReservarse(fecha, horaInicio, antelacion)) return;
+  const { yaComenzo, antelacionLabel } = await import("./booking-antelacion");
+  if (yaComenzo(fecha, horaInicio)) throw new Error("Esta sesión ya ha comenzado");
+  throw new Error(
+    `Las reservas se cierran ${antelacionLabel(antelacion).toLowerCase()} antes del inicio`,
+  );
+}
+
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
 
   const profile = await getPortalProfile(userId);
@@ -715,6 +744,7 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   }
 
   const [groupId, fecha, horaInicio] = key.split("|");
+  await assertReservable(fecha!, horaInicio!);
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio);
 
   await addAttendeeToBlock({
