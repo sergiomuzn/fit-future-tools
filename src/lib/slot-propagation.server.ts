@@ -95,7 +95,10 @@ export async function propagarSemanasAuto(semanasArg?: number): Promise<{
   for (let i = 0; i < plan.rows.length; i += 200) {
     const { error } = await supabaseAdmin
       .from("service_slot_instances")
-      .insert(plan.rows.slice(i, i + 200));
+      .upsert(plan.rows.slice(i, i + 200), {
+        onConflict: "servicio_slug,fecha,hora_inicio,hora_fin",
+        ignoreDuplicates: true,
+      });
     if (error) return { ok: false, creados: 0, motivo: error.message };
   }
   return { ok: true, creados: plan.rows.length };
