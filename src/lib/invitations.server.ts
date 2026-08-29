@@ -86,7 +86,7 @@ export async function acceptInvitation(input: {
 
   const { data: invitation } = await supabaseAdmin
     .from("client_invitations")
-    .select("id,acceso,client_id")
+    .select("id,acceso,client_id,role")
     .eq("code", input.code)
     .single();
   const existingClientId = (invitation as { client_id?: string | null } | null)?.client_id ?? null;
@@ -202,14 +202,20 @@ export async function acceptInvitation(input: {
     return { ok: false, error: profileError.message };
   }
 
+  // El rol viene codificado en la invitación (siempre "cliente" salvo excepción explícita).
+  const invitedRole =
+    ((invitation as { role?: string } | null)?.role as "cliente" | "entrenador" | undefined) ??
+    "cliente";
+  // Ningún registro por invitación puede conservar permisos de administración
+  await supabaseAdmin.from("user_roles").delete().eq("user_id", userId).neq("role", invitedRole);
   const { data: existingRole } = await supabaseAdmin
     .from("user_roles")
     .select("user_id")
     .eq("user_id", userId)
-    .eq("role", "cliente")
+    .eq("role", invitedRole)
     .maybeSingle();
   if (!existingRole) {
-    await supabaseAdmin.from("user_roles").insert([{ user_id: userId, role: "cliente" }]);
+    await supabaseAdmin.from("user_roles").insert([{ user_id: userId, role: invitedRole }]);
   }
   await supabaseAdmin
     .from("client_invitations")

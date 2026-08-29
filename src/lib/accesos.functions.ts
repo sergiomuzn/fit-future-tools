@@ -35,6 +35,7 @@ export const crearInvitacionCliente = createServerFn({ method: "POST" })
         email: data.enviarEmail ? (data.email ?? null) : null,
         expires_at: expires.toISOString(),
         acceso: data.acceso,
+        role: "cliente",
       },
     ]);
     if (error) throw new Error(error.message);

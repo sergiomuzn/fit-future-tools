@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchMyRoles } from "@/lib/roles";
 import {
   listClases,
   reservarClase,
