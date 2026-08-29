@@ -187,6 +187,7 @@ export type Database = {
           id: string
           nombre: string | null
           revoked_at: string | null
+          role: Database["public"]["Enums"]["app_role"]
           updated_at: string
           used_at: string | null
           used_by: string | null
@@ -202,6 +203,7 @@ export type Database = {
           id?: string
           nombre?: string | null
           revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           used_at?: string | null
           used_by?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           id?: string
           nombre?: string | null
           revoked_at?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           updated_at?: string
           used_at?: string | null
           used_by?: string | null
@@ -863,6 +866,10 @@ export type Database = {
       auto_deactivate_prueba_clients:
         | { Args: never; Returns: number }
         | { Args: { p_dias?: number }; Returns: number }
+      current_app_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
       ensure_prueba_bono: {
         Args: { p_client: string; p_fecha: string }
         Returns: undefined
