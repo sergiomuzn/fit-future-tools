@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ArrowLeft, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchMyRoles } from "@/lib/roles";
 import { getMyPortalProfile, getMiResumen } from "@/lib/client-portal.functions";
 import { PerfilForm } from "@/components/cliente/perfil-form";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,8 @@ export const Route = createFileRoute("/perfil")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
+    const roles = await fetchMyRoles();
+    if (roles.includes("admin") && !roles.includes("cliente")) throw redirect({ to: "/" });
   },
   component: PerfilPage,
 });
