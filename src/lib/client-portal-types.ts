@@ -47,6 +47,8 @@ export interface ClaseGrupal {
   /** Reserva pendiente de que el admin la confirme. */
   porConfirmar: boolean;
   asistida: boolean;
+  /** Todavía se puede reservar (no ha pasado ni supera el margen de antelación). */
+  reservable: boolean;
   miSesionId: string | null;
   servicioSlug: string | null;
   /** Color base del servicio (configurable en Configuración > Colores por servicio). */

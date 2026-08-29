@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { yaComenzo } from "@/lib/booking-antelacion";
 import { cn } from "@/lib/utils";
 import { shade, REALIZADA_SHADE } from "@/lib/colors";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -584,6 +585,8 @@ function ClaseCardImpl({
   busy: boolean;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
+  const fueraDePlazo = !clase.reservable;
+  const comenzada = yaComenzo(clase.fecha, clase.horaInicio);
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -612,9 +615,13 @@ function ClaseCardImpl({
           {clase.asistida ? (
             <span className="text-sm text-muted-foreground">Completada</span>
           ) : clase.reservada ? (
-            <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
+            <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
               Cancelar
             </Button>
+          ) : fueraDePlazo ? (
+            <span className="text-sm text-muted-foreground">
+              {comenzada ? "Realizada" : "Fuera de plazo"}
+            </span>
           ) : (
             <Button size="sm" onClick={onBook} disabled={busy || completa}>
               {completa ? "Completa" : "Reservar"}
