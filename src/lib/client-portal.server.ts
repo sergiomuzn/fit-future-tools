@@ -663,6 +663,7 @@ async function bookHuecoForUser(
   if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
     throw new Error("El centro está cerrado en ese horario");
   }
+  await assertReservable(hueco.fecha, hueco.hora_inicio);
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
@@ -720,6 +721,17 @@ async function bookHuecoForUser(
   ]);
 }
 
+/** Bloquea reservas de sesiones pasadas o fuera del margen de antelación. */
+async function assertReservable(fecha: string, horaInicio: string): Promise<void> {
+  const antelacion = await getAntelacionReservaMin();
+  if (puedeReservarse(fecha, horaInicio, antelacion)) return;
+  const { yaComenzo, antelacionLabel } = await import("./booking-antelacion");
+  if (yaComenzo(fecha, horaInicio)) throw new Error("Esta sesión ya ha comenzado");
+  throw new Error(
+    `Las reservas se cierran ${antelacionLabel(antelacion).toLowerCase()} antes del inicio`,
+  );
+}
+
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
 
   const profile = await getPortalProfile(userId);
@@ -732,6 +744,7 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   }
 
   const [groupId, fecha, horaInicio] = key.split("|");
+  await assertReservable(fecha!, horaInicio!);
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio);
 
   await addAttendeeToBlock({
