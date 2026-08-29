@@ -506,6 +506,7 @@ function CalendarioClases({
                           !c.color && "bg-muted text-muted-foreground",
                           c.color && reservada && "text-white",
                           c.color && !reservada && "font-medium",
+                          !c.reservable && !c.reservada && !c.asistida && "opacity-50",
                         )}
                         style={
                           c.color
