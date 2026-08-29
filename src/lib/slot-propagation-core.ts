@@ -95,15 +95,18 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
   let omitidosPorModo = 0;
   let yaExistentes = 0;
 
+  const vistos = new Set(existentes);
+
   for (const fecha of fechas) {
     const dow = new Date(`${fecha}T00:00:00`).getDay();
     const sesionesDia = sesionesPorFecha.get(fecha) ?? [];
     for (const s of plantilla.filter((p) => p.dia_semana === dow)) {
       const key = instanceKey(s.servicio_slug, fecha, s.hora_inicio, s.hora_fin);
-      if (existentes.has(key)) {
+      if (vistos.has(key)) {
         yaExistentes++;
         continue;
       }
+      vistos.add(key);
       const visible = slotVisibleForMode(
         { inicio: s.hora_inicio, fin: s.hora_fin },
         sesionesDia,
