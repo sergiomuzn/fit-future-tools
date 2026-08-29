@@ -162,6 +162,7 @@ export function InvitarClientesDialog({
         expires_at: expires.toISOString(),
         acceso: accesoValue ?? "grupos",
         client_id: c.id,
+        role: "cliente" as const,
       }));
       const { data, error } = await supabase.from("client_invitations").insert(rows).select("code,nombre,email");
       if (error) throw error;
