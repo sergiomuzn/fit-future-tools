@@ -206,16 +206,13 @@ export async function acceptInvitation(input: {
   const invitedRole =
     ((invitation as { role?: string } | null)?.role as "cliente" | "entrenador" | undefined) ??
     "cliente";
-  // Ningún registro por invitación puede conservar permisos de administración
-  await supabaseAdmin.from("user_roles").delete().eq("user_id", userId).neq("role", invitedRole);
-  const { data: existingRole } = await supabaseAdmin
+  // Un solo rol por usuario: el upsert pisa cualquier rol previo (nunca admin por invitación)
+  const { error: roleError } = await supabaseAdmin
     .from("user_roles")
-    .select("user_id")
-    .eq("user_id", userId)
-    .eq("role", invitedRole)
-    .maybeSingle();
-  if (!existingRole) {
-    await supabaseAdmin.from("user_roles").insert([{ user_id: userId, role: invitedRole }]);
+    .upsert([{ user_id: userId, role: invitedRole }], { onConflict: "user_id" });
+  if (roleError) {
+    await cleanupUser();
+    return { ok: false, error: roleError.message };
   }
   await supabaseAdmin
     .from("client_invitations")
