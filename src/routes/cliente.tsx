@@ -46,6 +46,8 @@ export const Route = createFileRoute("/cliente")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
+    const roles = await fetchMyRoles();
+    if (roles.includes("admin") && !roles.includes("cliente")) throw redirect({ to: "/" });
   },
   component: ClientePortal,
 });
