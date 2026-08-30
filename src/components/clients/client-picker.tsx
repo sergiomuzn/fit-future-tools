@@ -42,7 +42,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
   // only as placeholder, so backspacing did nothing and the field felt locked).
   useEffect(() => {
     if (selected) setSearch(selected.nombre);
-    else setSearch("");
+    else setSearch(initialText ?? "");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
@@ -105,6 +105,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             const v = e.target.value;
             setSearch(v);
             setListOpen(true);
+            onTextChange?.(v);
             // If the user edits the text away from the selected client, clear
             // the selection so the parent state reflects "no client picked".
             if (selected && v !== selected.nombre) onChange(null, null);
