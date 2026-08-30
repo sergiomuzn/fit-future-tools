@@ -124,6 +124,10 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                   {list.slice(0, 4).map((s) => {
                     const isGroup = s.ocupacion === 2;
                     const name = s.titulo ?? (s.client_id ? clientMap.get(s.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const ocupados = isGroup
+                      ? (groupCounts.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? 0)
+                      : (s.client_id ? 1 : 0);
+                    const plazas = servicioCapMap.get((s as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
                     return (
                       <button
