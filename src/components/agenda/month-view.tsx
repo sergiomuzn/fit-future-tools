@@ -138,9 +138,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
-                        title={`${s.hora_inicio.slice(0, 5)} ${name}`}
+                        title={`${s.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
                       >
-                        {s.hora_inicio.slice(0, 5)} {name.toUpperCase()}
+                        {s.hora_inicio.slice(0, 5)} {name.toUpperCase()} ({ocupados}/{plazas})
                       </button>
                     );
                   })}
