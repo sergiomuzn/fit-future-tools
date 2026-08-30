@@ -42,12 +42,12 @@ export function BonoSelectContent({ catalogo, noneValue, noneLabel, itemLabel }:
         const color = servicioColor(slug) ?? "#888888";
         return (
           <SelectGroup key={slug}>
-            <SelectLabel className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted-foreground">
+            <SelectLabel className="flex items-center gap-2 text-xs uppercase tracking-wide text-foreground">
               <span className="h-3.5 w-1 rounded-full shrink-0" style={{ backgroundColor: color }} />
               {nombreServicio.get(slug) ?? slug}
             </SelectLabel>
             {grupos.get(slug)!.map((b) => (
-              <SelectItem key={b.id} value={b.id} className="whitespace-normal">
+              <SelectItem key={b.id} value={b.id} className="whitespace-normal text-muted-foreground">
                 {itemLabel ? itemLabel(b) : prettyBonoNombre(b.nombre)}
               </SelectItem>
             ))}
