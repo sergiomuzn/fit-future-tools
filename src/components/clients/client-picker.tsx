@@ -14,9 +14,13 @@ interface Props {
   value: string | null;
   onChange: (clientId: string | null, client: Client | null) => void;
   autoFocus?: boolean;
+  /** Texto libre escrito en el buscador (aunque no haya cliente seleccionado). */
+  onTextChange?: (text: string) => void;
+  /** Texto inicial mostrado cuando no hay cliente seleccionado. */
+  initialText?: string;
 }
 
-export function ClientPicker({ value, onChange, autoFocus }: Props) {
+export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
