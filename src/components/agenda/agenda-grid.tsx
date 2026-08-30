@@ -652,22 +652,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
-              // Buscar la capacidad del grupo mirando al primary y, si no
-              // tiene group_id, a cualquiera de los miembros. Así el
-              // contador (x/6) se mantiene aunque la sesión ya esté
-              // "realizada" o el group_id se haya perdido en el primary.
-              const groupIdForCap = isGroup
-                ? (((session as any).group_id as string | null | undefined)
-                    ?? (members ?? []).map((m) => (m as any).group_id as string | null | undefined).find((g) => !!g)
-                    ?? null)
-                : null;
-              const groupCap = groupIdForCap ? (groupCapMap.get(groupIdForCap) ?? 0) : 0;
+              // Plazas disponibles: las define el servicio de la sesión.
+              const plazas = servicioCapMap.get((session as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, groupMemberCount) : 1);
+              // Clientes en la sesión: miembros del grupo, o 1/0 en individuales.
+              const ocupados = isGroup ? groupMemberCount : (session.client_id ? 1 : 0);
               const groupDisplayName = isGroup
-                ? ((groupIdForCap ? groupNameMap.get(groupIdForCap) : null) ?? session.titulo ?? "Grupo")
+                ? formatNameUpper(session.titulo ?? "Grupo")
                 : "";
-              const groupCountLabel = isGroup
-                ? (groupCap > 0 ? `${groupMemberCount}/${groupCap}` : `${groupMemberCount}`)
-                : "";
+              const groupCountLabel = `${ocupados}/${plazas}`;
               const groupNames = isGroup
                 ? (members ?? [session])
                     .filter((m) => !!m.client_id)
