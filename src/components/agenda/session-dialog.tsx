@@ -219,11 +219,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const hi = `${horaInicio}:00`;
     const hf = `${horaFin}:00`;
     const nombreLibreTrim = nombreLibre.trim();
-    const tituloDeseado = grupo
-      ? titulo.trim() || null
-      : !clientId && nombreLibreTrim
-        ? nombreLibreTrim
-        : null;
+    const tituloDeseado =
+      nombreLibreTrim ||
+      ((grupo ? groupClientIds.every((id) => !id) : !clientId)
+        ? (servicioActual?.nombre ?? null)
+        : null);
+
     const incidenciaDeseada = incidencia || null;
 
     const byDate = new Map<string, Session[]>();
