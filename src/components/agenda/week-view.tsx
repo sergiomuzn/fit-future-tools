@@ -200,10 +200,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
-                        title={`${session.hora_inicio.slice(0, 5)} ${name}`}
+                        title={`${session.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
                       >
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
-                        {height > 22 && <div className="truncate">{name.toUpperCase()}</div>}
+                        {height > 22 && <div className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</div>}
                         {trainer && height > 34 && <div className="truncate opacity-90">{trainer.iniciales}</div>}
                       </button>
                     );
