@@ -345,15 +345,11 @@ function FacturacionPage() {
                 });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sin bono</SelectItem>
-                  {sortCatalogo(catalogo).map((b) => {
-                    const label = servMap.get(b.servicio_slug) ?? b.servicio_slug;
-                    return (
-                      <SelectItem key={b.id} value={b.id}>{label} · {prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
-                    );
-                  })}
-                </SelectContent>
+                <BonoSelectContent
+                  catalogo={catalogo}
+                  noneValue="__none__"
+                  itemLabel={(b) => `${prettyBonoNombre(b.nombre)} — ${Number(b.precio).toFixed(0)} €`}
+                />
               </Select>
               </div>
               {form.bono_catalogo_id && (
