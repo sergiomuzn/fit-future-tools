@@ -11,9 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
-import { GroupPicker } from "@/components/groups/group-picker";
-import { GroupDialog } from "@/components/groups/group-dialog";
-import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
@@ -51,17 +48,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
-  const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
-  const [titulo, setTitulo] = useState("");
   const [nombreLibre, setNombreLibre] = useState("");
   const [noContabilizar, setNoContabilizar] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -163,7 +157,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
-    setTitulo((session as any)?.titulo ?? "");
     setNombreLibre(!((session as any)?.client_id) ? ((session as any)?.titulo ?? "") : "");
 
     const isNewSession = !session?.id;
@@ -174,7 +167,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         : !!(session as any)?.no_contabilizar,
     );
     setPorConfirmar(!!(session as any)?.por_confirmar);
-    setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
   }, [open, session]);
 
   // Las plazas de las sesiones con varios clientes salen del servicio
@@ -868,11 +860,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-    <GroupDialog
-      open={createGroupOpen}
-      onClose={() => setCreateGroupOpen(false)}
-      group={null}
-    />
     {confirmDialog}
     </>
   );
