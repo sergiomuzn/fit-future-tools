@@ -274,22 +274,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
-    // Group sessions must reference a registered group (create it via the
-    // "Nuevo grupo" button next to the picker). Enforce the group's capacity
-    // on the picked members.
-    const effectiveGroupId = groupId;
+    // Las plazas las define el servicio (Servicios → capacidad por sesión).
     if (grupo) {
-      if (!effectiveGroupId) {
-        toast.error("Selecciona un grupo o crea uno nuevo");
-        return;
-      }
-      const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
       const pickedMembers = groupClientIds.filter((id): id is string => !!id);
-      if (pickedMembers.length > cap) {
-        toast.error(`Capacidad máxima del grupo: ${cap}`);
+      if (pickedMembers.length > plazas) {
+        toast.error(`Plazas máximas del servicio: ${plazas}`);
         return;
       }
     }
+
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
