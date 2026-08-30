@@ -6,6 +6,7 @@ import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { sessionFillColor } from "@/lib/colors";
 import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
 
 interface Props {
   date: Date;
@@ -57,6 +58,22 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
     },
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  const { data: servicios = [] } = useServicios();
+  const servicioCapMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
+    [servicios],
+  );
+  // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
+  const groupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
+        const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
+        m.set(key, (m.get(key) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [sessions]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
