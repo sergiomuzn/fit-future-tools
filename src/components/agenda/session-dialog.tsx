@@ -157,13 +157,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
     setServicioSlug(
-      (session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""),
+      ((session as any)?.servicio_slug as string | null | undefined) ??
+        ((session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? "")),
     );
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
     setTitulo((session as any)?.titulo ?? "");
-    setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
+    setNombreLibre(!((session as any)?.client_id) ? ((session as any)?.titulo ?? "") : "");
+
     const isNewSession = !session?.id;
     const cfgBehavior = getBehaviorConfig();
     setNoContabilizar(
