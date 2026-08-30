@@ -745,7 +745,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
                         {isGroup
                           ? `${groupDisplayName} (${groupCountLabel})`
-                          : (isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : displayName)}
+                          : `${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
                       {trainer && (
                         <div className={cn("shrink-0 rounded bg-black/25 px-1 font-semibold text-white leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
