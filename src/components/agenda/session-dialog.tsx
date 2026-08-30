@@ -177,75 +177,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
   }, [open, session]);
 
-  // When a registered group is selected (in a new group session), auto-fill members and title.
-  const { data: pickedGroupMembers = [] } = useQuery({
-    queryKey: ["group_members_by_group", groupId],
-    queryFn: async () => {
-      if (!groupId) return [] as { client_id: string }[];
-      const { data } = await supabase.from("group_members").select("client_id").eq("group_id", groupId);
-      return (data ?? []) as { client_id: string }[];
-    },
-    enabled: open && !!groupId,
-  });
-  const { data: pickedGroup } = useQuery({
-    queryKey: ["group_by_id", groupId],
-    queryFn: async () => {
-      if (!groupId) return null;
-      const { data } = await supabase.from("groups").select("*").eq("id", groupId).maybeSingle();
-      return data;
-    },
-    enabled: open && !!groupId,
-  });
-
-  const lastAutofilledGroupIdRef = ((): { current: string | null } => {
-    // Use a stable ref stored on window to avoid an extra useRef import churn.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyGlobal: any = globalThis as any;
-    if (!anyGlobal.__sd_ref) anyGlobal.__sd_ref = { current: null };
-    return anyGlobal.__sd_ref;
-  })();
-  useEffect(() => {
-    if (!open || !groupId || !isNew) return;
-    if (lastAutofilledGroupIdRef.current === groupId) return;
-    if (pickedGroup) {
-      setTitulo(pickedGroup.nombre);
-    }
-    if (pickedGroup) {
-      const cap = Math.max(1, pickedGroup.capacidad ?? 1);
-      const ids = pickedGroupMembers.map((m) => m.client_id);
-      const padded: (string | null)[] = [...ids];
-      while (padded.length < cap) padded.push(null);
-      setGroupClientIds(padded.slice(0, cap));
-      lastAutofilledGroupIdRef.current = groupId;
-    }
-  }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
-
-  // Sync titulo with linked group's name (when we don't already have one).
-  useEffect(() => {
-    if (!open || !groupId || !pickedGroup) return;
-    setTitulo((prev) => prev || pickedGroup.nombre);
-  }, [open, groupId, pickedGroup]);
-
-  // Resize the client pickers to match the linked group's capacidad while
-  // preserving any picks. Without a picked group there are no client slots.
-  const capacityForPickers = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
+  // Las plazas de las sesiones con varios clientes salen del servicio
+  // (Servicios → capacidad por sesión). Ya no existen grupos con nombre.
   useEffect(() => {
     if (!open || !grupo) return;
     setGroupClientIds((prev) => {
-      if (prev.length === capacityForPickers) return prev;
-      if (prev.length > capacityForPickers) return prev.slice(0, capacityForPickers);
+      if (prev.length === plazas) return prev;
+      if (prev.length > plazas) return prev.slice(0, plazas);
       const next = [...prev];
-      while (next.length < capacityForPickers) next.push(null);
+      while (next.length < plazas) next.push(null);
       return next;
     });
-  }, [open, grupo, capacityForPickers]);
+  }, [open, grupo, plazas]);
 
-  // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
+  // Cuando llegan los miembros de la sesión desde BD, rellenar los pickers.
   useEffect(() => {
     if (!open) return;
     if (session?.ocupacion !== 2) return;
     if (isNew) {
-      // Slots aparecerán al elegir un grupo (según su capacidad).
       setGroupClientIds(session?.client_id ? [session.client_id] : []);
       return;
     }
@@ -253,11 +202,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const ids = groupMembersData
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
-    const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : ids.length;
     const padded: (string | null)[] = [...ids];
-    while (padded.length < cap) padded.push(null);
-    setGroupClientIds(padded.slice(0, Math.max(cap, ids.length)));
-  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, pickedGroup]);
+    while (padded.length < plazas) padded.push(null);
+    setGroupClientIds(padded.slice(0, Math.max(plazas, ids.length)));
+  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, plazas]);
+
 
   /**
    * ¿Aplicar los cambios "a las siguientes" alteraría algo en las sesiones
