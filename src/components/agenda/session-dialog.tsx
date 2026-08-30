@@ -11,9 +11,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
-import { GroupPicker } from "@/components/groups/group-picker";
-import { GroupDialog } from "@/components/groups/group-dialog";
-import { Plus } from "lucide-react";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
@@ -51,17 +48,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
-  const [groupId, setGroupId] = useState<string | null>(null);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
-  const [titulo, setTitulo] = useState("");
   const [nombreLibre, setNombreLibre] = useState("");
   const [noContabilizar, setNoContabilizar] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
-  const [createGroupOpen, setCreateGroupOpen] = useState(false);
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
@@ -122,10 +116,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
   const servicioIndividual =
     servicios.find((s) => s.slug === "personal") ?? servicios.find((s) => !/grupo/i.test(s.slug));
+  const servicioActual = servicios.find((s) => s.slug === servicioSlug);
+  // Plazas del servicio (definidas en Servicios). 1 plaza = sesión individual.
+  const plazas = Math.max(1, servicioActual?.capacidad_default ?? 1);
 
   function cambiarServicio(slug: string) {
     setServicioSlug(slug);
-    setGrupo(!!servicioGrupo && slug === servicioGrupo.slug);
+    const cap = Math.max(1, servicios.find((s) => s.slug === slug)?.capacidad_default ?? 1);
+    setGrupo(cap > 1);
   }
 
   // Si los servicios cargan después de abrir el diálogo, fija el valor por defecto.
@@ -133,6 +131,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open || servicioSlug || servicios.length === 0) return;
     setServicioSlug(grupo ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""));
   }, [open, servicioSlug, servicios.length, grupo, servicioGrupo?.slug, servicioIndividual?.slug]);
+  // Mantener `grupo` sincronizado con las plazas del servicio elegido.
+  useEffect(() => {
+    if (!open || !servicioActual) return;
+    setGrupo(plazas > 1);
+  }, [open, servicioActual?.slug, plazas]);
+
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
@@ -147,13 +151,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
     setServicioSlug(
-      (session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""),
+      ((session as any)?.servicio_slug as string | null | undefined) ??
+        ((session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? "")),
     );
     setRepeatWeeks(0);
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
-    setTitulo((session as any)?.titulo ?? "");
-    setNombreLibre(!((session as any)?.client_id) && !((session as any)?.ocupacion === 2) ? ((session as any)?.titulo ?? "") : "");
+    setNombreLibre(!((session as any)?.client_id) ? ((session as any)?.titulo ?? "") : "");
+
     const isNewSession = !session?.id;
     const cfgBehavior = getBehaviorConfig();
     setNoContabilizar(
@@ -162,78 +167,26 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         : !!(session as any)?.no_contabilizar,
     );
     setPorConfirmar(!!(session as any)?.por_confirmar);
-    setGroupId(((session as any)?.group_id as string | null | undefined) ?? null);
   }, [open, session]);
 
-  // When a registered group is selected (in a new group session), auto-fill members and title.
-  const { data: pickedGroupMembers = [] } = useQuery({
-    queryKey: ["group_members_by_group", groupId],
-    queryFn: async () => {
-      if (!groupId) return [] as { client_id: string }[];
-      const { data } = await supabase.from("group_members").select("client_id").eq("group_id", groupId);
-      return (data ?? []) as { client_id: string }[];
-    },
-    enabled: open && !!groupId,
-  });
-  const { data: pickedGroup } = useQuery({
-    queryKey: ["group_by_id", groupId],
-    queryFn: async () => {
-      if (!groupId) return null;
-      const { data } = await supabase.from("groups").select("*").eq("id", groupId).maybeSingle();
-      return data;
-    },
-    enabled: open && !!groupId,
-  });
-
-  const lastAutofilledGroupIdRef = ((): { current: string | null } => {
-    // Use a stable ref stored on window to avoid an extra useRef import churn.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const anyGlobal: any = globalThis as any;
-    if (!anyGlobal.__sd_ref) anyGlobal.__sd_ref = { current: null };
-    return anyGlobal.__sd_ref;
-  })();
-  useEffect(() => {
-    if (!open || !groupId || !isNew) return;
-    if (lastAutofilledGroupIdRef.current === groupId) return;
-    if (pickedGroup) {
-      setTitulo(pickedGroup.nombre);
-    }
-    if (pickedGroup) {
-      const cap = Math.max(1, pickedGroup.capacidad ?? 1);
-      const ids = pickedGroupMembers.map((m) => m.client_id);
-      const padded: (string | null)[] = [...ids];
-      while (padded.length < cap) padded.push(null);
-      setGroupClientIds(padded.slice(0, cap));
-      lastAutofilledGroupIdRef.current = groupId;
-    }
-  }, [open, isNew, groupId, pickedGroup, pickedGroupMembers, lastAutofilledGroupIdRef]);
-
-  // Sync titulo with linked group's name (when we don't already have one).
-  useEffect(() => {
-    if (!open || !groupId || !pickedGroup) return;
-    setTitulo((prev) => prev || pickedGroup.nombre);
-  }, [open, groupId, pickedGroup]);
-
-  // Resize the client pickers to match the linked group's capacidad while
-  // preserving any picks. Without a picked group there are no client slots.
-  const capacityForPickers = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
+  // Las plazas de las sesiones con varios clientes salen del servicio
+  // (Servicios → capacidad por sesión). Ya no existen grupos con nombre.
   useEffect(() => {
     if (!open || !grupo) return;
     setGroupClientIds((prev) => {
-      if (prev.length === capacityForPickers) return prev;
-      if (prev.length > capacityForPickers) return prev.slice(0, capacityForPickers);
+      if (prev.length === plazas) return prev;
+      if (prev.length > plazas) return prev.slice(0, plazas);
       const next = [...prev];
-      while (next.length < capacityForPickers) next.push(null);
+      while (next.length < plazas) next.push(null);
       return next;
     });
-  }, [open, grupo, capacityForPickers]);
+  }, [open, grupo, plazas]);
 
-  // Cuando llegan los miembros del grupo desde BD, rellenar los pickers.
+  // Cuando llegan los miembros de la sesión desde BD, rellenar los pickers.
   useEffect(() => {
     if (!open) return;
     if (session?.ocupacion !== 2) return;
     if (isNew) {
-      // Slots aparecerán al elegir un grupo (según su capacidad).
       setGroupClientIds(session?.client_id ? [session.client_id] : []);
       return;
     }
@@ -241,11 +194,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const ids = groupMembersData
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
-    const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : ids.length;
     const padded: (string | null)[] = [...ids];
-    while (padded.length < cap) padded.push(null);
-    setGroupClientIds(padded.slice(0, Math.max(cap, ids.length)));
-  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, pickedGroup]);
+    while (padded.length < plazas) padded.push(null);
+    setGroupClientIds(padded.slice(0, Math.max(plazas, ids.length)));
+  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, plazas]);
+
 
   /**
    * ¿Aplicar los cambios "a las siguientes" alteraría algo en las sesiones
@@ -258,11 +211,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const hi = `${horaInicio}:00`;
     const hf = `${horaFin}:00`;
     const nombreLibreTrim = nombreLibre.trim();
-    const tituloDeseado = grupo
-      ? titulo.trim() || null
-      : !clientId && nombreLibreTrim
-        ? nombreLibreTrim
-        : null;
+    const tituloDeseado =
+      nombreLibreTrim ||
+      ((grupo ? groupClientIds.every((id) => !id) : !clientId)
+        ? (servicioActual?.nombre ?? null)
+        : null);
+
     const incidenciaDeseada = incidencia || null;
 
     const byDate = new Map<string, Session[]>();
@@ -313,22 +267,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
-    // Group sessions must reference a registered group (create it via the
-    // "Nuevo grupo" button next to the picker). Enforce the group's capacity
-    // on the picked members.
-    const effectiveGroupId = groupId;
+    // Las plazas las define el servicio (Servicios → capacidad por sesión).
     if (grupo) {
-      if (!effectiveGroupId) {
-        toast.error("Selecciona un grupo o crea uno nuevo");
-        return;
-      }
-      const cap = pickedGroup ? Math.max(1, pickedGroup.capacidad ?? 1) : 0;
       const pickedMembers = groupClientIds.filter((id): id is string => !!id);
-      if (pickedMembers.length > cap) {
-        toast.error(`Capacidad máxima del grupo: ${cap}`);
+      if (pickedMembers.length > plazas) {
+        toast.error(`Plazas máximas del servicio: ${plazas}`);
         return;
       }
     }
+
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
@@ -343,10 +290,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
-      titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
+      // Nombre de la sesión: el nombre libre escrito o, si no hay clientes ni
+      // nombre, el nombre del servicio.
+      titulo:
+        nombreLibreTrim ||
+        ((grupo ? groupClientIds.every((id) => !id) : !clientId)
+          ? (servicioActual?.nombre ?? null)
+          : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
-      group_id: grupo ? effectiveGroupId : null,
+      group_id: null,
+
       // Servicio al que pertenece la sesión: determina de qué bono se descuenta.
       servicio_slug:
         servicioSlug ||
@@ -381,12 +335,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const memberIds = grupo
         ? groupClientIds.filter((id): id is string => !!id)
         : [clientId];
-      if (!grupo && !clientId && !nombreLibreTrim) {
-        if (!porConfirmar) {
-          toast.error("Selecciona un cliente o escribe un nombre");
-          return;
-        }
-      }
       const dates = [session.fecha!];
       for (let w = 1; w <= repeatWeeks; w++) {
         const d = new Date(session.fecha!);
@@ -758,74 +706,67 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          {grupo ? (
-            <div className="space-y-1.5">
-              <Label>Grupo</Label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
-              </div>
-              <Label className="text-xs text-muted-foreground">
-                Clientes del grupo
-                {pickedGroup
-                  ? ` (${groupClientIds.filter(Boolean).length}/${pickedGroup.capacidad})`
-                  : ""}
-              </Label>
-              {groupClientIds.map((cid, i) => {
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <ClientPicker
-                        value={cid}
-                        onChange={async (id) => {
-                          if (cid && id !== cid) {
-                            const reserva = (groupMembersData ?? []).find(
-                              (m) =>
-                                m.client_id === cid &&
-                                !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
-                            );
-                            if (reserva) {
-                              const ok = await confirm({
-                                title: "¿Quitar a este cliente?",
-                                description:
-                                  "Este cliente reservó esta clase grupal desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
-                                confirmText: "Quitar",
-                              });
-                              if (!ok) return;
-                            }
+          <div className="space-y-1.5">
+            <Label>
+              {plazas > 1
+                ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
+                : "Cliente"}
+            </Label>
+            {plazas > 1 ? (
+              groupClientIds.map((cid, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ClientPicker
+                      value={cid}
+                      autoFocus={isNew && i === 0}
+                      onChange={async (id) => {
+                        if (cid && id !== cid) {
+                          const reserva = (groupMembersData ?? []).find(
+                            (m) =>
+                              m.client_id === cid &&
+                              !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
+                          );
+                          if (reserva) {
+                            const ok = await confirm({
+                              title: "¿Quitar a este cliente?",
+                              description:
+                                "Este cliente reservó esta sesión desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
+                              confirmText: "Quitar",
+                            });
+                            if (!ok) return;
                           }
-                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
-                        }}
-                      />
-                    </div>
+                        }
+                        setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
+                      }}
+                    />
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Label>Cliente</Label>
-              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
-              {!grupo && clientId && !isGympassBono && (
-              <div className="text-[11px] text-muted-foreground">
-                  Sesiones restantes:{" "}
-                  <span className="font-semibold">
-                    {restantes ?? "Sin bono"}
-                  </span>
                 </div>
-              )}
-              {!clientId && (
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">o nombre libre (cliente no registrado)</Label>
-                  <Input value={nombreLibre} onChange={(e) => setNombreLibre(e.target.value)} placeholder="Ej. Juan (prueba)" />
-                </div>
-              )}
-            </div>
-          )}
+              ))
+            ) : (
+              <>
+                <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
+                {clientId && !isGympassBono && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Sesiones restantes:{" "}
+                    <span className="font-semibold">{restantes ?? "Sin bono"}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">
+                  o nombre libre (si lo dejas vacío se usará el nombre del servicio)
+                </Label>
+                <Input
+                  value={nombreLibre}
+                  onChange={(e) => setNombreLibre(e.target.value)}
+                  placeholder={servicioActual?.nombre ?? "Ej. Juan (prueba)"}
+                />
+              </div>
+            )}
+          </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
@@ -919,11 +860,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>
-    <GroupDialog
-      open={createGroupOpen}
-      onClose={() => setCreateGroupOpen(false)}
-      group={null}
-    />
     {confirmDialog}
     </>
   );
