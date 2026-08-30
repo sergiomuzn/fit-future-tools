@@ -122,10 +122,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
   const servicioIndividual =
     servicios.find((s) => s.slug === "personal") ?? servicios.find((s) => !/grupo/i.test(s.slug));
+  const servicioActual = servicios.find((s) => s.slug === servicioSlug);
+  // Plazas del servicio (definidas en Servicios). 1 plaza = sesión individual.
+  const plazas = Math.max(1, servicioActual?.capacidad_default ?? 1);
 
   function cambiarServicio(slug: string) {
     setServicioSlug(slug);
-    setGrupo(!!servicioGrupo && slug === servicioGrupo.slug);
+    const cap = Math.max(1, servicios.find((s) => s.slug === slug)?.capacidad_default ?? 1);
+    setGrupo(cap > 1);
   }
 
   // Si los servicios cargan después de abrir el diálogo, fija el valor por defecto.
@@ -133,6 +137,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!open || servicioSlug || servicios.length === 0) return;
     setServicioSlug(grupo ? (servicioGrupo?.slug ?? "") : (servicioIndividual?.slug ?? ""));
   }, [open, servicioSlug, servicios.length, grupo, servicioGrupo?.slug, servicioIndividual?.slug]);
+  // Mantener `grupo` sincronizado con las plazas del servicio elegido.
+  useEffect(() => {
+    if (!open || !servicioActual) return;
+    setGrupo(plazas > 1);
+  }, [open, servicioActual?.slug, plazas]);
+
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
