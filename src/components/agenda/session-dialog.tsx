@@ -718,6 +718,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     <ClientPicker
                       value={cid}
                       autoFocus={isNew && i === 0}
+                      initialText={i === 0 ? nombreLibre : undefined}
+                      onTextChange={cid ? undefined : setNombreLibre}
                       onChange={async (id) => {
                         if (cid && id !== cid) {
                           const reserva = (groupMembersData ?? []).find(
@@ -743,7 +745,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               ))
             ) : (
               <>
-                <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
+                <ClientPicker
+                  value={clientId}
+                  onChange={(id) => setClientId(id)}
+                  autoFocus={isNew}
+                  initialText={nombreLibre}
+                  onTextChange={setNombreLibre}
+                />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
                     Sesiones restantes:{" "}
