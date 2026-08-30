@@ -720,74 +720,67 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </div>
           </div>
 
-          {grupo ? (
-            <div className="space-y-1.5">
-              <Label>Grupo</Label>
-              <div className="flex items-center gap-2">
-                <div className="flex-1">
-                  <GroupPicker value={groupId} onChange={(id, g) => { setGroupId(id); if (g) setTitulo(g.nombre); }} />
-                </div>
-                <Button type="button" variant="outline" size="sm" onClick={() => setCreateGroupOpen(true)}>
-                  <Plus className="h-3.5 w-3.5 mr-1" />Nuevo grupo
-                </Button>
-              </div>
-              <Label className="text-xs text-muted-foreground">
-                Clientes del grupo
-                {pickedGroup
-                  ? ` (${groupClientIds.filter(Boolean).length}/${pickedGroup.capacidad})`
-                  : ""}
-              </Label>
-              {groupClientIds.map((cid, i) => {
-                return (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="flex-1 min-w-0">
-                      <ClientPicker
-                        value={cid}
-                        onChange={async (id) => {
-                          if (cid && id !== cid) {
-                            const reserva = (groupMembersData ?? []).find(
-                              (m) =>
-                                m.client_id === cid &&
-                                !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
-                            );
-                            if (reserva) {
-                              const ok = await confirm({
-                                title: "¿Quitar a este cliente?",
-                                description:
-                                  "Este cliente reservó esta clase grupal desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
-                                confirmText: "Quitar",
-                              });
-                              if (!ok) return;
-                            }
+          <div className="space-y-1.5">
+            <Label>
+              {plazas > 1
+                ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
+                : "Cliente"}
+            </Label>
+            {plazas > 1 ? (
+              groupClientIds.map((cid, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ClientPicker
+                      value={cid}
+                      autoFocus={isNew && i === 0}
+                      onChange={async (id) => {
+                        if (cid && id !== cid) {
+                          const reserva = (groupMembersData ?? []).find(
+                            (m) =>
+                              m.client_id === cid &&
+                              !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
+                          );
+                          if (reserva) {
+                            const ok = await confirm({
+                              title: "¿Quitar a este cliente?",
+                              description:
+                                "Este cliente reservó esta sesión desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
+                              confirmText: "Quitar",
+                            });
+                            if (!ok) return;
                           }
-                          setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
-                        }}
-                      />
-                    </div>
+                        }
+                        setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
+                      }}
+                    />
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              <Label>Cliente</Label>
-              <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
-              {!grupo && clientId && !isGympassBono && (
-              <div className="text-[11px] text-muted-foreground">
-                  Sesiones restantes:{" "}
-                  <span className="font-semibold">
-                    {restantes ?? "Sin bono"}
-                  </span>
                 </div>
-              )}
-              {!clientId && (
-                <div className="space-y-1">
-                  <Label className="text-[11px] text-muted-foreground">o nombre libre (cliente no registrado)</Label>
-                  <Input value={nombreLibre} onChange={(e) => setNombreLibre(e.target.value)} placeholder="Ej. Juan (prueba)" />
-                </div>
-              )}
-            </div>
-          )}
+              ))
+            ) : (
+              <>
+                <ClientPicker value={clientId} onChange={(id) => setClientId(id)} autoFocus={isNew} />
+                {clientId && !isGympassBono && (
+                  <div className="text-[11px] text-muted-foreground">
+                    Sesiones restantes:{" "}
+                    <span className="font-semibold">{restantes ?? "Sin bono"}</span>
+                  </div>
+                )}
+              </>
+            )}
+            {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
+              <div className="space-y-1">
+                <Label className="text-[11px] text-muted-foreground">
+                  o nombre libre (si lo dejas vacío se usará el nombre del servicio)
+                </Label>
+                <Input
+                  value={nombreLibre}
+                  onChange={(e) => setNombreLibre(e.target.value)}
+                  placeholder={servicioActual?.nombre ?? "Ej. Juan (prueba)"}
+                />
+              </div>
+            )}
+          </div>
+
 
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
