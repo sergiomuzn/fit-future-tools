@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
+import { useServicios } from "@/lib/servicios";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -159,20 +160,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     },
   });
 
-  const { data: groupsList = [] } = useQuery({
-    queryKey: ["groups"],
-    queryFn: async () => {
-      const { data } = await supabase.from("groups").select("id,capacidad,nombre");
-      return (data ?? []) as Array<{ id: string; capacidad: number | null; nombre: string }>;
-    },
-  });
-  const groupCapMap = useMemo(
-    () => new Map(groupsList.map((g) => [g.id, g.capacidad ?? 0])),
-    [groupsList],
-  );
-  const groupNameMap = useMemo(
-    () => new Map(groupsList.map((g) => [g.id, g.nombre])),
-    [groupsList],
+  const { data: servicios = [] } = useServicios();
+  // Plazas de cada sesión: las define el servicio (Servicios → capacidad por sesión).
+  const servicioCapMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
+    [servicios],
   );
   const catTipoMap = useMemo(
     () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
