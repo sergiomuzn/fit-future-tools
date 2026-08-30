@@ -214,7 +214,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const tituloDeseado =
       nombreLibreTrim ||
       ((grupo ? groupClientIds.every((id) => !id) : !clientId)
-        ? (servicioActual?.nombre ?? null)
+        ? (servicioActual?.nombre?.toUpperCase() ?? null)
         : null);
 
     const incidenciaDeseada = incidencia || null;
