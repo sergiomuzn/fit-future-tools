@@ -753,16 +753,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               </>
             )}
             {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
-              <div className="space-y-1">
-                <Label className="text-[11px] text-muted-foreground">
-                  o nombre libre (si lo dejas vacío se usará el nombre del servicio)
-                </Label>
-                <Input
-                  value={nombreLibre}
-                  onChange={(e) => setNombreLibre(e.target.value)}
-                  placeholder={servicioActual?.nombre ?? "Ej. Juan (prueba)"}
-                />
-              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Puedes escribir un nombre libre en el buscador sin seleccionar cliente; si lo dejas vacío se usará el nombre del servicio.
+              </p>
             )}
           </div>
 
