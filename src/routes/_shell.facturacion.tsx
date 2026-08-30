@@ -29,8 +29,14 @@ import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
-import { useServicios } from "@/lib/servicios";
 
+export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
+
+const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+function FacturacionPage() {
+  const { confirm, dialog } = useConfirm();
+  const qc = useQueryClient();
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
