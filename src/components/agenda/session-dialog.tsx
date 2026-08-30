@@ -211,11 +211,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const hi = `${horaInicio}:00`;
     const hf = `${horaFin}:00`;
     const nombreLibreTrim = nombreLibre.trim();
-    const tituloDeseado =
-      nombreLibreTrim ||
-      ((grupo ? groupClientIds.every((id) => !id) : !clientId)
-        ? (servicioActual?.nombre?.toUpperCase() ?? null)
-        : null);
+    const sinClientes = grupo ? groupClientIds.every((id) => !id) : !clientId;
+    // Sin cliente seleccionado, el texto escrito en el buscador actúa como
+    // nombre libre; si está vacío se usa el nombre del servicio.
+    const tituloDeseado = sinClientes
+      ? (nombreLibreTrim || (servicioActual?.nombre?.toUpperCase() ?? null))
+      : null;
 
     const incidenciaDeseada = incidencia || null;
 
@@ -290,13 +291,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
-      // Nombre de la sesión: el nombre libre escrito o, si no hay clientes ni
-      // nombre, el nombre del servicio.
-      titulo:
-        nombreLibreTrim ||
-        ((grupo ? groupClientIds.every((id) => !id) : !clientId)
-          ? (servicioActual?.nombre?.toUpperCase() ?? null)
-          : null),
+      // Nombre de la sesión: el texto libre del buscador (cuando no hay
+      // cliente seleccionado) o, si está vacío, el nombre del servicio.
+      titulo: (grupo ? groupClientIds.every((id) => !id) : !clientId)
+        ? (nombreLibreTrim || (servicioActual?.nombre?.toUpperCase() ?? null))
+        : null,
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
       group_id: null,
