@@ -6,6 +6,7 @@ import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
+import { useServicios } from "@/lib/servicios";
 
 interface Props {
   date: Date;
@@ -89,6 +90,23 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
+  const { data: servicios = [] } = useServicios();
+  // Plazas por servicio (Servicios → capacidad por sesión).
+  const servicioCapMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
+    [servicios],
+  );
+  // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
+  const groupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
+        const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
+        m.set(key, (m.get(key) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [sessions]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
@@ -168,6 +186,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
                     const name = session.titulo ?? (session.client_id ? clientMap.get(session.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const ocupados = isGroup
+                      ? (groupCounts.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? 0)
+                      : (session.client_id ? 1 : 0);
+                    const plazas = servicioCapMap.get((session as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (
                       <button
@@ -178,10 +200,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
-                        title={`${session.hora_inicio.slice(0, 5)} ${name}`}
+                        title={`${session.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
                       >
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
-                        {height > 22 && <div className="truncate">{name.toUpperCase()}</div>}
+                        {height > 22 && <div className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</div>}
                         {trainer && height > 34 && <div className="truncate opacity-90">{trainer.iniciales}</div>}
                       </button>
                     );

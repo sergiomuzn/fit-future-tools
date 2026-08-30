@@ -6,6 +6,7 @@ import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { sessionFillColor } from "@/lib/colors";
 import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
+import { useServicios } from "@/lib/servicios";
 
 interface Props {
   date: Date;
@@ -57,6 +58,22 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
     },
   });
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
+  const { data: servicios = [] } = useServicios();
+  const servicioCapMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
+    [servicios],
+  );
+  // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
+  const groupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
+        const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
+        m.set(key, (m.get(key) ?? 0) + 1);
+      }
+    }
+    return m;
+  }, [sessions]);
 
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
@@ -107,6 +124,10 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                   {list.slice(0, 4).map((s) => {
                     const isGroup = s.ocupacion === 2;
                     const name = s.titulo ?? (s.client_id ? clientMap.get(s.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const ocupados = isGroup
+                      ? (groupCounts.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? 0)
+                      : (s.client_id ? 1 : 0);
+                    const plazas = servicioCapMap.get((s as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
                     return (
                       <button
@@ -117,9 +138,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
-                        title={`${s.hora_inicio.slice(0, 5)} ${name}`}
+                        title={`${s.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
                       >
-                        {s.hora_inicio.slice(0, 5)} {name.toUpperCase()}
+                        {s.hora_inicio.slice(0, 5)} {name.toUpperCase()} ({ocupados}/{plazas})
                       </button>
                     );
                   })}
