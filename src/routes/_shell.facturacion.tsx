@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { BonoSelectContent } from "@/components/bonos/bono-select-content";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,15 +31,6 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 
-export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
-
-const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-
-function FacturacionPage() {
-  const { confirm, dialog } = useConfirm();
-  const qc = useQueryClient();
-  const { data: servicios = [] } = useServicios();
-  const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
