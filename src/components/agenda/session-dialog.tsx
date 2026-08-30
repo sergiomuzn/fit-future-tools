@@ -343,12 +343,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const memberIds = grupo
         ? groupClientIds.filter((id): id is string => !!id)
         : [clientId];
-      if (!grupo && !clientId && !nombreLibreTrim) {
-        if (!porConfirmar) {
-          toast.error("Selecciona un cliente o escribe un nombre");
-          return;
-        }
-      }
       const dates = [session.fecha!];
       for (let w = 1; w <= repeatWeeks; w++) {
         const d = new Date(session.fecha!);
