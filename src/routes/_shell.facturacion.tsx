@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
+import { BonoSelectContent } from "@/components/bonos/bono-select-content";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,7 +29,6 @@ import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
-import { useServicios } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -37,8 +37,6 @@ const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto
 function FacturacionPage() {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
-  const { data: servicios = [] } = useServicios();
-  const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const now = new Date();
   const [month, setMonth] = useState<number>(now.getMonth()); // -1 = año completo
   const [year, setYear] = useState(now.getFullYear());
@@ -345,15 +343,11 @@ function FacturacionPage() {
                 });
               }}>
                 <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">Sin bono</SelectItem>
-                  {sortCatalogo(catalogo).map((b) => {
-                    const label = servMap.get(b.servicio_slug) ?? b.servicio_slug;
-                    return (
-                      <SelectItem key={b.id} value={b.id}>{label} · {prettyBonoNombre(b.nombre)} — {Number(b.precio).toFixed(0)} €</SelectItem>
-                    );
-                  })}
-                </SelectContent>
+                <BonoSelectContent
+                  catalogo={catalogo}
+                  noneValue="__none__"
+                  itemLabel={(b) => `${prettyBonoNombre(b.nombre)} — ${Number(b.precio).toFixed(0)} €`}
+                />
               </Select>
               </div>
               {form.bono_catalogo_id && (

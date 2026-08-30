@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
-import { supabase, prettyBonoNombre, sortCatalogo, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
+import { BonoSelectContent } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
@@ -412,9 +413,7 @@ export function BonosPanel() {
                 <Label>Tipo de bono</Label>
                 <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>
                   <SelectTrigger><SelectValue placeholder="Selecciona bono" /></SelectTrigger>
-                  <SelectContent>
-                    {sortCatalogo(catalogo).map((c) => <SelectItem key={c.id} value={c.id}>{prettyBonoNombre(c.nombre)}</SelectItem>)}
-                  </SelectContent>
+                  <BonoSelectContent catalogo={catalogo} />
                 </Select>
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -495,14 +494,9 @@ export function BonosPanel() {
                     : nuevo.sesiones_disponibles,
                 });
               }}>
-                 <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
-                 <SelectContent>
-                   <SelectItem value="__none__">Sin bono</SelectItem>
-                   {sortCatalogo(catalogo).map((c) => (
-                    <SelectItem key={c.id} value={c.id}>{prettyBonoNombre(c.nombre)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                  <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
+                  <BonoSelectContent catalogo={catalogo} noneValue="__none__" />
+               </Select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
