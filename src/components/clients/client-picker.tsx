@@ -126,6 +126,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
                 const c = filtered[highlight];
                 onChange(c.id, c);
                 setSearch(c.nombre);
+                onTextChange?.(c.nombre);
                 setListOpen(false);
               }
             } else if (e.key === "Escape") {
@@ -145,7 +146,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             type="button"
             aria-label="Limpiar cliente"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setSearch(""); onChange(null, null); setListOpen(true); }}
+            onClick={() => { setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(true); }}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
@@ -169,7 +170,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             data-idx={idx}
             onMouseDown={(e) => e.preventDefault()}
             onMouseEnter={() => setHighlight(idx)}
-            onClick={() => { onChange(c.id, c); setSearch(c.nombre); setListOpen(false); }}
+            onClick={() => { onChange(c.id, c); setSearch(c.nombre); onTextChange?.(c.nombre); setListOpen(false); }}
             className={`w-full text-left px-2 py-1.5 text-sm ${idx === highlight ? "bg-accent" : ""} ${value === c.id ? "font-medium" : ""}`}
           >
             {formatNameTitle(c.nombre)}
