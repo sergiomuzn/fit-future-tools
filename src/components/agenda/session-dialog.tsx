@@ -297,10 +297,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
-      titulo: grupo ? (titulo.trim() || null) : (!clientId && nombreLibreTrim ? nombreLibreTrim : null),
+      // Nombre de la sesión: el nombre libre escrito o, si no hay clientes ni
+      // nombre, el nombre del servicio.
+      titulo:
+        nombreLibreTrim ||
+        ((grupo ? groupClientIds.every((id) => !id) : !clientId)
+          ? (servicioActual?.nombre ?? null)
+          : null),
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
-      group_id: grupo ? effectiveGroupId : null,
+      group_id: null,
+
       // Servicio al que pertenece la sesión: determina de qué bono se descuenta.
       servicio_slug:
         servicioSlug ||
