@@ -97,7 +97,7 @@ function AgendaPage() {
   }
 
   function shiftView(dir: number) {
-    if (view === "disponibilidad") return shift(dir);
+    if (view === "disponibilidad") return shift(dispView === "semana" ? dir * 7 : dir);
     if (view === "dia") return shift(dir);
     if (view === "semana") return shift(dir * 7);
     setDate(new Date(date.getFullYear(), date.getMonth() + dir, 1));
@@ -117,7 +117,9 @@ function AgendaPage() {
             ? ""
             : dispView === "dia"
               ? DOW[date.getDay()]
-              : "";
+              : reservasModo === "vista"
+                ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+                : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -136,7 +138,8 @@ function AgendaPage() {
             </TabsList>
           </Tabs>
           <div className="flex min-h-9 items-center gap-3 pb-2">
-          {view !== "historial" && (view !== "disponibilidad" || dispView === "dia") && (
+          {view !== "historial" &&
+            (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
             <>
               {view !== "disponibilidad" && (
                 <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
