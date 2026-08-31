@@ -497,6 +497,24 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
         <div className="ml-auto flex items-center gap-2">
           {copiedDay && <span className="text-muted-foreground">Día copiado ({copiedDay.length})</span>}
+          <TooltipProvider delayDuration={100}>
+            <UITooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="text-muted-foreground hover:text-foreground"
+                  aria-label="Información"
+                >
+                  <Info className="h-4 w-4" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs text-xs leading-relaxed">
+                Horario semanal visible para los clientes con acceso a cada servicio. Cada cliente solo
+                verá los huecos de los servicios que tenga contratados. Arrastra sobre el calendario para
+                crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+              </TooltipContent>
+            </UITooltip>
+          </TooltipProvider>
           <Button
             size="sm"
             variant="outline"
