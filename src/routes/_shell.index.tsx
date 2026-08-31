@@ -236,7 +236,7 @@ function AgendaPage() {
         <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
-              <SelectTrigger className="h-8 w-[180px] text-xs bg-background">
+              <SelectTrigger className="h-8 w-[180px] shrink-0 text-xs bg-background">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
