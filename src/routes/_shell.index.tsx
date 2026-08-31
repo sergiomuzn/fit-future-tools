@@ -133,9 +133,14 @@ function AgendaPage() {
             ? ""
             : dispView === "dia"
               ? DOW[date.getDay()]
-              : reservasModo === "vista"
-                ? rangoSemana(weekStart, weekEnd)
-                : "";
+              : "";
+  /** En modo vista la fecha se muestra sobre los días de la semana. */
+  const vistaLabel =
+    view === "disponibilidad" && reservasModo === "vista"
+      ? dispView === "dia"
+        ? DOW[date.getDay()]
+        : rangoSemana(weekStart, weekEnd)
+      : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
