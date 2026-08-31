@@ -324,10 +324,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           nombreServicio={nombreServicio}
           editable
           lockedIds={lockedIds}
-          slotAppearance={(s) => ({
-            color: servicioColor(s.servicio_slug) ?? "#3CC0F3",
-            filled: lockedSet.has(s.id),
-          })}
+          lockedMark="reservado"
           onMoveSelection={moveSelection}
           onCreate={(dia, inicio, fin) => {
             const fecha = fechaPorDia.get(dia);
