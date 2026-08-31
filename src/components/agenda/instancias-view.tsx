@@ -72,27 +72,27 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     queryFn: async () => {
       const { data } = await supabase
         .from("sessions")
-        .select("fecha,hora_inicio,servicio_slug,client_id,estado")
+        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,titulo,clients(nombre)")
         .gte("fecha", from)
         .lte("fecha", to);
-      return (data ?? []) as {
-        fecha: string;
-        hora_inicio: string;
-        servicio_slug: string | null;
-        client_id: string | null;
-        estado: string;
-      }[];
+      return (data ?? []) as unknown as Reserva[];
     },
   });
 
-  const reservadas = useMemo(() => {
-    const s = new Set<string>();
+  /** Reservas activas indexadas por hueco (servicio|fecha|hora). */
+  const reservasPorHueco = useMemo(() => {
+    const m = new Map<string, Reserva[]>();
     for (const r of sesiones) {
       if (!r.client_id || r.estado === "cancelada") continue;
-      s.add(`${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`);
+      const k = `${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`;
+      const arr = m.get(k) ?? [];
+      arr.push(r);
+      m.set(k, arr);
     }
-    return s;
+    return m;
   }, [sesiones]);
+
+  const reservadas = useMemo(() => new Set(reservasPorHueco.keys()), [reservasPorHueco]);
 
   const visibles = useMemo(
     () => instancias.filter((i) => (servicioSlug ? i.servicio_slug === servicioSlug : true)),
