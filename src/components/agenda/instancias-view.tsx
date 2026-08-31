@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
-import { useColores } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,7 +60,6 @@ interface Props {
 export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug, label }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
-  const { servicioColor } = useColores();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const notificarCanceladas = useServerFn(notificarReservasCanceladas);
   const base = date ?? new Date();
