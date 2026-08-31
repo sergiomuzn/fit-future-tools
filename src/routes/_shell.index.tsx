@@ -153,9 +153,9 @@ function AgendaPage() {
             }
           >
             <TabsList className="h-8">
-              <TabsTrigger value="agenda" className="text-xs">Agenda</TabsTrigger>
-              <TabsTrigger value="disponibilidad" className="text-xs">Reservas</TabsTrigger>
-              <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
+              <TabsTrigger value="agenda" className="text-xs tab-active-muted">Agenda</TabsTrigger>
+              <TabsTrigger value="disponibilidad" className="text-xs tab-active-background">Reservas</TabsTrigger>
+              <TabsTrigger value="historial" className="text-xs tab-active-muted">Historial</TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -328,6 +328,7 @@ function AgendaPage() {
             date={date}
             paintServicioSlug={paintServicio}
             label={vistaLabel}
+            onNavigate={shift}
           />
         ) : (
           <DisponibilidadView
