@@ -160,7 +160,7 @@ function AgendaPage() {
                 type="button"
                 onClick={() => setReservasModo("vista")}
                 className={cn(
-                  "h-full rounded px-2.5 text-xs font-medium transition-colors",
+                  "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
                   reservasModo === "vista"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -172,7 +172,7 @@ function AgendaPage() {
                 type="button"
                 onClick={() => setReservasModo("edicion")}
                 className={cn(
-                  "h-full rounded px-2.5 text-xs font-medium transition-colors",
+                  "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
                   reservasModo === "edicion"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
