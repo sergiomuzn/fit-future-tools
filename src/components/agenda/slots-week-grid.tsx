@@ -447,7 +447,11 @@ export function SlotsWeekGrid({
                           : "border-transparent font-medium"
                         : slotColorClasses(s.servicio_slug, s.activo),
                       isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
-                      isLocked && !apariencia && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
+                      isLocked &&
+                        !apariencia &&
+                        (lockedMark === "reservado"
+                          ? "ring-1 ring-inset ring-foreground/50"
+                          : "cursor-not-allowed ring-1 ring-inset ring-foreground/40"),
                       drag && "opacity-80 z-40",
                     )}
                     style={{
