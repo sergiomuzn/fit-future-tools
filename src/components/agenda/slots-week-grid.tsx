@@ -132,6 +132,11 @@ interface Props {
   onDeleteSelection?: () => void;
   /** Huecos bloqueados (con reserva confirmada): no se pueden mover ni seleccionar. */
   lockedIds?: string[];
+  /**
+   * Apariencia por hueco (modo vista): contorno del color del servicio cuando
+   * está libre y relleno sólido cuando tiene al menos una reserva.
+   */
+  slotAppearance?: (slot: ServiceSlot) => { color: string; filled: boolean } | null;
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
