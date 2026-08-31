@@ -15,6 +15,18 @@ import { enterToSave } from "@/lib/enter-to-save";
 
 const NONE = "__none";
 
+/** Sesión reservada asociada a un hueco propagado. */
+interface Reserva {
+  id: string;
+  fecha: string;
+  hora_inicio: string;
+  servicio_slug: string | null;
+  client_id: string | null;
+  estado: string;
+  titulo: string | null;
+  clients: { nombre: string } | null;
+}
+
 function toMin(t: string) {
   const [h, m] = t.split(":").map(Number);
   return h * 60 + m;
