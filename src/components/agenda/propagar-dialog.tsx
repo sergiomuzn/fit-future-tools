@@ -145,11 +145,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
       const existentes = new Set(
         filas.map((i) => instanceKey(i.servicio_slug, i.fecha, i.hora_inicio, i.hora_fin)),
       );
-      const propagadosPorFecha = new Map<string, number>();
-      for (const i of filas) {
-        propagadosPorFecha.set(i.fecha, (propagadosPorFecha.get(i.fecha) ?? 0) + 1);
-      }
-      return { sesionesPorFecha, existentes, propagadosPorFecha };
+      return { sesionesPorFecha, existentes };
     },
   });
 
@@ -247,11 +243,6 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
     );
   }
 
-  function contarPropagados(fechasSemana: string[]): number {
-    if (!contexto) return 0;
-    return fechasSemana.reduce((a, f) => a + (contexto.propagadosPorFecha.get(f) ?? 0), 0);
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -298,8 +289,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
               </Button>
             </div>
 
-            <div className="mb-1 grid grid-cols-[auto_repeat(7,minmax(0,1fr))] gap-1 text-[10px] text-muted-foreground">
-              <div className="w-10" />
+            <div className="mb-1 grid grid-cols-7 gap-1 text-[10px] text-muted-foreground">
               {DOW.map((d) => (
                 <div key={d} className="text-center">
                   {d}
@@ -310,21 +300,17 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
             <div className="space-y-1">
               {semanasMes.map((s) => {
                 const sel = semanasSel.includes(s.monday);
-                const propagados = contarPropagados(s.fechas);
                 const pasada = s.monday < ymdLocal(hoyMonday);
                 return (
                   <button
                     key={s.monday}
                     onClick={() => toggleSemana(s.monday)}
                     className={cn(
-                      "grid w-full grid-cols-[auto_repeat(7,minmax(0,1fr))] items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors",
+                      "grid w-full grid-cols-7 items-center gap-1 rounded-md border px-1 py-1 text-xs transition-colors",
                       sel ? "border-primary bg-primary/10" : "border-transparent hover:bg-accent",
                       pasada && "opacity-50",
                     )}
                   >
-                    <span className="w-10 text-left text-[10px] text-muted-foreground">
-                      {propagados > 0 ? `${propagados}✓` : ""}
-                    </span>
                     {s.fechas.map((f) => {
                       const d = new Date(`${f}T00:00:00`);
                       const fuera = d.getMonth() !== mes.getMonth();

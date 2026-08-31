@@ -106,11 +106,27 @@ function AgendaPage() {
   const weekStart = startOfWeek(date);
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
+
+  function rangoSemana(d1: Date, d2: Date) {
+    const mes1 = MONTHS[d1.getMonth()];
+    const mes2 = MONTHS[d2.getMonth()];
+    const año1 = d1.getFullYear();
+    const año2 = d2.getFullYear();
+    const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+    if (año1 !== año2) {
+      return `${d1.getDate()} ${cap(mes1)} ${año1} – ${d2.getDate()} ${cap(mes2)} ${año2}`;
+    }
+    if (d1.getMonth() !== d2.getMonth()) {
+      return `${d1.getDate()} ${cap(mes1)} – ${d2.getDate()} ${cap(mes2)} ${año2}`;
+    }
+    return `${d1.getDate()}-${d2.getDate()} ${cap(mes1)} ${año2}`;
+  }
+
   const headerLabel =
     view === "dia"
       ? `${DOW[date.getDay()]}, ${date.getDate()} de ${MONTHS[date.getMonth()]} ${date.getFullYear()}`
       : view === "semana"
-        ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+        ? rangoSemana(weekStart, weekEnd)
         : view === "mes"
           ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
           : view === "historial"
@@ -118,7 +134,7 @@ function AgendaPage() {
             : dispView === "dia"
               ? DOW[date.getDay()]
               : reservasModo === "vista"
-                ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+                ? rangoSemana(weekStart, weekEnd)
                 : "";
 
   return (
@@ -139,7 +155,7 @@ function AgendaPage() {
           </Tabs>
 
           {view === "disponibilidad" && (
-            <div className="flex items-center rounded-md border bg-background p-0.5 h-8">
+            <div className="flex items-center self-center rounded-md border bg-background p-0.5 h-9 my-1">
               <button
                 type="button"
                 onClick={() => setReservasModo("vista")}
