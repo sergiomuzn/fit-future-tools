@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import { toast } from "sonner";
