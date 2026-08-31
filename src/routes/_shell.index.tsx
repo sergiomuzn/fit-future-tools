@@ -328,6 +328,7 @@ function AgendaPage() {
             date={date}
             paintServicioSlug={paintServicio}
             label={vistaLabel}
+            onNavigate={shift}
           />
         ) : (
           <DisponibilidadView
