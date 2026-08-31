@@ -397,6 +397,7 @@ export function SlotsWeekGrid({
                 const leftPct = 4 + col * colWidthPct;
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
+                const apariencia = slotAppearance?.(s) ?? null;
                 const isSel = selected.has(s.id);
                 const isLocked = locked.has(s.id);
                 const drag = moveDelta && moveDelta.ids.includes(s.id) ? moveDelta : null;
