@@ -167,6 +167,7 @@ export function SlotsWeekGrid({
   onDeleteSelection,
   lockedIds = [],
   slotAppearance,
+  lockedMark = "blocked",
 }: Props) {
   const locked = useMemo(() => new Set(lockedIds), [lockedIds]);
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
