@@ -50,6 +50,8 @@ interface Props {
   paintServicioSlug?: string | null;
   /** Fecha o rango de la semana, mostrado sobre los días. */
   label?: string;
+  /** Navega la fecha N días (positivo o negativo). */
+  onNavigate?: (days: number) => void;
 }
 
 /**
