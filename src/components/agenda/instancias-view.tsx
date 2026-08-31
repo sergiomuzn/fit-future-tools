@@ -59,7 +59,7 @@ interface Props {
  * (`service_slot_instances`). Se pueden crear, mover o eliminar sin tocar la
  * plantilla semanal; los huecos con reserva quedan bloqueados.
  */
-export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug, label }: Props) {
+export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug, label, onNavigate }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { confirm, dialog: confirmDialog } = useConfirm();
