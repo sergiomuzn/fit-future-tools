@@ -133,6 +133,10 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+  /** Pestaña "Sesiones": solo sesiones futuras y aún dentro de plazo de reserva. */
+  const sesionesDisponibles = clases.filter(
+    (c) => c.reservable && !c.asistida && !yaComenzo(c.fecha, c.horaInicio),
+  );
 
   const defaultTab = verGrupos ? "clases" : "reservas";
   const activeTab =
