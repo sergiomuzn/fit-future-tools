@@ -155,7 +155,9 @@ export function SlotsWeekGrid({
   canPasteSelection = false,
   hasSelection = false,
   onDeleteSelection,
+  lockedIds = [],
 }: Props) {
+  const locked = useMemo(() => new Set(lockedIds), [lockedIds]);
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const [draft, setDraft] = useState<{ dia: number; from: number; to: number } | null>(null);
   const dragRef = useRef<{ dia: number; anchor: number } | null>(null);
