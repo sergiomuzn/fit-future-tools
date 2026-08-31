@@ -59,6 +59,9 @@ interface Props {
 export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
+  const { servicioColor } = useColores();
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const notificarCanceladas = useServerFn(notificarReservasCanceladas);
   const base = date ?? new Date();
 
   const fechas = useMemo(
