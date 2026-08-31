@@ -131,11 +131,16 @@ function AgendaPage() {
           ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
           : view === "historial"
             ? ""
-            : dispView === "dia"
+            : dispView === "dia" && reservasModo !== "vista"
               ? DOW[date.getDay()]
-              : reservasModo === "vista"
-                ? rangoSemana(weekStart, weekEnd)
-                : "";
+              : "";
+  /** En modo vista la fecha se muestra sobre los días de la semana. */
+  const vistaLabel =
+    view === "disponibilidad" && reservasModo === "vista"
+      ? dispView === "dia"
+        ? DOW[date.getDay()]
+        : rangoSemana(weekStart, weekEnd)
+      : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -231,7 +236,7 @@ function AgendaPage() {
         <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
-              <SelectTrigger className="h-8 w-[180px] text-xs bg-background">
+              <SelectTrigger className="h-8 w-[180px] shrink-0 text-xs bg-background">
                 <SelectValue placeholder="Selecciona un servicio" />
               </SelectTrigger>
               <SelectContent>
@@ -242,7 +247,7 @@ function AgendaPage() {
               </SelectContent>
             </Select>
           )}
-          {view === "disponibilidad" && (
+          {view === "disponibilidad" && reservasModo === "vista" && (
             <TooltipProvider delayDuration={100}>
               <UITooltip>
                 <TooltipTrigger asChild>
@@ -338,6 +343,7 @@ function AgendaPage() {
             view={dispView}
             date={date}
             paintServicioSlug={paintServicio}
+            label={vistaLabel}
           />
         ) : (
           <DisponibilidadView

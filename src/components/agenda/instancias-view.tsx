@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
-import { useColores } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -49,6 +48,8 @@ interface Props {
   view?: "dia" | "semana";
   date?: Date;
   paintServicioSlug?: string | null;
+  /** Fecha o rango de la semana, mostrado sobre los días. */
+  label?: string;
 }
 
 /**
@@ -56,10 +57,9 @@ interface Props {
  * (`service_slot_instances`). Se pueden crear, mover o eliminar sin tocar la
  * plantilla semanal; los huecos con reserva quedan bloqueados.
  */
-export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug }: Props) {
+export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug, label }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
-  const { servicioColor } = useColores();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const notificarCanceladas = useServerFn(notificarReservasCanceladas);
   const base = date ?? new Date();
@@ -294,7 +294,8 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center justify-end gap-2 border-b bg-card px-3 py-2 text-xs">
+      <div className="flex items-center justify-between gap-2 border-b bg-card px-3 py-2 text-xs">
+        <div className="font-display text-base font-semibold capitalize">{label}</div>
         <Button
           size="sm"
           variant="outline"
@@ -321,10 +322,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           nombreServicio={nombreServicio}
           editable
           lockedIds={lockedIds}
-          slotAppearance={(s) => ({
-            color: servicioColor(s.servicio_slug) ?? "#3CC0F3",
-            filled: lockedSet.has(s.id),
-          })}
+          lockedMark="reservado"
           onMoveSelection={moveSelection}
           onCreate={(dia, inicio, fin) => {
             const fecha = fechaPorDia.get(dia);

@@ -137,6 +137,11 @@ interface Props {
    * está libre y relleno sólido cuando tiene al menos una reserva.
    */
   slotAppearance?: (slot: ServiceSlot) => { color: string; filled: boolean } | null;
+  /**
+   * Cómo se marcan los huecos bloqueados: "blocked" (no editable) o
+   * "reservado" (marca sutil, el hueco sigue siendo clicable).
+   */
+  lockedMark?: "blocked" | "reservado";
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
@@ -162,6 +167,7 @@ export function SlotsWeekGrid({
   onDeleteSelection,
   lockedIds = [],
   slotAppearance,
+  lockedMark = "blocked",
 }: Props) {
   const locked = useMemo(() => new Set(lockedIds), [lockedIds]);
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
@@ -441,7 +447,11 @@ export function SlotsWeekGrid({
                           : "border-transparent font-medium"
                         : slotColorClasses(s.servicio_slug, s.activo),
                       isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
-                      isLocked && !apariencia && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
+                      isLocked &&
+                        !apariencia &&
+                        (lockedMark === "reservado"
+                          ? "ring-1 ring-inset ring-foreground/50"
+                          : "cursor-not-allowed ring-1 ring-inset ring-foreground/40"),
                       drag && "opacity-80 z-40",
                     )}
                     style={{
@@ -466,9 +476,17 @@ export function SlotsWeekGrid({
                       transition: "none",
                     }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas${
-                      isLocked ? " · Reservado (bloqueado)" : ""
+                      isLocked
+                        ? lockedMark === "reservado"
+                          ? " · Con reserva"
+                          : " · Reservado (bloqueado)"
+                        : ""
                     }`}
                   >
+                    {isLocked && lockedMark === "reservado" && (
+                      <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                    )}
+
                     {height <= 22 ? (
                       <div className="flex items-baseline gap-1 overflow-hidden">
                         <span className="font-semibold shrink-0">{hhmm(s.hora_inicio)}</span>
