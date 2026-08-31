@@ -247,7 +247,7 @@ function AgendaPage() {
               </SelectContent>
             </Select>
           )}
-          {view === "disponibilidad" && (
+          {view === "disponibilidad" && reservasModo === "vista" && (
             <TooltipProvider delayDuration={100}>
               <UITooltip>
                 <TooltipTrigger asChild>
