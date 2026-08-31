@@ -257,6 +257,15 @@
   border-color: var(--border);
 }
 
+/* Colores contextuales para que la pestaña activa encaje con el encabezado que tiene debajo */
+.app-tabs-trigger.tab-active-muted[data-state="active"] {
+  background-color: var(--muted);
+}
+
+.app-tabs-trigger.tab-active-background[data-state="active"] {
+  background-color: var(--background);
+}
+
 .app-tabs-content {
   margin-top: 0.5rem;
 }
