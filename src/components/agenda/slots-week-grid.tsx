@@ -130,6 +130,8 @@ interface Props {
   canPasteSelection?: boolean;
   hasSelection?: boolean;
   onDeleteSelection?: () => void;
+  /** Huecos bloqueados (con reserva confirmada): no se pueden mover ni seleccionar. */
+  lockedIds?: string[];
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
