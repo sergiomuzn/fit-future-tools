@@ -500,18 +500,22 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           <TooltipProvider delayDuration={100}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  className="text-muted-foreground hover:text-foreground"
-                  aria-label="Información"
-                >
+                <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
                   <Info className="h-4 w-4" />
-                </button>
+                </Button>
               </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                Horario semanal visible para los clientes con acceso a cada servicio. Cada cliente solo
-                verá los huecos de los servicios que tenga contratados. Arrastra sobre el calendario para
-                crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
+              <TooltipContent align="end" className="w-80 text-xs leading-relaxed">
+                <p className="mb-2 text-sm font-medium">Modo de reservas: {modoInfo.label}</p>
+                <p className="mb-2 text-muted-foreground">{modoInfo.description}</p>
+                <p className="mb-2 text-sm font-medium">Cómo usar la agenda</p>
+                <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                  <li>Arrastra sobre un día para crear un hueco.</li>
+                  <li>Arrastra un hueco para moverlo.</li>
+                  <li>Clic derecho: copiar y pegar día o selección.</li>
+                  <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
+                  <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
+                  <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
+                </ul>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -544,28 +548,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent align="end" className="w-80 text-xs leading-relaxed">
-                <p className="mb-2 text-sm font-medium">Modo de reservas: {modoInfo.label}</p>
-                <p className="mb-2 text-muted-foreground">{modoInfo.description}</p>
-                <p className="mb-2 text-sm font-medium">Cómo usar la agenda</p>
-                <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-                  <li>Arrastra sobre un día para crear un hueco.</li>
-                  <li>Arrastra un hueco para moverlo.</li>
-                  <li>Clic derecho: copiar y pegar día o selección.</li>
-                  <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
-                  <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
-                  <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
 
           <Button size="sm" className="h-8 gap-1.5" onClick={() => setPropagarOpen(true)}>
             <CalendarPlus className="h-3.5 w-3.5" /> Propagar a Vista
