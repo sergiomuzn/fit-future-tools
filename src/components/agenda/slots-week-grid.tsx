@@ -476,9 +476,17 @@ export function SlotsWeekGrid({
                       transition: "none",
                     }}
                     title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas${
-                      isLocked ? " · Reservado (bloqueado)" : ""
+                      isLocked
+                        ? lockedMark === "reservado"
+                          ? " · Con reserva"
+                          : " · Reservado (bloqueado)"
+                        : ""
                     }`}
                   >
+                    {isLocked && lockedMark === "reservado" && (
+                      <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-current opacity-80" />
+                    )}
+
                     {height <= 22 ? (
                       <div className="flex items-baseline gap-1 overflow-hidden">
                         <span className="font-semibold shrink-0">{hhmm(s.hora_inicio)}</span>
