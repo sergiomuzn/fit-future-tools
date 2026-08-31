@@ -214,34 +214,6 @@ function AgendaPage() {
         </div>
         <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
-            <div className="flex items-center rounded-md border bg-background p-0.5">
-              <button
-                type="button"
-                onClick={() => setReservasModo("vista")}
-                className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-                  reservasModo === "vista"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Modo vista
-              </button>
-              <button
-                type="button"
-                onClick={() => setReservasModo("edicion")}
-                className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
-                  reservasModo === "edicion"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Modo edición
-              </button>
-            </div>
-          )}
-          {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[130px] text-xs bg-background">
                 <SelectValue placeholder="Selecciona un servicio" />
