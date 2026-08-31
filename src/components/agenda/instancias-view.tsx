@@ -294,6 +294,26 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-end gap-2 border-b bg-card px-3 py-2 text-xs">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5 text-destructive"
+          disabled={eliminarSemana.isPending}
+          onClick={async () => {
+            const ok = await confirm({
+              title: view === "dia" ? "Eliminar huecos del día" : "Eliminar huecos de la semana",
+              description:
+                "Se eliminarán los huecos propagados visibles. Los huecos con reservas se mantienen.",
+              confirmText: "Eliminar",
+            });
+            if (ok) eliminarSemana.mutate();
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {view === "dia" ? "Eliminar día propagado" : "Eliminar semana propagada"}
+        </Button>
+      </div>
       <div className="min-h-0 flex-1">
         <SlotsWeekGrid
           slots={asSlots}
@@ -301,6 +321,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           nombreServicio={nombreServicio}
           editable
           lockedIds={lockedIds}
+          slotAppearance={(s) => ({
+            color: servicioColor(s.servicio_slug) ?? "#3CC0F3",
+            filled: lockedSet.has(s.id),
+          })}
           onMoveSelection={moveSelection}
           onCreate={(dia, inicio, fin) => {
             const fecha = fechaPorDia.get(dia);
@@ -312,6 +336,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           onSelect={(s) => {
             const inst = instById.get(s.id);
             if (!inst) return;
+            if (lockedSet.has(inst.id)) {
+              setReservasDe(inst);
+              return;
+            }
             setEditing({
               ...inst,
               dur: String(toMin(inst.hora_fin) - toMin(inst.hora_inicio)),
