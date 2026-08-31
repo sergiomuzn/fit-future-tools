@@ -131,7 +131,7 @@ function AgendaPage() {
           ? `${MONTHS[date.getMonth()]} ${date.getFullYear()}`
           : view === "historial"
             ? ""
-            : dispView === "dia"
+            : dispView === "dia" && reservasModo !== "vista"
               ? DOW[date.getDay()]
               : "";
   /** En modo vista la fecha se muestra sobre los días de la semana. */
