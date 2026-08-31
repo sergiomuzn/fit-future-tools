@@ -1,7 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -231,18 +230,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex flex-wrap items-center gap-3 border-b bg-card px-3 py-2 text-xs text-muted-foreground">
-        <span>
-          Huecos propagados · {visibles.length} en {view === "dia" ? "el día" : "la semana"}
-        </span>
-        <span className="flex items-center gap-1">
-          <Lock className="h-3.5 w-3.5" /> {lockedIds.length} con reserva (bloqueados)
-        </span>
-        <span className="ml-auto">
-          Los cambios aquí no modifican la plantilla del modo edición.
-        </span>
-      </div>
-
       <div className="min-h-0 flex-1">
         <SlotsWeekGrid
           slots={asSlots}

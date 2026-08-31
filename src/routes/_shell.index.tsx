@@ -137,52 +137,14 @@ function AgendaPage() {
               <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex min-h-9 items-center gap-3 pb-2">
-          {view !== "historial" &&
-            (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
-            <>
-              {view !== "disponibilidad" && (
-                <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
-              )}
-              <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
-            </>
-          )}
-          <div className="font-display text-lg font-semibold capitalize whitespace-nowrap">
-            {headerLabel}
-          </div>
-          {view === "historial" ? null : view !== "disponibilidad" ? (
-             <Select value={view} onValueChange={(v) => setView(v as typeof view)}>
-              <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dia">Día</SelectItem>
-                <SelectItem value="semana">Semana</SelectItem>
-                <SelectItem value="mes">Mes</SelectItem>
-              </SelectContent>
-            </Select>
-          ) : (
-             <Select value={dispView} onValueChange={(v) => setDispView(v as "dia" | "semana")}>
-              <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="dia">Día</SelectItem>
-                <SelectItem value="semana">Semana</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
-          </div>
-        </div>
-        <div className="flex items-center gap-2 pb-2">
+
           {view === "disponibilidad" && (
-            <div className="flex items-center rounded-md border bg-background p-0.5">
+            <div className="flex items-center rounded-md border bg-background p-0.5 h-8">
               <button
                 type="button"
                 onClick={() => setReservasModo("vista")}
                 className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  "h-full rounded px-2.5 text-xs font-medium transition-colors",
                   reservasModo === "vista"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -194,7 +156,7 @@ function AgendaPage() {
                 type="button"
                 onClick={() => setReservasModo("edicion")}
                 className={cn(
-                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  "h-full rounded px-2.5 text-xs font-medium transition-colors",
                   reservasModo === "edicion"
                     ? "bg-primary text-primary-foreground"
                     : "text-muted-foreground hover:text-foreground",
@@ -204,6 +166,53 @@ function AgendaPage() {
               </button>
             </div>
           )}
+
+          <div className="flex min-h-9 items-center gap-3 pb-2">
+            {view !== "historial" && (
+              <Select
+                value={view === "disponibilidad" ? dispView : view}
+                onValueChange={(v) => {
+                  if (view === "disponibilidad") setDispView(v as "dia" | "semana");
+                  else setView(v as typeof view);
+                }}
+              >
+                <SelectTrigger className="h-8 w-[110px] text-xs bg-background">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {view === "disponibilidad" ? (
+                    <>
+                      <SelectItem value="dia">Día</SelectItem>
+                      <SelectItem value="semana">Semana</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="dia">Día</SelectItem>
+                      <SelectItem value="semana">Semana</SelectItem>
+                      <SelectItem value="mes">Mes</SelectItem>
+                    </>
+                  )}
+                </SelectContent>
+              </Select>
+            )}
+
+            {view !== "historial" &&
+              (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
+              <>
+                {view !== "disponibilidad" && (
+                  <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
+                )}
+                <Button variant="ghost" size="icon" onClick={() => shiftView(-1)}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="ghost" size="icon" onClick={() => shiftView(1)}><ChevronRight className="h-4 w-4" /></Button>
+              </>
+            )}
+
+            <div className="font-display text-lg font-semibold capitalize whitespace-nowrap">
+              {headerLabel}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 pb-2">
           {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[130px] text-xs bg-background">
