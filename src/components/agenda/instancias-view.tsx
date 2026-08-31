@@ -297,7 +297,8 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b bg-card px-3 py-2 text-xs">
-        <div className="flex items-center gap-1">
+        <div />
+        <div className="flex items-center justify-center gap-1">
           <Button
             variant="ghost"
             size="icon"
@@ -314,8 +315,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
+          <div className="font-display text-base font-semibold capitalize">{label}</div>
         </div>
-        <div className="font-display text-base font-semibold capitalize text-center">{label}</div>
+
         <div className="flex justify-end">
           <Button
             size="sm"
