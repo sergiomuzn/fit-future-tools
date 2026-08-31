@@ -153,9 +153,10 @@ function AgendaPage() {
             }
           >
             <TabsList className="h-8">
-              <TabsTrigger value="agenda" className="text-xs tab-active-muted">Agenda</TabsTrigger>
+              <TabsTrigger value="agenda" className="text-xs tab-active-background">Agenda</TabsTrigger>
               <TabsTrigger value="disponibilidad" className="text-xs tab-active-background">Reservas</TabsTrigger>
-              <TabsTrigger value="historial" className="text-xs tab-active-muted">Historial</TabsTrigger>
+              <TabsTrigger value="historial" className="text-xs tab-active-background">Historial</TabsTrigger>
+
             </TabsList>
           </Tabs>
 
