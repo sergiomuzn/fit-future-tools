@@ -434,9 +434,13 @@ export function SlotsWeekGrid({
                     }}
                     className={cn(
                       "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
-                      slotColorClasses(s.servicio_slug, s.activo),
+                      apariencia
+                        ? apariencia.filled
+                          ? "border-black/10 text-white"
+                          : "border-transparent font-medium"
+                        : slotColorClasses(s.servicio_slug, s.activo),
                       isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
-                      isLocked && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
+                      isLocked && !apariencia && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
                       drag && "opacity-80 z-40",
                     )}
                     style={{
@@ -444,6 +448,15 @@ export function SlotsWeekGrid({
                       height,
                       left: `calc(${leftPct}% + 1px)`,
                       width: `calc(${widthPct}% - 2px)`,
+                      ...(apariencia
+                        ? apariencia.filled
+                          ? { backgroundColor: apariencia.color }
+                          : {
+                              backgroundColor: "hsl(var(--muted))",
+                              color: apariencia.color,
+                              boxShadow: `inset 0 0 0 1.5px ${apariencia.color}`,
+                            }
+                        : null),
                       transform: drag
                         ? `translate(${drag.dias * colW}px, ${(drag.min / SLOT_MIN) * SLOT_PX}px)`
                         : undefined,
