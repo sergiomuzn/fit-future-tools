@@ -218,7 +218,8 @@ function AgendaPage() {
             )}
 
             {view !== "historial" &&
-              (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
+              (view !== "disponibilidad" || (dispView === "dia" && reservasModo !== "vista")) && (
+
               <>
                 {view !== "disponibilidad" && (
                   <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
