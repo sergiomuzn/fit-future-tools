@@ -191,10 +191,10 @@ function ClientePortal() {
 
           <TabsContent value="clases" className="space-y-2">
             {isLoading && <p className="text-sm text-muted-foreground">Cargando clases…</p>}
-            {!isLoading && clases.length === 0 && (
+            {!isLoading && sesionesDisponibles.length === 0 && (
               <p className="text-sm text-muted-foreground">No hay clases programadas en las próximas semanas.</p>
             )}
-            {clases.map((c) => (
+            {sesionesDisponibles.map((c) => (
               <ClaseCard
                 key={c.key}
                 clase={c}
