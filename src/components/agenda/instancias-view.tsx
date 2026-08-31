@@ -138,9 +138,53 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const [editing, setEditing] = useState<(SlotInstance & { dur: string; cap: string }) | null>(null);
   const [pending, setPending] = useState<{ fecha: string; inicio: string; fin: string; slug: string } | null>(null);
+  /** Hueco con reservas abierto en el diálogo de clientes. */
+  const [reservasDe, setReservasDe] = useState<SlotInstance | null>(null);
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["service_slot_instances"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["service_slot_instances"] });
+    qc.invalidateQueries({ queryKey: ["sessions-range"] });
+  };
+
+  const reservasDeHueco = (i: SlotInstance) =>
+    reservasPorHueco.get(`${i.servicio_slug}|${i.fecha}|${i.hora_inicio.slice(0, 5)}`) ?? [];
+
+  const cancelarReserva = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ estado: "cancelada" })
+        .eq("id", sessionId);
+      if (error) throw error;
+      try {
+        await notificarCanceladas({ data: { sessionIds: [sessionId] } });
+      } catch {
+        /* la cancelación es válida aunque falle el aviso */
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Reserva cancelada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const eliminarSemana = useMutation({
+    mutationFn: async () => {
+      const ids = visibles.filter((i) => !lockedSet.has(i.id)).map((i) => i.id);
+      if (!ids.length) throw new Error("No hay huecos propagados que eliminar");
+      const { error } = await supabase.from("service_slot_instances").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      invalidate();
+      toast.success(`${n} huecos eliminados`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const create = useMutation({
     mutationFn: async (p: { fecha: string; inicio: string; fin: string; slug: string }) => {
