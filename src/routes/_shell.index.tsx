@@ -153,9 +153,10 @@ function AgendaPage() {
             }
           >
             <TabsList className="h-8">
-              <TabsTrigger value="agenda" className="text-xs tab-active-muted">Agenda</TabsTrigger>
+              <TabsTrigger value="agenda" className="text-xs tab-active-background">Agenda</TabsTrigger>
               <TabsTrigger value="disponibilidad" className="text-xs tab-active-background">Reservas</TabsTrigger>
-              <TabsTrigger value="historial" className="text-xs tab-active-muted">Historial</TabsTrigger>
+              <TabsTrigger value="historial" className="text-xs tab-active-background">Historial</TabsTrigger>
+
             </TabsList>
           </Tabs>
 
@@ -218,7 +219,8 @@ function AgendaPage() {
             )}
 
             {view !== "historial" &&
-              (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
+              (view !== "disponibilidad" || (dispView === "dia" && reservasModo !== "vista")) && (
+
               <>
                 {view !== "disponibilidad" && (
                   <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
