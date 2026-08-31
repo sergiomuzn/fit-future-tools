@@ -1,5 +1,10 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { Trash2 } from "lucide-react";
+import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { useColores } from "@/lib/colors";
+import { useConfirm } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +19,18 @@ import { SlotsWeekGrid } from "./slots-week-grid";
 import { enterToSave } from "@/lib/enter-to-save";
 
 const NONE = "__none";
+
+/** Sesión reservada asociada a un hueco propagado. */
+interface Reserva {
+  id: string;
+  fecha: string;
+  hora_inicio: string;
+  servicio_slug: string | null;
+  client_id: string | null;
+  estado: string;
+  titulo: string | null;
+  clients: { nombre: string } | null;
+}
 
 function toMin(t: string) {
   const [h, m] = t.split(":").map(Number);
@@ -42,6 +59,9 @@ interface Props {
 export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
+  const { servicioColor } = useColores();
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const notificarCanceladas = useServerFn(notificarReservasCanceladas);
   const base = date ?? new Date();
 
   const fechas = useMemo(
@@ -72,27 +92,27 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     queryFn: async () => {
       const { data } = await supabase
         .from("sessions")
-        .select("fecha,hora_inicio,servicio_slug,client_id,estado")
+        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,titulo,clients(nombre)")
         .gte("fecha", from)
         .lte("fecha", to);
-      return (data ?? []) as {
-        fecha: string;
-        hora_inicio: string;
-        servicio_slug: string | null;
-        client_id: string | null;
-        estado: string;
-      }[];
+      return (data ?? []) as unknown as Reserva[];
     },
   });
 
-  const reservadas = useMemo(() => {
-    const s = new Set<string>();
+  /** Reservas activas indexadas por hueco (servicio|fecha|hora). */
+  const reservasPorHueco = useMemo(() => {
+    const m = new Map<string, Reserva[]>();
     for (const r of sesiones) {
       if (!r.client_id || r.estado === "cancelada") continue;
-      s.add(`${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`);
+      const k = `${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`;
+      const arr = m.get(k) ?? [];
+      arr.push(r);
+      m.set(k, arr);
     }
-    return s;
+    return m;
   }, [sesiones]);
+
+  const reservadas = useMemo(() => new Set(reservasPorHueco.keys()), [reservasPorHueco]);
 
   const visibles = useMemo(
     () => instancias.filter((i) => (servicioSlug ? i.servicio_slug === servicioSlug : true)),
@@ -126,9 +146,53 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const [editing, setEditing] = useState<(SlotInstance & { dur: string; cap: string }) | null>(null);
   const [pending, setPending] = useState<{ fecha: string; inicio: string; fin: string; slug: string } | null>(null);
+  /** Hueco con reservas abierto en el diálogo de clientes. */
+  const [reservasDe, setReservasDe] = useState<SlotInstance | null>(null);
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["service_slot_instances"] });
+  const invalidate = () => {
+    qc.invalidateQueries({ queryKey: ["service_slot_instances"] });
+    qc.invalidateQueries({ queryKey: ["sessions-range"] });
+  };
+
+  const reservasDeHueco = (i: SlotInstance) =>
+    reservasPorHueco.get(`${i.servicio_slug}|${i.fecha}|${i.hora_inicio.slice(0, 5)}`) ?? [];
+
+  const cancelarReserva = useMutation({
+    mutationFn: async (sessionId: string) => {
+      const { error } = await supabase
+        .from("sessions")
+        .update({ estado: "cancelada" })
+        .eq("id", sessionId);
+      if (error) throw error;
+      try {
+        await notificarCanceladas({ data: { sessionIds: [sessionId] } });
+      } catch {
+        /* la cancelación es válida aunque falle el aviso */
+      }
+    },
+    onSuccess: () => {
+      invalidate();
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success("Reserva cancelada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const eliminarSemana = useMutation({
+    mutationFn: async () => {
+      const ids = visibles.filter((i) => !lockedSet.has(i.id)).map((i) => i.id);
+      if (!ids.length) throw new Error("No hay huecos propagados que eliminar");
+      const { error } = await supabase.from("service_slot_instances").delete().in("id", ids);
+      if (error) throw error;
+      return ids.length;
+    },
+    onSuccess: (n) => {
+      invalidate();
+      toast.success(`${n} huecos eliminados`);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const create = useMutation({
     mutationFn: async (p: { fecha: string; inicio: string; fin: string; slug: string }) => {
@@ -230,6 +294,26 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      <div className="flex items-center justify-end gap-2 border-b bg-card px-3 py-2 text-xs">
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-8 gap-1.5 text-destructive"
+          disabled={eliminarSemana.isPending}
+          onClick={async () => {
+            const ok = await confirm({
+              title: view === "dia" ? "Eliminar huecos del día" : "Eliminar huecos de la semana",
+              description:
+                "Se eliminarán los huecos propagados visibles. Los huecos con reservas se mantienen.",
+              confirmText: "Eliminar",
+            });
+            if (ok) eliminarSemana.mutate();
+          }}
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          {view === "dia" ? "Eliminar día propagado" : "Eliminar semana propagada"}
+        </Button>
+      </div>
       <div className="min-h-0 flex-1">
         <SlotsWeekGrid
           slots={asSlots}
@@ -237,6 +321,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           nombreServicio={nombreServicio}
           editable
           lockedIds={lockedIds}
+          slotAppearance={(s) => ({
+            color: servicioColor(s.servicio_slug) ?? "#3CC0F3",
+            filled: lockedSet.has(s.id),
+          })}
           onMoveSelection={moveSelection}
           onCreate={(dia, inicio, fin) => {
             const fecha = fechaPorDia.get(dia);
@@ -248,6 +336,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           onSelect={(s) => {
             const inst = instById.get(s.id);
             if (!inst) return;
+            if (lockedSet.has(inst.id)) {
+              setReservasDe(inst);
+              return;
+            }
             setEditing({
               ...inst,
               dur: String(toMin(inst.hora_fin) - toMin(inst.hora_inicio)),
@@ -387,6 +479,56 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reservas del hueco */}
+      <Dialog open={!!reservasDe} onOpenChange={(o) => !o && setReservasDe(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {reservasDe
+                ? `${nombreServicio(reservasDe.servicio_slug)} · ${DIA_NOMBRE[dowOf(reservasDe.fecha)]} ${reservasDe.fecha} · ${hhmm(reservasDe.hora_inicio)}`
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {reservasDe && (
+            <div className="space-y-2">
+              {reservasDeHueco(reservasDe).map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-3 rounded border px-3 py-2">
+                  <span className="truncate text-sm">
+                    {r.clients?.nombre ?? r.titulo ?? "Cliente"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive"
+                    disabled={cancelarReserva.isPending}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Cancelar la reserva",
+                        description: `Se cancelará la reserva de ${r.clients?.nombre ?? "este cliente"} y se le notificará.`,
+                        confirmText: "Cancelar reserva",
+                      });
+                      if (ok) cancelarReserva.mutate(r.id);
+                    }}
+                  >
+                    Cancelar sesión
+                  </Button>
+                </div>
+              ))}
+              {reservasDeHueco(reservasDe).length === 0 && (
+                <p className="text-sm text-muted-foreground">Este hueco ya no tiene reservas.</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {reservasDeHueco(reservasDe).length} de {reservasDe.capacidad} plazas ocupadas.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReservasDe(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {confirmDialog}
     </div>
   );
 }

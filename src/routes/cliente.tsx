@@ -133,6 +133,10 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+  /** Pestaña "Sesiones": solo sesiones futuras y aún dentro de plazo de reserva. */
+  const sesionesDisponibles = clases.filter(
+    (c) => c.reservable && !c.asistida && !yaComenzo(c.fecha, c.horaInicio),
+  );
 
   const defaultTab = verGrupos ? "clases" : "reservas";
   const activeTab =
@@ -191,10 +195,10 @@ function ClientePortal() {
 
           <TabsContent value="clases" className="space-y-2">
             {isLoading && <p className="text-sm text-muted-foreground">Cargando clases…</p>}
-            {!isLoading && clases.length === 0 && (
+            {!isLoading && sesionesDisponibles.length === 0 && (
               <p className="text-sm text-muted-foreground">No hay clases programadas en las próximas semanas.</p>
             )}
-            {clases.map((c) => (
+            {sesionesDisponibles.map((c) => (
               <ClaseCard
                 key={c.key}
                 clase={c}

@@ -132,6 +132,11 @@ interface Props {
   onDeleteSelection?: () => void;
   /** Huecos bloqueados (con reserva confirmada): no se pueden mover ni seleccionar. */
   lockedIds?: string[];
+  /**
+   * Apariencia por hueco (modo vista): contorno del color del servicio cuando
+   * está libre y relleno sólido cuando tiene al menos una reserva.
+   */
+  slotAppearance?: (slot: ServiceSlot) => { color: string; filled: boolean } | null;
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
@@ -156,6 +161,7 @@ export function SlotsWeekGrid({
   hasSelection = false,
   onDeleteSelection,
   lockedIds = [],
+  slotAppearance,
 }: Props) {
   const locked = useMemo(() => new Set(lockedIds), [lockedIds]);
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
@@ -391,6 +397,7 @@ export function SlotsWeekGrid({
                 const leftPct = 4 + col * colWidthPct;
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
+                const apariencia = slotAppearance?.(s) ?? null;
                 const isSel = selected.has(s.id);
                 const isLocked = locked.has(s.id);
                 const drag = moveDelta && moveDelta.ids.includes(s.id) ? moveDelta : null;
@@ -428,9 +435,13 @@ export function SlotsWeekGrid({
                     }}
                     className={cn(
                       "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
-                      slotColorClasses(s.servicio_slug, s.activo),
+                      apariencia
+                        ? apariencia.filled
+                          ? "border-black/10 text-white"
+                          : "border-transparent font-medium"
+                        : slotColorClasses(s.servicio_slug, s.activo),
                       isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
-                      isLocked && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
+                      isLocked && !apariencia && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
                       drag && "opacity-80 z-40",
                     )}
                     style={{
@@ -438,6 +449,15 @@ export function SlotsWeekGrid({
                       height,
                       left: `calc(${leftPct}% + 1px)`,
                       width: `calc(${widthPct}% - 2px)`,
+                      ...(apariencia
+                        ? apariencia.filled
+                          ? { backgroundColor: apariencia.color }
+                          : {
+                              backgroundColor: "hsl(var(--muted))",
+                              color: apariencia.color,
+                              boxShadow: `inset 0 0 0 1.5px ${apariencia.color}`,
+                            }
+                        : null),
                       transform: drag
                         ? `translate(${drag.dias * colW}px, ${(drag.min / SLOT_MIN) * SLOT_PX}px)`
                         : undefined,

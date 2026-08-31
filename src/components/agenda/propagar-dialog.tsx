@@ -249,9 +249,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         <DialogHeader>
           <DialogTitle>Propagar a la agenda</DialogTitle>
           <DialogDescription>
-            Haz clic sobre una semana del calendario para seleccionarla (puedes alternar semana sí,
-            semana no). Se aplica el modo activo{" "}
-            <span className="font-medium">{modoInfo.label}</span>.
+            Modo activo: <span className="font-medium">{modoInfo.label}</span>
           </DialogDescription>
         </DialogHeader>
 
