@@ -130,6 +130,8 @@ interface Props {
   canPasteSelection?: boolean;
   hasSelection?: boolean;
   onDeleteSelection?: () => void;
+  /** Huecos bloqueados (con reserva confirmada): no se pueden mover ni seleccionar. */
+  lockedIds?: string[];
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
@@ -153,7 +155,9 @@ export function SlotsWeekGrid({
   canPasteSelection = false,
   hasSelection = false,
   onDeleteSelection,
+  lockedIds = [],
 }: Props) {
+  const locked = useMemo(() => new Set(lockedIds), [lockedIds]);
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const [draft, setDraft] = useState<{ dia: number; from: number; to: number } | null>(null);
   const dragRef = useRef<{ dia: number; anchor: number } | null>(null);
@@ -201,7 +205,10 @@ export function SlotsWeekGrid({
         const hit: string[] = [];
         bodyRef.current?.querySelectorAll<HTMLElement>("[data-slot-id]").forEach((el) => {
           const r = el.getBoundingClientRect();
-          if (r.left < right && r.right > left && r.top < bottom && r.bottom > top) {
+          if (
+            el.dataset["locked"] !== "1" &&
+            r.left < right && r.right > left && r.top < bottom && r.bottom > top
+          ) {
             hit.push(el.dataset["slotId"]!);
           }
         });
@@ -385,6 +392,7 @@ export function SlotsWeekGrid({
                 // Con columnas estrechas no cabe el nombre completo: usamos abreviatura de 2 letras.
                 const label = !single && widthPct < 35 && full.length > 3 ? abreviatura(full) : full;
                 const isSel = selected.has(s.id);
+                const isLocked = locked.has(s.id);
                 const drag = moveDelta && moveDelta.ids.includes(s.id) ? moveDelta : null;
                 const colW = colRefs.current.get(dia)?.getBoundingClientRect().width ?? 0;
                 return (
@@ -392,9 +400,11 @@ export function SlotsWeekGrid({
                     key={s.id}
                     type="button"
                     data-slot-id={s.id}
+                    data-locked={isLocked ? "1" : undefined}
                     onMouseDown={(e) => {
                       if (e.button !== 0) return;
                       e.stopPropagation();
+                      if (isLocked) return;
                       draggedRef.current = false;
                       if (selecting) {
                         if (e.ctrlKey || e.metaKey) {
@@ -420,6 +430,7 @@ export function SlotsWeekGrid({
                       "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border",
                       slotColorClasses(s.servicio_slug, s.activo),
                       isSel && "outline outline-2 -outline-offset-2 outline-primary z-30",
+                      isLocked && "cursor-not-allowed ring-1 ring-inset ring-foreground/40",
                       drag && "opacity-80 z-40",
                     )}
                     style={{
@@ -434,7 +445,9 @@ export function SlotsWeekGrid({
                       // evitando el efecto de "venir desde el lateral" al soltar.
                       transition: "none",
                     }}
-                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas`}
+                    title={`${hhmm(s.hora_inicio)}–${hhmm(s.hora_fin)} · ${full} · ${s.capacidad} plazas${
+                      isLocked ? " · Reservado (bloqueado)" : ""
+                    }`}
                   >
                     {height <= 22 ? (
                       <div className="flex items-baseline gap-1 overflow-hidden">

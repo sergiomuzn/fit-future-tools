@@ -8,6 +8,7 @@ import { AgendaGrid } from "@/components/agenda/agenda-grid";
 import { WeekView, startOfWeek } from "@/components/agenda/week-view";
 import { MonthView } from "@/components/agenda/month-view";
 import { DisponibilidadView } from "@/components/agenda/disponibilidad-view";
+import { InstanciasView } from "@/components/agenda/instancias-view";
 import { HistorialPanel } from "@/components/sesiones/historial-panel";
 import { abreviatura, slotColorClasses } from "@/components/agenda/slots-week-grid";
 import { useServicios } from "@/lib/servicios";
@@ -41,6 +42,7 @@ function AgendaPage() {
     }
   }, [agendaTabRequest]);
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
+  const [reservasModo, setReservasModo] = useState<"vista" | "edicion">("edicion");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
   // Acceso directo desde Servicios → "Ver reservas de este servicio".
@@ -95,7 +97,7 @@ function AgendaPage() {
   }
 
   function shiftView(dir: number) {
-    if (view === "disponibilidad") return shift(dir);
+    if (view === "disponibilidad") return shift(dispView === "semana" ? dir * 7 : dir);
     if (view === "dia") return shift(dir);
     if (view === "semana") return shift(dir * 7);
     setDate(new Date(date.getFullYear(), date.getMonth() + dir, 1));
@@ -115,7 +117,9 @@ function AgendaPage() {
             ? ""
             : dispView === "dia"
               ? DOW[date.getDay()]
-              : "";
+              : reservasModo === "vista"
+                ? `${weekStart.getDate()} ${MONTHS[weekStart.getMonth()]} – ${weekEnd.getDate()} ${MONTHS[weekEnd.getMonth()]} ${weekEnd.getFullYear()}`
+                : "";
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -134,7 +138,8 @@ function AgendaPage() {
             </TabsList>
           </Tabs>
           <div className="flex min-h-9 items-center gap-3 pb-2">
-          {view !== "historial" && (view !== "disponibilidad" || dispView === "dia") && (
+          {view !== "historial" &&
+            (view !== "disponibilidad" || dispView === "dia" || reservasModo === "vista") && (
             <>
               {view !== "disponibilidad" && (
                 <Button variant="outline" size="sm" onClick={() => setDate(new Date(new Date().setHours(0,0,0,0)))}>Hoy</Button>
@@ -171,6 +176,34 @@ function AgendaPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 pb-2">
+          {view === "disponibilidad" && (
+            <div className="flex items-center rounded-md border bg-background p-0.5">
+              <button
+                type="button"
+                onClick={() => setReservasModo("vista")}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  reservasModo === "vista"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Modo vista
+              </button>
+              <button
+                type="button"
+                onClick={() => setReservasModo("edicion")}
+                className={cn(
+                  "rounded px-2.5 py-1 text-xs font-medium transition-colors",
+                  reservasModo === "edicion"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                Modo edición
+              </button>
+            </div>
+          )}
           {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[130px] text-xs bg-background">
@@ -274,6 +307,13 @@ function AgendaPage() {
           <WeekView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
         ) : view === "mes" ? (
           <MonthView date={date} trainers={trainers} onSelectDay={(d) => { setDate(d); setView("dia"); }} />
+        ) : reservasModo === "vista" ? (
+          <InstanciasView
+            servicioSlug={activeServicio}
+            view={dispView}
+            date={date}
+            paintServicioSlug={paintServicio}
+          />
         ) : (
           <DisponibilidadView
             servicioSlug={activeServicio}
