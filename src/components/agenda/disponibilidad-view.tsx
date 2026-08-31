@@ -549,6 +549,9 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
             </Tooltip>
           </TooltipProvider>
 
+          <Button size="sm" className="h-8 gap-1.5" onClick={() => setPropagarOpen(true)}>
+            <CalendarPlus className="h-3.5 w-3.5" /> Propagar a Vista
+          </Button>
         </div>
       </div>
 
