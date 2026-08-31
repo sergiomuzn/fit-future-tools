@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { AgendaGrid } from "@/components/agenda/agenda-grid";
@@ -18,7 +18,7 @@ import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
 import { servicioColorOf } from "@/lib/colors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
 
 export const Route = createFileRoute("/_shell/")({
   validateSearch: (search: { tab?: string; servicio?: string }): { tab?: string; servicio?: string } => ({
@@ -246,22 +246,6 @@ function AgendaPage() {
                 ))}
               </SelectContent>
             </Select>
-          )}
-          {view === "disponibilidad" && reservasModo === "vista" && (
-            <TooltipProvider delayDuration={100}>
-              <UITooltip>
-                <TooltipTrigger asChild>
-                  <button type="button" className="text-muted-foreground hover:text-foreground" aria-label="Información">
-                    <Info className="h-4 w-4" />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent className="max-w-xs text-xs leading-relaxed">
-                  Horario semanal visible para los clientes con acceso a cada servicio. Cada cliente solo
-                  verá los huecos de los servicios que tenga contratados. Arrastra sobre el calendario para
-                  crear un hueco disponible · pincha en un hueco para editarlo o eliminarlo.
-                </TooltipContent>
-              </UITooltip>
-            </TooltipProvider>
           )}
           {view === "disponibilidad" && servicioSlug === "__all" && (
             <>
