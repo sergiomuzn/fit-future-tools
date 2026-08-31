@@ -137,6 +137,11 @@ interface Props {
    * está libre y relleno sólido cuando tiene al menos una reserva.
    */
   slotAppearance?: (slot: ServiceSlot) => { color: string; filled: boolean } | null;
+  /**
+   * Cómo se marcan los huecos bloqueados: "blocked" (no editable) o
+   * "reservado" (marca sutil, el hueco sigue siendo clicable).
+   */
+  lockedMark?: "blocked" | "reservado";
 }
 
 /** Calendario semanal (misma rejilla que la agenda) para huecos disponibles. */
