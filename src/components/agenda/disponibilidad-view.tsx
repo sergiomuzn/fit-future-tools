@@ -497,10 +497,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
         <div className="ml-auto flex items-center gap-2">
           {copiedDay && <span className="text-muted-foreground">Día copiado ({copiedDay.length})</span>}
-          <Button size="sm" className="h-8 gap-1.5" onClick={() => setPropagarOpen(true)}>
-            <CalendarPlus className="h-3.5 w-3.5" /> Propagar a la agenda
-          </Button>
-
           <Button
             size="sm"
             variant="outline"
