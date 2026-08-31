@@ -49,6 +49,8 @@ interface Props {
   view?: "dia" | "semana";
   date?: Date;
   paintServicioSlug?: string | null;
+  /** Fecha o rango de la semana, mostrado sobre los días. */
+  label?: string;
 }
 
 /**
