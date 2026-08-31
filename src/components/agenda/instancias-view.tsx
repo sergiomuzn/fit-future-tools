@@ -479,6 +479,56 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Reservas del hueco */}
+      <Dialog open={!!reservasDe} onOpenChange={(o) => !o && setReservasDe(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {reservasDe
+                ? `${nombreServicio(reservasDe.servicio_slug)} · ${DIA_NOMBRE[dowOf(reservasDe.fecha)]} ${reservasDe.fecha} · ${hhmm(reservasDe.hora_inicio)}`
+                : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {reservasDe && (
+            <div className="space-y-2">
+              {reservasDeHueco(reservasDe).map((r) => (
+                <div key={r.id} className="flex items-center justify-between gap-3 rounded border px-3 py-2">
+                  <span className="truncate text-sm">
+                    {r.clients?.nombre ?? r.titulo ?? "Cliente"}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="text-destructive"
+                    disabled={cancelarReserva.isPending}
+                    onClick={async () => {
+                      const ok = await confirm({
+                        title: "Cancelar la reserva",
+                        description: `Se cancelará la reserva de ${r.clients?.nombre ?? "este cliente"} y se le notificará.`,
+                        confirmText: "Cancelar reserva",
+                      });
+                      if (ok) cancelarReserva.mutate(r.id);
+                    }}
+                  >
+                    Cancelar sesión
+                  </Button>
+                </div>
+              ))}
+              {reservasDeHueco(reservasDe).length === 0 && (
+                <p className="text-sm text-muted-foreground">Este hueco ya no tiene reservas.</p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                {reservasDeHueco(reservasDe).length} de {reservasDe.capacidad} plazas ocupadas.
+              </p>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setReservasDe(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      {confirmDialog}
     </div>
   );
 }
