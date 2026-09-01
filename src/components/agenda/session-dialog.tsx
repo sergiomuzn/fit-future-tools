@@ -137,6 +137,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGrupo(plazas > 1);
   }, [open, servicioActual?.slug, plazas]);
 
+  // Nombre por defecto de la sesión: servicio en mayúsculas cuando no hay cliente.
+  useEffect(() => {
+    if (!open) return;
+    const sinCliente = grupo ? groupClientIds.every((id) => !id) : !clientId;
+    if (sinCliente && !nombreLibre.trim()) {
+      setNombreLibre(servicioActual?.nombre?.toUpperCase() ?? "");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, servicioActual?.nombre, grupo, clientId, groupClientIds.join(",")]);
+
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
