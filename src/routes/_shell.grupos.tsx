@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Plus, Settings2 } from "lucide-react";
+import { MoreVertical, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -68,14 +68,15 @@ function ServiciosPage() {
                   <CardTitle className="text-base">{s.nombre}</CardTitle>
                 </div>
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Ajustes del servicio"
                   onClick={() => {
                     setEditingSlug(s.slug);
                     setDialogOpen(true);
                   }}
                 >
-                  <Settings2 className="h-4 w-4 mr-1" /> Configurar servicio
+                  <MoreVertical className="h-4 w-4" />
                 </Button>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
@@ -84,7 +85,7 @@ function ServiciosPage() {
                   {s.capacidad_default} {s.capacidad_default === 1 ? "plaza" : "plazas"}
                 </p>
                 <p className={s.descripcion ? "" : "text-muted-foreground"}>
-                  {s.descripcion ?? "Sin descripción. Añádela desde “Configurar servicio”."}
+                  {s.descripcion ?? "Sin descripción. Añádela desde los ajustes del servicio."}
                 </p>
               </CardContent>
             </Card>
