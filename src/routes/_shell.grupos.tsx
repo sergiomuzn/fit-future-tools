@@ -1,12 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { ArrowRight, Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useServicios } from "@/lib/servicios";
-import { ServicioResumen } from "@/components/servicios/servicio-resumen";
+import { useColores } from "@/lib/colors";
 import { ServicioBonosPanel } from "@/components/servicios/servicio-bonos-panel";
+import { ServicioReservasPanel } from "@/components/servicios/servicio-reservas-panel";
 import { ServicioDialog } from "@/components/servicios/servicio-dialog";
 
 export const Route = createFileRoute("/_shell/grupos")({
@@ -14,8 +15,8 @@ export const Route = createFileRoute("/_shell/grupos")({
 });
 
 function ServiciosPage() {
-  const navigate = useNavigate();
   const { data: servicios = [] } = useServicios();
+  const { servicioColor } = useColores();
   const [tab, setTab] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
@@ -32,7 +33,7 @@ function ServiciosPage() {
         <div>
           <h1 className="text-2xl font-display font-semibold">Servicios</h1>
           <p className="text-sm text-muted-foreground">
-            Panel de control de cada servicio: resumen, bonos y reservas.
+            Panel de control de cada servicio: información, bonos y reservas.
           </p>
         </div>
         <Button onClick={() => { setEditingSlug(null); setDialogOpen(true); }}>
@@ -48,10 +49,17 @@ function ServiciosPage() {
         </TabsList>
 
         {servicios.map((s) => (
-          <TabsContent key={s.id} value={s.slug} className="pt-4 space-y-6">
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-display font-semibold">Resumen</h2>
+          <TabsContent key={s.id} value={s.slug} className="pt-4 space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-start justify-between gap-2 space-y-0">
+                <div className="flex items-center gap-2">
+                  <span
+                    className="h-4 w-4 rounded-full border"
+                    style={{ backgroundColor: servicioColor(s.slug) ?? undefined }}
+                    aria-hidden
+                  />
+                  <CardTitle className="text-base">{s.nombre}</CardTitle>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
@@ -59,35 +67,33 @@ function ServiciosPage() {
                 >
                   <Settings2 className="h-4 w-4 mr-1" /> Configurar servicio
                 </Button>
-              </div>
-              <ServicioResumen servicio={s} />
-              <p className="text-xs text-muted-foreground">
-                Capacidad por sesión: {s.capacidad_default} {s.capacidad_default === 1 ? "plaza" : "plazas"}
-              </p>
-            </section>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p>
+                  <span className="text-muted-foreground">Plazas por sesión: </span>
+                  {s.capacidad_default} {s.capacidad_default === 1 ? "plaza" : "plazas"}
+                </p>
+                <p className={s.descripcion ? "" : "text-muted-foreground"}>
+                  {s.descripcion ?? "Sin descripción. Añádela desde “Configurar servicio”."}
+                </p>
+              </CardContent>
+            </Card>
 
-            <section className="space-y-3">
-              <h2 className="text-lg font-display font-semibold">Bonos</h2>
-              <ServicioBonosPanel servicioSlug={s.slug} />
-            </section>
-
-            <section className="space-y-3">
-              <h2 className="text-lg font-display font-semibold">Reservas</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Huecos y reservas de {s.nombre}</CardTitle>
-                </CardHeader>
+                <CardHeader><CardTitle className="text-base">Bonos</CardTitle></CardHeader>
                 <CardContent>
-                  <Button
-                    onClick={() =>
-                      navigate({ to: "/", search: { tab: "reservas", servicio: s.slug } })
-                    }
-                  >
-                    Ver reservas de este servicio <ArrowRight className="h-4 w-4 ml-1" />
-                  </Button>
+                  <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>
               </Card>
-            </section>
+
+              <Card>
+                <CardHeader><CardTitle className="text-base">Reservas</CardTitle></CardHeader>
+                <CardContent>
+                  <ServicioReservasPanel servicioSlug={s.slug} />
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         ))}
 
