@@ -184,16 +184,6 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Bonos de este servicio</Label>
-            {slugActual ? (
-              <ServicioBonosPanel servicioSlug={slugActual} />
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Guarda el servicio para poder añadir sus bonos.
-              </p>
-            )}
-          </div>
         </div>
 
         <DialogFooter>
