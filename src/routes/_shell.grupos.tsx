@@ -36,7 +36,12 @@ function ServiciosPage() {
             Panel de control de cada servicio: información, bonos y reservas.
           </p>
         </div>
-        <Button onClick={() => { setEditingSlug(null); setDialogOpen(true); }}>
+        <Button
+          onClick={() => {
+            setEditingSlug(null);
+            setDialogOpen(true);
+          }}
+        >
           <Plus className="h-4 w-4 mr-1" /> Nuevo servicio
         </Button>
       </div>
@@ -44,7 +49,9 @@ function ServiciosPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           {servicios.map((s) => (
-            <TabsTrigger key={s.id} value={s.slug}>{s.nombre}</TabsTrigger>
+            <TabsTrigger key={s.id} value={s.slug}>
+              {s.nombre}
+            </TabsTrigger>
           ))}
         </TabsList>
 
@@ -63,7 +70,10 @@ function ServiciosPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => { setEditingSlug(s.slug); setDialogOpen(true); }}
+                  onClick={() => {
+                    setEditingSlug(s.slug);
+                    setDialogOpen(true);
+                  }}
                 >
                   <Settings2 className="h-4 w-4 mr-1" /> Configurar servicio
                 </Button>
@@ -81,14 +91,18 @@ function ServiciosPage() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
               <Card>
-                <CardHeader><CardTitle className="text-base">Bonos</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Bonos</CardTitle>
+                </CardHeader>
                 <CardContent>
                   <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>
               </Card>
 
               <Card>
-                <CardHeader><CardTitle className="text-base">Reservas</CardTitle></CardHeader>
+                <CardHeader>
+                  <CardTitle className="text-base">Reservas</CardTitle>
+                </CardHeader>
                 <CardContent>
                   <ServicioReservasPanel servicioSlug={s.slug} />
                 </CardContent>

@@ -6,7 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { slugifyServicio, type Servicio } from "@/lib/servicios";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { defaultServicioColor, servicioColorKey } from "@/lib/colors";
@@ -46,18 +52,27 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
 
   async function saveColor(slug: string) {
     const next = { ...colores, [servicioColorKey(slug)]: color };
-    const { error } = await supabase.from("center_config").update({
-      horario_base: horario as unknown as never,
-      precios: precios as unknown as never,
-      colores: next as unknown as never,
-    }).eq("id", true);
-    if (error) { toast.error(error.message); return; }
+    const { error } = await supabase
+      .from("center_config")
+      .update({
+        horario_base: horario as unknown as never,
+        precios: precios as unknown as never,
+        colores: next as unknown as never,
+      })
+      .eq("id", true);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     invalidate();
   }
 
   async function save() {
     const n = nombre.trim();
-    if (!n) { toast.error("Escribe un nombre de servicio"); return; }
+    if (!n) {
+      toast.error("Escribe un nombre de servicio");
+      return;
+    }
     const cap = Math.max(1, Number(capacidad) || 1);
     const desc = descripcion.trim() || null;
 
@@ -66,7 +81,10 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
         .from("servicios")
         .update({ nombre: n, capacidad_default: cap, descripcion: desc })
         .eq("slug", slugActual);
-      if (error) { toast.error(error.message); return; }
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
       await saveColor(slugActual);
       await qc.invalidateQueries({ queryKey: ["servicios"] });
       toast.success("Servicio actualizado");
@@ -75,13 +93,22 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     }
 
     const slug = slugifyServicio(n);
-    if (!slug) { toast.error("Nombre no válido"); return; }
-    if (servicios.some((s) => s.slug === slug)) { toast.error("Ese servicio ya existe"); return; }
+    if (!slug) {
+      toast.error("Nombre no válido");
+      return;
+    }
+    if (servicios.some((s) => s.slug === slug)) {
+      toast.error("Ese servicio ya existe");
+      return;
+    }
     const maxOrden = servicios.reduce((m, s) => Math.max(m, s.orden), 0);
     const { error } = await supabase
       .from("servicios")
       .insert({ slug, nombre: n, orden: maxOrden + 1, capacidad_default: cap, descripcion: desc });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     await saveColor(slug);
     await qc.invalidateQueries({ queryKey: ["servicios"] });
     setCreatedSlug(slug);
@@ -90,7 +117,12 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
   }
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{servicio ? `Configurar ${servicio.nombre}` : "Nuevo servicio"}</DialogTitle>
@@ -100,7 +132,11 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Nombre del servicio</Label>
-              <Input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Entrenamiento personal" />
+              <Input
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Entrenamiento personal"
+              />
             </div>
             <div className="space-y-1.5">
               <Label>Capacidad por sesión</Label>
@@ -111,8 +147,8 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
                 onChange={(e) => setCapacidad(e.target.value)}
               />
               <p className="text-[11px] text-muted-foreground">
-                Plazas que se ofertan por defecto al crear sesiones y huecos de reservas de este servicio (se puede
-                modificar en cada sesión).
+                Plazas que se ofertan por defecto al crear sesiones y huecos de reservas de este
+                servicio (se puede modificar en cada sesión).
               </p>
             </div>
           </div>
@@ -126,11 +162,15 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
               />
-              <Input className="font-mono uppercase" value={color} onChange={(e) => setColor(e.target.value)} />
+              <Input
+                className="font-mono uppercase"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              />
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Define el color de sus sesiones en la Agenda y de la columna “Servicio”. Las sesiones realizadas se
-              muestran en un tono algo más oscuro.
+              Define el color de sus sesiones en la Agenda y de la columna “Servicio”. Las sesiones
+              realizadas se muestran en un tono algo más oscuro.
             </p>
           </div>
 
@@ -157,8 +197,12 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>{slugActual ? "Cerrar" : "Cancelar"}</Button>
-          <Button onClick={() => void save()}>{servicio || createdSlug ? "Guardar cambios" : "Crear servicio"}</Button>
+          <Button variant="ghost" onClick={onClose}>
+            {slugActual ? "Cerrar" : "Cancelar"}
+          </Button>
+          <Button onClick={() => void save()}>
+            {servicio || createdSlug ? "Guardar cambios" : "Crear servicio"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

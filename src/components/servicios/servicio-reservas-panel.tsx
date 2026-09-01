@@ -1,6 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/db";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
 interface Reserva {
@@ -26,7 +33,9 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
     queryFn: async (): Promise<Reserva[]> => {
       const { data, error } = await supabase
         .from("sessions")
-        .select("id,fecha,hora_inicio,titulo,por_confirmar,estado,booked_by_user_id,clients(nombre)")
+        .select(
+          "id,fecha,hora_inicio,titulo,por_confirmar,estado,booked_by_user_id,clients(nombre)",
+        )
         .eq("servicio_slug", servicioSlug)
         .gte("fecha", hoy)
         .not("booked_by_user_id", "is", null)
@@ -36,8 +45,12 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
       if (error) throw error;
       return (data ?? []).map((r) => {
         const row = r as unknown as {
-          id: string; fecha: string; hora_inicio: string; titulo: string | null;
-          por_confirmar: boolean; clients: { nombre: string } | null;
+          id: string;
+          fecha: string;
+          hora_inicio: string;
+          titulo: string | null;
+          por_confirmar: boolean;
+          clients: { nombre: string } | null;
         };
         return {
           id: row.id,
@@ -54,7 +67,11 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
 
   if (isLoading) return <p className="text-sm text-muted-foreground">Cargando reservas…</p>;
   if (reservas.length === 0)
-    return <p className="text-sm text-muted-foreground">No hay reservas futuras de clientes en este servicio.</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        No hay reservas futuras de clientes en este servicio.
+      </p>
+    );
 
   return (
     <Table>
