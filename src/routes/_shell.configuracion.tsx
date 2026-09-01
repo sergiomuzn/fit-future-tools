@@ -8,7 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { HorarioForm, PreciosForm, ColoresServiciosForm } from "@/components/config/schedule-form";
+import { HorarioForm, PreciosForm } from "@/components/config/schedule-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
@@ -26,7 +26,6 @@ function ConfigPage() {
       <Tabs defaultValue="calendario">
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
-          <TabsTrigger value="bonos">Tipos de bonos</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
           <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
@@ -59,13 +58,6 @@ function ConfigPage() {
               <SpecialDaysCalendar />
             </CardContent>
           </Card>
-        </TabsContent>
-
-        <TabsContent value="bonos" className="pt-4 space-y-6">
-          <p className="text-xs text-muted-foreground">
-            Los servicios y sus bonos se crean y configuran en el apartado Servicios. Aquí solo se ajustan sus colores.
-          </p>
-          <ColoresServiciosForm />
         </TabsContent>
 
         <TabsContent value="estadisticas" className="pt-4 space-y-6">
