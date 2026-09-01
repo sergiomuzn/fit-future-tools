@@ -16,7 +16,6 @@ import {
 import { slugifyServicio, type Servicio } from "@/lib/servicios";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { defaultServicioColor, servicioColorKey } from "@/lib/colors";
-import { ServicioBonosPanel } from "./servicio-bonos-panel";
 
 interface Props {
   open: boolean;
@@ -27,7 +26,7 @@ interface Props {
   onCreated?: (slug: string) => void;
 }
 
-/** Mismo menú para crear y configurar un servicio: nombre, capacidad, color, descripción y bonos. */
+/** Mismo menú para crear y configurar un servicio: nombre, capacidad, color y descripción. */
 export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }: Props) {
   const qc = useQueryClient();
   const { horario, precios, colores, invalidate } = useCenterConfig();
@@ -113,7 +112,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     await qc.invalidateQueries({ queryKey: ["servicios"] });
     setCreatedSlug(slug);
     onCreated?.(slug);
-    toast.success("Servicio creado. Añade ahora sus bonos.");
+    toast.success("Servicio creado");
   }
 
   return (
@@ -184,16 +183,6 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
             />
           </div>
 
-          <div className="space-y-2">
-            <Label>Bonos de este servicio</Label>
-            {slugActual ? (
-              <ServicioBonosPanel servicioSlug={slugActual} />
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Guarda el servicio para poder añadir sus bonos.
-              </p>
-            )}
-          </div>
         </div>
 
         <DialogFooter>
