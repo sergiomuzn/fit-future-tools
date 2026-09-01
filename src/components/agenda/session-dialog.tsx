@@ -728,8 +728,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     <ClientPicker
                       value={cid}
                       autoFocus={isNew && i === 0}
-                      initialText={i === 0 ? nombreLibre : undefined}
-                      onTextChange={cid ? undefined : setNombreLibre}
                       onChange={async (id) => {
                         if (cid && id !== cid) {
                           const reserva = (groupMembersData ?? []).find(
@@ -759,8 +757,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   value={clientId}
                   onChange={(id) => setClientId(id)}
                   autoFocus={isNew}
-                  initialText={nombreLibre}
-                  onTextChange={setNombreLibre}
                 />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
@@ -771,9 +767,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               </>
             )}
             {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
-              <p className="text-[11px] text-muted-foreground leading-tight">
-                Puedes escribir un nombre libre en el buscador sin seleccionar cliente; si lo dejas vacío se usará el nombre del servicio.
-              </p>
+              <div className="space-y-1.5">
+                <Label>Nombre de la sesión</Label>
+                <Input
+                  value={nombreLibre}
+                  onChange={(e) => setNombreLibre(e.target.value)}
+                  placeholder={servicioActual?.nombre?.toUpperCase() ?? ""}
+                />
+                <p className="text-[11px] text-muted-foreground leading-tight">
+                  Si lo dejas vacío se usará el nombre del servicio.
+                </p>
+              </div>
             )}
           </div>
 
