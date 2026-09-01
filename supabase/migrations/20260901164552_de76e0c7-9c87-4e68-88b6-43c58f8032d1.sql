@@ -1,0 +1,1 @@
+ALTER TABLE public.servicios ADD COLUMN IF NOT EXISTS descripcion text;

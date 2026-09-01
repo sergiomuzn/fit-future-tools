@@ -5,7 +5,14 @@ import { toast } from "sonner";
 import { supabase, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useConfirm } from "@/components/confirm-dialog";
 
 interface Props {
@@ -55,7 +62,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
 
   async function addRow() {
     const nombre = draft.nombre.trim();
-    if (!nombre) { toast.error("Pon un nombre al bono"); return; }
+    if (!nombre) {
+      toast.error("Pon un nombre al bono");
+      return;
+    }
     const maxOrden = bonos.reduce((m, b) => Math.max(m, b.orden ?? 0), 0);
     const { error } = await supabase.from("bonos_catalogo").insert({
       servicio_slug: servicioSlug,
@@ -66,7 +76,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       precio: Number(draft.precio) || 0,
       orden: maxOrden + 1,
     });
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setDraft(EMPTY);
     setAdding(false);
     invalidate();
@@ -82,7 +95,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     });
     if (!ok) return;
     const { error } = await supabase.from("bonos_catalogo").delete().eq("id", b.id);
-    if (error) { toast.error(error.message); return; }
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     invalidate();
     toast.success("Bono eliminado");
   }
@@ -122,7 +138,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     defaultValue={b.sesiones_incluidas}
                     onBlur={(e) => {
                       const v = Math.max(0, Number(e.target.value) || 0);
-                      if (v !== b.sesiones_incluidas) updateRow.mutate({ id: b.id, patch: { sesiones_incluidas: v } });
+                      if (v !== b.sesiones_incluidas)
+                        updateRow.mutate({ id: b.id, patch: { sesiones_incluidas: v } });
                     }}
                   />
                 </TableCell>
@@ -135,7 +152,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     onBlur={(e) => {
                       const raw = e.target.value;
                       const v = raw === "" ? null : Math.max(0, Number(raw) || 0);
-                      if (v !== b.duracion_min) updateRow.mutate({ id: b.id, patch: { duracion_min: v } });
+                      if (v !== b.duracion_min)
+                        updateRow.mutate({ id: b.id, patch: { duracion_min: v } });
                     }}
                   />
                 </TableCell>
@@ -148,7 +166,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     defaultValue={Number(b.precio)}
                     onBlur={(e) => {
                       const v = Number(e.target.value) || 0;
-                      if (v !== Number(b.precio)) updateRow.mutate({ id: b.id, patch: { precio: v } });
+                      if (v !== Number(b.precio))
+                        updateRow.mutate({ id: b.id, patch: { precio: v } });
                     }}
                   />
                 </TableCell>
@@ -162,20 +181,41 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             {adding && (
               <TableRow>
                 <TableCell>
-                  <Input autoFocus className="h-8" placeholder="Bono 10 sesiones" value={draft.nombre}
-                    onChange={(e) => setDraft({ ...draft, nombre: e.target.value })} />
+                  <Input
+                    autoFocus
+                    className="h-8"
+                    placeholder="Bono 10 sesiones"
+                    value={draft.nombre}
+                    onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                  />
                 </TableCell>
                 <TableCell>
-                  <Input type="number" min={0} className="h-8" value={draft.sesiones}
-                    onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })} />
+                  <Input
+                    type="number"
+                    min={0}
+                    className="h-8"
+                    value={draft.sesiones}
+                    onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
+                  />
                 </TableCell>
                 <TableCell>
-                  <Input type="number" min={0} className="h-8" value={draft.duracion}
-                    onChange={(e) => setDraft({ ...draft, duracion: e.target.value })} />
+                  <Input
+                    type="number"
+                    min={0}
+                    className="h-8"
+                    value={draft.duracion}
+                    onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
+                  />
                 </TableCell>
                 <TableCell>
-                  <Input type="number" min={0} step="0.01" className="h-8" value={draft.precio}
-                    onChange={(e) => setDraft({ ...draft, precio: e.target.value })} />
+                  <Input
+                    type="number"
+                    min={0}
+                    step="0.01"
+                    className="h-8"
+                    value={draft.precio}
+                    onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
+                  />
                 </TableCell>
                 <TableCell />
               </TableRow>
@@ -192,8 +232,19 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       </div>
       {adding ? (
         <div className="flex gap-2">
-          <Button size="sm" onClick={() => void addRow()}>Guardar bono</Button>
-          <Button size="sm" variant="ghost" onClick={() => { setAdding(false); setDraft(EMPTY); }}>Cancelar</Button>
+          <Button size="sm" onClick={() => void addRow()}>
+            Guardar bono
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setAdding(false);
+              setDraft(EMPTY);
+            }}
+          >
+            Cancelar
+          </Button>
         </div>
       ) : (
         <Button size="sm" variant="outline" onClick={() => setAdding(true)}>

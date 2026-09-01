@@ -633,6 +633,7 @@ export type Database = {
         Row: {
           capacidad_default: number
           created_at: string
+          descripcion: string | null
           id: string
           nombre: string
           orden: number
@@ -642,6 +643,7 @@ export type Database = {
         Insert: {
           capacidad_default?: number
           created_at?: string
+          descripcion?: string | null
           id?: string
           nombre: string
           orden?: number
@@ -651,6 +653,7 @@ export type Database = {
         Update: {
           capacidad_default?: number
           created_at?: string
+          descripcion?: string | null
           id?: string
           nombre?: string
           orden?: number
