@@ -14,6 +14,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useConfirm } from "@/components/confirm-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Props {
   servicioSlug: string;
@@ -24,9 +31,20 @@ interface Draft {
   sesiones: string;
   duracion: string;
   precio: string;
+  caducidadTipo: CaducidadTipo;
+  caducidadDias: string;
 }
 
-const EMPTY: Draft = { nombre: "", sesiones: "10", duracion: "60", precio: "0" };
+type CaducidadTipo = "ninguna" | "dias" | "fin_mes";
+
+const EMPTY: Draft = {
+  nombre: "",
+  sesiones: "10",
+  duracion: "60",
+  precio: "0",
+  caducidadTipo: "ninguna",
+  caducidadDias: "30",
+};
 
 /** Gestión de los bonos ofrecidos por un servicio (crear, editar y eliminar). */
 export function ServicioBonosPanel({ servicioSlug }: Props) {
@@ -75,6 +93,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       duracion_min: draft.duracion ? Math.max(0, Number(draft.duracion) || 0) : null,
       precio: Number(draft.precio) || 0,
       orden: maxOrden + 1,
+      caducidad_tipo: draft.caducidadTipo === "ninguna" ? null : draft.caducidadTipo,
+      caducidad_dias:
+        draft.caducidadTipo === "dias" ? Math.max(1, Number(draft.caducidadDias) || 30) : null,
     });
     if (error) {
       toast.error(error.message);
@@ -114,6 +135,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
               <TableHead className="w-24">Precio</TableHead>
+              <TableHead className="w-48">Caducidad</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -172,6 +194,44 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   />
                 </TableCell>
                 <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Select
+                      value={(b.caducidad_tipo ?? "ninguna") as CaducidadTipo}
+                      onValueChange={(v) =>
+                        updateRow.mutate({
+                          id: b.id,
+                          patch: {
+                            caducidad_tipo: v === "ninguna" ? null : v,
+                            caducidad_dias: v === "dias" ? (b.caducidad_dias ?? 30) : null,
+                          },
+                        })
+                      }
+                    >
+                      <SelectTrigger className="h-8 w-[7.5rem]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ninguna">Sin caducidad</SelectItem>
+                        <SelectItem value="dias">Días</SelectItem>
+                        <SelectItem value="fin_mes">Fin de mes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {b.caducidad_tipo === "dias" && (
+                      <Input
+                        type="number"
+                        min={1}
+                        className="h-8 w-16"
+                        defaultValue={b.caducidad_dias ?? 30}
+                        onBlur={(e) => {
+                          const v = Math.max(1, Number(e.target.value) || 30);
+                          if (v !== b.caducidad_dias)
+                            updateRow.mutate({ id: b.id, patch: { caducidad_dias: v } });
+                        }}
+                      />
+                    )}
+                  </div>
+                </TableCell>
+                <TableCell>
                   <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -217,12 +277,38 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                   />
                 </TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-1">
+                    <Select
+                      value={draft.caducidadTipo}
+                      onValueChange={(v) => setDraft({ ...draft, caducidadTipo: v as CaducidadTipo })}
+                    >
+                      <SelectTrigger className="h-8 w-[7.5rem]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ninguna">Sin caducidad</SelectItem>
+                        <SelectItem value="dias">Días</SelectItem>
+                        <SelectItem value="fin_mes">Fin de mes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {draft.caducidadTipo === "dias" && (
+                      <Input
+                        type="number"
+                        min={1}
+                        className="h-8 w-16"
+                        value={draft.caducidadDias}
+                        onChange={(e) => setDraft({ ...draft, caducidadDias: e.target.value })}
+                      />
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell />
               </TableRow>
             )}
             {!isLoading && bonos.length === 0 && !adding && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-sm text-muted-foreground py-6">
+                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
                   Este servicio todavía no ofrece bonos.
                 </TableCell>
               </TableRow>

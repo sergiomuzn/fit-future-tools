@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
@@ -95,12 +95,27 @@ export function BonosPanel() {
     return slug ? servMap.get(slug) ?? slug : null;
   };
 
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  /** Un bono con caducidad configurada que ya ha superado su fecha límite. */
+  const isCaducado = (b: ClientBono) => !!b.fecha_caducidad && b.fecha_caducidad < hoyISO;
+
+  // Marca los bonos caducados y avisa al buzón del cliente (idempotente).
+  useEffect(() => {
+    void (async () => {
+      const { error } = await supabase.rpc("notify_bonos_caducados");
+      if (!error) qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   function estadoRank(b: ClientBono): number {
     const tipoBono = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
     const isGympass = tipoBono === "gympass" || tipoBono === "grupal";
     const noBono = !b.bono_catalogo_id;
     if (!b.activo) return 2;
+    if (isCaducado(b)) return 1;
     if (isGympass || noBono || b.sesiones_disponibles > 0) return 0;
     return 1;
   }
@@ -124,7 +139,7 @@ export function BonosPanel() {
     if (t === "prueba") return false;
     const isGympass = t === "gympass" || t === "grupal";
     const noBono = !b.bono_catalogo_id;
-    const activo = isGympass || noBono || b.sesiones_disponibles > 0;
+    const activo = !isCaducado(b) && (isGympass || noBono || b.sesiones_disponibles > 0);
 
     // Cliente inactivo y bono sin sesiones restantes → oculto (configurable)
     if (behavior.ocultarBonosInactivosAgotados) {
@@ -369,11 +384,17 @@ export function BonosPanel() {
                     const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
                     const isGympass = t === "gympass" || t === "grupal";
                     const noBono = !b.bono_catalogo_id;
-                    const activo = isGympass || noBono || b.sesiones_disponibles > 0;
+                    const caducado = isCaducado(b);
+                    const activo = !caducado && (isGympass || noBono || b.sesiones_disponibles > 0);
                     return (
                       <div key={b.id} className={SUB}>
                         {activo ? (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
+                        ) : caducado ? (
+                          <span
+                            title={`Bono caducado el ${b.fecha_caducidad}`}
+                            className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                          >Agotado</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
                         )}
