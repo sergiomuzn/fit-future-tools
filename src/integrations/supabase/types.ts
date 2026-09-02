@@ -16,6 +16,8 @@ export type Database = {
     Tables: {
       bonos_catalogo: {
         Row: {
+          caducidad_dias: number | null
+          caducidad_tipo: string | null
           duracion_min: number | null
           id: string
           nombre: string
@@ -26,6 +28,8 @@ export type Database = {
           tipo: string
         }
         Insert: {
+          caducidad_dias?: number | null
+          caducidad_tipo?: string | null
           duracion_min?: number | null
           id?: string
           nombre: string
@@ -36,6 +40,8 @@ export type Database = {
           tipo: string
         }
         Update: {
+          caducidad_dias?: number | null
+          caducidad_tipo?: string | null
           duracion_min?: number | null
           id?: string
           nombre?: string
@@ -81,8 +87,10 @@ export type Database = {
         Row: {
           activo: boolean
           bono_catalogo_id: string | null
+          caducidad_avisada: boolean
           client_id: string
           created_at: string
+          fecha_caducidad: string | null
           fecha_inicio: string
           id: string
           nota: string | null
@@ -97,8 +105,10 @@ export type Database = {
         Insert: {
           activo?: boolean
           bono_catalogo_id?: string | null
+          caducidad_avisada?: boolean
           client_id: string
           created_at?: string
+          fecha_caducidad?: string | null
           fecha_inicio?: string
           id?: string
           nota?: string | null
@@ -113,8 +123,10 @@ export type Database = {
         Update: {
           activo?: boolean
           bono_catalogo_id?: string | null
+          caducidad_avisada?: boolean
           client_id?: string
           created_at?: string
+          fecha_caducidad?: string | null
           fecha_inicio?: string
           id?: string
           nota?: string | null
@@ -887,6 +899,7 @@ export type Database = {
         Returns: boolean
       }
       is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
+      notify_bonos_caducados: { Args: never; Returns: number }
       pick_bono_for_session: {
         Args: { p_client: string; p_for_restore?: boolean; p_servicio: string }
         Returns: string
