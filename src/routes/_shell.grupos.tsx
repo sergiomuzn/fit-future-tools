@@ -204,8 +204,8 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-              <Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+              <Card className="lg:col-span-2">
                 <CardHeader>
                   <CardTitle className="text-base">Bonos</CardTitle>
                 </CardHeader>
