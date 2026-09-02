@@ -15,12 +15,10 @@ import {
 } from "@/components/ui/table";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  CaducidadSelect,
+  type CaducidadValue,
+} from "@/components/caducidad-select";
+import { useServicios } from "@/lib/servicios";
 
 interface Props {
   servicioSlug: string;
@@ -31,19 +29,15 @@ interface Draft {
   sesiones: string;
   duracion: string;
   precio: string;
-  caducidadTipo: CaducidadTipo;
-  caducidadDias: string;
+  caducidad: CaducidadValue;
 }
-
-type CaducidadTipo = "ninguna" | "dias" | "fin_mes";
 
 const EMPTY: Draft = {
   nombre: "",
   sesiones: "10",
   duracion: "60",
   precio: "0",
-  caducidadTipo: "ninguna",
-  caducidadDias: "30",
+  caducidad: { tipo: null, dias: null },
 };
 
 /** Gestión de los bonos ofrecidos por un servicio (crear, editar y eliminar). */
@@ -52,6 +46,18 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const { confirm, dialog } = useConfirm();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const { data: servicios = [] } = useServicios();
+  const servicio = servicios.find((s) => s.slug === servicioSlug);
+  /** Caducidad por defecto configurada en el servicio. */
+  const caducidadDefecto: CaducidadValue = {
+    tipo: (servicio?.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+    dias: servicio?.caducidad_dias ?? null,
+  };
+
+  function startAdding() {
+    setDraft({ ...EMPTY, caducidad: caducidadDefecto });
+    setAdding(true);
+  }
 
   const { data: bonos = [], isLoading } = useQuery({
     queryKey: ["bonos_catalogo", servicioSlug],
@@ -93,9 +99,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       duracion_min: draft.duracion ? Math.max(0, Number(draft.duracion) || 0) : null,
       precio: Number(draft.precio) || 0,
       orden: maxOrden + 1,
-      caducidad_tipo: draft.caducidadTipo === "ninguna" ? null : draft.caducidadTipo,
-      caducidad_dias:
-        draft.caducidadTipo === "dias" ? Math.max(1, Number(draft.caducidadDias) || 30) : null,
+      caducidad_tipo: draft.caducidad.tipo,
+      caducidad_dias: draft.caducidad.dias,
     });
     if (error) {
       toast.error(error.message);
@@ -194,42 +199,18 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Select
-                      value={(b.caducidad_tipo ?? "ninguna") as CaducidadTipo}
-                      onValueChange={(v) =>
-                        updateRow.mutate({
-                          id: b.id,
-                          patch: {
-                            caducidad_tipo: v === "ninguna" ? null : v,
-                            caducidad_dias: v === "dias" ? (b.caducidad_dias ?? 30) : null,
-                          },
-                        })
-                      }
-                    >
-                      <SelectTrigger className="h-8 w-[7.5rem]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ninguna">Sin caducidad</SelectItem>
-                        <SelectItem value="dias">Días</SelectItem>
-                        <SelectItem value="fin_mes">Fin de mes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {b.caducidad_tipo === "dias" && (
-                      <Input
-                        type="number"
-                        min={1}
-                        className="h-8 w-16"
-                        defaultValue={b.caducidad_dias ?? 30}
-                        onBlur={(e) => {
-                          const v = Math.max(1, Number(e.target.value) || 30);
-                          if (v !== b.caducidad_dias)
-                            updateRow.mutate({ id: b.id, patch: { caducidad_dias: v } });
-                        }}
-                      />
-                    )}
-                  </div>
+                  <CaducidadSelect
+                    value={{
+                      tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+                      dias: b.caducidad_dias ?? null,
+                    }}
+                    onChange={(v) =>
+                      updateRow.mutate({
+                        id: b.id,
+                        patch: { caducidad_tipo: v.tipo, caducidad_dias: v.dias },
+                      })
+                    }
+                  />
                 </TableCell>
                 <TableCell>
                   <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
@@ -278,30 +259,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   />
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-1">
-                    <Select
-                      value={draft.caducidadTipo}
-                      onValueChange={(v) => setDraft({ ...draft, caducidadTipo: v as CaducidadTipo })}
-                    >
-                      <SelectTrigger className="h-8 w-[7.5rem]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ninguna">Sin caducidad</SelectItem>
-                        <SelectItem value="dias">Días</SelectItem>
-                        <SelectItem value="fin_mes">Fin de mes</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {draft.caducidadTipo === "dias" && (
-                      <Input
-                        type="number"
-                        min={1}
-                        className="h-8 w-16"
-                        value={draft.caducidadDias}
-                        onChange={(e) => setDraft({ ...draft, caducidadDias: e.target.value })}
-                      />
-                    )}
-                  </div>
+                  <CaducidadSelect
+                    value={draft.caducidad}
+                    onChange={(v) => setDraft({ ...draft, caducidad: v })}
+                  />
                 </TableCell>
                 <TableCell />
               </TableRow>
@@ -333,7 +294,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           </Button>
         </div>
       ) : (
-        <Button size="sm" variant="outline" onClick={() => setAdding(true)}>
+        <Button size="sm" variant="outline" onClick={startAdding}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo bono
         </Button>
       )}
