@@ -140,30 +140,31 @@ function ServiciosPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          {ordered.map((s) => (
-            <TabsTrigger
-              key={s.id}
-              value={s.slug}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "move";
-                setDragSlug(s.slug);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (dragSlug && s.slug !== overSlug) setOverSlug(s.slug);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                void persistOrden();
-              }}
-              onDragEnd={() => void persistOrden()}
-              className={dragSlug === s.slug ? "opacity-60 cursor-grabbing" : "cursor-grab"}
-            >
-              {s.nombre}
-            </TabsTrigger>
-          ))}
+        <TabsList ref={listRef}>
+          {servicios.map((s, i) => {
+            const dragging = dragSlug === s.slug;
+            const offset = dragging ? dx : shiftFor(i);
+            return (
+              <TabsTrigger
+                key={s.id}
+                value={s.slug}
+                data-tab-slug={s.slug}
+                onPointerDown={(e) => onPointerDown(e, i, s.slug)}
+                onPointerMove={onPointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                style={{
+                  transform: offset ? `translateX(${offset}px)` : undefined,
+                  transition: dragging ? "none" : "transform 220ms cubic-bezier(0.22,1,0.36,1)",
+                  zIndex: dragging ? 20 : undefined,
+                  touchAction: "none",
+                }}
+                className={dragging ? "cursor-grabbing shadow-sm" : "cursor-grab"}
+              >
+                {s.nombre}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {servicios.map((s) => (
