@@ -51,6 +51,7 @@ function FacturacionPage() {
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
+  const { data: servicios = [] } = useServicios();
 
   // Último bono contratado por cliente (más reciente por fecha_inicio, luego created_at).
   const { data: lastBonoRows = [] } = useQuery({
