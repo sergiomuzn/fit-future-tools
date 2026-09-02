@@ -66,8 +66,10 @@ function ServiciosPage() {
     if (e.button !== 0) return;
     const list = listRef.current;
     if (!list) return;
-    const nodes = Array.from(list.querySelectorAll<HTMLElement>("[data-tab-slug]"));
-    const rects = nodes.map((n) => {
+    const nodes: HTMLElement[] = Array.from(
+      list.querySelectorAll("[data-tab-slug]"),
+    ) as HTMLElement[];
+    const rects = nodes.map((n: HTMLElement) => {
       const r = n.getBoundingClientRect();
       return { left: r.left, width: r.width };
     });
