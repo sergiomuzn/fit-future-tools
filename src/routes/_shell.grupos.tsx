@@ -30,6 +30,42 @@ function ServiciosPage() {
 
   const editing = servicios.find((s) => s.slug === editingSlug) ?? null;
 
+  const queryClient = useQueryClient();
+  const [dragSlug, setDragSlug] = useState<string | null>(null);
+  const [overSlug, setOverSlug] = useState<string | null>(null);
+
+  const ordered = useMemo(() => {
+    if (!dragSlug || !overSlug || dragSlug === overSlug) return servicios;
+    const arr = servicios.slice();
+    const from = arr.findIndex((s) => s.slug === dragSlug);
+    const to = arr.findIndex((s) => s.slug === overSlug);
+    if (from < 0 || to < 0) return servicios;
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    return arr;
+  }, [servicios, dragSlug, overSlug]);
+
+  async function persistOrden() {
+    const final = ordered;
+    setDragSlug(null);
+    setOverSlug(null);
+    const changed = final.filter((s, i) => s.orden !== i + 1);
+    if (changed.length === 0) return;
+    queryClient.setQueryData(
+      ["servicios"],
+      final.map((s, i) => ({ ...s, orden: i + 1 })),
+    );
+    const results = await Promise.all(
+      final.map((s, i) =>
+        s.orden === i + 1
+          ? Promise.resolve({ error: null })
+          : supabase.from("servicios").update({ orden: i + 1 }).eq("id", s.id),
+      ),
+    );
+    if (results.some((r) => r.error)) toast.error("No se pudo guardar el orden");
+    queryClient.invalidateQueries({ queryKey: ["servicios"] });
+  }
+
   return (
     <div className="page-tabbed min-h-full p-6 space-y-4">
       <div className="flex min-h-10 items-center justify-between gap-2">
