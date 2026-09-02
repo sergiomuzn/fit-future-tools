@@ -1,6 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { MoreVertical, Plus } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -27,6 +30,42 @@ function ServiciosPage() {
 
   const editing = servicios.find((s) => s.slug === editingSlug) ?? null;
 
+  const queryClient = useQueryClient();
+  const [dragSlug, setDragSlug] = useState<string | null>(null);
+  const [overSlug, setOverSlug] = useState<string | null>(null);
+
+  const ordered = useMemo(() => {
+    if (!dragSlug || !overSlug || dragSlug === overSlug) return servicios;
+    const arr = servicios.slice();
+    const from = arr.findIndex((s) => s.slug === dragSlug);
+    const to = arr.findIndex((s) => s.slug === overSlug);
+    if (from < 0 || to < 0) return servicios;
+    const [moved] = arr.splice(from, 1);
+    arr.splice(to, 0, moved);
+    return arr;
+  }, [servicios, dragSlug, overSlug]);
+
+  async function persistOrden() {
+    const final = ordered;
+    setDragSlug(null);
+    setOverSlug(null);
+    const changed = final.filter((s, i) => s.orden !== i + 1);
+    if (changed.length === 0) return;
+    queryClient.setQueryData(
+      ["servicios"],
+      final.map((s, i) => ({ ...s, orden: i + 1 })),
+    );
+    const results = await Promise.all(
+      final.map((s, i) =>
+        s.orden === i + 1
+          ? Promise.resolve({ error: null })
+          : supabase.from("servicios").update({ orden: i + 1 }).eq("id", s.id),
+      ),
+    );
+    if (results.some((r) => r.error)) toast.error("No se pudo guardar el orden");
+    queryClient.invalidateQueries({ queryKey: ["servicios"] });
+  }
+
   return (
     <div className="page-tabbed min-h-full p-6 space-y-4">
       <div className="flex min-h-10 items-center justify-between gap-2">
@@ -48,8 +87,26 @@ function ServiciosPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          {servicios.map((s) => (
-            <TabsTrigger key={s.id} value={s.slug}>
+          {ordered.map((s) => (
+            <TabsTrigger
+              key={s.id}
+              value={s.slug}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                setDragSlug(s.slug);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragSlug && s.slug !== overSlug) setOverSlug(s.slug);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                void persistOrden();
+              }}
+              onDragEnd={() => void persistOrden()}
+              className={dragSlug === s.slug ? "opacity-60 cursor-grabbing" : "cursor-grab"}
+            >
               {s.nombre}
             </TabsTrigger>
           ))}
