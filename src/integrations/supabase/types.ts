@@ -643,6 +643,8 @@ export type Database = {
       }
       servicios: {
         Row: {
+          caducidad_dias: number | null
+          caducidad_tipo: string | null
           capacidad_default: number
           created_at: string
           descripcion: string | null
@@ -653,6 +655,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          caducidad_dias?: number | null
+          caducidad_tipo?: string | null
           capacidad_default?: number
           created_at?: string
           descripcion?: string | null
@@ -663,6 +667,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          caducidad_dias?: number | null
+          caducidad_tipo?: string | null
           capacidad_default?: number
           created_at?: string
           descripcion?: string | null
