@@ -95,6 +95,20 @@ export function BonosPanel() {
     return slug ? servMap.get(slug) ?? slug : null;
   };
 
+  const hoyISO = new Date().toISOString().slice(0, 10);
+  /** Un bono con caducidad configurada que ya ha superado su fecha límite. */
+  const isCaducado = (b: ClientBono) => !!b.fecha_caducidad && b.fecha_caducidad < hoyISO;
+
+  // Marca los bonos caducados y avisa al buzón del cliente (idempotente).
+  useEffect(() => {
+    void (async () => {
+      const { error } = await supabase.rpc("notify_bonos_caducados");
+      if (!error) qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
 
   function estadoRank(b: ClientBono): number {
     const tipoBono = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
