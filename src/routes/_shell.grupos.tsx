@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MoreVertical, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,32 +31,28 @@ function ServiciosPage() {
   const editing = servicios.find((s) => s.slug === editingSlug) ?? null;
 
   const queryClient = useQueryClient();
+  const listRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    slug: string;
+    from: number;
+    startX: number;
+    rects: { left: number; width: number }[];
+  } | null>(null);
   const [dragSlug, setDragSlug] = useState<string | null>(null);
-  const [overSlug, setOverSlug] = useState<string | null>(null);
+  const [dx, setDx] = useState(0);
+  const [targetIndex, setTargetIndex] = useState<number | null>(null);
 
-  const ordered = useMemo(() => {
-    if (!dragSlug || !overSlug || dragSlug === overSlug) return servicios;
+  async function persistOrden(from: number, to: number) {
     const arr = servicios.slice();
-    const from = arr.findIndex((s) => s.slug === dragSlug);
-    const to = arr.findIndex((s) => s.slug === overSlug);
-    if (from < 0 || to < 0) return servicios;
     const [moved] = arr.splice(from, 1);
     arr.splice(to, 0, moved);
-    return arr;
-  }, [servicios, dragSlug, overSlug]);
-
-  async function persistOrden() {
-    const final = ordered;
-    setDragSlug(null);
-    setOverSlug(null);
-    const changed = final.filter((s, i) => s.orden !== i + 1);
-    if (changed.length === 0) return;
+    if (arr.every((s, i) => s.orden === i + 1)) return;
     queryClient.setQueryData(
       ["servicios"],
-      final.map((s, i) => ({ ...s, orden: i + 1 })),
+      arr.map((s, i) => ({ ...s, orden: i + 1 })),
     );
     const results = await Promise.all(
-      final.map((s, i) =>
+      arr.map((s, i) =>
         s.orden === i + 1
           ? Promise.resolve({ error: null })
           : supabase.from("servicios").update({ orden: i + 1 }).eq("id", s.id),
@@ -64,6 +60,66 @@ function ServiciosPage() {
     );
     if (results.some((r) => r.error)) toast.error("No se pudo guardar el orden");
     queryClient.invalidateQueries({ queryKey: ["servicios"] });
+  }
+
+  function onPointerDown(e: React.PointerEvent<HTMLButtonElement>, index: number, slug: string) {
+    if (e.button !== 0) return;
+    const list = listRef.current;
+    if (!list) return;
+    const nodes: HTMLElement[] = Array.from(
+      list.querySelectorAll("[data-tab-slug]"),
+    ) as HTMLElement[];
+    const rects = nodes.map((n: HTMLElement) => {
+      const r = n.getBoundingClientRect();
+      return { left: r.left, width: r.width };
+    });
+    dragRef.current = { slug, from: index, startX: e.clientX, rects };
+    setDragSlug(slug);
+    setDx(0);
+    setTargetIndex(index);
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function onPointerMove(e: React.PointerEvent<HTMLButtonElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    const delta = e.clientX - d.startX;
+    setDx(delta);
+    const center = d.rects[d.from].left + d.rects[d.from].width / 2 + delta;
+    let idx = d.from;
+    while (idx > 0 && center < d.rects[idx - 1].left + d.rects[idx - 1].width / 2) idx--;
+    while (
+      idx < d.rects.length - 1 &&
+      center > d.rects[idx + 1].left + d.rects[idx + 1].width / 2
+    )
+      idx++;
+    setTargetIndex(idx);
+  }
+
+  function endDrag(e: React.PointerEvent<HTMLButtonElement>) {
+    const d = dragRef.current;
+    if (!d) return;
+    const to = targetIndex ?? d.from;
+    dragRef.current = null;
+    try {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    } catch {
+      /* noop */
+    }
+    setDragSlug(null);
+    setDx(0);
+    setTargetIndex(null);
+    if (to !== d.from) void persistOrden(d.from, to);
+  }
+
+  /** Desplazamiento horizontal de cada pestaña mientras se arrastra. */
+  function shiftFor(index: number): number {
+    const d = dragRef.current;
+    if (!d || targetIndex === null || index === d.from) return 0;
+    const w = d.rects[d.from].width + 4;
+    if (index > d.from && index <= targetIndex) return -w;
+    if (index < d.from && index >= targetIndex) return w;
+    return 0;
   }
 
   return (
@@ -86,30 +142,31 @@ function ServiciosPage() {
       </div>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList>
-          {ordered.map((s) => (
-            <TabsTrigger
-              key={s.id}
-              value={s.slug}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.effectAllowed = "move";
-                setDragSlug(s.slug);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                if (dragSlug && s.slug !== overSlug) setOverSlug(s.slug);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                void persistOrden();
-              }}
-              onDragEnd={() => void persistOrden()}
-              className={dragSlug === s.slug ? "opacity-60 cursor-grabbing" : "cursor-grab"}
-            >
-              {s.nombre}
-            </TabsTrigger>
-          ))}
+        <TabsList ref={listRef}>
+          {servicios.map((s, i) => {
+            const dragging = dragSlug === s.slug;
+            const offset = dragging ? dx : shiftFor(i);
+            return (
+              <TabsTrigger
+                key={s.id}
+                value={s.slug}
+                data-tab-slug={s.slug}
+                onPointerDown={(e) => onPointerDown(e, i, s.slug)}
+                onPointerMove={onPointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                style={{
+                  transform: offset ? `translateX(${offset}px)` : undefined,
+                  transition: dragging ? "none" : "transform 220ms cubic-bezier(0.22,1,0.36,1)",
+                  zIndex: dragging ? 20 : undefined,
+                  touchAction: "none",
+                }}
+                className={dragging ? "cursor-grabbing shadow-sm" : "cursor-grab"}
+              >
+                {s.nombre}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
         {servicios.map((s) => (
