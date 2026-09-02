@@ -87,8 +87,26 @@ function ServiciosPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
-          {servicios.map((s) => (
-            <TabsTrigger key={s.id} value={s.slug}>
+          {ordered.map((s) => (
+            <TabsTrigger
+              key={s.id}
+              value={s.slug}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = "move";
+                setDragSlug(s.slug);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                if (dragSlug && s.slug !== overSlug) setOverSlug(s.slug);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                void persistOrden();
+              }}
+              onDragEnd={() => void persistOrden()}
+              className={dragSlug === s.slug ? "opacity-60 cursor-grabbing" : "cursor-grab"}
+            >
               {s.nombre}
             </TabsTrigger>
           ))}
