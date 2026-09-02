@@ -297,6 +297,9 @@ function ResumenBono({ resumen, sumarNC }: { resumen: ResumenCliente | null; sum
                 </div>
                 <DatoFila label="Tipo" value={b.tipo ? capitalizar(b.tipo) : "—"} />
                 <DatoFila label="Bono" value={b.nombre ?? "—"} />
+                {b.fechaCaducidad && (
+                  <DatoFila label="Caduca el" value={fechaCorta(b.fechaCaducidad)} />
+                )}
                 <DatoFila
                   label="Sesiones restantes"
                   value={b.sesionesRestantes == null ? "—" : String(b.sesionesRestantes)}
