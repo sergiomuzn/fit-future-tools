@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { slugifyServicio, type Servicio } from "@/lib/servicios";
+import { CaducidadSelect, type CaducidadValue } from "@/components/caducidad-select";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { defaultServicioColor, servicioColorKey } from "@/lib/colors";
 
@@ -35,6 +36,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
   const [descripcion, setDescripcion] = useState("");
   const [color, setColor] = useState("#3CC0F3");
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
+  const [caducidad, setCaducidad] = useState<CaducidadValue>({ tipo: null, dias: null });
 
   const slugActual = servicio?.slug ?? createdSlug;
 
@@ -44,6 +46,10 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     setCapacidad(String(servicio?.capacidad_default ?? 1));
     setDescripcion(servicio?.descripcion ?? "");
     setCreatedSlug(null);
+    setCaducidad({
+      tipo: (servicio?.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+      dias: servicio?.caducidad_dias ?? null,
+    });
     const slug = servicio?.slug;
     setColor(slug ? (colores[servicioColorKey(slug)] ?? defaultServicioColor(slug)) : "#3CC0F3");
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,7 +84,13 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     if (slugActual) {
       const { error } = await supabase
         .from("servicios")
-        .update({ nombre: n, capacidad_default: cap, descripcion: desc })
+        .update({
+          nombre: n,
+          capacidad_default: cap,
+          descripcion: desc,
+          caducidad_tipo: caducidad.tipo,
+          caducidad_dias: caducidad.dias,
+        })
         .eq("slug", slugActual);
       if (error) {
         toast.error(error.message);
@@ -103,7 +115,15 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     const maxOrden = servicios.reduce((m, s) => Math.max(m, s.orden), 0);
     const { error } = await supabase
       .from("servicios")
-      .insert({ slug, nombre: n, orden: maxOrden + 1, capacidad_default: cap, descripcion: desc });
+      .insert({
+        slug,
+        nombre: n,
+        orden: maxOrden + 1,
+        capacidad_default: cap,
+        descripcion: desc,
+        caducidad_tipo: caducidad.tipo,
+        caducidad_dias: caducidad.dias,
+      });
     if (error) {
       toast.error(error.message);
       return;
@@ -136,6 +156,17 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Entrenamiento personal"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Caducidad por defecto</Label>
+              <CaducidadSelect
+                value={caducidad}
+                onChange={setCaducidad}
+                triggerClassName="h-9 w-full"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Se aplica automáticamente a los bonos nuevos de este servicio.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label>Capacidad por sesión</Label>

@@ -10,6 +10,9 @@ export interface Servicio {
   capacidad_default: number;
   /** Descripción libre del servicio. */
   descripcion: string | null;
+  /** Caducidad por defecto aplicada a los bonos nuevos de este servicio. */
+  caducidad_tipo: string | null;
+  caducidad_dias: number | null;
 }
 
 export function slugifyServicio(nombre: string): string {
@@ -28,13 +31,15 @@ export function useServicios() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("servicios")
-        .select("id,slug,nombre,orden,capacidad_default,descripcion")
+        .select("id,slug,nombre,orden,capacidad_default,descripcion,caducidad_tipo,caducidad_dias")
         .order("orden");
       if (error) throw error;
       return (data ?? []).map((s) => ({
         ...s,
         capacidad_default: Math.max(1, (s as { capacidad_default?: number }).capacidad_default ?? 1),
         descripcion: (s as { descripcion?: string | null }).descripcion ?? null,
+        caducidad_tipo: (s as { caducidad_tipo?: string | null }).caducidad_tipo ?? null,
+        caducidad_dias: (s as { caducidad_dias?: number | null }).caducidad_dias ?? null,
       })) as Servicio[];
     },
   });

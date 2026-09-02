@@ -340,7 +340,7 @@ async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
   const [{ data: bonos }, { data: cfg }, { data: servicios }] = await Promise.all([
     supabaseAdmin
       .from("client_bonos")
-      .select("id,fecha_inicio,sesiones_disponibles,sesiones_realizadas,ultimo_bono_nombre,bono_catalogo_id")
+      .select("id,fecha_inicio,fecha_caducidad,sesiones_disponibles,sesiones_realizadas,ultimo_bono_nombre,bono_catalogo_id")
       .eq("client_id", clientId)
       .eq("activo", true)
       .order("created_at", { ascending: false }),
@@ -391,6 +391,7 @@ async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
       nombre: cat?.nombre ?? b.ultimo_bono_nombre ?? null,
       color: cat?.tipo ? (colores[cat.tipo] ?? null) : null,
       fechaInicio: b.fecha_inicio,
+      fechaCaducidad: b.fecha_caducidad ?? null,
       sesionesRestantes: b.sesiones_disponibles,
       sesionesRealizadas: b.sesiones_realizadas,
       cancelaciones: count ?? 0,

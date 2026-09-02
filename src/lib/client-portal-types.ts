@@ -117,6 +117,8 @@ export interface BonoResumen {
   nombre: string | null;
   color: string | null;
   fechaInicio: string | null;
+  /** Fecha de caducidad del bono (null si no caduca). */
+  fechaCaducidad: string | null;
   sesionesRestantes: number | null;
   sesionesRealizadas: number | null;
   cancelaciones: number;
