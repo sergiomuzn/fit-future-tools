@@ -29,6 +29,7 @@ import { ClientPicker } from "@/components/clients/client-picker";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
+import { useServicios } from "@/lib/servicios";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
@@ -342,7 +343,16 @@ function FacturacionPage() {
                   sesiones_override: v === "__none__" ? null : (b ? b.sesiones_incluidas : null),
                 });
               }}>
-                <SelectTrigger><SelectValue placeholder="Selecciona bono..." /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecciona bono...">
+                    {(() => {
+                      const b = catalogo.find((x) => x.id === form.bono_catalogo_id);
+                      if (!b) return "Sin bono";
+                      const serv = servicios.find((s) => s.slug === b.servicio_slug)?.nombre ?? b.servicio_slug;
+                      return `${serv} — ${prettyBonoNombre(b.nombre)}`;
+                    })()}
+                  </SelectValue>
+                </SelectTrigger>
                 <BonoSelectContent
                   catalogo={catalogo}
                   noneValue="__none__"
