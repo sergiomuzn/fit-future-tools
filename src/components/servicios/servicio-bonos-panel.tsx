@@ -215,7 +215,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
+              <TableHead className="w-40">Modalidad</TableHead>
+              <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
               <TableHead className="w-24">Precio</TableHead>
