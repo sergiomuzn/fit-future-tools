@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Tags, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,6 +27,7 @@ import {
   type CaducidadValue,
 } from "@/components/caducidad-select";
 import { useServicios } from "@/lib/servicios";
+import { useModalidades, MODALIDAD_NONE, type Modalidad } from "@/lib/modalidades";
 
 interface Props {
   servicioSlug: string;
@@ -26,6 +35,7 @@ interface Props {
 
 interface Draft {
   nombre: string;
+  modalidad: string;
   sesiones: string;
   duracion: string;
   precio: string;
@@ -34,6 +44,7 @@ interface Draft {
 
 const EMPTY: Draft = {
   nombre: "",
+  modalidad: MODALIDAD_NONE,
   sesiones: "10",
   duracion: "60",
   precio: "0",
