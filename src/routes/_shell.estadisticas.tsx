@@ -231,11 +231,12 @@ function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specials
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
 
-  // Sólo mostrar meses/años con actividad real (sesiones o eventos), más el mes en curso.
+  // Sólo mostrar meses/años con actividad real (sesiones realizadas o eventos),
+  // más el mes en curso. Nunca se ofrecen meses futuros.
   const activityMonths = useMemo(() => {
     const set = new Set<string>();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
-    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const s of sessions) if (s.fecha && countsAsTraining(s)) set.add(s.fecha.slice(0, 7));
     for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
     return set;
   }, [sessions, events, now]);
