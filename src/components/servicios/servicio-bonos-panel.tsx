@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Tags, Pencil } from "lucide-react";
+import { Plus, Trash2, Tags, Pencil, MoreVertical } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { supabase, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
@@ -208,14 +214,61 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     toast.success("Bono eliminado");
   }
 
+  async function removeAll() {
+    if (bonos.length === 0) return;
+    const ok = await confirm({
+      title: "¿Borrar todos los bonos de este servicio?",
+      description: "Se eliminarán del catálogo. Los bonos ya asignados a clientes no se modifican.",
+      confirmText: "Borrar todos",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("bonos_catalogo")
+      .delete()
+      .eq("servicio_slug", servicioSlug);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    invalidate();
+    toast.success("Bonos eliminados");
+  }
+
+  /** La columna de modalidad solo se muestra si el servicio tiene modalidades. */
+  const showModalidad = modalidades.length > 0;
+
   return (
     <div className="space-y-3">
       {dialog}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setModalOpen(true)}>
+              <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => {
+                setTimeout(() => void removeAll(), 0);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">Modalidad</TableHead>
+              {showModalidad && <TableHead className="w-40">Modalidad</TableHead>}
               <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
@@ -227,22 +280,24 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <TableBody>
             {bonos.map((b) => (
               <TableRow key={b.id}>
-                <TableCell>
-                  <Select
-                    value={b.modalidad ?? MODALIDAD_NONE}
-                    onValueChange={(v) =>
-                      updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
-                    }
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
-                      {modalidades.map((m) => (
-                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+                {showModalidad && (
+                  <TableCell>
+                    <Select
+                      value={b.modalidad ?? MODALIDAD_NONE}
+                      onValueChange={(v) =>
+                        updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
+                      }
+                    >
+                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        {modalidades.map((m) => (
+                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Input
                     className="h-8"
@@ -317,20 +372,22 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             ))}
             {adding && (
               <TableRow>
-                <TableCell>
-                  <Select
-                    value={draft.modalidad}
-                    onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
-                      {modalidades.map((m) => (
-                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+                {showModalidad && (
+                  <TableCell>
+                    <Select
+                      value={draft.modalidad}
+                      onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
+                    >
+                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        {modalidades.map((m) => (
+                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Input
                     autoFocus
@@ -379,7 +436,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             )}
             {!isLoading && bonos.length === 0 && !adding && (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
+                <TableCell colSpan={showModalidad ? 7 : 6} className="text-center text-sm text-muted-foreground py-6">
                   Este servicio todavía no ofrece bonos.
                 </TableCell>
               </TableRow>
@@ -407,9 +464,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={startAdding}>
             <Plus className="h-4 w-4 mr-1" /> Nuevo bono
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
-            <Tags className="h-4 w-4 mr-1" /> Modalidades
           </Button>
         </div>
       )}
