@@ -1,10 +1,16 @@
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 
 export type CaducidadTipo = "dias" | "meses" | "fin_mes" | "fin_ano" | null;
@@ -70,41 +76,77 @@ interface Props {
 
 /** Selector unificado de caducidad (servicios y bonos). */
 export function CaducidadSelect({ value, onChange, className, triggerClassName }: Props) {
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [customDias, setCustomDias] = useState<string>(String(value.dias ?? 30));
+
+  function confirmCustom() {
+    const n = Math.max(1, Number(customDias) || 1);
+    onChange({ tipo: "dias", dias: n });
+    setPopoverOpen(false);
+  }
+
   return (
-    <div className={`flex items-center gap-1 ${className ?? ""}`}>
-      <Select
-        value={caducidadKey(value)}
-        onValueChange={(k) => onChange(caducidadFromKey(k, value.dias))}
+    <div className={`flex items-center ${className ?? ""}`}>
+      <Popover
+        open={popoverOpen}
+        onOpenChange={(o) => {
+          setPopoverOpen(o);
+          if (o) setCustomDias(String(value.dias ?? 30));
+        }}
       >
-        <SelectTrigger className={triggerClassName ?? "h-8 w-[9.5rem]"}>
-          {value.tipo === null ? (
-            <span className="text-muted-foreground">—</span>
-          ) : (
-            <SelectValue />
-          )}
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="ninguna">Sin caducidad</SelectItem>
-          <SelectItem value="meses:1">1 mes</SelectItem>
-          <SelectItem value="meses:3">3 meses</SelectItem>
-          <SelectItem value="meses:6">6 meses</SelectItem>
-          <SelectItem value="meses:12">1 año</SelectItem>
-          <SelectItem value="fin_mes">Mes natural</SelectItem>
-          <SelectItem value="fin_ano">Año natural</SelectItem>
-          <SelectItem value="dias">Personalizado</SelectItem>
-        </SelectContent>
-      </Select>
-      {value.tipo === "dias" && (
-        <Input
-          type="number"
-          min={1}
-          className="h-8 w-16"
-          value={value.dias ?? 30}
-          onChange={(e) =>
-            onChange({ tipo: "dias", dias: Math.max(1, Number(e.target.value) || 1) })
-          }
-        />
-      )}
+        <PopoverTrigger asChild>
+          <span className="sr-only" aria-hidden />
+        </PopoverTrigger>
+        <Select
+          value={caducidadKey(value)}
+          onValueChange={(k) => {
+            if (k === "dias") {
+              setCustomDias(String(value.dias ?? 30));
+              setPopoverOpen(true);
+              return;
+            }
+            onChange(caducidadFromKey(k, value.dias));
+          }}
+        >
+          <SelectTrigger className={triggerClassName ?? "h-8 w-[9.5rem]"}>
+            <span className={value.tipo === null ? "text-muted-foreground" : undefined}>
+              {caducidadLabel(value)}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ninguna">Sin caducidad</SelectItem>
+            <SelectItem value="meses:1">1 mes</SelectItem>
+            <SelectItem value="meses:3">3 meses</SelectItem>
+            <SelectItem value="meses:6">6 meses</SelectItem>
+            <SelectItem value="meses:12">1 año</SelectItem>
+            <SelectItem value="fin_mes">Mes natural</SelectItem>
+            <SelectItem value="fin_ano">Año natural</SelectItem>
+            <SelectItem value="dias">Personalizado</SelectItem>
+          </SelectContent>
+        </Select>
+        <PopoverContent align="start" className="w-auto p-2">
+          <div className="flex items-center gap-2">
+            <Input
+              autoFocus
+              type="number"
+              min={1}
+              className="h-8 w-20"
+              value={customDias}
+              onChange={(e) => setCustomDias(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  confirmCustom();
+                }
+              }}
+            />
+            <span className="text-sm text-muted-foreground">días</span>
+            <Button size="sm" className="h-8" onClick={confirmCustom}>
+              OK
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
