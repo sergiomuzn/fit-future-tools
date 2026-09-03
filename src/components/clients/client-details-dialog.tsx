@@ -82,6 +82,7 @@ export function ClientDetailsDialog({
                     <TableRow>
                       <TableHead>Bono</TableHead>
                       <TableHead>Servicio</TableHead>
+                      <TableHead>Modalidad</TableHead>
                       <TableHead>Fecha</TableHead>
                       <TableHead>Realizadas</TableHead>
                       <TableHead>Restantes al cerrar</TableHead>
@@ -99,6 +100,7 @@ export function ClientDetailsDialog({
                               {servMap.get(slug) ?? slug}
                             </span>
                           ) : "—"}</TableCell>
+                          <TableCell className="whitespace-nowrap">{cat?.modalidad ?? b.modalidad ?? "—"}</TableCell>
                           <TableCell className="whitespace-nowrap">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
                           <TableCell>{b.sesiones_realizadas}</TableCell>
                           <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
