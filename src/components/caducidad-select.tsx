@@ -57,7 +57,7 @@ export function caducidadLabel(v: CaducidadValue): string {
     case "dias":
       return `${v.dias ?? 0} días`;
     default:
-      return "Sin caducidad";
+      return "—";
   }
 }
 
@@ -91,7 +91,7 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
           <SelectItem value="meses:12">1 año</SelectItem>
           <SelectItem value="fin_mes">Mes natural</SelectItem>
           <SelectItem value="fin_ano">Año natural</SelectItem>
-          <SelectItem value="dias">Personalizado (días)</SelectItem>
+          <SelectItem value="dias">Personalizado</SelectItem>
         </SelectContent>
       </Select>
       {value.tipo === "dias" && (
