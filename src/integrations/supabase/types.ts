@@ -20,6 +20,7 @@ export type Database = {
           caducidad_tipo: string | null
           duracion_min: number | null
           id: string
+          modalidad: string | null
           nombre: string
           orden: number
           precio: number
@@ -32,6 +33,7 @@ export type Database = {
           caducidad_tipo?: string | null
           duracion_min?: number | null
           id?: string
+          modalidad?: string | null
           nombre: string
           orden?: number
           precio: number
@@ -44,6 +46,7 @@ export type Database = {
           caducidad_tipo?: string | null
           duracion_min?: number | null
           id?: string
+          modalidad?: string | null
           nombre?: string
           orden?: number
           precio?: number
@@ -93,6 +96,7 @@ export type Database = {
           fecha_caducidad: string | null
           fecha_inicio: string
           id: string
+          modalidad: string | null
           nota: string | null
           servicio_slug: string
           sesiones_disponibles: number
@@ -111,6 +115,7 @@ export type Database = {
           fecha_caducidad?: string | null
           fecha_inicio?: string
           id?: string
+          modalidad?: string | null
           nota?: string | null
           servicio_slug: string
           sesiones_disponibles?: number
@@ -129,6 +134,7 @@ export type Database = {
           fecha_caducidad?: string | null
           fecha_inicio?: string
           id?: string
+          modalidad?: string | null
           nota?: string | null
           servicio_slug?: string
           sesiones_disponibles?: number
@@ -498,6 +504,33 @@ export type Database = {
           },
         ]
       }
+      modalidades: {
+        Row: {
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+          servicio_slug: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+          servicio_slug: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+          servicio_slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notificaciones: {
         Row: {
           created_at: string
@@ -693,6 +726,7 @@ export type Database = {
           hora_inicio: string
           id: string
           incidencia: string | null
+          modalidad: string | null
           no_contabilizar: boolean
           ocupacion: number
           por_confirmar: boolean
@@ -715,6 +749,7 @@ export type Database = {
           hora_inicio: string
           id?: string
           incidencia?: string | null
+          modalidad?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
           por_confirmar?: boolean
@@ -737,6 +772,7 @@ export type Database = {
           hora_inicio?: string
           id?: string
           incidencia?: string | null
+          modalidad?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
           por_confirmar?: boolean
