@@ -340,43 +340,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const showModalidad = modalidades.length > 0;
   const colCount = 5 + (showModalidad ? 1 : 0) + (editing ? 2 : 0);
 
-  return (
-    <div className="space-y-3">
-      {dialog}
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
-        <div className="flex items-center gap-1">
-          {editing && (
-            <Button size="sm" variant="outline" onClick={() => { setEditing(false); setAdding(false); }}>
-              <Check className="h-4 w-4 mr-1" /> Listo
-            </Button>
-          )}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => setEditing((v) => !v)}>
-                <Pencil className="h-4 w-4 mr-2" /> {editing ? "Salir de edición" : "Editar bonos"}
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => setModalOpen(true)}>
-                <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="text-destructive focus:text-destructive"
-                onSelect={() => {
-                  setTimeout(() => void removeAll(), 0);
-                }}
-              >
-                <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+  const tabla = (
       <div className="rounded-lg border overflow-hidden">
+
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
           <table className="w-full caption-bottom text-sm table-fixed">
             <TableHeader>
