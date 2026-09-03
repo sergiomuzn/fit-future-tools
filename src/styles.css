@@ -302,3 +302,12 @@ body {
   overflow-x: hidden !important;
   overscroll-behavior-x: none;
 }
+
+@utility no-spinner {
+  &::-webkit-outer-spin-button,
+  &::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  -moz-appearance: textfield;
+}
