@@ -269,10 +269,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             <TableRow>
               {showModalidad && <TableHead className="w-20">Modalidad</TableHead>}
               <TableHead className="w-32">Bono</TableHead>
-              <TableHead className="w-12 text-right">Sesiones</TableHead>
+              <TableHead className="w-16 text-right">Sesiones</TableHead>
               <TableHead className="w-12 text-right">Duración</TableHead>
-              <TableHead className="w-16 text-right">Precio</TableHead>
-              <TableHead className="w-28">Caducidad</TableHead>
+              <TableHead className="w-12 text-right">Precio</TableHead>
+              <TableHead className="w-32 pr-0">Caducidad</TableHead>
               <TableHead className="w-8 px-0" />
             </TableRow>
           </TableHeader>
@@ -289,7 +289,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     >
                       <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
                         {modalidades.map((m) => (
                           <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
                         ))}
@@ -348,9 +348,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     }}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-24"
+                    triggerClassName="h-8 w-28"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -380,7 +380,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     >
                       <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
                         {modalidades.map((m) => (
                           <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
                         ))}
@@ -425,9 +425,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-24"
+                    triggerClassName="h-8 w-28"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
