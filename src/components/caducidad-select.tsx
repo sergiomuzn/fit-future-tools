@@ -3,8 +3,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
+  PopoverAnchor,
   PopoverContent,
-  PopoverTrigger,
 } from "@/components/ui/popover";
 import {
   Select,
@@ -94,9 +94,8 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
           if (o) setCustomDias(String(value.dias ?? 30));
         }}
       >
-        <PopoverTrigger asChild>
-          <span className="sr-only" aria-hidden />
-        </PopoverTrigger>
+        <PopoverAnchor asChild>
+          <div>
         <Select
           value={caducidadKey(value)}
           onValueChange={(k) => {
@@ -124,6 +123,8 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
             <SelectItem value="dias">Personalizado</SelectItem>
           </SelectContent>
         </Select>
+          </div>
+        </PopoverAnchor>
         <PopoverContent align="start" className="w-auto p-2">
           <div className="flex items-center gap-2">
             <Input
