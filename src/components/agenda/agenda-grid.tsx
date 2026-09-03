@@ -166,6 +166,37 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
+
+  // Huecos de Reservas del día: su capacidad puede editarse y manda sobre la del servicio.
+  const { data: huecosDia = [] } = useQuery({
+    queryKey: ["slot-instances-day", isoDate],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("service_slot_instances")
+        .select("servicio_slug,hora_inicio,capacidad,activo")
+        .eq("fecha", isoDate)
+        .eq("activo", true);
+      return (data ?? []) as { servicio_slug: string; hora_inicio: string; capacidad: number }[];
+    },
+  });
+  const huecoCapMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const h of huecosDia) {
+      m.set(`${h.servicio_slug}|${h.hora_inicio}`, Math.max(1, h.capacidad ?? 1));
+    }
+    return m;
+  }, [huecosDia]);
+  /** Reservas ocupadas por franja de hueco (clientes con plaza, sin canceladas). */
+  const huecoOcupadosMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      if (!s.client_id || s.estado === "cancelada") continue;
+      const key = `${(s as { servicio_slug?: string | null }).servicio_slug ?? ""}|${s.hora_inicio}`;
+      if (!huecoCapMap.has(key)) continue;
+      m.set(key, (m.get(key) ?? 0) + 1);
+    }
+    return m;
+  }, [sessions, huecoCapMap]);
   const catTipoMap = useMemo(
     () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
     [catalogo],
@@ -652,10 +683,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
-              // Plazas disponibles: las define el servicio de la sesión.
-              const plazas = servicioCapMap.get((session as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, groupMemberCount) : 1);
-              // Clientes en la sesión: miembros del grupo, o 1/0 en individuales.
-              const ocupados = isGroup ? groupMemberCount : (session.client_id ? 1 : 0);
+              // Plazas disponibles: las define el servicio de la sesión, salvo que
+              // el hueco de Reservas tenga una capacidad editada para esa franja.
+              const huecoKey = `${(session as any).servicio_slug ?? ""}|${session.hora_inicio}`;
+              const huecoCap = huecoCapMap.get(huecoKey);
+              const plazas =
+                huecoCap ??
+                servicioCapMap.get((session as any).servicio_slug ?? "") ??
+                (isGroup ? Math.max(2, groupMemberCount) : 1);
+              // Clientes en la sesión: miembros del grupo, las reservas de la misma
+              // franja (huecos de Reservas), o 1/0 en individuales sueltas.
+              const ocupados = isGroup
+                ? groupMemberCount
+                : huecoCap !== undefined
+                  ? (huecoOcupadosMap.get(huecoKey) ?? 0)
+                  : (session.client_id ? 1 : 0);
               const groupDisplayName = isGroup
                 ? formatNameUpper(session.titulo ?? "Grupo")
                 : "";

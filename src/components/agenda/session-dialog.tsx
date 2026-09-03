@@ -137,15 +137,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGrupo(plazas > 1);
   }, [open, servicioActual?.slug, plazas]);
 
-  // Nombre por defecto de la sesión: servicio en mayúsculas cuando no hay cliente.
-  useEffect(() => {
-    if (!open) return;
-    const sinCliente = grupo ? groupClientIds.every((id) => !id) : !clientId;
-    if (sinCliente && !nombreLibre.trim()) {
-      setNombreLibre(servicioActual?.nombre?.toUpperCase() ?? "");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, servicioActual?.nombre, grupo, clientId, groupClientIds.join(",")]);
+  // Sin cliente seleccionado, el nombre de la sesión es el texto libre escrito
+  // en el buscador; si se deja vacío se usa el nombre del servicio.
 
   // Coincide con la columna "Restantes" del apartado Bonos.
   const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
@@ -728,6 +721,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     <ClientPicker
                       value={cid}
                       autoFocus={isNew && i === 0}
+                      initialText={i === 0 ? nombreLibre : undefined}
+                      onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
                       onChange={async (id) => {
                         if (cid && id !== cid) {
                           const reserva = (groupMembersData ?? []).find(
@@ -757,6 +752,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   value={clientId}
                   onChange={(id) => setClientId(id)}
                   autoFocus={isNew}
+                  initialText={nombreLibre}
+                  onTextChange={(t) => setNombreLibre(t)}
                 />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
@@ -767,17 +764,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               </>
             )}
             {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
-              <div className="space-y-1.5">
-                <Label>Nombre de la sesión</Label>
-                <Input
-                  value={nombreLibre}
-                  onChange={(e) => setNombreLibre(e.target.value)}
-                  placeholder={servicioActual?.nombre?.toUpperCase() ?? ""}
-                />
-                <p className="text-[11px] text-muted-foreground leading-tight">
-                  Si lo dejas vacío se usará el nombre del servicio.
-                </p>
-              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Sin cliente, la sesión se llamará{" "}
+                <span className="font-medium">
+                  {nombreLibre.trim() || (servicioActual?.nombre?.toUpperCase() ?? "")}
+                </span>
+                . Escribe un texto libre en el buscador para cambiarlo.
+              </p>
             )}
           </div>
 
