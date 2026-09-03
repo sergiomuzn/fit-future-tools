@@ -57,6 +57,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const { confirm, dialog } = useConfirm();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [nuevaModalidad, setNuevaModalidad] = useState("");
+  const { data: modalidades = [] } = useModalidades(servicioSlug);
   const { data: servicios = [] } = useServicios();
   const servicio = servicios.find((s) => s.slug === servicioSlug);
   /** Caducidad por defecto configurada en el servicio. */
