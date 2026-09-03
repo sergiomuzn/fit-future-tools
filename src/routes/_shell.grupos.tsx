@@ -204,8 +204,8 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              <Card className="lg:col-span-2">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 items-start">
+              <Card className="xl:col-span-2">
                 <CardContent className="p-6">
                   <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>

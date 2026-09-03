@@ -20,7 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
-  Table,
   TableBody,
   TableCell,
   TableHead,
@@ -265,16 +264,16 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
       <div className="rounded-lg border overflow-hidden">
-        <Table className="table-fixed">
+        <table className="w-full caption-bottom text-sm table-fixed">
           <TableHeader>
             <TableRow>
-              {showModalidad && <TableHead className="w-28">Modalidad</TableHead>}
-              <TableHead className="w-[10rem]">Bono</TableHead>
-              <TableHead className="w-14 text-right">Sesiones</TableHead>
-              <TableHead className="w-14 text-right">Duración</TableHead>
-              <TableHead className="w-24 text-right">Precio</TableHead>
-              <TableHead className="w-36">Caducidad</TableHead>
-              <TableHead className="w-10" />
+              {showModalidad && <TableHead className="w-20">Modalidad</TableHead>}
+              <TableHead className="w-32">Bono</TableHead>
+              <TableHead className="w-12 text-right">Sesiones</TableHead>
+              <TableHead className="w-12 text-right">Duración</TableHead>
+              <TableHead className="w-16 text-right">Precio</TableHead>
+              <TableHead className="w-28">Caducidad</TableHead>
+              <TableHead className="w-8 px-0" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -351,7 +350,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
-                    triggerClassName="h-8"
+                    triggerClassName="h-8 w-24"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -364,7 +363,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     }
                   />
                 </TableCell>
-                <TableCell>
+                <TableCell className="p-0">
                   <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -428,7 +427,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
-                    triggerClassName="h-8"
+                    triggerClassName="h-8 w-24"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
@@ -444,7 +443,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               </TableRow>
             )}
           </TableBody>
-        </Table>
+        </table>
       </div>
       {adding ? (
         <div className="flex gap-2">
