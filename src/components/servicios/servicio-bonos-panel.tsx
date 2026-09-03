@@ -465,9 +465,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <Button size="sm" variant="outline" onClick={startAdding}>
             <Plus className="h-4 w-4 mr-1" /> Nuevo bono
           </Button>
-          <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
-            <Tags className="h-4 w-4 mr-1" /> Modalidades
-          </Button>
         </div>
       )}
 
