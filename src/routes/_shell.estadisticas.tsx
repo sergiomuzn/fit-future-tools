@@ -689,12 +689,13 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
-  // Meses con actividad (sesiones o eventos) + mes en curso.
+  // Meses con actividad real (sesiones realizadas o eventos) + mes en curso.
+  // No se ofrecen meses futuros.
   const activityMonthsCmp = useMemo(() => {
     const set = new Set<string>();
     const nowD = new Date();
     set.add(`${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`);
-    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const s of sessions) if (s.fecha && countsAsTraining(s)) set.add(s.fecha.slice(0, 7));
     for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
     return set;
   }, [sessions, events]);
