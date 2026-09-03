@@ -379,6 +379,14 @@ export function BonosPanel() {
                   ))}
                 </TableCell>}
 
+                {show("modalidad") && <TableCell>
+                  {g.bonos.map((b) => (
+                    <div key={b.id} className={SUB}>
+                      {modalidadDe(b) ?? <span className="text-muted-foreground">—</span>}
+                    </div>
+                  ))}
+                </TableCell>}
+
                 {show("teoricas") && <TableCell>
                   {g.bonos.map((b) => {
                     const t = (catMap.get(b.bono_catalogo_id ?? "")?.tipo ?? b.tipo) as string | undefined;
