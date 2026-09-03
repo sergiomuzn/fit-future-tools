@@ -703,7 +703,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap }),
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, servicioNombreMap, canceladasModo],
   );
 
@@ -1204,6 +1204,7 @@ function buildSeries(args: {
   clientNombreMap?: Map<string, string>;
   selectedTrainerIds?: string[];
   catalogoTipos?: string[];
+  modalidades?: string[];
   servicioNombres?: Map<string, string>;
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
@@ -1217,7 +1218,7 @@ function buildSeries(args: {
   matrix?: MatrixData;
   avgAge?: number;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], servicioNombres } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres } = args;
   const knownTipos = Array.from(new Set<string>(catalogoTipos));
   const labelTipo = (t: string) => servicioNombres?.get(t) ?? t;
   // Servicio de la sesión (o el del bono activo del cliente).
