@@ -404,10 +404,59 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           </Button>
         </div>
       ) : (
-        <Button size="sm" variant="outline" onClick={startAdding}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo bono
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={startAdding}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo bono
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
+            <Tags className="h-4 w-4 mr-1" /> Modalidades
+          </Button>
+        </div>
       )}
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modalidades del servicio</DialogTitle>
+            <DialogDescription>
+              Las modalidades son opcionales y sirven para distinguir variantes de un bono
+              (por ejemplo Individual o Pareja).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {modalidades.length === 0 && (
+              <p className="text-sm text-muted-foreground">Todavía no hay modalidades.</p>
+            )}
+            {modalidades.map((m) => (
+              <div key={m.id} className="flex items-center gap-2">
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Input
+                  className="h-8"
+                  defaultValue={m.nombre}
+                  onBlur={(e) => void renameModalidad(m, e.target.value)}
+                />
+                <Button size="icon" variant="ghost" onClick={() => void removeModalidad(m)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-2">
+              <Input
+                className="h-8"
+                placeholder="Nueva modalidad…"
+                value={nuevaModalidad}
+                onChange={(e) => setNuevaModalidad(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void addModalidad();
+                }}
+              />
+              <Button size="sm" onClick={() => void addModalidad()}>
+                <Plus className="h-4 w-4 mr-1" /> Añadir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
