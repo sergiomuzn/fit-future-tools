@@ -88,6 +88,70 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  const invalidateModalidades = () => qc.invalidateQueries({ queryKey: ["modalidades"] });
+
+  /** Crea una modalidad nueva para este servicio. */
+  async function addModalidad() {
+    const nombre = nuevaModalidad.trim();
+    if (!nombre) return;
+    const maxOrden = modalidades.reduce((m, x) => Math.max(m, x.orden ?? 0), 0);
+    const { error } = await supabase
+      .from("modalidades")
+      .insert({ servicio_slug: servicioSlug, nombre, orden: maxOrden + 1 });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setNuevaModalidad("");
+    invalidateModalidades();
+  }
+
+  /** Renombra una modalidad y propaga el cambio a los bonos que la usan. */
+  async function renameModalidad(m: Modalidad, nombre: string) {
+    const nuevo = nombre.trim();
+    if (!nuevo || nuevo === m.nombre) return;
+    const { error } = await supabase.from("modalidades").update({ nombre: nuevo }).eq("id", m.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await supabase
+      .from("bonos_catalogo")
+      .update({ modalidad: nuevo })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    await supabase
+      .from("client_bonos")
+      .update({ modalidad: nuevo })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    invalidateModalidades();
+    invalidate();
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
+  }
+
+  /** Borra una modalidad y la desasigna de los bonos que la tuvieran. */
+  async function removeModalidad(m: Modalidad) {
+    const ok = await confirm({
+      title: `¿Eliminar la modalidad "${m.nombre}"?`,
+      description: "Los bonos que la usan quedarán sin modalidad.",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("modalidades").delete().eq("id", m.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await supabase
+      .from("bonos_catalogo")
+      .update({ modalidad: null })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    invalidateModalidades();
+    invalidate();
+  }
 
   const updateRow = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<BonoCatalogo> }) => {
