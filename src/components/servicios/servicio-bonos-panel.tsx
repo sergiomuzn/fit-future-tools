@@ -401,7 +401,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-2 text-right"
                     value={draft.sesiones}
                     onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
                   />
@@ -410,7 +410,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-2 text-right"
                     value={draft.duracion}
                     onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
                   />
@@ -420,7 +420,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="h-8"
+                    className="h-8 px-2 text-right"
                     value={draft.precio}
                     onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                   />
