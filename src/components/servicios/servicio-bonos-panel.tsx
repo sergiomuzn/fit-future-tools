@@ -265,11 +265,11 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
       <div className="rounded-lg border overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
               {showModalidad && <TableHead className="w-28">Modalidad</TableHead>}
-              <TableHead className="w-[14rem]">Bono</TableHead>
+              <TableHead className="w-[10rem]">Bono</TableHead>
               <TableHead className="w-14 text-right">Sesiones</TableHead>
               <TableHead className="w-14 text-right">Duración</TableHead>
               <TableHead className="w-24 text-right">Precio</TableHead>
@@ -300,7 +300,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 )}
                 <TableCell>
                   <Input
-                    className="h-8 w-[14rem]"
+                    className="h-8 w-full"
                     defaultValue={b.nombre}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
@@ -351,6 +351,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
+                    triggerClassName="h-8"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -391,7 +392,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 <TableCell>
                   <Input
                     autoFocus
-                    className="h-8 w-[14rem]"
+                    className="h-8 w-full"
                     placeholder="Bono 10 sesiones"
                     value={draft.nombre}
                     onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
@@ -427,6 +428,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
+                    triggerClassName="h-8"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
