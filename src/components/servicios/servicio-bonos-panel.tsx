@@ -300,7 +300,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 )}
                 <TableCell>
                   <Input
-                    className="h-8 w-[14rem]"
+                    className="h-8 w-full"
                     defaultValue={b.nombre}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
@@ -351,6 +351,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
+                    triggerClassName="h-8"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -391,7 +392,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 <TableCell>
                   <Input
                     autoFocus
-                    className="h-8 w-[14rem]"
+                    className="h-8 w-full"
                     placeholder="Bono 10 sesiones"
                     value={draft.nombre}
                     onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
@@ -427,6 +428,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell>
                   <CaducidadSelect
+                    triggerClassName="h-8"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
