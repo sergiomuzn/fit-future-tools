@@ -168,6 +168,7 @@ export function BonosPanel() {
       const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
     }
+    if (fModalidad !== "todas" && (modalidadDe(b) ?? "") !== fModalidad) return false;
     return true;
   });
 
