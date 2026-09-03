@@ -189,9 +189,19 @@ function StatsPage() {
   }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
 
   const nowPage = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`,
-  );
+  const currentMonthKey = `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+  // Si por cualquier motivo el mes seleccionado queda en el futuro, volver al actual.
+  const handleSelectedMonth = (v: string) => {
+    const [y, m] = v.split("-").map(Number);
+    const selected = new Date(y, m - 1, 1);
+    const current = new Date(nowPage.getFullYear(), nowPage.getMonth(), 1);
+    if (selected.getTime() > current.getTime()) {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    setSelectedMonth(v);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -199,7 +209,7 @@ function StatsPage() {
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel ym={selectedMonth} onYmChange={setSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <KpiPanel ym={selectedMonth} onYmChange={handleSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
       <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} clientNacMap={clientNacMap} clientNombreMap={clientNombreMap} />
     </div>
@@ -231,11 +241,12 @@ function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specials
   const start = ymd(monthStart(y, m));
   const end = ymd(monthEnd(y, m));
 
-  // Sólo mostrar meses/años con actividad real (sesiones o eventos), más el mes en curso.
+  // Sólo mostrar meses/años con actividad real (sesiones realizadas o eventos),
+  // más el mes en curso. Nunca se ofrecen meses futuros.
   const activityMonths = useMemo(() => {
     const set = new Set<string>();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
-    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const s of sessions) if (s.fecha && countsAsTraining(s)) set.add(s.fecha.slice(0, 7));
     for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
     return set;
   }, [sessions, events, now]);
@@ -678,12 +689,13 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
 
-  // Meses con actividad (sesiones o eventos) + mes en curso.
+  // Meses con actividad real (sesiones realizadas o eventos) + mes en curso.
+  // No se ofrecen meses futuros.
   const activityMonthsCmp = useMemo(() => {
     const set = new Set<string>();
     const nowD = new Date();
     set.add(`${nowD.getFullYear()}-${String(nowD.getMonth() + 1).padStart(2, "0")}`);
-    for (const s of sessions) if (s.fecha) set.add(s.fecha.slice(0, 7));
+    for (const s of sessions) if (s.fecha && countsAsTraining(s)) set.add(s.fecha.slice(0, 7));
     for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
     return set;
   }, [sessions, events]);
