@@ -189,9 +189,19 @@ function StatsPage() {
   }, [sessions, behavior.grupalesSinAsistentesCuentan, groupClientsMap]);
 
   const nowPage = new Date();
-  const [selectedMonth, setSelectedMonth] = useState(
-    `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`,
-  );
+  const currentMonthKey = `${nowPage.getFullYear()}-${String(nowPage.getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState(currentMonthKey);
+  // Si por cualquier motivo el mes seleccionado queda en el futuro, volver al actual.
+  const handleSelectedMonth = (v: string) => {
+    const [y, m] = v.split("-").map(Number);
+    const selected = new Date(y, m - 1, 1);
+    const current = new Date(nowPage.getFullYear(), nowPage.getMonth(), 1);
+    if (selected.getTime() > current.getTime()) {
+      setSelectedMonth(currentMonthKey);
+      return;
+    }
+    setSelectedMonth(v);
+  };
 
   return (
     <div className="p-6 space-y-6">
