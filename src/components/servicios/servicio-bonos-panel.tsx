@@ -568,29 +568,93 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           </table>
         </DndContext>
       </div>
-      {adding ? (
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => void addRow()}>
-            Guardar bono
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {
-              setAdding(false);
-              setDraft(EMPTY);
-            }}
-          >
-            Cancelar
-          </Button>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={startAdding}>
-            <Plus className="h-4 w-4 mr-1" /> Nuevo bono
-          </Button>
-        </div>
-      )}
+  );
+
+  return (
+    <div className="space-y-3">
+      {dialog}
+      <div className="flex max-w-2xl items-center justify-between gap-2">
+        <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setEditing(true)}>
+              <Pencil className="h-4 w-4 mr-2" /> Editar bonos
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setModalOpen(true)}>
+              <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => {
+                setTimeout(() => void removeAll(), 0);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      {!editing && <div className="max-w-2xl">{tabla}</div>}
+
+      <Dialog
+        open={editing}
+        onOpenChange={(o) => {
+          if (!o) {
+            setEditing(false);
+            setAdding(false);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Editar bonos</DialogTitle>
+            <DialogDescription>
+              Modifica los datos, arrastra para cambiar el orden o elimina bonos.
+            </DialogDescription>
+          </DialogHeader>
+          {editing && tabla}
+          <div className="flex items-center justify-between gap-2">
+            {adding ? (
+              <div className="flex gap-2">
+                <Button size="sm" onClick={() => void addRow()}>
+                  Guardar bono
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setAdding(false);
+                    setDraft(EMPTY);
+                  }}
+                >
+                  Cancelar
+                </Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="outline" onClick={startAdding}>
+                <Plus className="h-4 w-4 mr-1" /> Nuevo bono
+              </Button>
+            )}
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditing(false);
+                setAdding(false);
+              }}
+            >
+              <Check className="h-4 w-4 mr-1" /> Listo
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>
