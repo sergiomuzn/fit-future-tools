@@ -325,7 +325,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-2 text-right"
                     defaultValue={b.duracion_min ?? ""}
                     onBlur={(e) => {
                       const raw = e.target.value;
@@ -340,7 +340,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="h-8"
+                    className="h-8 px-2 text-right"
                     defaultValue={Number(b.precio)}
                     onBlur={(e) => {
                       const v = Number(e.target.value) || 0;
