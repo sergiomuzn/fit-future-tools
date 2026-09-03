@@ -214,14 +214,61 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     toast.success("Bono eliminado");
   }
 
+  async function removeAll() {
+    if (bonos.length === 0) return;
+    const ok = await confirm({
+      title: "¿Borrar todos los bonos de este servicio?",
+      description: "Se eliminarán del catálogo. Los bonos ya asignados a clientes no se modifican.",
+      confirmText: "Borrar todos",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase
+      .from("bonos_catalogo")
+      .delete()
+      .eq("servicio_slug", servicioSlug);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    invalidate();
+    toast.success("Bonos eliminados");
+  }
+
+  /** La columna de modalidad solo se muestra si el servicio tiene modalidades. */
+  const showModalidad = modalidades.length > 0;
+
   return (
     <div className="space-y-3">
       {dialog}
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setModalOpen(true)}>
+              <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={() => {
+                setTimeout(() => void removeAll(), 0);
+              }}
+            >
+              <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       <div className="rounded-lg border overflow-hidden">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="w-40">Modalidad</TableHead>
+              {showModalidad && <TableHead className="w-40">Modalidad</TableHead>}
               <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
