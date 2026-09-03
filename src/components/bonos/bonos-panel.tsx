@@ -6,6 +6,7 @@ import { BonoSelectContent } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
+import { useModalidades } from "@/lib/modalidades";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
