@@ -268,12 +268,12 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
-              {showModalidad && <TableHead className="w-40">Modalidad</TableHead>}
+              {showModalidad && <TableHead className="w-28">Modalidad</TableHead>}
               <TableHead>Bono</TableHead>
-              <TableHead className="w-24">Sesiones</TableHead>
-              <TableHead className="w-24">Duración</TableHead>
-              <TableHead className="w-24">Precio</TableHead>
-              <TableHead className="w-48">Caducidad</TableHead>
+              <TableHead className="w-16 text-right">Sesiones</TableHead>
+              <TableHead className="w-16 text-right">Duración</TableHead>
+              <TableHead className="w-20 text-right">Precio</TableHead>
+              <TableHead className="w-36">Caducidad</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
