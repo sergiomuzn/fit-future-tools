@@ -173,6 +173,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       servicio_slug: servicioSlug,
       nombre,
       tipo: servicioSlug,
+      modalidad: draft.modalidad === MODALIDAD_NONE ? null : draft.modalidad,
       sesiones_incluidas: Math.max(0, Number(draft.sesiones) || 0),
       duracion_min: draft.duracion ? Math.max(0, Number(draft.duracion) || 0) : null,
       precio: Number(draft.precio) || 0,
