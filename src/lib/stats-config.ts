@@ -10,7 +10,7 @@ export type StatsMetric =
   | "sexo"
   | "edad";
 
-export type StatsDesglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
+export type StatsDesglose = "franja" | "turno" | "dow" | "tipoSesion" | "modalidad" | "total";
 
 export type StatsPeriod = "mesUnico" | "comparar" | "historico";
 
@@ -48,6 +48,7 @@ export const STATS_DESGLOSES: StatsDesglose[] = [
   "dow",
   "franja",
   "tipoSesion",
+  "modalidad",
 ];
 
 export const STATS_METRIC_LABEL: Record<StatsMetric, string> = {
@@ -67,6 +68,7 @@ export const STATS_DESGLOSE_LABEL: Record<StatsDesglose, string> = {
   dow: "Día de la semana",
   franja: "Franja horaria",
   tipoSesion: "Tipo de sesión",
+  modalidad: "Modalidad",
 };
 
 export const STATS_PERIODS: StatsPeriod[] = ["mesUnico", "comparar", "historico"];
@@ -90,14 +92,14 @@ export const STATS_KPI_LABEL: Record<StatsKpiKey, string> = {
 
 /** Compatibilidad por defecto (recomendada) entre métrica y desglose. */
 export const DEFAULT_COMPAT: StatsCompatMatrix = {
-  ocupacion:     { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
-  sesiones:      { total: true,  turno: true,  dow: true,  franja: true,  tipoSesion: true  },
-  cancelaciones: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
-  porEntrenador: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
-  facturacion:   { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false },
-  altasBajas:    { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
-  sexo:          { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
-  edad:          { total: true,  turno: false, dow: false, franja: false, tipoSesion: false },
+  ocupacion:     { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false, modalidad: false },
+  sesiones:      { total: true,  turno: true,  dow: true,  franja: true,  tipoSesion: true, modalidad: true },
+  cancelaciones: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false, modalidad: false },
+  porEntrenador: { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false, modalidad: false },
+  facturacion:   { total: true,  turno: true,  dow: true,  franja: false, tipoSesion: false, modalidad: false },
+  altasBajas:    { total: true,  turno: false, dow: false, franja: false, tipoSesion: false, modalidad: false },
+  sexo:          { total: true,  turno: false, dow: false, franja: false, tipoSesion: false, modalidad: false },
+  edad:          { total: true,  turno: false, dow: false, franja: false, tipoSesion: false, modalidad: false },
 };
 
 export const DEFAULT_KPIS: Record<StatsKpiKey, boolean> = {

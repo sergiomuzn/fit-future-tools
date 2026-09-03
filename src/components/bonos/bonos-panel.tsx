@@ -6,6 +6,7 @@ import { BonoSelectContent } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
+import { useModalidades } from "@/lib/modalidades";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import { useBehaviorConfig } from "@/lib/behavior-config";
 
 const BONO_COLUMNS = [
   { key: "servicio", label: "Servicio" },
+  { key: "modalidad", label: "Modalidad" },
   { key: "teoricas", label: "Teóricas" },
   { key: "realizadas", label: "Realizadas" },
   { key: "restantes", label: "Restantes" },
@@ -49,6 +51,7 @@ export function BonosPanel() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
+  const [fModalidad, setFModalidad] = useState<string>("todas");
   const [addOpen, setAddOpen] = useState(false);
   const [nuevo, setNuevo] = useState<{
     client_id: string | null;
@@ -94,6 +97,18 @@ export function BonosPanel() {
     const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
     return slug ? servMap.get(slug) ?? slug : null;
   };
+  const { data: modalidades = [] } = useModalidades();
+  /** Modalidad efectiva del bono (la del catálogo manda sobre la copia guardada). */
+  const modalidadDe = (b: ClientBono) =>
+    catMap.get(b.bono_catalogo_id ?? "")?.modalidad ?? b.modalidad ?? null;
+  /** Modalidades disponibles según el filtro de servicio activo. */
+  const modalidadesFiltro = [
+    ...new Set(
+      modalidades
+        .filter((m) => fServicio === "todos" || m.servicio_slug === fServicio)
+        .map((m) => m.nombre),
+    ),
+  ];
 
   const hoyISO = new Date().toISOString().slice(0, 10);
   /** Un bono con caducidad configurada que ya ha superado su fecha límite. */
@@ -153,6 +168,7 @@ export function BonosPanel() {
       const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
     }
+    if (fModalidad !== "todas" && (modalidadDe(b) ?? "") !== fModalidad) return false;
     return true;
   });
 
@@ -275,7 +291,10 @@ export function BonosPanel() {
           <div className="space-y-1.5">
 
             <Label>Servicio</Label>
-            <Select value={fServicio} onValueChange={setFServicio}>
+            <Select
+              value={fServicio}
+              onValueChange={(v) => { setFServicio(v); setFModalidad("todas"); }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
@@ -285,9 +304,23 @@ export function BonosPanel() {
               </SelectContent>
             </Select>
           </div>
+          {modalidadesFiltro.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Modalidad</Label>
+              <Select value={fModalidad} onValueChange={setFModalidad}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {modalidadesFiltro.map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFServicio("todos"); }}
+            onClick={() => { setFEstado("todos"); setFServicio("todos"); setFModalidad("todas"); }}
           >
             Limpiar filtros
           </Button>
@@ -303,6 +336,7 @@ export function BonosPanel() {
                 </button>
               </TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
+              {show("modalidad") && <TableHead>Modalidad</TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
 
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
@@ -341,6 +375,14 @@ export function BonosPanel() {
                           {servicioDe(b)}
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
+                    </div>
+                  ))}
+                </TableCell>}
+
+                {show("modalidad") && <TableCell>
+                  {g.bonos.map((b) => (
+                    <div key={b.id} className={SUB}>
+                      {modalidadDe(b) ?? <span className="text-muted-foreground">—</span>}
                     </div>
                   ))}
                 </TableCell>}

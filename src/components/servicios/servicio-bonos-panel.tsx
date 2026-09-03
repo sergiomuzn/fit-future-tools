@@ -1,10 +1,18 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Tags, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase, type BonoCatalogo } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,6 +27,7 @@ import {
   type CaducidadValue,
 } from "@/components/caducidad-select";
 import { useServicios } from "@/lib/servicios";
+import { useModalidades, MODALIDAD_NONE, type Modalidad } from "@/lib/modalidades";
 
 interface Props {
   servicioSlug: string;
@@ -26,6 +35,7 @@ interface Props {
 
 interface Draft {
   nombre: string;
+  modalidad: string;
   sesiones: string;
   duracion: string;
   precio: string;
@@ -34,6 +44,7 @@ interface Draft {
 
 const EMPTY: Draft = {
   nombre: "",
+  modalidad: MODALIDAD_NONE,
   sesiones: "10",
   duracion: "60",
   precio: "0",
@@ -46,6 +57,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const { confirm, dialog } = useConfirm();
   const [adding, setAdding] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [nuevaModalidad, setNuevaModalidad] = useState("");
+  const { data: modalidades = [] } = useModalidades(servicioSlug);
   const { data: servicios = [] } = useServicios();
   const servicio = servicios.find((s) => s.slug === servicioSlug);
   /** Caducidad por defecto configurada en el servicio. */
@@ -74,6 +88,70 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   });
 
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
+  const invalidateModalidades = () => qc.invalidateQueries({ queryKey: ["modalidades"] });
+
+  /** Crea una modalidad nueva para este servicio. */
+  async function addModalidad() {
+    const nombre = nuevaModalidad.trim();
+    if (!nombre) return;
+    const maxOrden = modalidades.reduce((m, x) => Math.max(m, x.orden ?? 0), 0);
+    const { error } = await supabase
+      .from("modalidades")
+      .insert({ servicio_slug: servicioSlug, nombre, orden: maxOrden + 1 });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setNuevaModalidad("");
+    invalidateModalidades();
+  }
+
+  /** Renombra una modalidad y propaga el cambio a los bonos que la usan. */
+  async function renameModalidad(m: Modalidad, nombre: string) {
+    const nuevo = nombre.trim();
+    if (!nuevo || nuevo === m.nombre) return;
+    const { error } = await supabase.from("modalidades").update({ nombre: nuevo }).eq("id", m.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await supabase
+      .from("bonos_catalogo")
+      .update({ modalidad: nuevo })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    await supabase
+      .from("client_bonos")
+      .update({ modalidad: nuevo })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    invalidateModalidades();
+    invalidate();
+    qc.invalidateQueries({ queryKey: ["client_bonos"] });
+  }
+
+  /** Borra una modalidad y la desasigna de los bonos que la tuvieran. */
+  async function removeModalidad(m: Modalidad) {
+    const ok = await confirm({
+      title: `¿Eliminar la modalidad "${m.nombre}"?`,
+      description: "Los bonos que la usan quedarán sin modalidad.",
+      confirmText: "Eliminar",
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await supabase.from("modalidades").delete().eq("id", m.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await supabase
+      .from("bonos_catalogo")
+      .update({ modalidad: null })
+      .eq("servicio_slug", servicioSlug)
+      .eq("modalidad", m.nombre);
+    invalidateModalidades();
+    invalidate();
+  }
 
   const updateRow = useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<BonoCatalogo> }) => {
@@ -95,6 +173,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       servicio_slug: servicioSlug,
       nombre,
       tipo: servicioSlug,
+      modalidad: draft.modalidad === MODALIDAD_NONE ? null : draft.modalidad,
       sesiones_incluidas: Math.max(0, Number(draft.sesiones) || 0),
       duracion_min: draft.duracion ? Math.max(0, Number(draft.duracion) || 0) : null,
       precio: Number(draft.precio) || 0,
@@ -136,7 +215,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
+              <TableHead className="w-40">Modalidad</TableHead>
+              <TableHead>Bono</TableHead>
               <TableHead className="w-24">Sesiones</TableHead>
               <TableHead className="w-24">Duración</TableHead>
               <TableHead className="w-24">Precio</TableHead>
@@ -147,6 +227,22 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <TableBody>
             {bonos.map((b) => (
               <TableRow key={b.id}>
+                <TableCell>
+                  <Select
+                    value={b.modalidad ?? MODALIDAD_NONE}
+                    onValueChange={(v) =>
+                      updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
+                    }
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                      {modalidades.map((m) => (
+                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
                 <TableCell>
                   <Input
                     className="h-8"
@@ -222,6 +318,20 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             {adding && (
               <TableRow>
                 <TableCell>
+                  <Select
+                    value={draft.modalidad}
+                    onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                      {modalidades.map((m) => (
+                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+                <TableCell>
                   <Input
                     autoFocus
                     className="h-8"
@@ -269,7 +379,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             )}
             {!isLoading && bonos.length === 0 && !adding && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-6">
+                <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-6">
                   Este servicio todavía no ofrece bonos.
                 </TableCell>
               </TableRow>
@@ -294,10 +404,59 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           </Button>
         </div>
       ) : (
-        <Button size="sm" variant="outline" onClick={startAdding}>
-          <Plus className="h-4 w-4 mr-1" /> Nuevo bono
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={startAdding}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo bono
+          </Button>
+          <Button size="sm" variant="ghost" onClick={() => setModalOpen(true)}>
+            <Tags className="h-4 w-4 mr-1" /> Modalidades
+          </Button>
+        </div>
       )}
+
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Modalidades del servicio</DialogTitle>
+            <DialogDescription>
+              Las modalidades son opcionales y sirven para distinguir variantes de un bono
+              (por ejemplo Individual o Pareja).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {modalidades.length === 0 && (
+              <p className="text-sm text-muted-foreground">Todavía no hay modalidades.</p>
+            )}
+            {modalidades.map((m) => (
+              <div key={m.id} className="flex items-center gap-2">
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <Input
+                  className="h-8"
+                  defaultValue={m.nombre}
+                  onBlur={(e) => void renameModalidad(m, e.target.value)}
+                />
+                <Button size="icon" variant="ghost" onClick={() => void removeModalidad(m)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+            <div className="flex items-center gap-2 pt-2">
+              <Input
+                className="h-8"
+                placeholder="Nueva modalidad…"
+                value={nuevaModalidad}
+                onChange={(e) => setNuevaModalidad(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") void addModalidad();
+                }}
+              />
+              <Button size="sm" onClick={() => void addModalidad()}>
+                <Plus className="h-4 w-4 mr-1" /> Añadir
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
