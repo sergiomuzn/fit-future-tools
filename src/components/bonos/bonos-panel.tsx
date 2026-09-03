@@ -97,6 +97,18 @@ export function BonosPanel() {
     const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
     return slug ? servMap.get(slug) ?? slug : null;
   };
+  const { data: modalidades = [] } = useModalidades();
+  /** Modalidad efectiva del bono (la del catálogo manda sobre la copia guardada). */
+  const modalidadDe = (b: ClientBono) =>
+    catMap.get(b.bono_catalogo_id ?? "")?.modalidad ?? b.modalidad ?? null;
+  /** Modalidades disponibles según el filtro de servicio activo. */
+  const modalidadesFiltro = [
+    ...new Set(
+      modalidades
+        .filter((m) => fServicio === "todos" || m.servicio_slug === fServicio)
+        .map((m) => m.nombre),
+    ),
+  ];
 
   const hoyISO = new Date().toISOString().slice(0, 10);
   /** Un bono con caducidad configurada que ya ha superado su fecha límite. */
