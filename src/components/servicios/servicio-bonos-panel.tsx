@@ -300,7 +300,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 )}
                 <TableCell>
                   <Input
-                    className="h-8"
+                    className="h-8 w-[14rem]"
                     defaultValue={b.nombre}
                     onBlur={(e) => {
                       const v = e.target.value.trim();
