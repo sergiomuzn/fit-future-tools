@@ -336,6 +336,7 @@ export function BonosPanel() {
                 </button>
               </TableHead>
               {show("servicio") && <TableHead>Servicio</TableHead>}
+              {show("modalidad") && <TableHead>Modalidad</TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
 
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
