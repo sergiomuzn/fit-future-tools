@@ -280,22 +280,24 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <TableBody>
             {bonos.map((b) => (
               <TableRow key={b.id}>
-                <TableCell>
-                  <Select
-                    value={b.modalidad ?? MODALIDAD_NONE}
-                    onValueChange={(v) =>
-                      updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
-                    }
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
-                      {modalidades.map((m) => (
-                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+                {showModalidad && (
+                  <TableCell>
+                    <Select
+                      value={b.modalidad ?? MODALIDAD_NONE}
+                      onValueChange={(v) =>
+                        updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
+                      }
+                    >
+                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        {modalidades.map((m) => (
+                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Input
                     className="h-8"
