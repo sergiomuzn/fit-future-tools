@@ -267,7 +267,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <table className="w-full caption-bottom text-sm table-fixed">
           <TableHeader>
             <TableRow>
-              {showModalidad && <TableHead className="w-20">Modalidad</TableHead>}
+              {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
               <TableHead className="w-32">Bono</TableHead>
               <TableHead className="w-16 text-right">Sesiones</TableHead>
               <TableHead className="w-12 text-right">Duración</TableHead>
@@ -350,7 +350,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-28"
+                    triggerClassName="h-8 w-full"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -427,7 +427,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-28"
+                    triggerClassName="h-8 w-full"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
