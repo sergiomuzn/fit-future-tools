@@ -77,7 +77,11 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
         onValueChange={(k) => onChange(caducidadFromKey(k, value.dias))}
       >
         <SelectTrigger className={triggerClassName ?? "h-8 w-[9.5rem]"}>
-          <SelectValue />
+          {value.tipo === null ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <SelectValue />
+          )}
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="ninguna">Sin caducidad</SelectItem>
