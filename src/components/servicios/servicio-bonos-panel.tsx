@@ -1,6 +1,21 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus, Trash2, Tags, Pencil, MoreVertical } from "lucide-react";
+import { Plus, Trash2, Tags, Pencil, MoreVertical, GripVertical, Check } from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +44,7 @@ import {
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   CaducidadSelect,
+  caducidadLabel,
   type CaducidadValue,
 } from "@/components/caducidad-select";
 import { useServicios } from "@/lib/servicios";
@@ -56,14 +72,60 @@ const EMPTY: Draft = {
   caducidad: { tipo: null, dias: null },
 };
 
+/** Fila ordenable de la tabla de bonos (solo activa en modo edición). */
+function SortableRow({
+  id,
+  editing,
+  children,
+}: {
+  id: string;
+  editing: boolean;
+  children: (handle: React.ReactNode) => React.ReactNode;
+}) {
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id, disabled: !editing });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition: isDragging ? "none" : transition,
+    opacity: isDragging ? 0.85 : 1,
+    position: "relative" as const,
+    zIndex: isDragging ? 10 : undefined,
+  };
+  const handle = editing ? (
+    <TableCell className="p-0 w-6">
+      <button
+        type="button"
+        ref={setActivatorNodeRef}
+        aria-label="Arrastrar para reordenar"
+        className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical className="h-4 w-4" />
+      </button>
+    </TableCell>
+  ) : null;
+  return (
+    <TableRow
+      ref={setNodeRef}
+      style={editing ? style : undefined}
+      className={isDragging ? "bg-muted/50" : undefined}
+    >
+      {children(handle)}
+    </TableRow>
+  );
+}
+
 /** Gestión de los bonos ofrecidos por un servicio (crear, editar y eliminar). */
 export function ServicioBonosPanel({ servicioSlug }: Props) {
   const qc = useQueryClient();
   const { confirm, dialog } = useConfirm();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState<Draft>(EMPTY);
   const [modalOpen, setModalOpen] = useState(false);
   const [nuevaModalidad, setNuevaModalidad] = useState("");
+  const [orderIds, setOrderIds] = useState<string[] | null>(null);
   const { data: modalidades = [] } = useModalidades(servicioSlug);
   const { data: servicios = [] } = useServicios();
   const servicio = servicios.find((s) => s.slug === servicioSlug);
@@ -76,9 +138,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   function startAdding() {
     setDraft({ ...EMPTY, caducidad: caducidadDefecto });
     setAdding(true);
+    setEditing(true);
   }
 
-  const { data: bonos = [], isLoading } = useQuery({
+  const { data: bonosData = [], isLoading } = useQuery({
     queryKey: ["bonos_catalogo", servicioSlug],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -92,8 +155,47 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     enabled: !!servicioSlug,
   });
 
+  /** Orden mostrado: el local mientras se arrastra, el del servidor en cuanto coincide. */
+  const bonos = useMemo(() => {
+    if (!orderIds) return bonosData;
+    const map = new Map(bonosData.map((b) => [b.id, b]));
+    const ordered = orderIds.map((id) => map.get(id)).filter(Boolean) as BonoCatalogo[];
+    const rest = bonosData.filter((b) => !orderIds.includes(b.id));
+    return [...ordered, ...rest];
+  }, [bonosData, orderIds]);
+
+  useEffect(() => {
+    if (!orderIds) return;
+    const serverIds = bonosData.map((b) => b.id).join(",");
+    if (serverIds === bonos.map((b) => b.id).join(",")) setOrderIds(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bonosData]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 3 } }));
+
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
   const invalidateModalidades = () => qc.invalidateQueries({ queryKey: ["modalidades"] });
+
+  /** Reordena al instante y persiste el nuevo orden. */
+  async function onDragEnd(e: DragEndEvent) {
+    const { active, over } = e;
+    if (!over || active.id === over.id) return;
+    const ids = bonos.map((b) => b.id);
+    const from = ids.indexOf(String(active.id));
+    const to = ids.indexOf(String(over.id));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(ids, from, to);
+    setOrderIds(next);
+    const results = await Promise.all(
+      next.map((id, i) => supabase.from("bonos_catalogo").update({ orden: i + 1 }).eq("id", id)),
+    );
+    const err = results.find((r) => r.error)?.error;
+    if (err) {
+      toast.error(err.message);
+      setOrderIds(null);
+    }
+    invalidate();
+  }
 
   /** Crea una modalidad nueva para este servicio. */
   async function addModalidad() {
@@ -236,214 +338,269 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
 
   /** La columna de modalidad solo se muestra si el servicio tiene modalidades. */
   const showModalidad = modalidades.length > 0;
+  const colCount = 5 + (showModalidad ? 1 : 0) + (editing ? 2 : 0);
 
   return (
     <div className="space-y-3">
       {dialog}
       <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
-              <MoreVertical className="h-4 w-4" />
+        <div className="flex items-center gap-1">
+          {editing && (
+            <Button size="sm" variant="outline" onClick={() => { setEditing(false); setAdding(false); }}>
+              <Check className="h-4 w-4 mr-1" /> Listo
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onSelect={() => setModalOpen(true)}>
-              <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onSelect={() => {
-                setTimeout(() => void removeAll(), 0);
-              }}
-            >
-              <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Opciones de bonos">
+                <MoreVertical className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setEditing((v) => !v)}>
+                <Pencil className="h-4 w-4 mr-2" /> {editing ? "Salir de edición" : "Editar bonos"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setModalOpen(true)}>
+                <Tags className="h-4 w-4 mr-2" /> Añadir modalidad
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                onSelect={() => {
+                  setTimeout(() => void removeAll(), 0);
+                }}
+              >
+                <Trash2 className="h-4 w-4 mr-2" /> Borrar todos los bonos
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
       <div className="rounded-lg border overflow-hidden">
-        <table className="w-full caption-bottom text-sm table-fixed">
-          <TableHeader>
-            <TableRow>
-              {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
-              <TableHead className="w-32">Bono</TableHead>
-              <TableHead className="w-16 text-right">Sesiones</TableHead>
-              <TableHead className="w-12 text-right">Duración</TableHead>
-              <TableHead className="w-12 text-right">Precio</TableHead>
-              <TableHead className="w-28 pr-0">Caducidad</TableHead>
-              <TableHead className="w-8 px-0" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {bonos.map((b) => (
-              <TableRow key={b.id}>
-                {showModalidad && (
-                  <TableCell>
-                    <Select
-                      value={b.modalidad ?? MODALIDAD_NONE}
-                      onValueChange={(v) =>
-                        updateRow.mutate({ id: b.id, patch: { modalidad: v === MODALIDAD_NONE ? null : v } })
-                      }
-                    >
-                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
-                        {modalidades.map((m) => (
-                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </TableCell>
-                )}
-                <TableCell>
-                  <Input
-                    className="h-8 w-full"
-                    defaultValue={b.nombre}
-                    onBlur={(e) => {
-                      const v = e.target.value.trim();
-                      if (v && v !== b.nombre) updateRow.mutate({ id: b.id, patch: { nombre: v } });
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 px-1.5 text-right no-spinner"
-                    defaultValue={b.sesiones_incluidas}
-                    onBlur={(e) => {
-                      const v = Math.max(0, Number(e.target.value) || 0);
-                      if (v !== b.sesiones_incluidas)
-                        updateRow.mutate({ id: b.id, patch: { sesiones_incluidas: v } });
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 px-1.5 text-right no-spinner"
-                    defaultValue={b.duracion_min ?? ""}
-                    onBlur={(e) => {
-                      const raw = e.target.value;
-                      const v = raw === "" ? null : Math.max(0, Number(raw) || 0);
-                      if (v !== b.duracion_min)
-                        updateRow.mutate({ id: b.id, patch: { duracion_min: v } });
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="h-8 px-1.5 text-right no-spinner"
-                    defaultValue={Number(b.precio)}
-                    onBlur={(e) => {
-                      const v = Number(e.target.value) || 0;
-                      if (v !== Number(b.precio))
-                        updateRow.mutate({ id: b.id, patch: { precio: v } });
-                    }}
-                  />
-                </TableCell>
-                <TableCell className="pr-0">
-                  <CaducidadSelect
-                    triggerClassName="h-8 w-full"
-                    value={{
-                      tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
-                      dias: b.caducidad_dias ?? null,
-                    }}
-                    onChange={(v) =>
-                      updateRow.mutate({
-                        id: b.id,
-                        patch: { caducidad_tipo: v.tipo, caducidad_dias: v.dias },
-                      })
-                    }
-                  />
-                </TableCell>
-                <TableCell className="p-0">
-                  <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {adding && (
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
+          <table className="w-full caption-bottom text-sm table-fixed">
+            <TableHeader>
               <TableRow>
-                {showModalidad && (
+                {editing && <TableHead className="w-6 px-0" />}
+                {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
+                <TableHead className="w-32">Bono</TableHead>
+                <TableHead className="w-16 text-right">Sesiones</TableHead>
+                <TableHead className="w-12 text-right">Duración</TableHead>
+                <TableHead className="w-12 text-right">Precio</TableHead>
+                <TableHead className="w-28 pr-0">Caducidad</TableHead>
+                {editing && <TableHead className="w-8 px-0" />}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <SortableContext items={bonos.map((b) => b.id)} strategy={verticalListSortingStrategy}>
+                {bonos.map((b) => (
+                  <SortableRow key={b.id} id={b.id} editing={editing}>
+                    {(handle) => (
+                      <>
+                        {handle}
+                        {showModalidad &&
+                          (editing ? (
+                            <TableCell>
+                              <Select
+                                value={b.modalidad ?? MODALIDAD_NONE}
+                                onValueChange={(v) =>
+                                  updateRow.mutate({
+                                    id: b.id,
+                                    patch: { modalidad: v === MODALIDAD_NONE ? null : v },
+                                  })
+                                }
+                              >
+                                <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
+                                  {modalidades.map((m) => (
+                                    <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+                          ) : (
+                            <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
+                          ))}
+                        {editing ? (
+                          <TableCell>
+                            <Input
+                              className="h-8 w-full"
+                              defaultValue={b.nombre}
+                              onBlur={(e) => {
+                                const v = e.target.value.trim();
+                                if (v && v !== b.nombre) updateRow.mutate({ id: b.id, patch: { nombre: v } });
+                              }}
+                            />
+                          </TableCell>
+                        ) : (
+                          <TableCell className="truncate">{b.nombre}</TableCell>
+                        )}
+                        {editing ? (
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-8 px-1.5 text-right no-spinner"
+                              defaultValue={b.sesiones_incluidas}
+                              onBlur={(e) => {
+                                const v = Math.max(0, Number(e.target.value) || 0);
+                                if (v !== b.sesiones_incluidas)
+                                  updateRow.mutate({ id: b.id, patch: { sesiones_incluidas: v } });
+                              }}
+                            />
+                          </TableCell>
+                        ) : (
+                          <TableCell className="text-right">{b.sesiones_incluidas}</TableCell>
+                        )}
+                        {editing ? (
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="h-8 px-1.5 text-right no-spinner"
+                              defaultValue={b.duracion_min ?? ""}
+                              onBlur={(e) => {
+                                const raw = e.target.value;
+                                const v = raw === "" ? null : Math.max(0, Number(raw) || 0);
+                                if (v !== b.duracion_min)
+                                  updateRow.mutate({ id: b.id, patch: { duracion_min: v } });
+                              }}
+                            />
+                          </TableCell>
+                        ) : (
+                          <TableCell className="text-right">{b.duracion_min ?? "—"}</TableCell>
+                        )}
+                        {editing ? (
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className="h-8 px-1.5 text-right no-spinner"
+                              defaultValue={Number(b.precio)}
+                              onBlur={(e) => {
+                                const v = Number(e.target.value) || 0;
+                                if (v !== Number(b.precio))
+                                  updateRow.mutate({ id: b.id, patch: { precio: v } });
+                              }}
+                            />
+                          </TableCell>
+                        ) : (
+                          <TableCell className="text-right">{Number(b.precio)}</TableCell>
+                        )}
+                        {editing ? (
+                          <TableCell className="pr-0">
+                            <CaducidadSelect
+                              triggerClassName="h-8 w-full"
+                              value={{
+                                tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+                                dias: b.caducidad_dias ?? null,
+                              }}
+                              onChange={(v) =>
+                                updateRow.mutate({
+                                  id: b.id,
+                                  patch: { caducidad_tipo: v.tipo, caducidad_dias: v.dias },
+                                })
+                              }
+                            />
+                          </TableCell>
+                        ) : (
+                          <TableCell className="pr-0 truncate">
+                            {caducidadLabel({
+                              tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+                              dias: b.caducidad_dias ?? null,
+                            })}
+                          </TableCell>
+                        )}
+                        {editing && (
+                          <TableCell className="p-0">
+                            <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </>
+                    )}
+                  </SortableRow>
+                ))}
+              </SortableContext>
+              {adding && (
+                <TableRow>
+                  {editing && <TableCell className="p-0 w-6" />}
+                  {showModalidad && (
+                    <TableCell>
+                      <Select
+                        value={draft.modalidad}
+                        onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
+                      >
+                        <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
+                          {modalidades.map((m) => (
+                            <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  )}
                   <TableCell>
-                    <Select
-                      value={draft.modalidad}
-                      onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
-                    >
-                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
-                        {modalidades.map((m) => (
-                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Input
+                      autoFocus
+                      className="h-8 w-full"
+                      placeholder="Bono 10 sesiones"
+                      value={draft.nombre}
+                      onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
+                    />
                   </TableCell>
-                )}
-                <TableCell>
-                  <Input
-                    autoFocus
-                    className="h-8 w-full"
-                    placeholder="Bono 10 sesiones"
-                    value={draft.nombre}
-                    onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 px-1.5 text-right no-spinner"
-                    value={draft.sesiones}
-                    onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 px-1.5 text-right no-spinner"
-                    value={draft.duracion}
-                    onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    className="h-8 px-1.5 text-right no-spinner"
-                    value={draft.precio}
-                    onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell className="pr-0">
-                  <CaducidadSelect
-                    triggerClassName="h-8 w-full"
-                    value={draft.caducidad}
-                    onChange={(v) => setDraft({ ...draft, caducidad: v })}
-                  />
-                </TableCell>
-                <TableCell />
-              </TableRow>
-            )}
-            {!isLoading && bonos.length === 0 && !adding && (
-              <TableRow>
-                <TableCell colSpan={showModalidad ? 7 : 6} className="text-center text-sm text-muted-foreground py-6">
-                  Este servicio todavía no ofrece bonos.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </table>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-8 px-1.5 text-right no-spinner"
+                      value={draft.sesiones}
+                      onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-8 px-1.5 text-right no-spinner"
+                      value={draft.duracion}
+                      onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      className="h-8 px-1.5 text-right no-spinner"
+                      value={draft.precio}
+                      onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
+                    />
+                  </TableCell>
+                  <TableCell className="pr-0">
+                    <CaducidadSelect
+                      triggerClassName="h-8 w-full"
+                      value={draft.caducidad}
+                      onChange={(v) => setDraft({ ...draft, caducidad: v })}
+                    />
+                  </TableCell>
+                  {editing && <TableCell />}
+                </TableRow>
+              )}
+              {!isLoading && bonos.length === 0 && !adding && (
+                <TableRow>
+                  <TableCell colSpan={colCount} className="text-center text-sm text-muted-foreground py-6">
+                    Este servicio todavía no ofrece bonos.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </table>
+        </DndContext>
       </div>
       {adding ? (
         <div className="flex gap-2">
