@@ -51,6 +51,7 @@ export function BonosPanel() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
+  const [fModalidad, setFModalidad] = useState<string>("todas");
   const [addOpen, setAddOpen] = useState(false);
   const [nuevo, setNuevo] = useState<{
     client_id: string | null;
