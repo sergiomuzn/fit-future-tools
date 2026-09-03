@@ -265,11 +265,11 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
       <div className="rounded-lg border overflow-hidden">
-        <Table>
+        <Table className="table-fixed">
           <TableHeader>
             <TableRow>
               {showModalidad && <TableHead className="w-28">Modalidad</TableHead>}
-              <TableHead className="w-[14rem]">Bono</TableHead>
+              <TableHead className="w-[10rem]">Bono</TableHead>
               <TableHead className="w-14 text-right">Sesiones</TableHead>
               <TableHead className="w-14 text-right">Duración</TableHead>
               <TableHead className="w-24 text-right">Precio</TableHead>
