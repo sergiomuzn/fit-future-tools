@@ -1,13 +1,21 @@
 import { useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
+
 
 export type CaducidadTipo = "dias" | "meses" | "fin_mes" | "fin_ano" | null;
 
@@ -84,53 +92,55 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
 
   return (
     <div className={`flex items-center ${className ?? ""}`}>
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverAnchor asChild>
-          <div className="w-full">
-            <Select
-              value={caducidadKey(value)}
-              onValueChange={(k) => {
-                if (k === "dias") {
-                  setCustomDias(String(value.dias ?? 30));
-                  setTimeout(() => setOpen(true), 120);
-                  return;
-                }
-                onChange(caducidadFromKey(k, value.dias));
-              }}
-            >
-              <SelectTrigger className={triggerClassName ?? "h-8 w-[9.5rem]"}>
-                <span className={value.tipo === null ? "text-muted-foreground" : undefined}>
-                  {caducidadLabel(value)}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ninguna">Sin caducidad</SelectItem>
-                <SelectItem value="meses:1">1 mes</SelectItem>
-                <SelectItem value="meses:3">3 meses</SelectItem>
-                <SelectItem value="meses:6">6 meses</SelectItem>
-                <SelectItem value="meses:12">1 año</SelectItem>
-                <SelectItem value="fin_mes">Mes natural</SelectItem>
-                <SelectItem value="fin_ano">Año natural</SelectItem>
-                <SelectItem value="dias">Personalizado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </PopoverAnchor>
-        <PopoverContent
-          align="start"
-          className="w-auto p-2"
+      <div className="w-full">
+        <Select
+          value={caducidadKey(value)}
+          onValueChange={(k) => {
+            if (k === "dias") {
+              setCustomDias(String(value.dias ?? 30));
+              setTimeout(() => setOpen(true), 120);
+              return;
+            }
+            onChange(caducidadFromKey(k, value.dias));
+          }}
+        >
+          <SelectTrigger className={triggerClassName ?? "h-8 w-[9.5rem]"}>
+            <span className={value.tipo === null ? "text-muted-foreground" : undefined}>
+              {caducidadLabel(value)}
+            </span>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ninguna">Sin caducidad</SelectItem>
+            <SelectItem value="meses:1">1 mes</SelectItem>
+            <SelectItem value="meses:3">3 meses</SelectItem>
+            <SelectItem value="meses:6">6 meses</SelectItem>
+            <SelectItem value="meses:12">1 año</SelectItem>
+            <SelectItem value="fin_mes">Mes natural</SelectItem>
+            <SelectItem value="fin_ano">Año natural</SelectItem>
+            <SelectItem value="dias">Personalizado</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="sm:max-w-sm"
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             inputRef.current?.focus();
             inputRef.current?.select();
           }}
         >
-          <div className="flex items-center gap-1.5">
+          <DialogHeader>
+            <DialogTitle>Caducidad personalizada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Días</Label>
             <Input
               ref={inputRef}
               type="number"
               min={1}
-              className="h-8 w-16 no-spinner"
+              className="no-spinner"
               value={customDias}
               onChange={(e) => setCustomDias(e.target.value)}
               onKeyDown={(e) => {
@@ -140,13 +150,14 @@ export function CaducidadSelect({ value, onChange, className, triggerClassName }
                 }
               }}
             />
-            <span className="text-sm text-muted-foreground">días</span>
-            <Button size="sm" className="h-8" onClick={confirmCustom}>
-              OK
-            </Button>
           </div>
-        </PopoverContent>
-      </Popover>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmCustom}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+
 }
