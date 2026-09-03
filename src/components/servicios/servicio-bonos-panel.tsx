@@ -391,7 +391,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 <TableCell>
                   <Input
                     autoFocus
-                    className="h-8"
+                    className="h-8 w-[14rem]"
                     placeholder="Bono 10 sesiones"
                     value={draft.nombre}
                     onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
