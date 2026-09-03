@@ -350,7 +350,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-28"
+                    triggerClassName="h-8 w-full"
                     value={{
                       tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                       dias: b.caducidad_dias ?? null,
@@ -427,7 +427,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                 </TableCell>
                 <TableCell className="pr-0">
                   <CaducidadSelect
-                    triggerClassName="h-8 w-28"
+                    triggerClassName="h-8 w-full"
                     value={draft.caducidad}
                     onChange={(v) => setDraft({ ...draft, caducidad: v })}
                   />
