@@ -721,6 +721,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     <ClientPicker
                       value={cid}
                       autoFocus={isNew && i === 0}
+                      initialText={i === 0 ? nombreLibre : undefined}
+                      onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
                       onChange={async (id) => {
                         if (cid && id !== cid) {
                           const reserva = (groupMembersData ?? []).find(
