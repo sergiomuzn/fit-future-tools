@@ -18,6 +18,7 @@ import {
 } from "@/lib/center-schedule";
 import { trainerColor } from "@/lib/trainer-colors";
 import { useServicios } from "@/lib/servicios";
+import { useModalidades } from "@/lib/modalidades";
 import { servicioColorOf } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
@@ -447,7 +448,7 @@ function KpiMonthSelector({ value, onChange, activityMonths, now }: {
 // Comparison Module
 // ============================================================
 type Metric = "ocupacion" | "sesiones" | "cancelaciones" | "porEntrenador" | "facturacion" | "altasBajas" | "sexo" | "edad";
-type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "total";
+type Desglose = "franja" | "turno" | "dow" | "tipoSesion" | "modalidad" | "total";
 type PeriodMode = "mesUnico" | "comparar" | "historico";
 
 type UnclassifiedInfo = {
@@ -471,6 +472,7 @@ const DESGLOSE_LABEL: Record<Desglose, string> = {
   turno: "Turno (mañana / tarde)",
   dow: "Día de la semana",
   tipoSesion: "Servicio",
+  modalidad: "Modalidad",
   total: "Sin desglosar",
 };
 const PERIOD_LABEL: Record<PeriodMode, string> = {
@@ -556,6 +558,8 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     dow: "Desglose por día de la semana: se suma en cada día (Lun–Dom) el total del periodo.",
     tipoSesion:
       "Desglose por servicio: se agrupa por el servicio de la sesión (o el del bono activo del cliente). Los colores se configuran en Configuración → Colores por servicio.",
+    modalidad:
+      "Desglose por modalidad: se agrupa por la modalidad de la sesión (Individual, Pareja…), tomada del bono activo del cliente.",
     total: "Sin desglosar: se muestra el valor total del periodo sin subdivisiones.",
   };
   const periodInfo: Record<PeriodMode, string> = {
@@ -585,6 +589,11 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
 }) {
   const { colores: tipoColores } = useCenterConfig();
   const { data: serviciosList = [] } = useServicios();
+  const { data: modalidadesList = [] } = useModalidades();
+  const modalidadKeys = useMemo(
+    () => [...new Set(modalidadesList.map((m) => m.nombre))],
+    [modalidadesList],
+  );
   const catalogoTiposList = useMemo(() => serviciosList.map((sv) => sv.slug), [serviciosList]);
   const servicioNombreMap = useMemo(
     () => new Map<string, string>(serviciosList.map((sv) => [sv.slug, sv.nombre])),
@@ -603,7 +612,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
   const isValidCombo = (mm: Metric, dd: Desglose, _pp: PeriodMode): boolean =>
     isDesgloseAllowedForMetric(mm, dd);
   const firstValidDesglose = (mm: Metric, pp: PeriodMode): Desglose => {
-    const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion"];
+    const order: Desglose[] = ["total", "turno", "dow", "franja", "tipoSesion", "modalidad"];
     for (const d of order) if (isValidCombo(mm, d, pp)) return d;
     return "total";
   };
@@ -1646,6 +1655,7 @@ function buildSeries(args: {
     if (desglose === "turno") return ["Mañana", "Tarde"];
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
+    if (desglose === "modalidad") return [...modalidadKeys, "Sin modalidad"];
     return knownTipos.map((t) => labelTipo(t));
   })();
 
@@ -1661,6 +1671,10 @@ function buildSeries(args: {
       const d = new Date(s.fecha + "T00:00:00");
       const idx = d.getDay(); // 0=Dom
       return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][idx];
+    }
+    if (desglose === "modalidad") {
+      const m = (s as { modalidad?: string | null }).modalidad;
+      return m && modalidadKeys.includes(m) ? m : "Sin modalidad";
     }
     // tipoSesion → servicio de la sesión
     const t = tipoOf(s);
