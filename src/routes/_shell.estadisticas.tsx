@@ -501,7 +501,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
   }
   if (metric === "cancelaciones") {
     if (desglose === "franja") return period === "mesUnico";
-    if (desglose === "tipoSesion") return false;
+    if (desglose === "tipoSesion" || desglose === "modalidad") return false;
     return true;
   }
   if (metric === "porEntrenador") {
@@ -510,7 +510,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
     return false;
   }
   if (metric === "facturacion") {
-    if (desglose === "franja" || desglose === "tipoSesion") return false;
+    if (desglose === "franja" || desglose === "tipoSesion" || desglose === "modalidad") return false;
     return true;
   }
   return true;
@@ -518,7 +518,7 @@ function isValidComboDefault(metric: Metric, desglose: Desglose, period: PeriodM
 function isDesgloseAllowedDefault(metric: Metric, desglose: Desglose): boolean {
   if (metric === "altasBajas" || metric === "sexo" || metric === "edad") return desglose === "total";
   if (desglose === "total") return true;
-  if (desglose === "tipoSesion") return metric === "sesiones";
+  if (desglose === "tipoSesion" || desglose === "modalidad") return metric === "sesiones";
   if (metric === "ocupacion") return desglose === "turno" || desglose === "dow";
   if (metric === "porEntrenador") return desglose === "turno" || desglose === "dow";
   if (metric === "facturacion" && desglose === "franja") return false;
@@ -1780,7 +1780,7 @@ function buildSeries(args: {
             }
           }
           addCap(dowLabel, usable);
-        } else if (desglose === "tipoSesion") {
+        } else if (desglose === "tipoSesion" || desglose === "modalidad") {
           let usable = dayOpen;
           if (isMananaTurno || isTardeTurno) {
             usable = 0;
@@ -1876,7 +1876,7 @@ function buildSeries(args: {
     // semana, turno): X = buckets del desglose y cada mes es una serie propia.
     if (
       period === "comparar" &&
-      (desglose === "franja" || desglose === "dow" || desglose === "turno" || desglose === "tipoSesion") &&
+      (desglose === "franja" || desglose === "dow" || desglose === "turno" || desglose === "tipoSesion" || desglose === "modalidad") &&
       metric !== "porEntrenador"
     ) {
       const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
