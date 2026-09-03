@@ -291,7 +291,10 @@ export function BonosPanel() {
           <div className="space-y-1.5">
 
             <Label>Servicio</Label>
-            <Select value={fServicio} onValueChange={setFServicio}>
+            <Select
+              value={fServicio}
+              onValueChange={(v) => { setFServicio(v); setFModalidad("todas"); }}
+            >
               <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
@@ -301,9 +304,23 @@ export function BonosPanel() {
               </SelectContent>
             </Select>
           </div>
+          {modalidadesFiltro.length > 0 && (
+            <div className="space-y-1.5">
+              <Label>Modalidad</Label>
+              <Select value={fModalidad} onValueChange={setFModalidad}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todas">Todas</SelectItem>
+                  {modalidadesFiltro.map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <Button
             variant="ghost"
-            onClick={() => { setFEstado("todos"); setFServicio("todos"); }}
+            onClick={() => { setFEstado("todos"); setFServicio("todos"); setFModalidad("todas"); }}
           >
             Limpiar filtros
           </Button>
