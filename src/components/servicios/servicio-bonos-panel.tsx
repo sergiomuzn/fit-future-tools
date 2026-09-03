@@ -372,20 +372,22 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             ))}
             {adding && (
               <TableRow>
-                <TableCell>
-                  <Select
-                    value={draft.modalidad}
-                    onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
-                  >
-                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
-                      {modalidades.map((m) => (
-                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </TableCell>
+                {showModalidad && (
+                  <TableCell>
+                    <Select
+                      value={draft.modalidad}
+                      onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
+                    >
+                      <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={MODALIDAD_NONE}>Sin modalidad</SelectItem>
+                        {modalidades.map((m) => (
+                          <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </TableCell>
+                )}
                 <TableCell>
                   <Input
                     autoFocus
