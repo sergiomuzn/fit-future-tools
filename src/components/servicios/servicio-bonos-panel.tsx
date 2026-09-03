@@ -82,14 +82,11 @@ function SortableRow({
   editing: boolean;
   children: (handle: React.ReactNode) => React.ReactNode;
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id,
-    disabled: !editing,
-    animateLayoutChanges: () => false,
-  });
+  const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
+    useSortable({ id, disabled: !editing });
   const style = {
     transform: CSS.Transform.toString(transform),
-    transition,
+    transition: isDragging ? "none" : transition,
     opacity: isDragging ? 0.85 : 1,
     position: "relative" as const,
     zIndex: isDragging ? 10 : undefined,
@@ -98,7 +95,7 @@ function SortableRow({
     <TableCell className="p-0 w-6">
       <button
         type="button"
-        ref={setNodeRef as unknown as React.Ref<HTMLButtonElement>}
+        ref={setActivatorNodeRef}
         aria-label="Arrastrar para reordenar"
         className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
         {...attributes}
@@ -109,7 +106,11 @@ function SortableRow({
     </TableCell>
   ) : null;
   return (
-    <TableRow style={editing ? style : undefined} className={isDragging ? "bg-muted/50" : undefined}>
+    <TableRow
+      ref={setNodeRef}
+      style={editing ? style : undefined}
+      className={isDragging ? "bg-muted/50" : undefined}
+    >
       {children(handle)}
     </TableRow>
   );
