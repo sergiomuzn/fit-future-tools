@@ -268,12 +268,12 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         <Table>
           <TableHeader>
             <TableRow>
-              {showModalidad && <TableHead className="w-40">Modalidad</TableHead>}
+              {showModalidad && <TableHead className="w-28">Modalidad</TableHead>}
               <TableHead>Bono</TableHead>
-              <TableHead className="w-24">Sesiones</TableHead>
-              <TableHead className="w-24">Duración</TableHead>
-              <TableHead className="w-24">Precio</TableHead>
-              <TableHead className="w-48">Caducidad</TableHead>
+              <TableHead className="w-14 text-right">Sesiones</TableHead>
+              <TableHead className="w-14 text-right">Duración</TableHead>
+              <TableHead className="w-24 text-right">Precio</TableHead>
+              <TableHead className="w-36">Caducidad</TableHead>
               <TableHead className="w-10" />
             </TableRow>
           </TableHeader>
@@ -312,7 +312,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     defaultValue={b.sesiones_incluidas}
                     onBlur={(e) => {
                       const v = Math.max(0, Number(e.target.value) || 0);
@@ -325,7 +325,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     defaultValue={b.duracion_min ?? ""}
                     onBlur={(e) => {
                       const raw = e.target.value;
@@ -340,7 +340,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     defaultValue={Number(b.precio)}
                     onBlur={(e) => {
                       const v = Number(e.target.value) || 0;
@@ -401,7 +401,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     value={draft.sesiones}
                     onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
                   />
@@ -410,7 +410,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                   <Input
                     type="number"
                     min={0}
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     value={draft.duracion}
                     onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
                   />
@@ -420,7 +420,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     type="number"
                     min={0}
                     step="0.01"
-                    className="h-8"
+                    className="h-8 px-1.5 text-right no-spinner"
                     value={draft.precio}
                     onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                   />
