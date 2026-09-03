@@ -27,6 +27,7 @@ import { useBehaviorConfig } from "@/lib/behavior-config";
 
 const BONO_COLUMNS = [
   { key: "servicio", label: "Servicio" },
+  { key: "modalidad", label: "Modalidad" },
   { key: "teoricas", label: "Teóricas" },
   { key: "realizadas", label: "Realizadas" },
   { key: "restantes", label: "Restantes" },
