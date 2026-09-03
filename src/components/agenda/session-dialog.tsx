@@ -750,6 +750,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   value={clientId}
                   onChange={(id) => setClientId(id)}
                   autoFocus={isNew}
+                  initialText={nombreLibre}
+                  onTextChange={(t) => setNombreLibre(t)}
                 />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
