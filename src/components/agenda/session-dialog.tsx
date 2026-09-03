@@ -760,17 +760,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               </>
             )}
             {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
-              <div className="space-y-1.5">
-                <Label>Nombre de la sesión</Label>
-                <Input
-                  value={nombreLibre}
-                  onChange={(e) => setNombreLibre(e.target.value)}
-                  placeholder={servicioActual?.nombre?.toUpperCase() ?? ""}
-                />
-                <p className="text-[11px] text-muted-foreground leading-tight">
-                  Si lo dejas vacío se usará el nombre del servicio.
-                </p>
-              </div>
+              <p className="text-[11px] text-muted-foreground leading-tight">
+                Sin cliente, la sesión se llamará{" "}
+                <span className="font-medium">
+                  {nombreLibre.trim() || (servicioActual?.nombre?.toUpperCase() ?? "")}
+                </span>
+                . Escribe un texto libre en el buscador para cambiarlo.
+              </p>
             )}
           </div>
 
