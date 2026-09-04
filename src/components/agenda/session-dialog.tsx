@@ -110,7 +110,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const activeBonoTipo = (catalogoAll as Array<{ id: string; tipo: string }>).find(
     (c) => c.id === activeBono?.bono_catalogo_id,
   )?.tipo;
-  const isGympassBono = activeBonoTipo === "gympass" || activeBonoTipo === "grupal";
+  const isGympassBono = activeBonoTipo === "gympass";
   const { data: servicios = [] } = useServicios();
   // Servicio de grupos (grupos reducidos) y servicio individual por defecto.
   const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
