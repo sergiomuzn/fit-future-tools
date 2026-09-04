@@ -475,7 +475,16 @@ export function BonosPanel() {
             <div className="space-y-1.5">
                 <Label>Tipo de bono</Label>
                 <Select value={editing.bono_catalogo_id ?? ""} onValueChange={(v) => setEditing({ ...editing, bono_catalogo_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona bono" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona bono">
+                      {(() => {
+                        const b = catalogo.find((x) => x.id === editing.bono_catalogo_id);
+                        if (!b) return "Selecciona bono";
+                        const serv = servicios.find((s) => s.slug === b.servicio_slug)?.nombre ?? b.servicio_slug;
+                        return `${serv} — ${withModalidad(b, prettyBonoNombre(b.nombre))}`;
+                      })()}
+                    </SelectValue>
+                  </SelectTrigger>
                   <BonoSelectContent catalogo={catalogo} />
                 </Select>
               </div>
@@ -557,7 +566,16 @@ export function BonosPanel() {
                     : nuevo.sesiones_disponibles,
                 });
               }}>
-                  <SelectTrigger><SelectValue placeholder="Selecciona un bono" /></SelectTrigger>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un bono">
+                      {(() => {
+                        const b = catalogo.find((x) => x.id === nuevo.bono_catalogo_id);
+                        if (!b) return "Selecciona un bono";
+                        const serv = servicios.find((s) => s.slug === b.servicio_slug)?.nombre ?? b.servicio_slug;
+                        return `${serv} — ${withModalidad(b, prettyBonoNombre(b.nombre))}`;
+                      })()}
+                    </SelectValue>
+                  </SelectTrigger>
                   <BonoSelectContent catalogo={catalogo} noneValue="__none__" />
                </Select>
             </div>
