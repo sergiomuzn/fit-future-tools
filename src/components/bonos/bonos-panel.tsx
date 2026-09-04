@@ -336,10 +336,8 @@ export function BonosPanel() {
                   Nombre <ArrowUpDown className={`h-3 w-3 ${sortBy === "nombre" ? "text-foreground" : "opacity-40"}`} />
                 </button>
               </TableHead>
-              {show("servicio") && <TableHead>Servicio</TableHead>}
-              {show("modalidad") && <TableHead>Modalidad</TableHead>}
+              {show("servicio") && <TableHead className="w-[140px]">Servicio</TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
-
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
               {show("restantes") && <TableHead>Restantes</TableHead>}
               {show("estado") && <TableHead>
@@ -367,30 +365,25 @@ export function BonosPanel() {
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
-                    <div key={b.id} className={SUB}>
+                    <div key={b.id} className="h-9 flex flex-col justify-center gap-0.5">
                       {enPrueba.has(g.clientId) ? (
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit"
                           style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
                         >
                           {PRUEBA_LABEL}
                         </span>
                       ) : servicioDe(b) ? (
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit"
                           style={chipStyle(servicioColorOf(tipoColores, catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug)!)}
                         >
                           {servicioDe(b)}
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
-                    </div>
-                  ))}
-                </TableCell>}
-
-                {show("modalidad") && <TableCell>
-                  {g.bonos.map((b) => (
-                    <div key={b.id} className={SUB}>
-                      {modalidadDe(b) ?? <span className="text-muted-foreground">—</span>}
+                      {modalidadDe(b) && (
+                        <span className="text-xs text-muted-foreground pl-0.5">{modalidadDe(b)}</span>
+                      )}
                     </div>
                   ))}
                 </TableCell>}
