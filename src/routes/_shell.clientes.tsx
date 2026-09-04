@@ -100,20 +100,9 @@ function ClientesPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
-  // Sesiones de prueba: sirven para mostrar el tipo de bono "Prueba" en clientes
-  // que aún no tienen ningún bono registrado.
-  const { data: sesionesPrueba = [] } = useQuery({
-    queryKey: ["sessions-prueba"],
-    queryFn: async () =>
-      ((await supabase
-        .from("sessions")
-        .select("client_id,fecha,servicio_slug,tipo,estado")
-        .or("tipo.eq.prueba,estado.eq.prueba")).data ?? []) as Array<{
-        client_id: string | null;
-        fecha: string;
-        servicio_slug: string | null;
-      }>,
-  });
+  // Clientes cuya última sesión realizada fue una prueba y que aún no han
+  // contratado ningún bono: su servicio se muestra como "Prueba".
+  const { data: enPrueba = new Set<string>() } = useClientesEnPrueba();
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
