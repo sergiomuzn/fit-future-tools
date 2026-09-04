@@ -28,7 +28,7 @@ import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
-import { servicioColorOf, chipStyle } from "@/lib/colors";
+import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useServicios } from "@/lib/servicios";
@@ -147,7 +147,7 @@ function ClientesPage() {
       }]);
     }
   }
-  // Clientes con sesión de prueba y sin ningún bono → tipo "Prueba" derivado.
+  // Clientes con sesión de prueba y sin ningún bono contratado → servicio "Prueba".
   // Los bonos "automáticos" (sin bono del catálogo, creados al registrar una
   // sesión) no cuentan como bono real contratado.
   const conBonoReal = new Set(
@@ -156,13 +156,15 @@ function ClientesPage() {
   for (const s of sesionesPrueba) {
     if (!s.client_id || conBonoReal.has(s.client_id)) continue;
     tipoByClient.set(s.client_id, "prueba");
-    if (s.servicio_slug) serviciosByClient.set(s.client_id, [s.servicio_slug]);
+    serviciosByClient.set(s.client_id, ["prueba"]);
     bonosByClient.set(s.client_id, [
-      { slug: s.servicio_slug ?? null, tipo: "prueba", restantes: 0, agotado: false },
+      { slug: "prueba", tipo: "prueba", restantes: 0, agotado: false },
     ]);
   }
   const { data: servicios = [] } = useServicios();
-  const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+  const nombreServicio = (slug: string) =>
+    slug === "prueba" ? "Prueba" : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+
   const { colores } = useCenterConfig();
 
   const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
@@ -278,10 +280,12 @@ function ClientesPage() {
               </TooltipTrigger>
               <TooltipContent className="max-w-sm text-xs leading-relaxed">
                 Cuando se registra por primera vez una sesión de <b>Prueba</b> con un cliente,
-                se le asigna automáticamente el bono <b>Prueba</b> y pasa a estar <b>Activo</b>.
+                se le asigna automáticamente el servicio <b>Prueba</b> y pasa a estar <b>Activo</b>.
                 Si transcurre <b>1 mes</b> sin que ese cliente reciba un nuevo bono (facturación),
-                su estado pasa a <b>Inactivo</b> automáticamente, pero conserva el bono de prueba
-                como su último tipo, igual que ocurre con el resto de clientes.
+                su estado pasa a <b>Inactivo</b> automáticamente, pero conserva el servicio de
+                prueba como su último servicio, igual que ocurre con el resto de clientes. Este
+                servicio cambia cuando el cliente contrata un bono.
+
               </TooltipContent>
             </UITooltip>
           </TooltipProvider>
@@ -374,6 +378,8 @@ function ClientesPage() {
                 {servicios.map((s) => (
                   <SelectItem key={s.slug} value={s.slug}>{s.nombre}</SelectItem>
                 ))}
+                <SelectItem value="prueba">Prueba</SelectItem>
+
               </SelectContent>
             </Select>
           </div>
@@ -435,7 +441,12 @@ function ClientesPage() {
                             {r.slug ? (
                               <span
                                 className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={chipStyle(servicioColorOf(colores, r.slug)!)}
+                                style={chipStyle(
+                                  (r.slug === "prueba"
+                                    ? tipoColorOf(colores, "prueba")
+                                    : servicioColorOf(colores, r.slug)) ?? "#888888",
+                                )}
+
                               >
                                 {nombreServicio(r.slug)}
                               </span>
