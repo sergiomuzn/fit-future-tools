@@ -136,18 +136,12 @@ function ClientesPage() {
       }]);
     }
   }
-  // Clientes con sesión de prueba y sin ningún bono contratado → servicio "Prueba".
-  // Los bonos "automáticos" (sin bono del catálogo, creados al registrar una
-  // sesión) no cuentan como bono real contratado.
-  const conBonoReal = new Set(
-    clientBonos.filter((b) => b.bono_catalogo_id).map((b) => b.client_id),
-  );
-  for (const s of sesionesPrueba) {
-    if (!s.client_id || conBonoReal.has(s.client_id)) continue;
-    tipoByClient.set(s.client_id, "prueba");
-    serviciosByClient.set(s.client_id, ["prueba"]);
-    bonosByClient.set(s.client_id, [
-      { slug: "prueba", tipo: "prueba", restantes: 0, agotado: false },
+  // Última sesión realizada = prueba y sin bono contratado → servicio "Prueba".
+  for (const clientId of enPrueba) {
+    tipoByClient.set(clientId, PRUEBA_SLUG);
+    serviciosByClient.set(clientId, [PRUEBA_SLUG]);
+    bonosByClient.set(clientId, [
+      { slug: PRUEBA_SLUG, tipo: PRUEBA_SLUG, restantes: 0, agotado: false },
     ]);
   }
   const { data: servicios = [] } = useServicios();
