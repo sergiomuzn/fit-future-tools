@@ -54,7 +54,7 @@ export function BonoSelectContent({ catalogo, noneValue, noneLabel, itemLabel }:
             </SelectLabel>
             {grupos.get(slug)!.map((b) => (
               <SelectItem key={b.id} value={b.id} className="whitespace-normal text-foreground/80">
-                {itemLabel ? itemLabel(b) : prettyBonoNombre(b.nombre)}
+                {withModalidad(b, itemLabel ? itemLabel(b) : prettyBonoNombre(b.nombre))}
               </SelectItem>
             ))}
           </SelectGroup>
