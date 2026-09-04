@@ -12,6 +12,12 @@ interface Props {
   itemLabel?: (b: BonoCatalogo) => string;
 }
 
+/** Prefija la modalidad del bono (si la tiene): "Modalidad - Bono". */
+export function withModalidad(b: BonoCatalogo, label: string): string {
+  const m = (b as { modalidad?: string | null }).modalidad?.trim();
+  return m ? `${m} - ${label}` : label;
+}
+
 /**
  * Contenido del desplegable de selección de bono: más ancho, sin scroll horizontal
  * y agrupado por servicio (cabecera con línea del color del servicio).
@@ -48,7 +54,7 @@ export function BonoSelectContent({ catalogo, noneValue, noneLabel, itemLabel }:
             </SelectLabel>
             {grupos.get(slug)!.map((b) => (
               <SelectItem key={b.id} value={b.id} className="whitespace-normal text-foreground/80">
-                {itemLabel ? itemLabel(b) : prettyBonoNombre(b.nombre)}
+                {withModalidad(b, itemLabel ? itemLabel(b) : prettyBonoNombre(b.nombre))}
               </SelectItem>
             ))}
           </SelectGroup>

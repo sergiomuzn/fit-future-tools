@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
-import { BonoSelectContent } from "@/components/bonos/bono-select-content";
+import { BonoSelectContent, withModalidad } from "@/components/bonos/bono-select-content";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -350,7 +350,7 @@ function FacturacionPage() {
                       const b = catalogo.find((x) => x.id === form.bono_catalogo_id);
                       if (!b) return "Sin bono";
                       const serv = servicios.find((s) => s.slug === b.servicio_slug)?.nombre ?? b.servicio_slug;
-                      return `${serv} — ${prettyBonoNombre(b.nombre)}`;
+                      return `${serv} — ${withModalidad(b, prettyBonoNombre(b.nombre))}`;
                     })()}
                   </SelectValue>
                 </SelectTrigger>
