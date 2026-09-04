@@ -666,18 +666,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const GRACE_MS_RENEW = 15 * 60 * 1000;
               const endDate = new Date(`${session.fecha}T${session.hora_fin}`);
               const isFuture = endDate.getTime() + GRACE_MS_RENEW > Date.now();
-              const needsRenewal =
-                isFuture &&
-                session.estado === "reservada" &&
-                session.client_id != null &&
-                !(session as any).por_confirmar &&
-                !["gympass", "grupal"].includes(catTipoMap.get(bono?.bono_catalogo_id ?? "") ?? "") &&
-                (!bono || bono.sesiones_disponibles <= 1);
-              const estadoForColor = session.tipo === "prueba"
-                ? "prueba"
-                : needsRenewal
-                  ? "renovacion"
-                  : session.estado;
+              const clientNeedsRenewal = (clientId: string | null | undefined) => {
+                if (!clientId) return false;
+                const b = bonoMap.get(clientId);
+                if (catTipoMap.get(b?.bono_catalogo_id ?? "") === "gympass") return false;
+                return !b || b.sesiones_disponibles <= 1;
+              };
+              const renewalContext =
+                isFuture && session.estado === "reservada" && !(session as any).por_confirmar;
+              const needsRenewal = renewalContext && clientNeedsRenewal(session.client_id);
               const isGroup = session.ocupacion === 2;
               const members = groupMembers.get(session.id);
               const groupMemberCount = isGroup
@@ -691,6 +688,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 huecoCap ??
                 servicioCapMap.get((session as any).servicio_slug ?? "") ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
+              // Con más de una plaza no se pinta la sesión en amarillo: la
+              // renovación se indica junto al nombre del cliente ("Nombre (Renovar)").
+              const multiPlaza = plazas > 1;
+              const renovarSufijo = (clientId: string | null | undefined) =>
+                renewalContext && clientNeedsRenewal(clientId) ? " (Renovar)" : "";
+              const estadoForColor = session.tipo === "prueba"
+                ? "prueba"
+                : needsRenewal && !multiPlaza
+                  ? "renovacion"
+                  : session.estado;
               // Clientes en la sesión: miembros del grupo, las reservas de la misma
               // franja (huecos de Reservas), o 1/0 en individuales sueltas.
               const ocupados = isGroup
@@ -705,12 +712,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupNames = isGroup
                 ? (members ?? [session])
                     .filter((m) => !!m.client_id)
-                    .map((m) => formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?")
+                    .map((m) => `${formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?"}${renovarSufijo(m.client_id)}`)
                     .join(", ")
                 : "";
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
-                : formatNameUpper(session.titulo ?? client?.nombre ?? "");
+                : `${formatNameUpper(session.titulo ?? client?.nombre ?? "")}${multiPlaza ? renovarSufijo(session.client_id) : ""}`;
+
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
