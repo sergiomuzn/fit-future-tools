@@ -147,7 +147,7 @@ function ClientesPage() {
       }]);
     }
   }
-  // Clientes con sesión de prueba y sin ningún bono → tipo "Prueba" derivado.
+  // Clientes con sesión de prueba y sin ningún bono contratado → servicio "Prueba".
   // Los bonos "automáticos" (sin bono del catálogo, creados al registrar una
   // sesión) no cuentan como bono real contratado.
   const conBonoReal = new Set(
@@ -156,13 +156,15 @@ function ClientesPage() {
   for (const s of sesionesPrueba) {
     if (!s.client_id || conBonoReal.has(s.client_id)) continue;
     tipoByClient.set(s.client_id, "prueba");
-    if (s.servicio_slug) serviciosByClient.set(s.client_id, [s.servicio_slug]);
+    serviciosByClient.set(s.client_id, ["prueba"]);
     bonosByClient.set(s.client_id, [
-      { slug: s.servicio_slug ?? null, tipo: "prueba", restantes: 0, agotado: false },
+      { slug: "prueba", tipo: "prueba", restantes: 0, agotado: false },
     ]);
   }
   const { data: servicios = [] } = useServicios();
-  const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+  const nombreServicio = (slug: string) =>
+    slug === "prueba" ? "Prueba" : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+
   const { colores } = useCenterConfig();
 
   const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
