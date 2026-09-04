@@ -611,7 +611,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           }
         }}
       >
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Editar bonos</DialogTitle>
             <DialogDescription>
