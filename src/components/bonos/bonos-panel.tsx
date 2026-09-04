@@ -367,7 +367,14 @@ export function BonosPanel() {
                 {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
-                      {servicioDe(b) ? (
+                      {enPrueba.has(g.clientId) ? (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
+                        >
+                          {PRUEBA_LABEL}
+                        </span>
+                      ) : servicioDe(b) ? (
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={chipStyle(servicioColorOf(tipoColores, catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug)!)}
