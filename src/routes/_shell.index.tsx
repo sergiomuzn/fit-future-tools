@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
@@ -35,6 +35,9 @@ function AgendaPage() {
   const { tab: tabParam, servicio: servicioParam } = Route.useSearch();
   const { date, setDate, agendaTabRequest } = useAgendaDate();
   const [paintTrainerId, setPaintTrainerId] = useState<string | null>(null);
+  const trainerStripRef = useRef<HTMLDivElement>(null);
+  const [canScrollTrainersLeft, setCanScrollTrainersLeft] = useState(false);
+  const [canScrollTrainersRight, setCanScrollTrainersRight] = useState(false);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
   useEffect(() => {
     if (agendaTabRequest > 0) {
@@ -89,6 +92,32 @@ function AgendaPage() {
     if (diff !== 0) return diff;
     return a.nombre.localeCompare(b.nombre);
   });
+
+  useEffect(() => {
+    const strip = trainerStripRef.current;
+    if (!strip) return;
+
+    const updateScrollButtons = () => {
+      const maxScroll = strip.scrollWidth - strip.clientWidth;
+      setCanScrollTrainersLeft(strip.scrollLeft > 1);
+      setCanScrollTrainersRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
+    };
+
+    updateScrollButtons();
+    const observer = new ResizeObserver(updateScrollButtons);
+    observer.observe(strip);
+    window.addEventListener("resize", updateScrollButtons);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [trainers.length]);
+
+  function scrollTrainers(direction: -1 | 1) {
+    const strip = trainerStripRef.current;
+    if (!strip) return;
+    strip.scrollBy({ left: direction * Math.max(strip.clientWidth - 40, 40), behavior: "smooth" });
+  }
 
   function shift(days: number) {
     const d = new Date(date);
@@ -235,7 +264,7 @@ function AgendaPage() {
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 pb-2">
+        <div className="flex shrink-0 items-center gap-2 pb-2">
           {view === "disponibilidad" && (
              <Select value={servicioSlug} onValueChange={setServicioSlug}>
               <SelectTrigger className="h-8 w-[180px] shrink-0 text-xs bg-background">
@@ -270,22 +299,66 @@ function AgendaPage() {
               ))}
             </>
           )}
-          {view === "dia" && <span className="text-xs mr-1">Pintar entrenador:</span>}
-          {view === "dia" && sortedTrainers.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
-                className={cn(
-                "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
-                paintTrainerId === t.id
-                  ? "border-primary scale-110 bg-primary text-white"
-                  : "border-border bg-background text-black dark:text-slate-100",
+          {view === "dia" && (
+            <div className="flex h-9 items-center gap-1.5 whitespace-nowrap">
+              <span className="mr-1 shrink-0 text-xs">Pintar entrenador:</span>
+              {canScrollTrainersLeft && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 rounded-full"
+                  onClick={() => scrollTrainers(-1)}
+                  aria-label="Ver entrenadores anteriores"
+                  title="Ver entrenadores anteriores"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
               )}
-              title={t.nombre}
-            >
-              {t.iniciales}
-            </button>
-          ))}
+              <div
+                ref={trainerStripRef}
+                onScroll={() => {
+                  const strip = trainerStripRef.current;
+                  if (!strip) return;
+                  const maxScroll = strip.scrollWidth - strip.clientWidth;
+                  setCanScrollTrainersLeft(strip.scrollLeft > 1);
+                  setCanScrollTrainersRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
+                }}
+                className="flex w-40 shrink-0 items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {sortedTrainers.map((t) => (
+                  <Button
+                    key={t.id}
+                    variant="outline"
+                    size="icon"
+                    onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
+                    className={cn(
+                      "h-8 w-8 shrink-0 rounded-full border-2 text-xs font-semibold transition-all",
+                      paintTrainerId === t.id
+                        ? "scale-105 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                        : "border-border bg-background text-foreground opacity-75 hover:opacity-100",
+                    )}
+                    title={t.nombre}
+                    aria-label={`Pintar entrenador ${t.nombre}`}
+                    aria-pressed={paintTrainerId === t.id}
+                  >
+                    {t.iniciales}
+                  </Button>
+                ))}
+              </div>
+              {canScrollTrainersRight && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 rounded-full"
+                  onClick={() => scrollTrainers(1)}
+                  aria-label="Ver más entrenadores"
+                  title="Ver más entrenadores"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
