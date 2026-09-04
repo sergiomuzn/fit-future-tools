@@ -670,8 +670,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 if (!clientId) return false;
                 const b = bonoMap.get(clientId);
                 if (catTipoMap.get(b?.bono_catalogo_id ?? "") === "gympass") return false;
-                return !b || b.sesiones_disponibles <= 1;
+                if (!b) return true;
+                // Bono caducado a fecha de la sesión → hay que renovar
+                if (b.fecha_caducidad && b.fecha_caducidad < session.fecha) return true;
+                return b.sesiones_disponibles <= 1;
               };
+
               const renewalContext =
                 isFuture && session.estado === "reservada" && !(session as any).por_confirmar;
               const needsRenewal = renewalContext && clientNeedsRenewal(session.client_id);
