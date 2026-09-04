@@ -332,11 +332,11 @@ export function BonosPanel() {
           <TableHeader>
             <TableRow>
               <TableHead className="w-[140px]">
-                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("nombre")}>
+                <button className="inline-flex items-center gap-1 hover:text-foreground whitespace-nowrap" onClick={() => setSortBy("nombre")}>
                   Nombre <ArrowUpDown className={`h-3 w-3 ${sortBy === "nombre" ? "text-foreground" : "opacity-40"}`} />
                 </button>
               </TableHead>
-              {show("servicio") && <TableHead className="w-[260px]">Servicio</TableHead>}
+              {show("servicio") && <TableHead className="w-[320px]">Servicio</TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
               {show("restantes") && <TableHead>Restantes</TableHead>}
