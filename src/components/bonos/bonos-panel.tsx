@@ -356,7 +356,7 @@ export function BonosPanel() {
                 <TableCell className="font-medium">
                   <div className={SUB}>
                     <button
-                      className="hover:underline text-left"
+                      className="hover:underline text-left whitespace-nowrap"
                       onClick={() => setHistoryClient(clientMap.get(g.clientId) ?? null)}
                     >
                       {formatNameTitle(clientMap.get(g.clientId)?.nombre) ?? "?"}
