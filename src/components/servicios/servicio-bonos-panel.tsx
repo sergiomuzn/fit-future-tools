@@ -349,7 +349,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <TableRow>
                 {editing && <TableHead className="w-6 px-0" />}
                 {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
-                <TableHead className="w-32">Bono</TableHead>
+                <TableHead className="w-48">Bono</TableHead>
                 <TableHead className="w-16 text-right">Sesiones</TableHead>
                 <TableHead className="w-12 text-right">Duración</TableHead>
                 <TableHead className="w-12 text-right">Precio</TableHead>
