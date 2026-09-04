@@ -331,12 +331,12 @@ export function BonosPanel() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>
-                <button className="inline-flex items-center gap-1 hover:text-foreground" onClick={() => setSortBy("nombre")}>
+              <TableHead className="w-[140px]">
+                <button className="inline-flex items-center gap-1 hover:text-foreground whitespace-nowrap" onClick={() => setSortBy("nombre")}>
                   Nombre <ArrowUpDown className={`h-3 w-3 ${sortBy === "nombre" ? "text-foreground" : "opacity-40"}`} />
                 </button>
               </TableHead>
-              {show("servicio") && <TableHead className="w-[140px]">Servicio</TableHead>}
+              {show("servicio") && <TableHead className="w-[320px]">Servicio</TableHead>}
               {show("teoricas") && <TableHead>Teóricas</TableHead>}
               {show("realizadas") && <TableHead>Realizadas</TableHead>}
               {show("restantes") && <TableHead>Restantes</TableHead>}
@@ -356,7 +356,7 @@ export function BonosPanel() {
                 <TableCell className="font-medium">
                   <div className={SUB}>
                     <button
-                      className="hover:underline text-left"
+                      className="hover:underline text-left whitespace-nowrap"
                       onClick={() => setHistoryClient(clientMap.get(g.clientId) ?? null)}
                     >
                       {formatNameTitle(clientMap.get(g.clientId)?.nombre) ?? "?"}
@@ -365,24 +365,26 @@ export function BonosPanel() {
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
-                    <div key={b.id} className="h-9 flex flex-col justify-center gap-0.5">
+                    <div key={b.id} className="h-9 flex items-center gap-1.5">
                       {enPrueba.has(g.clientId) ? (
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit"
+                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
                           style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
                         >
                           {PRUEBA_LABEL}
                         </span>
                       ) : servicioDe(b) ? (
                         <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit"
+                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
                           style={chipStyle(servicioColorOf(tipoColores, catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug)!)}
                         >
                           {servicioDe(b)}
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
                       {modalidadDe(b) && (
-                        <span className="text-xs text-muted-foreground pl-0.5">{modalidadDe(b)}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium w-fit border bg-muted text-muted-foreground whitespace-nowrap">
+                          {modalidadDe(b)}
+                        </span>
                       )}
                     </div>
                   ))}
