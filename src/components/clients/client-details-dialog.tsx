@@ -41,18 +41,18 @@ export function ClientDetailsDialog({
 
   return (
     <Dialog open={!!client} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{formatNameTitle(client?.nombre)}</DialogTitle>
         </DialogHeader>
         {client && (
-          <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList>
+          <Tabs defaultValue={defaultTab} className="min-w-0 w-full overflow-x-hidden">
+            <TabsList className="w-full min-w-0 [&::after]:left-0 [&::after]:right-0">
               <TabsTrigger value="info">Información</TabsTrigger>
               <TabsTrigger value="historial">Historial de bonos</TabsTrigger>
               <TabsTrigger value="calendario">Calendario</TabsTrigger>
             </TabsList>
-            <TabsContent value="info" className="pt-4">
+            <TabsContent value="info" className="min-w-0 overflow-x-hidden pt-4">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <Field label="Nombre" value={formatNameTitle(client.nombre)} />
                 <Field label="Estado" value={
@@ -73,19 +73,19 @@ export function ClientDetailsDialog({
                 </div>
               )}
             </TabsContent>
-            <TabsContent value="historial" className="pt-4">
+            <TabsContent value="historial" className="min-w-0 overflow-x-hidden pt-4">
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">Sin bonos anteriores.</p>
               ) : (
-                <Table>
+                <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Bono</TableHead>
-                      <TableHead>Servicio</TableHead>
-                      <TableHead>Modalidad</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead>Realizadas</TableHead>
-                      <TableHead>Restantes al cerrar</TableHead>
+                      <TableHead className="w-[24%]">Bono</TableHead>
+                      <TableHead className="w-[19%]">Servicio</TableHead>
+                      <TableHead className="w-[16%]">Modalidad</TableHead>
+                      <TableHead className="w-[15%]">Fecha</TableHead>
+                      <TableHead className="w-[12%] px-1 text-center text-xs">Realizadas</TableHead>
+                      <TableHead className="w-[14%] px-1 text-center text-xs leading-tight">Restantes al cerrar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -94,16 +94,16 @@ export function ClientDetailsDialog({
                       const slug = cat?.servicio_slug ?? b.servicio_slug;
                       return (
                         <TableRow key={b.id}>
-                          <TableCell className="whitespace-nowrap truncate max-w-[180px]">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
-                          <TableCell className="whitespace-nowrap">{slug ? (
-                            <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border whitespace-nowrap">
+                          <TableCell className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
+                          <TableCell className="truncate">{slug ? (
+                            <span className="block truncate rounded-full border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                               {servMap.get(slug) ?? slug}
                             </span>
                           ) : "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{cat?.modalidad ?? b.modalidad ?? "—"}</TableCell>
-                          <TableCell className="whitespace-nowrap">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
-                          <TableCell>{b.sesiones_realizadas}</TableCell>
-                          <TableCell className={b.sesiones_disponibles < 0 ? "text-red-500" : ""}>{b.sesiones_disponibles}</TableCell>
+                          <TableCell className="truncate">{cat?.modalidad ?? b.modalidad ?? "—"}</TableCell>
+                          <TableCell className="truncate">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
+                          <TableCell className="px-1 text-center">{b.sesiones_realizadas}</TableCell>
+                          <TableCell className={cn("px-1 text-center", b.sesiones_disponibles < 0 && "text-red-500")}>{b.sesiones_disponibles}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -111,7 +111,7 @@ export function ClientDetailsDialog({
                 </Table>
               )}
             </TabsContent>
-            <TabsContent value="calendario" className="pt-4">
+            <TabsContent value="calendario" className="min-w-0 overflow-x-hidden pt-4">
               <ClientCalendar clientId={client.id} />
             </TabsContent>
           </Tabs>
