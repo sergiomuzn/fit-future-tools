@@ -365,7 +365,7 @@ export function BonosPanel() {
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
-                    <div key={b.id} className="h-9 flex flex-col justify-center gap-0.5">
+                    <div key={b.id} className="h-9 flex items-center gap-1.5 flex-wrap">
                       {enPrueba.has(g.clientId) ? (
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium w-fit"
@@ -382,7 +382,9 @@ export function BonosPanel() {
                         </span>
                       ) : <span className="text-muted-foreground">—</span>}
                       {modalidadDe(b) && (
-                        <span className="text-xs text-muted-foreground pl-0.5">{modalidadDe(b)}</span>
+                        <span className="text-xs px-2 py-0.5 rounded-full font-medium w-fit border bg-muted text-muted-foreground">
+                          {modalidadDe(b)}
+                        </span>
                       )}
                     </div>
                   ))}
