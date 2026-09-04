@@ -315,7 +315,7 @@ function FacturacionPage() {
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-lg" onKeyDown={enterToSave(save)}>
+        <DialogContent className="max-w-xl" onKeyDown={enterToSave(save)}>
           <DialogHeader><DialogTitle>{editingId ? "Editar factura" : "Nueva factura"}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <div className="grid grid-cols-2 gap-3">

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
-import { BonoSelectContent } from "@/components/bonos/bono-select-content";
+import { BonoSelectContent, withModalidad } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
