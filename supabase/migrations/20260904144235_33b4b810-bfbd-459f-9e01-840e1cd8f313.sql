@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.auto_deactivate_prueba_clients();

@@ -920,9 +920,10 @@ export type Database = {
         }
         Returns: undefined
       }
-      auto_deactivate_prueba_clients:
-        | { Args: never; Returns: number }
-        | { Args: { p_dias?: number }; Returns: number }
+      auto_deactivate_prueba_clients: {
+        Args: { p_dias?: number }
+        Returns: number
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
