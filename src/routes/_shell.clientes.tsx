@@ -31,6 +31,7 @@ import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -100,20 +101,9 @@ function ClientesPage() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
-  // Sesiones de prueba: sirven para mostrar el tipo de bono "Prueba" en clientes
-  // que aún no tienen ningún bono registrado.
-  const { data: sesionesPrueba = [] } = useQuery({
-    queryKey: ["sessions-prueba"],
-    queryFn: async () =>
-      ((await supabase
-        .from("sessions")
-        .select("client_id,fecha,servicio_slug,tipo,estado")
-        .or("tipo.eq.prueba,estado.eq.prueba")).data ?? []) as Array<{
-        client_id: string | null;
-        fecha: string;
-        servicio_slug: string | null;
-      }>,
-  });
+  // Clientes cuya última sesión realizada fue una prueba y que aún no han
+  // contratado ningún bono: su servicio se muestra como "Prueba".
+  const { data: enPrueba = new Set<string>() } = useClientesEnPrueba();
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
@@ -147,23 +137,17 @@ function ClientesPage() {
       }]);
     }
   }
-  // Clientes con sesión de prueba y sin ningún bono contratado → servicio "Prueba".
-  // Los bonos "automáticos" (sin bono del catálogo, creados al registrar una
-  // sesión) no cuentan como bono real contratado.
-  const conBonoReal = new Set(
-    clientBonos.filter((b) => b.bono_catalogo_id).map((b) => b.client_id),
-  );
-  for (const s of sesionesPrueba) {
-    if (!s.client_id || conBonoReal.has(s.client_id)) continue;
-    tipoByClient.set(s.client_id, "prueba");
-    serviciosByClient.set(s.client_id, ["prueba"]);
-    bonosByClient.set(s.client_id, [
-      { slug: "prueba", tipo: "prueba", restantes: 0, agotado: false },
+  // Última sesión realizada = prueba y sin bono contratado → servicio "Prueba".
+  for (const clientId of enPrueba) {
+    tipoByClient.set(clientId, PRUEBA_SLUG);
+    serviciosByClient.set(clientId, [PRUEBA_SLUG]);
+    bonosByClient.set(clientId, [
+      { slug: PRUEBA_SLUG, tipo: PRUEBA_SLUG, restantes: 0, agotado: false },
     ]);
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) =>
-    slug === "prueba" ? "Prueba" : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+    slug === PRUEBA_SLUG ? PRUEBA_LABEL : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
   const { colores } = useCenterConfig();
 
@@ -442,8 +426,8 @@ function ClientesPage() {
                               <span
                                 className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={chipStyle(
-                                  (r.slug === "prueba"
-                                    ? tipoColorOf(colores, "prueba")
+                                  (r.slug === PRUEBA_SLUG
+                                    ? tipoColorOf(colores, PRUEBA_SLUG)
                                     : servicioColorOf(colores, r.slug)) ?? "#888888",
                                 )}
 

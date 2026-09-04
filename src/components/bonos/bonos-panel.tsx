@@ -4,7 +4,8 @@ import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
 import { BonoSelectContent, withModalidad } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
-import { servicioColorOf, chipStyle } from "@/lib/colors";
+import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
+import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
 import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
@@ -91,6 +92,7 @@ export function BonosPanel() {
     },
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
+  const { data: enPrueba = new Set<string>() } = useClientesEnPrueba();
   const { data: servicios = [] } = useServicios();
   const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const servicioDe = (b: ClientBono) => {
@@ -367,7 +369,14 @@ export function BonosPanel() {
                 {show("servicio") && <TableCell>
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
-                      {servicioDe(b) ? (
+                      {enPrueba.has(g.clientId) ? (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
+                        >
+                          {PRUEBA_LABEL}
+                        </span>
+                      ) : servicioDe(b) ? (
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium"
                           style={chipStyle(servicioColorOf(tipoColores, catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug)!)}
