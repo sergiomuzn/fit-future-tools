@@ -31,6 +31,7 @@ import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -146,7 +147,7 @@ function ClientesPage() {
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) =>
-    slug === "prueba" ? "Prueba" : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+    slug === PRUEBA_SLUG ? PRUEBA_LABEL : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
 
   const { colores } = useCenterConfig();
 
@@ -425,8 +426,8 @@ function ClientesPage() {
                               <span
                                 className="text-xs px-2 py-0.5 rounded-full font-medium"
                                 style={chipStyle(
-                                  (r.slug === "prueba"
-                                    ? tipoColorOf(colores, "prueba")
+                                  (r.slug === PRUEBA_SLUG
+                                    ? tipoColorOf(colores, PRUEBA_SLUG)
                                     : servicioColorOf(colores, r.slug)) ?? "#888888",
                                 )}
 
