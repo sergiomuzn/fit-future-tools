@@ -148,6 +148,9 @@ function ClientesPage() {
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) =>
     slug === PRUEBA_SLUG ? PRUEBA_LABEL : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+  /** Modalidad efectiva del bono (la del catálogo manda sobre la copia guardada). */
+  const modalidadDe = (b: (typeof clientBonos)[number]) =>
+    catMap.get(b.bono_catalogo_id ?? "")?.modalidad ?? b.modalidad ?? null;
 
   const { colores } = useCenterConfig();
 
