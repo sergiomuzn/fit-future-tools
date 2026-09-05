@@ -398,8 +398,8 @@ function ClientesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              {show("servicio") && <TableHead>Servicio</TableHead>}
+              <TableHead className="w-[140px]">Nombre</TableHead>
+              {show("servicio") && <TableHead className="w-[320px]">Servicio</TableHead>}
               {show("telefono") && <TableHead>Teléfono</TableHead>}
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
