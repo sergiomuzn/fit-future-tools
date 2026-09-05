@@ -56,6 +56,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
+  const notasRef = useRef<HTMLTextAreaElement>(null);
+
+  function ajustarAlturaNotas() {
+    const el = notasRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }
 
   const recurrenciaId = (session as any)?.recurrencia_id as string | null | undefined;
 
