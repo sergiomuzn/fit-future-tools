@@ -766,9 +766,11 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    // Color del servicio a partir de su nombre.
+    // Color del servicio a partir de su nombre (admite "Servicio · Modalidad").
+    const base = lower.split(" · ")[0];
     for (const sv of serviciosList) {
-      if (sv.nombre.toLowerCase() === lower) {
+      if (sv.nombre.toLowerCase() === base) {
+
         const hex = servicioColorOf(tipoColores, sv.slug);
         if (hex) return hex;
       }
