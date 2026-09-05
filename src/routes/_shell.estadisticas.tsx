@@ -1236,6 +1236,9 @@ function buildSeries(args: {
   catalogoTipos?: string[];
   modalidades?: string[];
   servicioNombres?: Map<string, string>;
+  splitModalidad?: boolean;
+  modalidadesByServicio?: Map<string, string[]>;
+
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
   unclassified?: UnclassifiedInfo;
