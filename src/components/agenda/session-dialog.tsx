@@ -180,6 +180,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setPorConfirmar(!!(session as any)?.por_confirmar);
   }, [open, session]);
 
+  useEffect(() => {
+    ajustarAlturaNotas();
+  }, [incidencia]);
+
   // Las plazas de las sesiones con varios clientes salen del servicio
   // (Servicios → capacidad por sesión). Ya no existen grupos con nombre.
   useEffect(() => {
