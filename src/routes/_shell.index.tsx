@@ -116,7 +116,12 @@ function AgendaPage() {
   function scrollTrainers(direction: -1 | 1) {
     const strip = trainerStripRef.current;
     if (!strip) return;
-    strip.scrollBy({ left: direction * Math.max(strip.clientWidth - 40, 40), behavior: "smooth" });
+    const firstTrainer = strip.firstElementChild;
+    if (!(firstTrainer instanceof HTMLElement)) return;
+    const gap = Number.parseFloat(window.getComputedStyle(strip).columnGap) || 0;
+    const step = firstTrainer.offsetWidth + gap;
+    const visibleTrainers = Math.max(1, Math.floor((strip.clientWidth + gap) / step));
+    strip.scrollBy({ left: direction * step * visibleTrainers, behavior: "smooth" });
   }
 
   function shift(days: number) {
@@ -323,7 +328,7 @@ function AgendaPage() {
                   setCanScrollTrainersLeft(strip.scrollLeft > 1);
                   setCanScrollTrainersRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
                 }}
-                className="flex w-40 shrink-0 items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex w-[146px] shrink-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {sortedTrainers.map((t) => (
                   <Button
@@ -332,7 +337,7 @@ function AgendaPage() {
                     size="icon"
                     onClick={() => setPaintTrainerId(paintTrainerId === t.id ? null : t.id)}
                     className={cn(
-                      "h-8 w-8 shrink-0 rounded-full border-2 text-xs font-semibold transition-all",
+                      "h-8 w-8 shrink-0 snap-start rounded-full border-2 text-xs font-semibold transition-all",
                       paintTrainerId === t.id
                         ? "scale-105 border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
                         : "border-border bg-background text-foreground opacity-75 hover:opacity-100",
