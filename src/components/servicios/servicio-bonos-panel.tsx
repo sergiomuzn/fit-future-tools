@@ -72,7 +72,15 @@ const EMPTY: Draft = {
   caducidad: { tipo: null, dias: null },
 };
 
-/** Fila ordenable de la tabla de bonos (solo activa en modo edición). */
+/** Transición corta y suave para las filas que se apartan al arrastrar. */
+const ROW_TRANSITION = { duration: 150, easing: "cubic-bezier(0.25, 1, 0.5, 1)" };
+
+/**
+ * Fila ordenable de la tabla de bonos (solo activa en modo edición).
+ * Recibe las celdas como elemento ya creado (no como función) para que, cuando
+ * dnd-kit re-renderiza la fila en cada cambio de posición, React reutilice las
+ * celdas sin volver a renderizar sus inputs y selectores.
+ */
 function SortableRow({
   id,
   editing,
@@ -80,39 +88,44 @@ function SortableRow({
 }: {
   id: string;
   editing: boolean;
-  children: (handle: React.ReactNode) => React.ReactNode;
+  children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !editing, animateLayoutChanges: () => false });
+    useSortable({
+      id,
+      disabled: !editing,
+      animateLayoutChanges: () => false,
+      transition: ROW_TRANSITION,
+    });
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition: isDragging ? "none" : transition,
     opacity: isDragging ? 0.85 : 1,
     position: "relative" as const,
     zIndex: isDragging ? 10 : undefined,
     willChange: "transform" as const,
   };
-  const handle = editing ? (
-    <TableCell className="p-0 w-6">
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        aria-label="Arrastrar para reordenar"
-        className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-    </TableCell>
-  ) : null;
   return (
     <TableRow
       ref={setNodeRef}
       style={editing ? style : undefined}
       className={isDragging ? "bg-muted/50" : undefined}
     >
-      {children(handle)}
+      {editing && (
+        <TableCell className="p-0 w-6">
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            aria-label="Arrastrar para reordenar"
+            className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </TableCell>
+      )}
+      {children}
     </TableRow>
   );
 }
