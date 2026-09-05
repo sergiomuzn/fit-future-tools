@@ -726,11 +726,16 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     return out;
   };
 
+  // ¿Se puede desglosar el servicio en modalidades?
+  const puedeSplitModalidad = desglose === "tipoSesion" && hayModalidades;
+  const splitModalidadActive = puedeSplitModalidad && splitModalidad;
+
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
+
 
   function handleCsvExport() {
     if (rows.length === 0) return;
