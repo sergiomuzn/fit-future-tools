@@ -408,7 +408,7 @@ function ClientesPage() {
             {filtered.map((c) => (
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
-                  <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
+                  <button className="hover:underline text-left whitespace-nowrap" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {(() => {
@@ -416,23 +416,30 @@ function ClientesPage() {
                     if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
                     return (
                       <div className="flex flex-col gap-1">
-                        {rows.map((r, i) => (
-                          <div key={i} className="h-6 flex items-center">
-                            {r.slug ? (
-                              <span
-                                className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={chipStyle(
-                                  (r.slug === PRUEBA_SLUG
-                                    ? tipoColorOf(colores, PRUEBA_SLUG)
-                                    : servicioColorOf(colores, r.slug)) ?? "#888888",
-                                )}
-
-                              >
-                                {nombreServicio(r.slug)}
-                              </span>
-                            ) : <span className="text-muted-foreground">—</span>}
-                          </div>
-                        ))}
+                        {rows.map((b, i) => {
+                          const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
+                          return (
+                            <div key={i} className="h-9 flex items-center gap-1.5">
+                              {slug ? (
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                                  style={chipStyle(
+                                    (slug === PRUEBA_SLUG
+                                      ? tipoColorOf(colores, PRUEBA_SLUG)
+                                      : servicioColorOf(colores, slug)) ?? "#888888",
+                                  )}
+                                >
+                                  {nombreServicio(slug)}
+                                </span>
+                              ) : <span className="text-muted-foreground">—</span>}
+                              {modalidadDe(b) && (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium w-fit border bg-muted text-muted-foreground whitespace-nowrap">
+                                  {modalidadDe(b)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()}
