@@ -166,6 +166,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
+  const servicioNombreMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+    [servicios],
+  );
 
   // Huecos de Reservas del día: su capacidad puede editarse y manda sobre la del servicio.
   const { data: huecosDia = [] } = useQuery({
