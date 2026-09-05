@@ -422,8 +422,18 @@ function AgendaPage() {
 
       {view !== "historial" && (
       <footer className="border-t bg-card px-4 py-2 flex flex-wrap items-center gap-3 text-[11px] text-muted-foreground">
-        {servicios.map((s) => (
-          <Legend key={s.slug} hex={servicioColorOf(colores, s.slug) ?? undefined} label={s.nombre} />
+        {Array.from(
+          servicios
+            .reduce((map, s) => {
+              const hex = servicioColorOf(colores, s.slug) ?? "#888888";
+              const entry = map.get(hex);
+              if (entry) entry.push(s.nombre);
+              else map.set(hex, [s.nombre]);
+              return map;
+            }, new Map<string, string[]>())
+            .entries(),
+        ).map(([hex, nombres]) => (
+          <Legend key={hex} hex={hex} label={nombres.join("/")} />
         ))}
         <Legend color="bg-state-prueba" label="Prueba" />
         <Legend color="bg-state-cancelada" label="Cancelada" />
