@@ -1251,7 +1251,7 @@ function buildSeries(args: {
   matrix?: MatrixData;
   avgAge?: number;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres, splitModalidad = false, modalidadesByServicio = new Map<string, string[]>() } = args;
   const knownTipos = Array.from(new Set<string>(catalogoTipos));
   const labelTipo = (t: string) => servicioNombres?.get(t) ?? t;
   // Servicio de la sesión (o el del bono activo del cliente).
