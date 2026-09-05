@@ -19,6 +19,8 @@ import {
 import { trainerColor } from "@/lib/trainer-colors";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { servicioColorOf } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
@@ -605,6 +607,19 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     () => [...new Set(modalidadesList.map((m) => m.nombre))],
     [modalidadesList],
   );
+  // Modalidades agrupadas por servicio (para desglosar el servicio en modalidades).
+  const modalidadesByServicio = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const md of modalidadesList) {
+      const arr = m.get(md.servicio_slug) ?? [];
+      if (!arr.includes(md.nombre)) arr.push(md.nombre);
+      m.set(md.servicio_slug, arr);
+    }
+    return m;
+  }, [modalidadesList]);
+  const hayModalidades = modalidadesList.length > 0;
+  const [splitModalidad, setSplitModalidad] = useState(false);
+
   const catalogoTiposList = useMemo(() => serviciosList.map((sv) => sv.slug), [serviciosList]);
   const servicioNombreMap = useMemo(
     () => new Map<string, string>(serviciosList.map((sv) => [sv.slug, sv.nombre])),
@@ -713,11 +728,16 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     return out;
   };
 
+  // ¿Se puede desglosar el servicio en modalidades?
+  const puedeSplitModalidad = desglose === "tipoSesion" && hayModalidades;
+  const splitModalidadActive = puedeSplitModalidad && splitModalidad;
+
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap }),
-    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo],
+    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
+    [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
+
 
   function handleCsvExport() {
     if (rows.length === 0) return;
@@ -746,9 +766,11 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     }
     if (lower.startsWith("alta")) return "hsl(150 65% 42%)";
     if (lower.startsWith("baja")) return "hsl(0 72% 55%)";
-    // Color del servicio a partir de su nombre.
+    // Color del servicio a partir de su nombre (admite "Servicio · Modalidad").
+    const base = lower.split(" · ")[0];
     for (const sv of serviciosList) {
-      if (sv.nombre.toLowerCase() === lower) {
+      if (sv.nombre.toLowerCase() === base) {
+
         const hex = servicioColorOf(tipoColores, sv.slug);
         if (hex) return hex;
       }
@@ -794,7 +816,17 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                 ))}
             </SelectContent>
           </Select>
+          {puedeSplitModalidad && (
+            <label className="flex items-center gap-2 pt-2 text-sm cursor-pointer">
+              <Checkbox
+                checked={splitModalidad}
+                onCheckedChange={(v) => setSplitModalidad(v === true)}
+              />
+              Desglosar en modalidades
+            </label>
+          )}
         </div>
+
         <div className="space-y-1.5">
           <Label>Periodo</Label>
           <Select value={period} onValueChange={handlePeriodChange}>
@@ -1218,6 +1250,9 @@ function buildSeries(args: {
   catalogoTipos?: string[];
   modalidades?: string[];
   servicioNombres?: Map<string, string>;
+  splitModalidad?: boolean;
+  modalidadesByServicio?: Map<string, string[]>;
+
 }): {
   rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
   unclassified?: UnclassifiedInfo;
@@ -1230,7 +1265,7 @@ function buildSeries(args: {
   matrix?: MatrixData;
   avgAge?: number;
 } {
-  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres } = args;
+  const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres, splitModalidad = false, modalidadesByServicio = new Map<string, string[]>() } = args;
   const knownTipos = Array.from(new Set<string>(catalogoTipos));
   const labelTipo = (t: string) => servicioNombres?.get(t) ?? t;
   // Servicio de la sesión (o el del bono activo del cliente).
@@ -1669,6 +1704,16 @@ function buildSeries(args: {
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
     if (desglose === "modalidad") return [...modalidadKeys, "Sin modalidad"];
+    if (splitModalidad) {
+      const out: string[] = [];
+      for (const t of knownTipos) {
+        const mods = modalidadesByServicio.get(t) ?? [];
+        if (!mods.length) { out.push(labelTipo(t)); continue; }
+        for (const m of mods) out.push(`${labelTipo(t)} · ${m}`);
+        out.push(`${labelTipo(t)} · Sin modalidad`);
+      }
+      return out;
+    }
     return knownTipos.map((t) => labelTipo(t));
   })();
 
@@ -1693,8 +1738,14 @@ function buildSeries(args: {
     const t = tipoOf(s);
     if (!t) return null;
     if (!knownTipos.includes(t)) return null;
-    return labelTipo(t);
+    const label = labelTipo(t);
+    if (!splitModalidad) return label;
+    const mods = modalidadesByServicio.get(t) ?? [];
+    if (!mods.length) return label;
+    const m = (s as { modalidad?: string | null }).modalidad;
+    return `${label} · ${m && mods.includes(m) ? m : "Sin modalidad"}`;
   };
+
 
   // For metric = porEntrenador we produce multiple series per period.
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
