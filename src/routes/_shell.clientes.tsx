@@ -107,7 +107,7 @@ function ClientesPage() {
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
-  const bonosByClient = new Map<string, { slug: string | null; tipo: string | null; restantes: number; agotado: boolean }[]>();
+  const bonosByClient = new Map<string, ClientBono[]>();
   const activos = clientBonos.filter((b) => b.activo);
   const conActivo = new Set(activos.map((b) => b.client_id));
   // Si un cliente no tiene bonos activos, mostramos su último bono (archivado/agotado)
@@ -128,26 +128,19 @@ function ClientesPage() {
       if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
     }
     const rows = bonosByClient.get(b.client_id) ?? [];
-    if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
-      bonosByClient.set(b.client_id, [...rows, {
-        slug: slug ?? null,
-        tipo: t ?? null,
-        restantes: b.sesiones_disponibles ?? 0,
-        agotado: (b.sesiones_disponibles ?? 0) <= 0,
-      }]);
-    }
+    bonosByClient.set(b.client_id, [...rows, b]);
   }
   // Última sesión realizada = prueba y sin bono contratado → servicio "Prueba".
   for (const clientId of enPrueba) {
     tipoByClient.set(clientId, PRUEBA_SLUG);
     serviciosByClient.set(clientId, [PRUEBA_SLUG]);
-    bonosByClient.set(clientId, [
-      { slug: PRUEBA_SLUG, tipo: PRUEBA_SLUG, restantes: 0, agotado: false },
-    ]);
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) =>
     slug === PRUEBA_SLUG ? PRUEBA_LABEL : servicios.find((s) => s.slug === slug)?.nombre ?? slug;
+  /** Modalidad efectiva del bono (la del catálogo manda sobre la copia guardada). */
+  const modalidadDe = (b: (typeof clientBonos)[number]) =>
+    catMap.get(b.bono_catalogo_id ?? "")?.modalidad ?? b.modalidad ?? null;
 
   const { colores } = useCenterConfig();
 
@@ -398,8 +391,8 @@ function ClientesPage() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Nombre</TableHead>
-              {show("servicio") && <TableHead>Servicio</TableHead>}
+              <TableHead className="w-[140px]">Nombre</TableHead>
+              {show("servicio") && <TableHead className="w-[320px]">Servicio</TableHead>}
               {show("telefono") && <TableHead>Teléfono</TableHead>}
               {show("inicio") && <TableHead>Fecha inicio</TableHead>}
               {show("estado") && <TableHead>Estado</TableHead>}
@@ -412,31 +405,48 @@ function ClientesPage() {
             {filtered.map((c) => (
               <TableRow key={c.id} className={c.activo ? "" : "opacity-60"}>
                 <TableCell className="font-medium">
-                  <button className="hover:underline text-left" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
+                  <button className="hover:underline text-left whitespace-nowrap" onClick={() => setViewing(c)}>{formatNameTitle(c.nombre)}</button>
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {(() => {
                     const rows = bonosByClient.get(c.id) ?? [];
-                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
+                    if (rows.length === 0 && !enPrueba.has(c.id)) return <span className="text-muted-foreground">—</span>;
                     return (
                       <div className="flex flex-col gap-1">
-                        {rows.map((r, i) => (
-                          <div key={i} className="h-6 flex items-center">
-                            {r.slug ? (
-                              <span
-                                className="text-xs px-2 py-0.5 rounded-full font-medium"
-                                style={chipStyle(
-                                  (r.slug === PRUEBA_SLUG
-                                    ? tipoColorOf(colores, PRUEBA_SLUG)
-                                    : servicioColorOf(colores, r.slug)) ?? "#888888",
-                                )}
-
-                              >
-                                {nombreServicio(r.slug)}
-                              </span>
-                            ) : <span className="text-muted-foreground">—</span>}
+                        {enPrueba.has(c.id) && (
+                          <div className="h-9 flex items-center gap-1.5">
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                              style={chipStyle(tipoColorOf(colores, PRUEBA_SLUG) ?? "#1CDB14")}
+                            >
+                              {PRUEBA_LABEL}
+                            </span>
                           </div>
-                        ))}
+                        )}
+                        {rows.map((b, i) => {
+                          const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
+                          return (
+                            <div key={i} className="h-9 flex items-center gap-1.5">
+                              {slug ? (
+                                <span
+                                  className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                                  style={chipStyle(
+                                    (slug === PRUEBA_SLUG
+                                      ? tipoColorOf(colores, PRUEBA_SLUG)
+                                      : servicioColorOf(colores, slug)) ?? "#888888",
+                                  )}
+                                >
+                                  {nombreServicio(slug)}
+                                </span>
+                              ) : <span className="text-muted-foreground">—</span>}
+                              {modalidadDe(b) && (
+                                <span className="text-xs px-2 py-0.5 rounded-full font-medium w-fit border bg-muted text-muted-foreground whitespace-nowrap">
+                                  {modalidadDe(b)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()}
