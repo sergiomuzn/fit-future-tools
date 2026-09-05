@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, Tags, Pencil, MoreVertical, GripVertical, Check } from "lucide-react";
 import {
@@ -72,7 +72,15 @@ const EMPTY: Draft = {
   caducidad: { tipo: null, dias: null },
 };
 
-/** Fila ordenable de la tabla de bonos (solo activa en modo edición). */
+/** Transición corta y suave para las filas que se apartan al arrastrar. */
+const ROW_TRANSITION = { duration: 150, easing: "cubic-bezier(0.25, 1, 0.5, 1)" };
+
+/**
+ * Fila ordenable de la tabla de bonos (solo activa en modo edición).
+ * Recibe las celdas como elemento ya creado (no como función) para que, cuando
+ * dnd-kit re-renderiza la fila en cada cambio de posición, React reutilice las
+ * celdas sin volver a renderizar sus inputs y selectores.
+ */
 function SortableRow({
   id,
   editing,
@@ -80,42 +88,191 @@ function SortableRow({
 }: {
   id: string;
   editing: boolean;
-  children: (handle: React.ReactNode) => React.ReactNode;
+  children: React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !editing, animateLayoutChanges: () => false });
+    useSortable({
+      id,
+      disabled: !editing,
+      animateLayoutChanges: () => false,
+      transition: ROW_TRANSITION,
+    });
   const style = {
-    transform: CSS.Transform.toString(transform),
+    transform: CSS.Translate.toString(transform),
     transition: isDragging ? "none" : transition,
     opacity: isDragging ? 0.85 : 1,
     position: "relative" as const,
     zIndex: isDragging ? 10 : undefined,
     willChange: "transform" as const,
   };
-  const handle = editing ? (
-    <TableCell className="p-0 w-6">
-      <button
-        type="button"
-        ref={setActivatorNodeRef}
-        aria-label="Arrastrar para reordenar"
-        className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
-        {...attributes}
-        {...listeners}
-      >
-        <GripVertical className="h-4 w-4" />
-      </button>
-    </TableCell>
-  ) : null;
   return (
     <TableRow
       ref={setNodeRef}
       style={editing ? style : undefined}
       className={isDragging ? "bg-muted/50" : undefined}
     >
-      {children(handle)}
+      {editing && (
+        <TableCell className="p-0 w-6">
+          <button
+            type="button"
+            ref={setActivatorNodeRef}
+            aria-label="Arrastrar para reordenar"
+            className="flex h-8 w-6 cursor-grab touch-none items-center justify-center text-muted-foreground/60 hover:text-muted-foreground active:cursor-grabbing"
+            {...attributes}
+            {...listeners}
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+        </TableCell>
+      )}
+      {children}
     </TableRow>
   );
 }
+
+/** Celdas de una fila de bono. Memoizadas: solo se vuelven a pintar si cambia el bono. */
+const BonoCells = memo(function BonoCells({
+  b,
+  editing,
+  showModalidad,
+  modalidades,
+  onPatch,
+  onRemove,
+}: {
+  b: BonoCatalogo;
+  editing: boolean;
+  showModalidad: boolean;
+  modalidades: Modalidad[];
+  onPatch: (args: { id: string; patch: Partial<BonoCatalogo> }) => void;
+  onRemove: (b: BonoCatalogo) => void;
+}) {
+  return (
+    <>
+            {showModalidad &&
+              (editing ? (
+                <TableCell>
+                  <Select
+                    value={b.modalidad ?? MODALIDAD_NONE}
+                    onValueChange={(v) =>
+                      onPatch({
+                        id: b.id,
+                        patch: { modalidad: v === MODALIDAD_NONE ? null : v },
+                      })
+                    }
+                  >
+                    <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
+                      {modalidades.map((m) => (
+                        <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              ) : (
+                <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
+              ))}
+            {editing ? (
+              <TableCell>
+                <Input
+                  className="h-8 w-full"
+                  defaultValue={b.nombre}
+                  onBlur={(e) => {
+                    const v = e.target.value.trim();
+                    if (v && v !== b.nombre) onPatch({ id: b.id, patch: { nombre: v } });
+                  }}
+                />
+              </TableCell>
+            ) : (
+              <TableCell className="truncate">{b.nombre}</TableCell>
+            )}
+            {editing ? (
+              <TableCell>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-8 px-1.5 text-right no-spinner"
+                  defaultValue={b.sesiones_incluidas}
+                  onBlur={(e) => {
+                    const v = Math.max(0, Number(e.target.value) || 0);
+                    if (v !== b.sesiones_incluidas)
+                      onPatch({ id: b.id, patch: { sesiones_incluidas: v } });
+                  }}
+                />
+              </TableCell>
+            ) : (
+              <TableCell className="text-right">{b.sesiones_incluidas}</TableCell>
+            )}
+            {editing ? (
+              <TableCell>
+                <Input
+                  type="number"
+                  min={0}
+                  className="h-8 px-1.5 text-right no-spinner"
+                  defaultValue={b.duracion_min ?? ""}
+                  onBlur={(e) => {
+                    const raw = e.target.value;
+                    const v = raw === "" ? null : Math.max(0, Number(raw) || 0);
+                    if (v !== b.duracion_min)
+                      onPatch({ id: b.id, patch: { duracion_min: v } });
+                  }}
+                />
+              </TableCell>
+            ) : (
+              <TableCell className="text-right">{b.duracion_min ?? "—"}</TableCell>
+            )}
+            {editing ? (
+              <TableCell>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="h-8 px-1.5 text-right no-spinner"
+                  defaultValue={Number(b.precio)}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value) || 0;
+                    if (v !== Number(b.precio))
+                      onPatch({ id: b.id, patch: { precio: v } });
+                  }}
+                />
+              </TableCell>
+            ) : (
+              <TableCell className="text-right">{Number(b.precio)}</TableCell>
+            )}
+            {editing ? (
+              <TableCell className="pr-0">
+                <CaducidadSelect
+                  triggerClassName="h-8 w-full"
+                  value={{
+                    tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+                    dias: b.caducidad_dias ?? null,
+                  }}
+                  onChange={(v) =>
+                    onPatch({
+                      id: b.id,
+                      patch: { caducidad_tipo: v.tipo, caducidad_dias: v.dias },
+                    })
+                  }
+                />
+              </TableCell>
+            ) : (
+              <TableCell className="pr-0 truncate">
+                {caducidadLabel({
+                  tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
+                  dias: b.caducidad_dias ?? null,
+                })}
+              </TableCell>
+            )}
+            {editing && (
+              <TableCell className="p-0">
+                <Button size="icon" variant="ghost" onClick={() => onRemove(b)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </TableCell>
+            )}
+    </>
+  );
+});
 
 /** Gestión de los bonos ofrecidos por un servicio (crear, editar y eliminar). */
 export function ServicioBonosPanel({ servicioSlug }: Props) {
@@ -324,6 +481,11 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     toast.success("Bono eliminado");
   }
 
+  const removeRowRef = useRef(removeRow);
+  removeRowRef.current = removeRow;
+  /** Referencia estable para que las filas memoizadas no se re-rendericen. */
+  const onRemove = useCallback((b: BonoCatalogo) => void removeRowRef.current(b), []);
+
   async function removeAll() {
     if (bonos.length === 0) return;
     const ok = await confirm({
@@ -370,133 +532,14 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <SortableContext items={bonos.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                 {bonos.map((b) => (
                   <SortableRow key={b.id} id={b.id} editing={editing}>
-                    {(handle) => (
-                      <>
-                        {handle}
-                        {showModalidad &&
-                          (editing ? (
-                            <TableCell>
-                              <Select
-                                value={b.modalidad ?? MODALIDAD_NONE}
-                                onValueChange={(v) =>
-                                  updateRow.mutate({
-                                    id: b.id,
-                                    patch: { modalidad: v === MODALIDAD_NONE ? null : v },
-                                  })
-                                }
-                              >
-                                <SelectTrigger className="h-8"><SelectValue placeholder="—" /></SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value={MODALIDAD_NONE}>—</SelectItem>
-                                  {modalidades.map((m) => (
-                                    <SelectItem key={m.id} value={m.nombre}>{m.nombre}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </TableCell>
-                          ) : (
-                            <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
-                          ))}
-                        {editing ? (
-                          <TableCell>
-                            <Input
-                              className="h-8 w-full"
-                              defaultValue={b.nombre}
-                              onBlur={(e) => {
-                                const v = e.target.value.trim();
-                                if (v && v !== b.nombre) updateRow.mutate({ id: b.id, patch: { nombre: v } });
-                              }}
-                            />
-                          </TableCell>
-                        ) : (
-                          <TableCell className="truncate">{b.nombre}</TableCell>
-                        )}
-                        {editing ? (
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min={0}
-                              className="h-8 px-1.5 text-right no-spinner"
-                              defaultValue={b.sesiones_incluidas}
-                              onBlur={(e) => {
-                                const v = Math.max(0, Number(e.target.value) || 0);
-                                if (v !== b.sesiones_incluidas)
-                                  updateRow.mutate({ id: b.id, patch: { sesiones_incluidas: v } });
-                              }}
-                            />
-                          </TableCell>
-                        ) : (
-                          <TableCell className="text-right">{b.sesiones_incluidas}</TableCell>
-                        )}
-                        {editing ? (
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min={0}
-                              className="h-8 px-1.5 text-right no-spinner"
-                              defaultValue={b.duracion_min ?? ""}
-                              onBlur={(e) => {
-                                const raw = e.target.value;
-                                const v = raw === "" ? null : Math.max(0, Number(raw) || 0);
-                                if (v !== b.duracion_min)
-                                  updateRow.mutate({ id: b.id, patch: { duracion_min: v } });
-                              }}
-                            />
-                          </TableCell>
-                        ) : (
-                          <TableCell className="text-right">{b.duracion_min ?? "—"}</TableCell>
-                        )}
-                        {editing ? (
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              className="h-8 px-1.5 text-right no-spinner"
-                              defaultValue={Number(b.precio)}
-                              onBlur={(e) => {
-                                const v = Number(e.target.value) || 0;
-                                if (v !== Number(b.precio))
-                                  updateRow.mutate({ id: b.id, patch: { precio: v } });
-                              }}
-                            />
-                          </TableCell>
-                        ) : (
-                          <TableCell className="text-right">{Number(b.precio)}</TableCell>
-                        )}
-                        {editing ? (
-                          <TableCell className="pr-0">
-                            <CaducidadSelect
-                              triggerClassName="h-8 w-full"
-                              value={{
-                                tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
-                                dias: b.caducidad_dias ?? null,
-                              }}
-                              onChange={(v) =>
-                                updateRow.mutate({
-                                  id: b.id,
-                                  patch: { caducidad_tipo: v.tipo, caducidad_dias: v.dias },
-                                })
-                              }
-                            />
-                          </TableCell>
-                        ) : (
-                          <TableCell className="pr-0 truncate">
-                            {caducidadLabel({
-                              tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
-                              dias: b.caducidad_dias ?? null,
-                            })}
-                          </TableCell>
-                        )}
-                        {editing && (
-                          <TableCell className="p-0">
-                            <Button size="icon" variant="ghost" onClick={() => void removeRow(b)}>
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        )}
-                      </>
-                    )}
+                    <BonoCells
+                      b={b}
+                      editing={editing}
+                      showModalidad={showModalidad}
+                      modalidades={modalidades}
+                      onPatch={updateRow.mutate}
+                      onRemove={onRemove}
+                    />
                   </SortableRow>
                 ))}
               </SortableContext>
