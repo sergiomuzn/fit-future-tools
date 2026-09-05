@@ -875,6 +875,15 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
             </Button>
           </div>
         )}
+        {puedeSplitModalidad && (
+          <label className="flex items-center gap-2 text-sm cursor-pointer">
+            <Checkbox
+              checked={splitModalidad}
+              onCheckedChange={(v) => setSplitModalidad(v === true)}
+            />
+            Desglosar en modalidades
+          </label>
+        )}
         <div className="ml-auto">
           <Button variant="outline" size="sm" onClick={handleCsvExport} disabled={rows.length === 0}>
             <Download className="h-4 w-4 mr-1.5" /> Exportar CSV
