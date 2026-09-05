@@ -107,7 +107,7 @@ function ClientesPage() {
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
-  const bonosByClient = new Map<string, { slug: string | null; tipo: string | null; restantes: number; agotado: boolean }[]>();
+  const bonosByClient = new Map<string, ClientBono[]>();
   const activos = clientBonos.filter((b) => b.activo);
   const conActivo = new Set(activos.map((b) => b.client_id));
   // Si un cliente no tiene bonos activos, mostramos su último bono (archivado/agotado)
@@ -128,14 +128,7 @@ function ClientesPage() {
       if (!prev.includes(slug)) serviciosByClient.set(b.client_id, [...prev, slug]);
     }
     const rows = bonosByClient.get(b.client_id) ?? [];
-    if (!rows.some((r) => r.slug === (slug ?? null) && r.tipo === (t ?? null))) {
-      bonosByClient.set(b.client_id, [...rows, {
-        slug: slug ?? null,
-        tipo: t ?? null,
-        restantes: b.sesiones_disponibles ?? 0,
-        agotado: (b.sesiones_disponibles ?? 0) <= 0,
-      }]);
-    }
+    bonosByClient.set(b.client_id, [...rows, b]);
   }
   // Última sesión realizada = prueba y sin bono contratado → servicio "Prueba".
   for (const clientId of enPrueba) {
