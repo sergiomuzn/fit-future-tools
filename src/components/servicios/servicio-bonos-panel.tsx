@@ -83,13 +83,14 @@ function SortableRow({
   children: (handle: React.ReactNode) => React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !editing });
+    useSortable({ id, disabled: !editing, animateLayoutChanges: () => false });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? "none" : transition,
     opacity: isDragging ? 0.85 : 1,
     position: "relative" as const,
     zIndex: isDragging ? 10 : undefined,
+    willChange: "transform" as const,
   };
   const handle = editing ? (
     <TableCell className="p-0 w-6">
