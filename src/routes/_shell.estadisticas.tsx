@@ -19,6 +19,8 @@ import {
 import { trainerColor } from "@/lib/trainer-colors";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
+import { Checkbox } from "@/components/ui/checkbox";
+
 import { servicioColorOf } from "@/lib/colors";
 import { cn } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
