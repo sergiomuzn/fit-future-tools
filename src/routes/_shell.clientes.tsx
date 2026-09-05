@@ -134,9 +134,6 @@ function ClientesPage() {
   for (const clientId of enPrueba) {
     tipoByClient.set(clientId, PRUEBA_SLUG);
     serviciosByClient.set(clientId, [PRUEBA_SLUG]);
-    bonosByClient.set(clientId, [
-      { slug: PRUEBA_SLUG, tipo: PRUEBA_SLUG, restantes: 0, agotado: false },
-    ]);
   }
   const { data: servicios = [] } = useServicios();
   const nombreServicio = (slug: string) =>
