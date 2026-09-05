@@ -605,6 +605,19 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     () => [...new Set(modalidadesList.map((m) => m.nombre))],
     [modalidadesList],
   );
+  // Modalidades agrupadas por servicio (para desglosar el servicio en modalidades).
+  const modalidadesByServicio = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const md of modalidadesList) {
+      const arr = m.get(md.servicio_slug) ?? [];
+      if (!arr.includes(md.nombre)) arr.push(md.nombre);
+      m.set(md.servicio_slug, arr);
+    }
+    return m;
+  }, [modalidadesList]);
+  const hayModalidades = modalidadesList.length > 0;
+  const [splitModalidad, setSplitModalidad] = useState(false);
+
   const catalogoTiposList = useMemo(() => serviciosList.map((sv) => sv.slug), [serviciosList]);
   const servicioNombreMap = useMemo(
     () => new Map<string, string>(serviciosList.map((sv) => [sv.slug, sv.nombre])),
