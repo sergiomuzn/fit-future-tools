@@ -1690,6 +1690,16 @@ function buildSeries(args: {
     if (desglose === "dow") return ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
     if (desglose === "total") return ["Total"];
     if (desglose === "modalidad") return [...modalidadKeys, "Sin modalidad"];
+    if (splitModalidad) {
+      const out: string[] = [];
+      for (const t of knownTipos) {
+        const mods = modalidadesByServicio.get(t) ?? [];
+        if (!mods.length) { out.push(labelTipo(t)); continue; }
+        for (const m of mods) out.push(`${labelTipo(t)} · ${m}`);
+        out.push(`${labelTipo(t)} · Sin modalidad`);
+      }
+      return out;
+    }
     return knownTipos.map((t) => labelTipo(t));
   })();
 
@@ -1714,8 +1724,14 @@ function buildSeries(args: {
     const t = tipoOf(s);
     if (!t) return null;
     if (!knownTipos.includes(t)) return null;
-    return labelTipo(t);
+    const label = labelTipo(t);
+    if (!splitModalidad) return label;
+    const mods = modalidadesByServicio.get(t) ?? [];
+    if (!mods.length) return label;
+    const m = (s as { modalidad?: string | null }).modalidad;
+    return `${label} · ${m && mods.includes(m) ? m : "Sin modalidad"}`;
   };
+
 
   // For metric = porEntrenador we produce multiple series per period.
   // For simplicity when comparing periods too, we combine: seriesKey = `${periodKey} · ${breakdownKey}` if periods > 1.
