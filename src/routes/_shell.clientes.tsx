@@ -410,9 +410,19 @@ function ClientesPage() {
                 {show("servicio") && <TableCell>
                   {(() => {
                     const rows = bonosByClient.get(c.id) ?? [];
-                    if (rows.length === 0) return <span className="text-muted-foreground">—</span>;
+                    if (rows.length === 0 && !enPrueba.has(c.id)) return <span className="text-muted-foreground">—</span>;
                     return (
                       <div className="flex flex-col gap-1">
+                        {enPrueba.has(c.id) && (
+                          <div className="h-9 flex items-center gap-1.5">
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                              style={chipStyle(tipoColorOf(colores, PRUEBA_SLUG) ?? "#1CDB14")}
+                            >
+                              {PRUEBA_LABEL}
+                            </span>
+                          </div>
+                        )}
                         {rows.map((b, i) => {
                           const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
                           return (
