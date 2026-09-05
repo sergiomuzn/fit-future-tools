@@ -383,9 +383,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <SortableContext items={bonos.map((b) => b.id)} strategy={verticalListSortingStrategy}>
                 {bonos.map((b) => (
                   <SortableRow key={b.id} id={b.id} editing={editing}>
-                    {(handle) => (
                       <>
-                        {handle}
                         {showModalidad &&
                           (editing ? (
                             <TableCell>
