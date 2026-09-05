@@ -83,13 +83,14 @@ function SortableRow({
   children: (handle: React.ReactNode) => React.ReactNode;
 }) {
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
-    useSortable({ id, disabled: !editing });
+    useSortable({ id, disabled: !editing, animateLayoutChanges: () => false });
   const style = {
     transform: CSS.Transform.toString(transform),
     transition: isDragging ? "none" : transition,
     opacity: isDragging ? 0.85 : 1,
     position: "relative" as const,
     zIndex: isDragging ? 10 : undefined,
+    willChange: "transform" as const,
   };
   const handle = editing ? (
     <TableCell className="p-0 w-6">
@@ -176,8 +177,8 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const invalidate = () => qc.invalidateQueries({ queryKey: ["bonos_catalogo"] });
   const invalidateModalidades = () => qc.invalidateQueries({ queryKey: ["modalidades"] });
 
-  /** Reordena al instante y persiste el nuevo orden. */
-  async function onDragEnd(e: DragEndEvent) {
+  /** Reordena al instante y persiste el nuevo orden en segundo plano. */
+  function onDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (!over || active.id === over.id) return;
     const ids = bonos.map((b) => b.id);
@@ -185,16 +186,24 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     const to = ids.indexOf(String(over.id));
     if (from < 0 || to < 0) return;
     const next = arrayMove(ids, from, to);
+    // Actualización optimista inmediata: la tabla no espera a la red.
     setOrderIds(next);
-    const results = await Promise.all(
-      next.map((id, i) => supabase.from("bonos_catalogo").update({ orden: i + 1 }).eq("id", id)),
+    const map = new Map(bonos.map((b) => [b.id, b]));
+    qc.setQueryData(
+      ["bonos_catalogo", servicioSlug],
+      next.map((id, i) => ({ ...(map.get(id) as BonoCatalogo), orden: i + 1 })),
     );
-    const err = results.find((r) => r.error)?.error;
-    if (err) {
-      toast.error(err.message);
-      setOrderIds(null);
-    }
-    invalidate();
+    void (async () => {
+      const results = await Promise.all(
+        next.map((id, i) => supabase.from("bonos_catalogo").update({ orden: i + 1 }).eq("id", id)),
+      );
+      const err = results.find((r) => r.error)?.error;
+      if (err) {
+        toast.error(err.message);
+        setOrderIds(null);
+        invalidate();
+      }
+    })();
   }
 
   /** Crea una modalidad nueva para este servicio. */
