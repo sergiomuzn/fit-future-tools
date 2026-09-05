@@ -507,7 +507,6 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                           </TableCell>
                         )}
                       </>
-                    )}
                   </SortableRow>
                 ))}
               </SortableContext>
