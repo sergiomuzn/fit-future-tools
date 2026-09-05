@@ -189,11 +189,14 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const w = 100 / cols;
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
-                    const name = session.titulo ?? (session.client_id ? clientMap.get(session.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
                     const ocupados = isGroup
                       ? (groupCounts.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? 0)
                       : (session.client_id ? 1 : 0);
                     const plazas = servicioCapMap.get((session as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
+                    // Con 2+ plazas el nombre de la sesión es el del servicio; con 1, el del cliente.
+                    const name = !isGroup && plazas > 1
+                      ? (servicioNombreMap.get((session as any).servicio_slug ?? "") ?? session.titulo ?? "")
+                      : session.titulo ?? (session.client_id ? clientMap.get(session.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
                     const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (
                       <button
