@@ -166,6 +166,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
+  const servicioNombreMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+    [servicios],
+  );
 
   // Huecos de Reservas del día: su capacidad puede editarse y manda sobre la del servicio.
   const { data: huecosDia = [] } = useQuery({
@@ -719,9 +723,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     .map((m) => `${formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?"}${renovarSufijo(m.client_id)}`)
                     .join(", ")
                 : "";
+              // Nombre de la sesión: con 1 plaza, el cliente; con 2+ plazas,
+              // el nombre del servicio (los grupos con nombre conservan el suyo).
+              const servicioNombre = servicioNombreMap.get((session as any).servicio_slug ?? "") ?? "";
               const displayName = isGroup
                 ? (groupNames || "Sin clientes")
-                : `${formatNameUpper(session.titulo ?? client?.nombre ?? "")}${multiPlaza ? renovarSufijo(session.client_id) : ""}`;
+                : multiPlaza
+                  ? `${formatNameUpper(servicioNombre || session.titulo || client?.nombre || "")}${renovarSufijo(session.client_id)}`
+                  : formatNameUpper(session.titulo ?? client?.nombre ?? "");
 
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
