@@ -816,15 +816,6 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                 ))}
             </SelectContent>
           </Select>
-          {puedeSplitModalidad && (
-            <label className="flex items-center gap-2 pt-2 text-sm cursor-pointer">
-              <Checkbox
-                checked={splitModalidad}
-                onCheckedChange={(v) => setSplitModalidad(v === true)}
-              />
-              Desglosar en modalidades
-            </label>
-          )}
         </div>
 
         <div className="space-y-1.5">
