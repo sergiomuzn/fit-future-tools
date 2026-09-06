@@ -318,7 +318,7 @@ function AgendaPage() {
             </Select>
           )}
           {view === "disponibilidad" && servicioSlug === "__all" && (
-            <div className="flex h-9 items-center gap-1.5 whitespace-nowrap">
+            <div className="flex h-9 items-center gap-1.5 whitespace-nowrap" aria-label="Pintar servicio">
               <span className="mr-1 shrink-0 text-xs">Pintar servicio:</span>
               {canScrollServicesLeft && (
                 <Button
