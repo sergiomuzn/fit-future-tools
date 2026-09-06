@@ -38,6 +38,9 @@ function AgendaPage() {
   const trainerStripRef = useRef<HTMLDivElement>(null);
   const [canScrollTrainersLeft, setCanScrollTrainersLeft] = useState(false);
   const [canScrollTrainersRight, setCanScrollTrainersRight] = useState(false);
+  const serviceStripRef = useRef<HTMLDivElement>(null);
+  const [canScrollServicesLeft, setCanScrollServicesLeft] = useState(false);
+  const [canScrollServicesRight, setCanScrollServicesRight] = useState(false);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
   useEffect(() => {
     if (agendaTabRequest > 0) {
