@@ -116,6 +116,26 @@ function AgendaPage() {
     };
   }, [trainers.length]);
 
+  useEffect(() => {
+    const strip = serviceStripRef.current;
+    if (!strip) return;
+
+    const updateScrollButtons = () => {
+      const maxScroll = strip.scrollWidth - strip.clientWidth;
+      setCanScrollServicesLeft(strip.scrollLeft > 1);
+      setCanScrollServicesRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
+    };
+
+    updateScrollButtons();
+    const observer = new ResizeObserver(updateScrollButtons);
+    observer.observe(strip);
+    window.addEventListener("resize", updateScrollButtons);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [servicios.length]);
+
   function scrollTrainers(direction: -1 | 1) {
     const strip = trainerStripRef.current;
     if (!strip) return;
@@ -125,6 +145,17 @@ function AgendaPage() {
     const step = firstTrainer.offsetWidth + gap;
     const visibleTrainers = Math.max(1, Math.floor((strip.clientWidth + gap) / step));
     strip.scrollBy({ left: direction * step * visibleTrainers, behavior: "smooth" });
+  }
+
+  function scrollServices(direction: -1 | 1) {
+    const strip = serviceStripRef.current;
+    if (!strip) return;
+    const firstService = strip.firstElementChild;
+    if (!(firstService instanceof HTMLElement)) return;
+    const gap = Number.parseFloat(window.getComputedStyle(strip).columnGap) || 0;
+    const step = firstService.offsetWidth + gap;
+    const visibleServices = Math.max(1, Math.floor((strip.clientWidth + gap) / step));
+    strip.scrollBy({ left: direction * step * visibleServices, behavior: "smooth" });
   }
 
   function shift(days: number) {
