@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useCenterConfig, DEFAULT_TIPO_COLORES, type TipoColores } from "./center-schedule";
 
 /** Prefijo con el que se guardan los colores de servicio dentro de `center_config.colores`. */
@@ -81,4 +82,44 @@ export function useColores() {
     tipoColor: (tipo?: string | null) => tipoColorOf(colores, tipo),
     servicioColor: (slug?: string | null) => servicioColorOf(colores, slug),
   };
+}
+
+/* ── Colores de estado configurables (canceladas / prueba / renovación) ── */
+
+export type EstadoColorable = "cancelada" | "prueba" | "renovacion";
+
+export const ESTADO_COLOR_KEYS: EstadoColorable[] = ["cancelada", "prueba", "renovacion"];
+
+export const ESTADO_COLOR_LABELS: Record<EstadoColorable, string> = {
+  cancelada: "Canceladas",
+  prueba: "De prueba",
+  renovacion: "En renovación",
+};
+
+export const DEFAULT_ESTADO_COLORES: Record<EstadoColorable, string> = {
+  cancelada: "#E5484D",
+  prueba: "#1CDB14",
+  renovacion: "#F5A524",
+};
+
+/** Prefijo con el que se guardan los colores de estado dentro de `center_config.colores`. */
+export const ESTADO_PREFIX = "estado:";
+
+export function estadoColorKey(estado: EstadoColorable): string {
+  return `${ESTADO_PREFIX}${estado}`;
+}
+
+export function estadoColorOf(colores: TipoColores, estado: EstadoColorable): string {
+  return colores[estadoColorKey(estado)] ?? DEFAULT_ESTADO_COLORES[estado];
+}
+
+/** Aplica los colores configurados a las variables CSS `--state-*`. */
+export function useEstadoColorVars() {
+  const { colores } = useCenterConfig();
+  useEffect(() => {
+    const root = document.documentElement;
+    for (const k of ESTADO_COLOR_KEYS) {
+      root.style.setProperty(`--state-${k}`, estadoColorOf(colores, k));
+    }
+  }, [colores]);
 }

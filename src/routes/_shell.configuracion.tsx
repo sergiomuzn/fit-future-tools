@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { HorarioForm, PreciosForm } from "@/components/config/schedule-form";
+import { EstadoColorsForm } from "@/components/config/estado-colors-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
@@ -58,7 +59,9 @@ function ConfigPage() {
               <SpecialDaysCalendar />
             </CardContent>
           </Card>
+          <EstadoColorsForm />
         </TabsContent>
+
 
         <TabsContent value="estadisticas" className="pt-4 space-y-6">
           <StatsConfigForm />
