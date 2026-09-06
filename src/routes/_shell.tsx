@@ -11,6 +11,7 @@ import { NotificationsBell } from "@/components/notifications-bell";
 import { cn } from "@/lib/utils";
 import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useEstadoColorVars } from "@/lib/colors";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
