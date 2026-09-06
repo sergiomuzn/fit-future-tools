@@ -30,6 +30,8 @@ import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
+import { servicioColorOf, chipStyle } from "@/lib/colors";
+import { useCenterConfig } from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
