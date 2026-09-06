@@ -122,6 +122,7 @@ function AgendaPage() {
 
     const updateScrollButtons = () => {
       const maxScroll = strip.scrollWidth - strip.clientWidth;
+      console.log("[services scroll]", strip.children.length, strip.clientWidth, strip.scrollWidth, maxScroll, strip.scrollLeft);
       setCanScrollServicesLeft(strip.scrollLeft > 1);
       setCanScrollServicesRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
     };
