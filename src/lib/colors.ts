@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useCenterConfig, DEFAULT_TIPO_COLORES, type TipoColores } from "./center-schedule";
 
 /** Prefijo con el que se guardan los colores de servicio dentro de `center_config.colores`. */
