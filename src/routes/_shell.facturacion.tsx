@@ -271,6 +271,7 @@ function FacturacionPage() {
               <TableHead>Fecha</TableHead>
               <TableHead>Cobrador</TableHead>
               <TableHead>Cliente</TableHead>
+              <TableHead>Servicio</TableHead>
               <TableHead>Bono</TableHead>
               <TableHead>Precio</TableHead>
               <TableHead>Nota</TableHead>
