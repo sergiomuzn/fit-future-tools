@@ -299,6 +299,23 @@ function FacturacionPage() {
                     ) : <span className="text-muted-foreground italic">Sin cliente</span>;
                   })()}
                 </TableCell>
+                <TableCell>
+                  <div className="h-9 flex items-center gap-1.5">
+                    {cat?.servicio_slug ? (
+                      <span
+                        className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                        style={chipStyle(servicioColorOf(tipoColores, cat.servicio_slug)!)}
+                      >
+                        {servicios.find((s) => s.slug === cat.servicio_slug)?.nombre ?? cat.servicio_slug}
+                      </span>
+                    ) : <span className="text-muted-foreground">—</span>}
+                    {cat?.modalidad && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium w-fit border bg-muted text-muted-foreground whitespace-nowrap">
+                        {cat.modalidad}
+                      </span>
+                    )}
+                  </div>
+                </TableCell>
                 <TableCell>{prettyBonoNombre(cat?.nombre)}</TableCell>
                 <TableCell>{Number(i.precio_cobrado).toFixed(2)} €</TableCell>
                 <TableCell className="text-muted-foreground text-xs">{i.nota ?? "—"}</TableCell>
