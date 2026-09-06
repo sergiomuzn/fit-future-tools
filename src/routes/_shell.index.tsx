@@ -38,6 +38,9 @@ function AgendaPage() {
   const trainerStripRef = useRef<HTMLDivElement>(null);
   const [canScrollTrainersLeft, setCanScrollTrainersLeft] = useState(false);
   const [canScrollTrainersRight, setCanScrollTrainersRight] = useState(false);
+  const serviceStripRef = useRef<HTMLDivElement>(null);
+  const [canScrollServicesLeft, setCanScrollServicesLeft] = useState(false);
+  const [canScrollServicesRight, setCanScrollServicesRight] = useState(false);
   const [view, setView] = useState<"dia" | "semana" | "mes" | "disponibilidad" | "historial">("dia");
   useEffect(() => {
     if (agendaTabRequest > 0) {
@@ -113,6 +116,26 @@ function AgendaPage() {
     };
   }, [trainers.length]);
 
+  useEffect(() => {
+    const strip = serviceStripRef.current;
+    if (!strip) return;
+
+    const updateScrollButtons = () => {
+      const maxScroll = strip.scrollWidth - strip.clientWidth;
+      setCanScrollServicesLeft(strip.scrollLeft > 1);
+      setCanScrollServicesRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
+    };
+
+    updateScrollButtons();
+    const observer = new ResizeObserver(updateScrollButtons);
+    observer.observe(strip);
+    window.addEventListener("resize", updateScrollButtons);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updateScrollButtons);
+    };
+  }, [view, servicioSlug, servicios.length]);
+
   function scrollTrainers(direction: -1 | 1) {
     const strip = trainerStripRef.current;
     if (!strip) return;
@@ -122,6 +145,17 @@ function AgendaPage() {
     const step = firstTrainer.offsetWidth + gap;
     const visibleTrainers = Math.max(1, Math.floor((strip.clientWidth + gap) / step));
     strip.scrollBy({ left: direction * step * visibleTrainers, behavior: "smooth" });
+  }
+
+  function scrollServices(direction: -1 | 1) {
+    const strip = serviceStripRef.current;
+    if (!strip) return;
+    const firstService = strip.firstElementChild;
+    if (!(firstService instanceof HTMLElement)) return;
+    const gap = Number.parseFloat(window.getComputedStyle(strip).columnGap) || 0;
+    const step = firstService.offsetWidth + gap;
+    const visibleServices = Math.max(1, Math.floor((strip.clientWidth + gap) / step));
+    strip.scrollBy({ left: direction * step * visibleServices, behavior: "smooth" });
   }
 
   function shift(days: number) {
@@ -284,25 +318,63 @@ function AgendaPage() {
             </Select>
           )}
           {view === "disponibilidad" && servicioSlug === "__all" && (
-            <>
-              <span className="text-xs mr-1">Pintar servicio:</span>
-              {servicios.map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setPaintServicio(paintServicio === s.slug ? null : s.slug)}
-                  className={cn(
-                    "h-8 w-8 rounded-full text-xs font-semibold border-2 transition-all",
-                    slotColorClasses(s.slug),
-                    paintServicio === s.slug
-                      ? "border-primary scale-110"
-                      : "border-transparent opacity-60",
-                  )}
-                  title={s.nombre}
+            <div className="flex h-9 items-center gap-1.5 whitespace-nowrap" aria-label="Pintar servicio">
+              <span className="mr-1 shrink-0 text-xs">Pintar servicio:</span>
+              {canScrollServicesLeft && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 rounded-full"
+                  onClick={() => scrollServices(-1)}
+                  aria-label="Ver servicios anteriores"
+                  title="Ver servicios anteriores"
                 >
-                  {abreviatura(s.nombre)}
-                </button>
-              ))}
-            </>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              )}
+              <div
+                ref={serviceStripRef}
+                onScroll={() => {
+                  const strip = serviceStripRef.current;
+                  if (!strip) return;
+                  const maxScroll = strip.scrollWidth - strip.clientWidth;
+                  setCanScrollServicesLeft(strip.scrollLeft > 1);
+                  setCanScrollServicesRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
+                }}
+                className="flex w-[146px] shrink-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              >
+                {servicios.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => setPaintServicio(paintServicio === s.slug ? null : s.slug)}
+                    className={cn(
+                      "h-8 w-8 shrink-0 snap-start rounded-full text-xs font-semibold border-2 transition-all",
+                      slotColorClasses(s.slug),
+                      paintServicio === s.slug
+                        ? "border-primary scale-110"
+                        : "border-transparent opacity-60",
+                    )}
+                    title={s.nombre}
+                    aria-label={`Pintar servicio ${s.nombre}`}
+                    aria-pressed={paintServicio === s.slug}
+                  >
+                    {abreviatura(s.nombre)}
+                  </button>
+                ))}
+              </div>
+              {canScrollServicesRight && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7 shrink-0 rounded-full"
+                  onClick={() => scrollServices(1)}
+                  aria-label="Ver más servicios"
+                  title="Ver más servicios"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           )}
           {view === "dia" && (
             <div className="flex h-9 items-center gap-1.5 whitespace-nowrap">
