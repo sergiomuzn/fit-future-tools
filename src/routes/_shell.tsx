@@ -68,6 +68,7 @@ function ShellInner() {
   const { nombre: centroNombre } = useCenterConfig();
   const collapsed = state === "collapsed" && !isMobile;
   useInactivityLogout();
+  useEstadoColorVars();
 
   async function handleSignOut() {
     await queryClient.cancelQueries();
