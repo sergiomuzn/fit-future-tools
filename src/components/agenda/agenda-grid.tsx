@@ -760,9 +760,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const displayName =
                 sessionMainLabel(plazas, nombres, widthPct) ||
                 formatNameUpper(session.titulo ?? client?.nombre ?? "");
-              const abrev = mostrarAbrev
-                ? (servicioAbrevMap.get((session as any).servicio_slug ?? "") ?? "")
-                : "";
+              const abrev = mostrarAbrev ? (servicioAbrevMap.get(servicioSlug) ?? "") : "";
 
 
               const isUltraCompact = height <= 20;
