@@ -83,6 +83,17 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
     }
     return m;
   }, [sessions, clientMap]);
+  // Servicio del bloque de grupo: alguna sesión del grupo puede no tenerlo guardado.
+  const groupSlugMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sessions) {
+      if (!s.recurrencia_id || s.ocupacion !== 2) continue;
+      const slug = (s as any).servicio_slug as string | null | undefined;
+      if (!slug) continue;
+      m.set(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`, slug);
+    }
+    return m;
+  }, [sessions]);
   // Clientes apuntados a una misma franja de un servicio con varias plazas.
   const slotNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
