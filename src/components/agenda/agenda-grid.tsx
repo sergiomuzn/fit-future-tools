@@ -186,10 +186,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
-    [servicios],
-  );
   /** Clientes apuntados a la misma franja de un servicio con varias plazas. */
   const slotClientsMap = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -758,12 +754,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =
                 sessionMainLabel(plazas, nombres, widthPct) ||
-                formatNameUpper(
-                  session.titulo ??
-                    client?.nombre ??
-                    servicioNombreMap.get((session as any).servicio_slug ?? "") ??
-                    "",
-                );
+                formatNameUpper(session.titulo ?? client?.nombre ?? "");
               const abrev = mostrarAbrev
                 ? (servicioAbrevMap.get((session as any).servicio_slug ?? "") ?? "")
                 : "";
