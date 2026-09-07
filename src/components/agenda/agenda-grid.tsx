@@ -717,13 +717,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
+              // Servicio efectivo: si el representante del grupo no lo tiene guardado,
+              // se toma el de cualquier otra sesión del mismo grupo.
+              const servicioSlug: string =
+                ((session as any).servicio_slug as string | null) ??
+                (members?.find((m) => (m as any).servicio_slug) as any)?.servicio_slug ??
+                "";
               // Plazas disponibles: las define el servicio de la sesión, salvo que
               // el hueco de Reservas tenga una capacidad editada para esa franja.
-              const huecoKey = `${(session as any).servicio_slug ?? ""}|${session.hora_inicio}`;
+              const huecoKey = `${servicioSlug}|${session.hora_inicio}`;
               const huecoCap = huecoCapMap.get(huecoKey);
               const plazas =
                 huecoCap ??
-                servicioCapMap.get((session as any).servicio_slug ?? "") ??
+                servicioCapMap.get(servicioSlug) ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
               // Con más de una plaza no se pinta la sesión en amarillo.
               const multiPlaza = plazas > 1;
