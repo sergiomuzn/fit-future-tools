@@ -713,11 +713,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 huecoCap ??
                 servicioCapMap.get((session as any).servicio_slug ?? "") ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
-              // Con más de una plaza no se pinta la sesión en amarillo: la
-              // renovación se indica junto al nombre del cliente ("Nombre (Renovar)").
+              // Con más de una plaza no se pinta la sesión en amarillo.
               const multiPlaza = plazas > 1;
-              const renovarSufijo = (clientId: string | null | undefined) =>
-                renewalContext && clientNeedsRenewal(clientId) ? " (Renovar)" : "";
+              const renovarSufijo = (_clientId: string | null | undefined) => "";
               const estadoForColor = session.tipo === "prueba"
                 ? "prueba"
                 : needsRenewal && !multiPlaza
