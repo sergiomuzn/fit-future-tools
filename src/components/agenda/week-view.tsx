@@ -223,7 +223,12 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const w = 100 / cols;
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
-                    const slug = (session as any).servicio_slug ?? "";
+                    const slug =
+                      (isGroup
+                        ? groupSlugMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`)
+                        : null) ??
+                      (session as any).servicio_slug ??
+                      "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
                       : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
