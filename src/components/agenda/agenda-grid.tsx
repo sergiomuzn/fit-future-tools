@@ -91,21 +91,32 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
       assignments.set(s.id, placed);
     }
     const colCount = cols.length;
+    // Prioridad: si una sesión tiene hueco libre a los lados, se expande.
+    const claimed: { col: number; ini: string; fin: string }[] = [];
+    const free = (k: number, s: Session) => {
+      if (k < 0 || k >= colCount) return false;
+      const busyAssigned = g.some(
+        (o) =>
+          o.id !== s.id &&
+          assignments.get(o.id) === k &&
+          o.hora_inicio < s.hora_fin &&
+          o.hora_fin > s.hora_inicio,
+      );
+      if (busyAssigned) return false;
+      return !claimed.some(
+        (c) => c.col === k && c.ini < s.hora_fin && c.fin > s.hora_inicio,
+      );
+    };
     for (const s of g) {
       const c = assignments.get(s.id)!;
-      let span = 1;
-      for (let k = c + 1; k < colCount; k++) {
-        const collides = g.some(
-          (o) =>
-            assignments.get(o.id) === k &&
-            o.hora_inicio < s.hora_fin &&
-            o.hora_fin > s.hora_inicio,
-        );
-        if (collides) break;
-        span++;
-      }
-      result.push({ session: s, col: c, cols: colCount, span });
+      let start = c;
+      while (free(start - 1, s)) start--;
+      let end = c;
+      while (free(end + 1, s)) end++;
+      for (let k = start; k <= end; k++) claimed.push({ col: k, ini: s.hora_inicio, fin: s.hora_fin });
+      result.push({ session: s, col: start, cols: colCount, span: end - start + 1 });
     }
+
   }
   return result;
 }
