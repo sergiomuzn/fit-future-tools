@@ -866,9 +866,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
-                      {isGroup && groupDisplayName && (
-                        <div className="truncate text-[10px] opacity-90">{groupDisplayName}</div>
-                      )}
                       {session.incidencia && (
                         <div
                           className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
