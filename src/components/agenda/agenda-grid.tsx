@@ -259,7 +259,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
     }
     for (const arr of groups.values()) {
-      const primary = arr[0];
+      // Si alguna sesión del grupo no tiene servicio guardado, usamos como
+      // representante una que sí lo tenga (color y plazas correctos).
+      const primary = arr.find((s) => (s as { servicio_slug?: string | null }).servicio_slug) ?? arr[0];
       display.push(primary);
       members.set(primary.id, arr);
     }
@@ -715,13 +717,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupMemberCount = isGroup
                 ? (members ?? [session]).filter((m) => !!m.client_id).length
                 : 0;
+              // Servicio efectivo: si el representante del grupo no lo tiene guardado,
+              // se toma el de cualquier otra sesión del mismo grupo.
+              const servicioSlug: string =
+                ((session as any).servicio_slug as string | null) ??
+                (members?.find((m) => (m as any).servicio_slug) as any)?.servicio_slug ??
+                "";
               // Plazas disponibles: las define el servicio de la sesión, salvo que
               // el hueco de Reservas tenga una capacidad editada para esa franja.
-              const huecoKey = `${(session as any).servicio_slug ?? ""}|${session.hora_inicio}`;
+              const huecoKey = `${servicioSlug}|${session.hora_inicio}`;
               const huecoCap = huecoCapMap.get(huecoKey);
               const plazas =
                 huecoCap ??
-                servicioCapMap.get((session as any).servicio_slug ?? "") ??
+                servicioCapMap.get(servicioSlug) ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
               // Con más de una plaza no se pinta la sesión en amarillo.
               const multiPlaza = plazas > 1;
@@ -738,9 +746,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : huecoCap !== undefined
                   ? (huecoOcupadosMap.get(huecoKey) ?? 0)
                   : (session.client_id ? 1 : 0);
-              const groupDisplayName = isGroup
-                ? formatNameUpper(session.titulo ?? "Grupo")
-                : "";
               const groupCountLabel = `${ocupados}/${plazas}`;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const clientIds: (string | null | undefined)[] = isGroup
@@ -755,16 +760,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const displayName =
                 sessionMainLabel(plazas, nombres, widthPct) ||
                 formatNameUpper(session.titulo ?? client?.nombre ?? "");
-              const abrev = mostrarAbrev
-                ? (servicioAbrevMap.get((session as any).servicio_slug ?? "") ?? "")
-                : "";
+              const abrev = mostrarAbrev ? (servicioAbrevMap.get(servicioSlug) ?? "") : "";
 
 
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
-              const fill = sessionFillColor(colores, session as any, estadoForColor);
+              const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
               return (
                 <div
                   key={session.id}
@@ -861,9 +864,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
-                      {isGroup && groupDisplayName && (
-                        <div className="truncate text-[10px] opacity-90">{groupDisplayName}</div>
-                      )}
                       {session.incidencia && (
                         <div
                           className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"

@@ -121,6 +121,17 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
     }
     return m;
   }, [sessions, clientMap]);
+  // Servicio del bloque de grupo: alguna sesión del grupo puede no tenerlo guardado.
+  const groupSlugMap = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const s of sessions) {
+      if (!s.recurrencia_id || s.ocupacion !== 2) continue;
+      const slug = (s as any).servicio_slug as string | null | undefined;
+      if (!slug) continue;
+      m.set(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`, slug);
+    }
+    return m;
+  }, [sessions]);
   // Clientes apuntados a una misma franja de un servicio con varias plazas.
   const slotNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -212,7 +223,12 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const w = 100 / cols;
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
-                    const slug = (session as any).servicio_slug ?? "";
+                    const slug =
+                      (isGroup
+                        ? groupSlugMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`)
+                        : null) ??
+                      (session as any).servicio_slug ??
+                      "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
                       : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
@@ -222,7 +238,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
+                    const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, colorEstadoFor(session));
                     return (
                       <button
                         key={session.id}
