@@ -5,10 +5,11 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getBehaviorConfig } from "@/lib/behavior-config";
+import { getBehaviorConfig, useBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
+import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -117,6 +118,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
   const { colores } = useCenterConfig();
+  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
@@ -166,10 +168,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+  const servicioAbrevMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
+  /** Clientes apuntados a la misma franja de un servicio con varias plazas. */
+  const slotClientsMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of sessions) {
+      if (s.ocupacion === 2 || !s.client_id || s.estado === "cancelada") continue;
+      const key = `${(s as { servicio_slug?: string | null }).servicio_slug ?? ""}|${s.hora_inicio}`;
+      const arr = m.get(key);
+      if (arr) arr.push(s.client_id); else m.set(key, [s.client_id]);
+    }
+    return m;
+  }, [sessions]);
 
   // Huecos de Reservas del día: su capacidad puede editarse y manda sobre la del servicio.
   const { data: huecosDia = [] } = useQuery({
@@ -717,20 +730,23 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 ? formatNameUpper(session.titulo ?? "Grupo")
                 : "";
               const groupCountLabel = `${ocupados}/${plazas}`;
-              const groupNames = isGroup
-                ? (members ?? [session])
-                    .filter((m) => !!m.client_id)
-                    .map((m) => `${formatNameUpper(clientMap.get(m.client_id ?? "")?.nombre) ?? "?"}${renovarSufijo(m.client_id)}`)
-                    .join(", ")
-                : "";
-              // Nombre de la sesión: con 1 plaza, el cliente; con 2+ plazas,
-              // el nombre del servicio (los grupos con nombre conservan el suyo).
-              const servicioNombre = servicioNombreMap.get((session as any).servicio_slug ?? "") ?? "";
-              const displayName = isGroup
-                ? (groupNames || "Sin clientes")
+              // Clientes de la sesión (grupo, franja compartida o sesión suelta).
+              const clientIds: (string | null | undefined)[] = isGroup
+                ? (members ?? [session]).map((m) => m.client_id)
                 : multiPlaza
-                  ? `${formatNameUpper(servicioNombre || session.titulo || client?.nombre || "")}${renovarSufijo(session.client_id)}`
-                  : formatNameUpper(session.titulo ?? client?.nombre ?? "");
+                  ? (slotClientsMap.get(huecoKey) ?? (session.client_id ? [session.client_id] : []))
+                  : (session.client_id ? [session.client_id] : []);
+              const nombres = clientIds
+                .filter((id): id is string => !!id)
+                .map((id) => `${formatNameUpper(clientMap.get(id)?.nombre) ?? "?"}${renovarSufijo(id)}`);
+              // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
+              const displayName =
+                sessionMainLabel(plazas, nombres) ||
+                formatNameUpper(session.titulo ?? client?.nombre ?? "");
+              const abrev = mostrarAbrev
+                ? (servicioAbrevMap.get((session as any).servicio_slug ?? "") ?? "")
+                : "";
+
 
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
@@ -806,9 +822,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
-                        {isGroup
-                          ? `${groupDisplayName} (${groupCountLabel})`
-                          : `${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
+                        {abrev && (
+                          <span className="mr-1 rounded bg-black/20 px-1 text-[9px] font-semibold align-middle">{abrev}</span>
+                        )}
+                        {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
                       {trainer && (
                         <div className={cn("shrink-0 rounded bg-black/25 px-1 font-semibold text-white leading-none", isUltraCompact ? "text-[8px]" : "text-[10px]")}>
@@ -829,12 +846,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         )}
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
-                        {isGroup
-                          ? `${groupDisplayName} (${groupCountLabel})`
-                          : `${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
+                        {abrev && (
+                          <span className="mr-1 rounded bg-black/20 px-1 text-[9px] font-semibold align-middle">{abrev}</span>
+                        )}
+                        {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
-                      {isGroup && groupMemberCount > 0 && (
-                        <div className="truncate text-[10px] opacity-90">{groupNames}</div>
+                      {isGroup && groupDisplayName && (
+                        <div className="truncate text-[10px] opacity-90">{groupDisplayName}</div>
                       )}
                       {session.incidencia && (
                         <div

@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { sessionFillColor } from "@/lib/colors";
 import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
+import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 interface Props {
   date: Date;
@@ -18,6 +20,7 @@ const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function MonthView({ date, trainers, onSelectDay }: Props) {
   const { colores, horario, specialsMap } = useCenterConfig();
+  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
 
@@ -63,21 +66,36 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+  const servicioAbrevMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
-  const groupCounts = useMemo(() => {
-    const m = new Map<string, number>();
+  const groupNamesMap = useMemo(() => {
+    const m = new Map<string, string[]>();
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
-        m.set(key, (m.get(key) ?? 0) + 1);
+        const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+        const arr = m.get(key);
+        if (arr) arr.push(nombre); else m.set(key, [nombre]);
       }
     }
     return m;
-  }, [sessions]);
+  }, [sessions, clientMap]);
+  // Clientes apuntados a una misma franja de un servicio con varias plazas.
+  const slotNamesMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of sessions) {
+      if (s.ocupacion === 2 || !s.client_id || s.estado === "cancelada") continue;
+      const key = `${s.fecha}|${(s as any).servicio_slug ?? ""}|${s.hora_inicio}`;
+      const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+      const arr = m.get(key);
+      if (arr) arr.push(nombre); else m.set(key, [nombre]);
+    }
+    return m;
+  }, [sessions, clientMap]);
+
 
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
@@ -127,14 +145,16 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                   {list.slice(0, 4).map((s) => {
                     const isGroup = s.ocupacion === 2;
-                    const ocupados = isGroup
-                      ? (groupCounts.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? 0)
-                      : (s.client_id ? 1 : 0);
-                    const plazas = servicioCapMap.get((s as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
-                    // Con 2+ plazas el nombre de la sesión es el del servicio; con 1, el del cliente.
-                    const name = !isGroup && plazas > 1
-                      ? (servicioNombreMap.get((s as any).servicio_slug ?? "") ?? s.titulo ?? "")
-                      : s.titulo ?? (s.client_id ? clientMap.get(s.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const slug = (s as any).servicio_slug ?? "";
+                    const nombres = isGroup
+                      ? (groupNamesMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? [])
+                      : (slotNamesMap.get(`${s.fecha}|${slug}|${s.hora_inicio}`) ??
+                        (s.client_id ? [clientMap.get(s.client_id)?.nombre ?? "?"] : []));
+                    const ocupados = isGroup ? nombres.length : (s.client_id ? 1 : 0);
+                    const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
+                    // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
+                    const name = sessionMainLabel(plazas, nombres) || s.titulo || "";
+                    const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
                     return (
                       <button
@@ -145,9 +165,14 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
-                        title={`${s.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
+                        title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
                       >
-                        {s.hora_inicio.slice(0, 5)} {name.toUpperCase()} ({ocupados}/{plazas})
+                        {s.hora_inicio.slice(0, 5)}{" "}
+                        {abrev && (
+                          <span className="rounded bg-black/20 px-1 text-[9px] font-semibold">{abrev}</span>
+                        )}{" "}
+                        {name.toUpperCase()} ({ocupados}/{plazas})
+
                       </button>
                     );
                   })}

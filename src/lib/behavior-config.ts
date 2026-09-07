@@ -24,6 +24,8 @@ export type BehaviorConfig = {
   canceladasNCSumanTotal: boolean;
   /** Ocultar en la tabla de Bonos los bonos sin sesiones restantes de clientes inactivos */
   ocultarBonosInactivosAgotados: boolean;
+  /** Mostrar la abreviatura del servicio delante del nombre en los bloques de la agenda */
+  mostrarAbreviaturaServicio: boolean;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
@@ -38,6 +40,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   clienteVeCanceladas: false,
   canceladasNCSumanTotal: false,
   ocultarBonosInactivosAgotados: true,
+  mostrarAbreviaturaServicio: false,
 };
 
 const STORAGE_KEY = "behavior-config-v1";

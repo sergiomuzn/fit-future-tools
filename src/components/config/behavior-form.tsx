@@ -204,6 +204,16 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
+            title="Mostrar abreviatura del servicio en sesiones"
+            description="Añade delante del nombre del cliente (o del número de personas) una abreviatura de dos letras del servicio, por ejemplo “EP · Álvaro González”. La abreviatura se puede personalizar en cada servicio."
+          >
+            <Switch
+              checked={cfg.mostrarAbreviaturaServicio}
+              onCheckedChange={(v) => update("mostrarAbreviaturaServicio", v)}
+            />
+          </Row>
+
+          <Row
             title="Margen de gracia tras la hora de fin"
             description="Tiempo que se espera después de la hora de fin antes de marcar la sesión como realizada. Útil para dar margen a cancelaciones de última hora."
           >

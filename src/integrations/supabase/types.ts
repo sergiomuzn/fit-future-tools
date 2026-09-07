@@ -676,6 +676,7 @@ export type Database = {
       }
       servicios: {
         Row: {
+          abreviatura: string | null
           caducidad_dias: number | null
           caducidad_tipo: string | null
           capacidad_default: number
@@ -688,6 +689,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abreviatura?: string | null
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
           capacidad_default?: number
@@ -700,6 +702,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abreviatura?: string | null
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
           capacidad_default?: number

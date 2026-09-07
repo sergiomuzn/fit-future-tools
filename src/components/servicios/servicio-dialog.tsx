@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { slugifyServicio, type Servicio } from "@/lib/servicios";
+import { abreviaturaAutomatica } from "@/lib/session-label";
 import { CaducidadSelect, type CaducidadValue } from "@/components/caducidad-select";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { defaultServicioColor, servicioColorKey } from "@/lib/colors";
@@ -34,6 +35,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState("1");
   const [descripcion, setDescripcion] = useState("");
+  const [abreviatura, setAbreviatura] = useState("");
   const [color, setColor] = useState("#3CC0F3");
   const [createdSlug, setCreatedSlug] = useState<string | null>(null);
   const [caducidad, setCaducidad] = useState<CaducidadValue>({ tipo: null, dias: null });
@@ -45,6 +47,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     setNombre(servicio?.nombre ?? "");
     setCapacidad(String(servicio?.capacidad_default ?? 1));
     setDescripcion(servicio?.descripcion ?? "");
+    setAbreviatura(((servicio as { abreviatura?: string | null } | null)?.abreviatura ?? "").toUpperCase());
     setCreatedSlug(null);
     setCaducidad({
       tipo: (servicio?.caducidad_tipo ?? null) as CaducidadValue["tipo"],
@@ -80,6 +83,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
     }
     const cap = Math.max(1, Number(capacidad) || 1);
     const desc = descripcion.trim() || null;
+    const abrev = abreviatura.trim().toUpperCase().slice(0, 3) || null;
 
     if (slugActual) {
       const { error } = await supabase
@@ -88,6 +92,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
           nombre: n,
           capacidad_default: cap,
           descripcion: desc,
+          abreviatura: abrev,
           caducidad_tipo: caducidad.tipo,
           caducidad_dias: caducidad.dias,
         })
@@ -121,6 +126,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
         orden: maxOrden + 1,
         capacidad_default: cap,
         descripcion: desc,
+        abreviatura: abrev,
         caducidad_tipo: caducidad.tipo,
         caducidad_dias: caducidad.dias,
       });
@@ -181,6 +187,22 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
                 servicio (se puede modificar en cada sesión).
               </p>
             </div>
+            <div className="space-y-1.5">
+              <Label>Abreviatura</Label>
+              <Input
+                maxLength={3}
+                className="uppercase"
+                value={abreviatura}
+                onChange={(e) => setAbreviatura(e.target.value.toUpperCase().slice(0, 3))}
+                placeholder={abreviaturaAutomatica(nombre) || "EP"}
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Máximo 3 caracteres. Si se deja vacía se usa automáticamente
+                {abreviaturaAutomatica(nombre) ? ` “${abreviaturaAutomatica(nombre)}”` : " las dos primeras letras del nombre"}.
+                Se muestra en la Agenda si activas la opción en Configuración → Funcionamiento.
+              </p>
+            </div>
+
           </div>
 
           <div className="space-y-1.5">

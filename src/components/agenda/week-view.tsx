@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
+import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 interface Props {
   date: Date;
@@ -58,6 +60,7 @@ function layoutDay(sessions: Session[]) {
 
 export function WeekView({ date, trainers, onSelectDay }: Props) {
   const { colores } = useCenterConfig();
+  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
   const weekStart = useMemo(() => startOfWeek(date), [date]);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => {
@@ -96,21 +99,36 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+  const servicioAbrevMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
-  const groupCounts = useMemo(() => {
-    const m = new Map<string, number>();
+  const groupNamesMap = useMemo(() => {
+    const m = new Map<string, string[]>();
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
-        m.set(key, (m.get(key) ?? 0) + 1);
+        const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+        const arr = m.get(key);
+        if (arr) arr.push(nombre); else m.set(key, [nombre]);
       }
     }
     return m;
-  }, [sessions]);
+  }, [sessions, clientMap]);
+  // Clientes apuntados a una misma franja de un servicio con varias plazas.
+  const slotNamesMap = useMemo(() => {
+    const m = new Map<string, string[]>();
+    for (const s of sessions) {
+      if (s.ocupacion === 2 || !s.client_id || s.estado === "cancelada") continue;
+      const key = `${s.fecha}|${(s as any).servicio_slug ?? ""}|${s.hora_inicio}`;
+      const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+      const arr = m.get(key);
+      if (arr) arr.push(nombre); else m.set(key, [nombre]);
+    }
+    return m;
+  }, [sessions, clientMap]);
+
 
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
@@ -189,14 +207,16 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const w = 100 / cols;
                     const isGroup = session.ocupacion === 2;
                     const trainer = session.trainer_id ? trainerMap.get(session.trainer_id) : null;
-                    const ocupados = isGroup
-                      ? (groupCounts.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? 0)
-                      : (session.client_id ? 1 : 0);
-                    const plazas = servicioCapMap.get((session as any).servicio_slug ?? "") ?? (isGroup ? Math.max(2, ocupados) : 1);
-                    // Con 2+ plazas el nombre de la sesión es el del servicio; con 1, el del cliente.
-                    const name = !isGroup && plazas > 1
-                      ? (servicioNombreMap.get((session as any).servicio_slug ?? "") ?? session.titulo ?? "")
-                      : session.titulo ?? (session.client_id ? clientMap.get(session.client_id)?.nombre : null) ?? (isGroup ? "Grupo" : "");
+                    const slug = (session as any).servicio_slug ?? "";
+                    const nombres = isGroup
+                      ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
+                      : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
+                        (session.client_id ? [clientMap.get(session.client_id)?.nombre ?? "?"] : []));
+                    const ocupados = isGroup ? nombres.length : (session.client_id ? 1 : 0);
+                    const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
+                    // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
+                    const name = sessionMainLabel(plazas, nombres) || session.titulo || "";
+                    const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (
                       <button
@@ -207,11 +227,19 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
-                        title={`${session.hora_inicio.slice(0, 5)} ${name} (${ocupados}/${plazas})`}
+                        title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
                       >
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
-                        {height > 22 && <div className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</div>}
+                        {height > 22 && (
+                          <div className="flex items-center gap-1 min-w-0">
+                            {abrev && (
+                              <span className="shrink-0 rounded bg-black/20 px-1 text-[9px] font-semibold">{abrev}</span>
+                            )}
+                            <span className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</span>
+                          </div>
+                        )}
                         {trainer && height > 34 && <div className="truncate opacity-90">{trainer.iniciales}</div>}
+
                       </button>
                     );
                   })}
