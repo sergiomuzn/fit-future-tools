@@ -232,9 +232,8 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">
-                            {abrev && (
-                              <span className="shrink-0 rounded bg-black/20 px-1 text-[9px] font-semibold">{abrev}</span>
-                            )}
+                            {abrev && <span className="shrink-0 font-semibold">{abrev}</span>}
+                            {abrev && <span className="shrink-0">·</span>}
                             <span className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</span>
                           </div>
                         )}
