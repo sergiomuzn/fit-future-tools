@@ -2,9 +2,9 @@
  * Reglas comunes de etiquetado de los bloques de sesión en la Agenda
  * (vistas de día, semana y mes).
  *
- *  - 1 plaza      → nombre del cliente
- *  - 2-3 plazas   → nombres separados por coma ("Ana, Carlos")
- *  - 4+ plazas    → número de asistentes ("6 personas")
+ *  Los nombres mostrados dependen del ancho disponible del bloque:
+ *  100% → hasta 6 nombres, 50% → 3, 33% → 2, menos → 1.
+ *  El resto se resume como "+n".
  *
  * El nombre del servicio nunca es el texto principal: lo identifica el color.
  */
@@ -40,13 +40,29 @@ export function abreviaturaServicio(
   return abreviaturaAutomatica(nombre);
 }
 
-/** Texto principal del bloque de sesión según el número de plazas. */
-export function sessionMainLabel(plazas: number, nombres: string[]): string {
+/**
+ * Cuántos nombres caben según el ancho del bloque (en % de la columna).
+ * 100% → 6 nombres (7+ → 6 nombres y "+n"); 50% → 3 (4+ → 2 y "+n");
+ * 33% → 2 (3+ → 2 y "+n"); menos → 1 (2+ → 1 y "+n").
+ */
+function cupoNombres(widthPct: number): { limite: number; visibles: number } {
+  if (widthPct >= 80) return { limite: 6, visibles: 6 };
+  if (widthPct >= 45) return { limite: 3, visibles: 2 };
+  if (widthPct >= 30) return { limite: 2, visibles: 2 };
+  return { limite: 1, visibles: 1 };
+}
+
+/** Texto principal del bloque de sesión según los nombres y el ancho disponible. */
+export function sessionMainLabel(
+  plazas: number,
+  nombres: string[],
+  widthPct = 100,
+): string {
   const list = nombres.filter(Boolean);
-  if (plazas >= 4) {
-    if (list.length === 0) return "Sin clientes";
-    return `${list.length} ${list.length === 1 ? "persona" : "personas"}`;
-  }
   if (list.length === 0) return plazas > 1 ? "Sin clientes" : "";
-  return list.join(", ");
+  const { limite, visibles } = cupoNombres(widthPct);
+  if (list.length <= limite) return list.join(", ");
+  const shown = list.slice(0, visibles);
+  const rest = list.length - shown.length;
+  return `${shown.join(", ")} +${rest}`;
 }

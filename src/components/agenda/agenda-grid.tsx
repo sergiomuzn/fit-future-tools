@@ -74,13 +74,16 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     const assignments = new Map<string, number>();
     for (const s of g) {
       let placed = -1;
+      // Best-fit: entre las columnas libres elegimos la que acaba más tarde,
+      // para que cada columna quede compacta (sin huecos) antes de abrir otra.
+      let bestEnd = "";
       for (let i = 0; i < cols.length; i++) {
-        if (cols[i].end <= s.hora_inicio) {
-          cols[i] = { end: s.hora_fin };
+        if (cols[i].end <= s.hora_inicio && cols[i].end >= bestEnd) {
+          bestEnd = cols[i].end;
           placed = i;
-          break;
         }
       }
+      if (placed !== -1) cols[placed] = { end: s.hora_fin };
       if (placed === -1) {
         cols.push({ end: s.hora_fin });
         placed = cols.length - 1;
@@ -743,7 +746,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 .map((id) => `${formatNameUpper(clientMap.get(id)?.nombre) ?? "?"}${renovarSufijo(id)}`);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =
-                sessionMainLabel(plazas, nombres) ||
+                sessionMainLabel(plazas, nombres, widthPct) ||
                 formatNameUpper(
                   session.titulo ??
                     client?.nombre ??
