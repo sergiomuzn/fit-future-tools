@@ -186,10 +186,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
-    [servicios],
-  );
   /** Clientes apuntados a la misma franja de un servicio con varias plazas. */
   const slotClientsMap = useMemo(() => {
     const m = new Map<string, string[]>();

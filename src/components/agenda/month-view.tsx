@@ -70,10 +70,6 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
-  const servicioNombreMap = useMemo(
-    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
-    [servicios],
-  );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
   const groupNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
