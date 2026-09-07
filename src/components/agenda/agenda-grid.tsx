@@ -746,9 +746,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : huecoCap !== undefined
                   ? (huecoOcupadosMap.get(huecoKey) ?? 0)
                   : (session.client_id ? 1 : 0);
-              const groupDisplayName = isGroup
-                ? formatNameUpper(session.titulo ?? "Grupo")
-                : "";
               const groupCountLabel = `${ocupados}/${plazas}`;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const clientIds: (string | null | undefined)[] = isGroup
