@@ -259,7 +259,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
     }
     for (const arr of groups.values()) {
-      const primary = arr[0];
+      // Si alguna sesión del grupo no tiene servicio guardado, usamos como
+      // representante una que sí lo tenga (color y plazas correctos).
+      const primary = arr.find((s) => (s as { servicio_slug?: string | null }).servicio_slug) ?? arr[0];
       display.push(primary);
       members.set(primary.id, arr);
     }
