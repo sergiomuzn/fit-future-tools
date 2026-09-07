@@ -157,7 +157,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const ocupados = isGroup ? nombres.length : (s.client_id ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
-                    const name = sessionMainLabel(plazas, nombres) || s.titulo || servicioNombreMap.get(slug) || "";
+                    const name = sessionMainLabel(plazas, nombres) || s.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
                     return (

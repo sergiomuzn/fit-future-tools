@@ -758,12 +758,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =
                 sessionMainLabel(plazas, nombres, widthPct) ||
-                formatNameUpper(
-                  session.titulo ??
-                    client?.nombre ??
-                    servicioNombreMap.get((session as any).servicio_slug ?? "") ??
-                    "",
-                );
+                formatNameUpper(session.titulo ?? client?.nombre ?? "");
               const abrev = mostrarAbrev
                 ? (servicioAbrevMap.get((session as any).servicio_slug ?? "") ?? "")
                 : "";
