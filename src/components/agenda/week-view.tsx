@@ -36,7 +36,12 @@ function layoutDay(sessions: Session[]) {
     const cols: string[] = [];
     const assign = new Map<string, number>();
     for (const s of group) {
-      let placed = cols.findIndex((e) => e <= s.hora_inicio);
+      // Best-fit: columna libre que acaba más tarde → columnas compactas.
+      let placed = -1;
+      let bestEnd = "";
+      for (let i = 0; i < cols.length; i++) {
+        if (cols[i] <= s.hora_inicio && cols[i] >= bestEnd) { bestEnd = cols[i]; placed = i; }
+      }
       if (placed === -1) { cols.push(s.hora_fin); placed = cols.length - 1; }
       else cols[placed] = s.hora_fin;
       assign.set(s.id, placed);
@@ -219,7 +224,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const ocupados = isGroup ? nombres.length : (session.client_id ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
-                    const name = sessionMainLabel(plazas, nombres) || session.titulo || servicioNombreMap.get(slug) || "";
+                    const name = sessionMainLabel(plazas, nombres, w) || session.titulo || servicioNombreMap.get(slug) || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (
