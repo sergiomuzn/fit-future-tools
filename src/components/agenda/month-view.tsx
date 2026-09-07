@@ -168,9 +168,8 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
                       >
                         {s.hora_inicio.slice(0, 5)}{" "}
-                        {abrev && (
-                          <span className="rounded bg-black/20 px-1 text-[9px] font-semibold">{abrev}</span>
-                        )}{" "}
+                        {abrev && <span className="font-semibold">{abrev}</span>}
+                        {abrev && " · "}
                         {name.toUpperCase()} ({ocupados}/{plazas})
 
                       </button>

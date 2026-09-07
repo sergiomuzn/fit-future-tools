@@ -822,9 +822,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
-                        {abrev && (
-                          <span className="mr-1 rounded bg-black/20 px-1 text-[9px] font-semibold align-middle">{abrev}</span>
-                        )}
+                        {abrev && <span className="font-semibold">{abrev}</span>}
+                        {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
                       {trainer && (
@@ -846,9 +845,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         )}
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
-                        {abrev && (
-                          <span className="mr-1 rounded bg-black/20 px-1 text-[9px] font-semibold align-middle">{abrev}</span>
-                        )}
+                        {abrev && <span className="font-semibold">{abrev}</span>}
+                        {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
                       {isGroup && groupDisplayName && (
