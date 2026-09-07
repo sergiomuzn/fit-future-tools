@@ -171,7 +171,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres) || s.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const fill = sessionFillColor(colores, s as any, colorEstadoFor(s));
+                    const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorEstadoFor(s));
                     return (
                       <button
                         key={s.id}
