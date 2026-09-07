@@ -156,7 +156,12 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                 <div className="flex flex-col gap-0.5 overflow-hidden">
                   {list.slice(0, 4).map((s) => {
                     const isGroup = s.ocupacion === 2;
-                    const slug = (s as any).servicio_slug ?? "";
+                    const slug =
+                      (isGroup
+                        ? groupSlugMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`)
+                        : null) ??
+                      (s as any).servicio_slug ??
+                      "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? [])
                       : (slotNamesMap.get(`${s.fecha}|${slug}|${s.hora_inicio}`) ??
