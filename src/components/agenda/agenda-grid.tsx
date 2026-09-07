@@ -767,7 +767,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isCompact = height <= 36;
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
-              const fill = sessionFillColor(colores, session as any, estadoForColor);
+              const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
               return (
                 <div
                   key={session.id}
