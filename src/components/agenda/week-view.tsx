@@ -103,6 +103,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
   );
+  const servicioNombreMap = useMemo(
+    () => new Map(servicios.map((s) => [s.slug, s.nombre])),
+    [servicios],
+  );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
   const groupNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
@@ -215,7 +219,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const ocupados = isGroup ? nombres.length : (session.client_id ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
-                    const name = sessionMainLabel(plazas, nombres) || session.titulo || "";
+                    const name = sessionMainLabel(plazas, nombres) || session.titulo || servicioNombreMap.get(slug) || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
                     return (

@@ -229,9 +229,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const sinClientes = grupo ? groupClientIds.every((id) => !id) : !clientId;
     // Sin cliente seleccionado, el texto escrito en el buscador actúa como
     // nombre libre; si está vacío se usa el nombre del servicio.
-    const tituloDeseado = sinClientes
-      ? (nombreLibreTrim || (servicioActual?.nombre?.toUpperCase() ?? null))
-      : null;
+    const tituloDeseado = sinClientes ? (nombreLibreTrim || null) : null;
 
     const incidenciaDeseada = incidencia || null;
 
@@ -309,7 +307,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       // Nombre de la sesión: el texto libre del buscador (cuando no hay
       // cliente seleccionado) o, si está vacío, el nombre del servicio.
       titulo: (grupo ? groupClientIds.every((id) => !id) : !clientId)
-        ? (nombreLibreTrim || (servicioActual?.nombre?.toUpperCase() ?? null))
+        ? (nombreLibreTrim || null)
         : null,
       no_contabilizar: estado === "cancelada" ? noContabilizar : false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
