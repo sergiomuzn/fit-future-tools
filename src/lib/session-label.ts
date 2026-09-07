@@ -59,7 +59,7 @@ export function sessionMainLabel(
   widthPct = 100,
 ): string {
   const list = nombres.filter(Boolean);
-  if (list.length === 0) return plazas > 1 ? "Sin clientes" : "";
+  if (list.length === 0) return "Sin clientes";
   const { limite, visibles } = cupoNombres(widthPct);
   if (list.length <= limite) return list.join(", ");
   const shown = list.slice(0, visibles);
