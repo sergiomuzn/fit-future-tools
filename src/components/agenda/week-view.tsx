@@ -238,7 +238,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const fill = sessionFillColor(colores, session as any, colorEstadoFor(session));
+                    const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, colorEstadoFor(session));
                     return (
                       <button
                         key={session.id}
