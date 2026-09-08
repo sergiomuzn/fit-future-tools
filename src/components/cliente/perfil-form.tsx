@@ -177,6 +177,14 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
               <Button size="sm" onClick={handlePassword} disabled={savingPass}>
                 Actualizar contraseña
               </Button>
+              <button
+                type="button"
+                onClick={handleForgot}
+                disabled={sendingReset}
+                className="block text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline disabled:opacity-60"
+              >
+                {sendingReset ? "Enviando…" : "¿Has olvidado tu contraseña?"}
+              </button>
             </div>
           ) : null}
         </div>
