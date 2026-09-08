@@ -107,22 +107,28 @@ function ClientePortal() {
     ? personalesAll
     : personalesAll.filter((s) => s.estado !== "cancelada");
 
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
+    onMutate: (key: string) => setPendingKey(key),
     onSuccess: () => {
       toast.success("Plaza reservada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setPendingKey(null),
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (sessionId: string) => cancelar({ data: { sessionId } }),
+    mutationFn: ({ sessionId }: { sessionId: string; key: string }) => cancelar({ data: { sessionId } }),
+    onMutate: ({ key }) => setPendingKey(key),
     onSuccess: () => {
       toast.success("Reserva cancelada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setPendingKey(null),
   });
 
   async function handleSignOut() {
@@ -184,12 +190,7 @@ function ClientePortal() {
           <TabsList className="mb-4">
             {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
-            <TabsTrigger value="reservas">
-              Mis reservas
-              {misReservas.length + personales.length
-                ? ` (${misReservas.length + personales.length})`
-                : ""}
-            </TabsTrigger>
+            <TabsTrigger value="reservas">Mis reservas</TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
@@ -203,8 +204,8 @@ function ClientePortal() {
                 key={c.key}
                 clase={c}
                 onBook={() => bookMutation.mutate(c.key)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                busy={pendingKey === c.key}
               />
             ))}
           </TabsContent>
@@ -216,8 +217,8 @@ function ClientePortal() {
               <CalendarioClases
                 clases={clases}
                 onBook={(c) => bookMutation.mutate(c.key)}
-                onCancel={(c) => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                pendingKey={pendingKey}
               />
             )}
           </TabsContent>
@@ -229,13 +230,21 @@ function ClientePortal() {
             {misReservas.length === 0 && personales.length === 0 && !isLoading && !loadingPersonales && (
               <p className="text-sm text-muted-foreground">Todavía no tienes reservas.</p>
             )}
+            {misReservas.length + personales.length > 0 && (
+              <div className="flex items-center gap-2 pb-1">
+                <Badge variant="secondary">
+                  {misReservas.length + personales.length}{" "}
+                  {misReservas.length + personales.length === 1 ? "reserva" : "reservas"}
+                </Badge>
+              </div>
+            )}
             {misReservas.map((c) => (
               <ClaseCard
                 key={c.key}
                 clase={c}
                 onBook={() => bookMutation.mutate(c.key)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                busy={pendingKey === c.key}
               />
             ))}
             {personales.map((s) => (
@@ -397,12 +406,12 @@ function CalendarioClases({
   clases,
   onBook,
   onCancel,
-  busy,
+  pendingKey,
 }: {
   clases: ClaseGrupal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
-  busy: boolean;
+  pendingKey: string | null;
 }) {
   const porDia = new Map<string, ClaseGrupal[]>();
   for (const c of clases) {
@@ -573,7 +582,7 @@ function CalendarioClases({
             clase={c}
             onBook={() => onBook(c)}
             onCancel={() => onCancel(c)}
-            busy={busy}
+            busy={pendingKey === c.key}
           />
         ))}
       </div>

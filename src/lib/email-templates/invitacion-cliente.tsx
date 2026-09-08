@@ -57,6 +57,9 @@ function InvitacionCliente({
             Si el botón no funciona, copia este enlace: {url}
           </Text>
           <Text style={{ color: '#94a3b8', fontSize: 12 }}>El enlace caduca a los 7 días.</Text>
+          <Text style={{ color: '#94a3b8', fontSize: 12 }}>
+            Si no has solicitado este correo, ignóralo: no se creará ninguna cuenta.
+          </Text>
         </Container>
       </Body>
     </Html>

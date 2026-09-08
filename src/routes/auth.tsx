@@ -26,14 +26,41 @@ function AuthPage() {
   const centroNombre = useCenterName();
   const [mode, setMode] = useState<"signin" | "forgot" | "verify">("signin");
   const [isCliente, setIsCliente] = useState(false);
+  const [verified, setVerified] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
     setIsCliente(getDevRoleOverride() === "cliente");
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        void homePathForCurrentUser().then((path) => navigate({ to: path }));
+    let alive = true;
+    const url = `${window.location.search}${window.location.hash}`;
+    // Llegada desde un enlace de verificación de correo: confirmamos la cuenta
+    // pero exigimos que el usuario inicie sesión manualmente.
+    const fromVerification = /(^|[?&#])(code=|token_hash=)|type=(signup|invite|email_change)/.test(url);
+
+    (async () => {
+      if (fromVerification) {
+        // Espera a que el cliente procese el enlace y crea/descarta la sesión.
+        await new Promise((r) => setTimeout(r, 600));
+        await supabase.auth.signOut();
+        window.history.replaceState(null, "", window.location.pathname);
+        if (!alive) return;
+        setVerified(true);
+        setChecking(false);
+        return;
       }
-    });
+      const { data } = await supabase.auth.getSession();
+      if (!alive) return;
+      if (data.session) {
+        const path = await homePathForCurrentUser();
+        if (alive) navigate({ to: path });
+        return;
+      }
+      setChecking(false);
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, [navigate]);
 
   return (
@@ -44,12 +71,23 @@ function AuthPage() {
           {!isCliente && <CardDescription>Accede a la gestión del centro</CardDescription>}
         </CardHeader>
         <CardContent>
-          {mode === "forgot" ? (
-            <ForgotForm onBack={() => setMode("signin")} />
-          ) : mode === "verify" ? (
-            <ResendVerifyForm onBack={() => setMode("signin")} />
+          {checking ? (
+            <p className="text-sm text-muted-foreground">Cargando…</p>
           ) : (
-            <SignInForm onForgot={() => setMode("forgot")} onVerify={() => setMode("verify")} />
+            <>
+              {verified && (
+                <p className="mb-3 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
+                  Correo verificado correctamente. Inicia sesión para acceder.
+                </p>
+              )}
+              {mode === "forgot" ? (
+                <ForgotForm onBack={() => setMode("signin")} />
+              ) : mode === "verify" ? (
+                <ResendVerifyForm onBack={() => setMode("signin")} />
+              ) : (
+                <SignInForm onForgot={() => setMode("forgot")} onVerify={() => setMode("verify")} />
+              )}
+            </>
           )}
         </CardContent>
       </Card>
