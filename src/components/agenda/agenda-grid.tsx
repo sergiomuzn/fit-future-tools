@@ -723,10 +723,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 ((session as any).servicio_slug as string | null) ??
                 (members?.find((m) => (m as any).servicio_slug) as any)?.servicio_slug ??
                 "";
-              // Plazas disponibles: las define el servicio de la sesión, salvo que
-              // el hueco de Reservas tenga una capacidad editada para esa franja.
+              // Plazas disponibles: las define el servicio de la sesión. Solo las
+              // sesiones que vienen de una reserva online usan la capacidad
+              // editada del hueco de Reservas para esa franja.
               const huecoKey = `${servicioSlug}|${session.hora_inicio}`;
-              const huecoCap = huecoCapMap.get(huecoKey);
+              const esReservaOnline =
+                !!(session as any).booking_tipo || !!(session as any).booked_by_user_id;
+              const huecoCap = esReservaOnline ? huecoCapMap.get(huecoKey) : undefined;
               const plazas =
                 huecoCap ??
                 servicioCapMap.get(servicioSlug) ??
