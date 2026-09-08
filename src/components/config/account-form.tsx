@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useCenterConfig } from "@/lib/center-schedule";
 
@@ -165,16 +166,16 @@ export function AccountForm() {
           <form onSubmit={onChangePassword} className="space-y-3 max-w-md">
             <div className="space-y-1.5">
               <Label htmlFor="cur-pass">Contraseña actual</Label>
-              <Input id="cur-pass" type="password" autoComplete="current-password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} required />
+              <PasswordInput id="cur-pass" autoComplete="current-password" value={currentPass} onChange={(e) => setCurrentPass(e.target.value)} required />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="new-pass">Nueva contraseña</Label>
-              <Input id="new-pass" type="password" autoComplete="new-password" value={newPass} onChange={(e) => setNewPass(e.target.value)} required />
+              <PasswordInput id="new-pass" autoComplete="new-password" value={newPass} onChange={(e) => setNewPass(e.target.value)} required />
               <p className="text-xs text-muted-foreground">Mínimo 8 caracteres.</p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm-pass">Confirmar nueva contraseña</Label>
-              <Input id="confirm-pass" type="password" autoComplete="new-password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required />
+              <PasswordInput id="confirm-pass" autoComplete="new-password" value={confirmPass} onChange={(e) => setConfirmPass(e.target.value)} required />
             </div>
             <div className="flex flex-wrap gap-2">
               <Button type="submit" disabled={!currentPass || !newPass || !confirmPass || passLoading}>
