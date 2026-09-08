@@ -4,7 +4,7 @@ import { z } from "zod";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -45,11 +45,11 @@ function ResetPasswordPage() {
           <form onSubmit={onSubmit} className="space-y-3">
             <div className="space-y-1.5">
               <Label htmlFor="rp-pass">Nueva contraseña</Label>
-              <Input id="rp-pass" type="password" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <PasswordInput id="rp-pass" autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="rp-confirm">Confirmar contraseña</Label>
-              <Input id="rp-confirm" type="password" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
+              <PasswordInput id="rp-confirm" autoComplete="new-password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Guardando..." : "Guardar contraseña"}

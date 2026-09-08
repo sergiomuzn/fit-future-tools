@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
@@ -136,9 +137,8 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="perfil-email-pass">Contraseña actual</Label>
-                <Input
+                <PasswordInput
                   id="perfil-email-pass"
-                  type="password"
                   value={emailPass}
                   onChange={(e) => setEmailPass(e.target.value)}
                 />
@@ -171,20 +171,19 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
             <div className="space-y-3 pt-1">
               <div className="space-y-1.5">
                 <Label htmlFor="perfil-pass-act">Contraseña actual</Label>
-                <Input
+                <PasswordInput
                   id="perfil-pass-act"
-                  type="password"
                   value={passActual}
                   onChange={(e) => setPassActual(e.target.value)}
                 />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="perfil-pass1">Nueva contraseña</Label>
-                <Input id="perfil-pass1" type="password" value={pass1} onChange={(e) => setPass1(e.target.value)} />
+                <PasswordInput id="perfil-pass1" value={pass1} onChange={(e) => setPass1(e.target.value)} />
               </div>
               <div className="space-y-1.5">
                 <Label htmlFor="perfil-pass2">Repetir nueva contraseña</Label>
-                <Input id="perfil-pass2" type="password" value={pass2} onChange={(e) => setPass2(e.target.value)} />
+                <PasswordInput id="perfil-pass2" value={pass2} onChange={(e) => setPass2(e.target.value)} />
               </div>
               <Button size="sm" onClick={handlePassword} disabled={savingPass}>
                 Actualizar contraseña
