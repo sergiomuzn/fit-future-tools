@@ -406,12 +406,12 @@ function CalendarioClases({
   clases,
   onBook,
   onCancel,
-  busy,
+  pendingKey,
 }: {
   clases: ClaseGrupal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
-  busy: boolean;
+  pendingKey: string | null;
 }) {
   const porDia = new Map<string, ClaseGrupal[]>();
   for (const c of clases) {
@@ -582,7 +582,7 @@ function CalendarioClases({
             clase={c}
             onBook={() => onBook(c)}
             onCancel={() => onCancel(c)}
-            busy={busy}
+            busy={pendingKey === c.key}
           />
         ))}
       </div>
