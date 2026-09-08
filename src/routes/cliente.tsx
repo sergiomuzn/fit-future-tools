@@ -76,17 +76,20 @@ function ClientePortal() {
   const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false } } = useQuery({
     queryKey: ["portal-prefs"],
     queryFn: () => fetchPrefs({ data: undefined }),
+    refetchOnWindowFocus: true,
   });
 
   const { data: profile, isLoading: loadingProfile } = useQuery({
     queryKey: ["portal-profile"],
     queryFn: () => fetchProfile({ data: undefined }),
+    refetchOnWindowFocus: true,
   });
 
   const { data: clases = [], isLoading } = useQuery({
     queryKey: ["portal-clases"],
     queryFn: () => fetchClases({ data: undefined }),
     enabled: !!profile && accesoIncluyeGrupos(profile?.acceso),
+    refetchOnWindowFocus: true,
   });
 
   const verGrupos = accesoIncluyeGrupos(profile?.acceso);
@@ -96,12 +99,14 @@ function ClientePortal() {
     queryKey: ["portal-resumen"],
     queryFn: () => fetchResumen({ data: undefined }),
     enabled: !!profile,
+    refetchOnWindowFocus: true,
   });
 
   const { data: personalesAll = [], isLoading: loadingPersonales } = useQuery({
     queryKey: ["portal-personales"],
     queryFn: () => fetchPersonales({ data: undefined }),
     enabled: !!profile && verPersonal,
+    refetchOnWindowFocus: true,
   });
   const personales = behavior.clienteVeCanceladas
     ? personalesAll
@@ -148,6 +153,15 @@ function ClientePortal() {
   const activeTab =
     tab === "bono" || tab === "reservas" ? tab : verGrupos ? tab : defaultTab;
 
+  // Al cambiar de pestaña se recargan los datos para mostrar siempre la información actualizada.
+  function handleTabChange(value: string) {
+    setTab(value);
+    qc.invalidateQueries({ queryKey: ["portal-clases"] });
+    qc.invalidateQueries({ queryKey: ["portal-personales"] });
+    qc.invalidateQueries({ queryKey: ["portal-resumen"] });
+    qc.invalidateQueries({ queryKey: ["portal-prefs"] });
+  }
+
   if (!loadingProfile && !profile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-background px-4 text-center">
@@ -186,7 +200,7 @@ function ClientePortal() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-4">
-        <Tabs value={activeTab} onValueChange={setTab}>
+        <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-4">
             {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
