@@ -25,6 +25,18 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
   const [pass2, setPass2] = useState("");
   const [savingPass, setSavingPass] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [sendingReset, setSendingReset] = useState(false);
+
+  async function handleForgot() {
+    if (!email) return toast.error("No hay correo asociado a tu cuenta");
+    setSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
+    if (error) return toast.error(error.message);
+    toast.success(`Te hemos enviado un correo a ${email} para restablecer la contraseña`);
+  }
 
   async function reauth(password: string): Promise<boolean> {
     const { error } = await supabase.auth.signInWithPassword({ email, password });

@@ -107,22 +107,28 @@ function ClientePortal() {
     ? personalesAll
     : personalesAll.filter((s) => s.estado !== "cancelada");
 
+  const [pendingKey, setPendingKey] = useState<string | null>(null);
+
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
+    onMutate: (key: string) => setPendingKey(key),
     onSuccess: () => {
       toast.success("Plaza reservada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setPendingKey(null),
   });
 
   const cancelMutation = useMutation({
-    mutationFn: (sessionId: string) => cancelar({ data: { sessionId } }),
+    mutationFn: ({ sessionId }: { sessionId: string; key: string }) => cancelar({ data: { sessionId } }),
+    onMutate: ({ key }) => setPendingKey(key),
     onSuccess: () => {
       toast.success("Reserva cancelada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
     },
     onError: (e: Error) => toast.error(e.message),
+    onSettled: () => setPendingKey(null),
   });
 
   async function handleSignOut() {
