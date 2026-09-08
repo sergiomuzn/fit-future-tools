@@ -190,12 +190,7 @@ function ClientePortal() {
           <TabsList className="mb-4">
             {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
-            <TabsTrigger value="reservas">
-              Mis reservas
-              {misReservas.length + personales.length
-                ? ` (${misReservas.length + personales.length})`
-                : ""}
-            </TabsTrigger>
+            <TabsTrigger value="reservas">Mis reservas</TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
@@ -209,8 +204,8 @@ function ClientePortal() {
                 key={c.key}
                 clase={c}
                 onBook={() => bookMutation.mutate(c.key)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                busy={pendingKey === c.key}
               />
             ))}
           </TabsContent>
@@ -222,8 +217,8 @@ function ClientePortal() {
               <CalendarioClases
                 clases={clases}
                 onBook={(c) => bookMutation.mutate(c.key)}
-                onCancel={(c) => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                pendingKey={pendingKey}
               />
             )}
           </TabsContent>
@@ -235,13 +230,21 @@ function ClientePortal() {
             {misReservas.length === 0 && personales.length === 0 && !isLoading && !loadingPersonales && (
               <p className="text-sm text-muted-foreground">Todavía no tienes reservas.</p>
             )}
+            {misReservas.length + personales.length > 0 && (
+              <div className="flex items-center gap-2 pb-1">
+                <Badge variant="secondary">
+                  {misReservas.length + personales.length}{" "}
+                  {misReservas.length + personales.length === 1 ? "reserva" : "reservas"}
+                </Badge>
+              </div>
+            )}
             {misReservas.map((c) => (
               <ClaseCard
                 key={c.key}
                 clase={c}
                 onBook={() => bookMutation.mutate(c.key)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate(c.miSesionId)}
-                busy={bookMutation.isPending || cancelMutation.isPending}
+                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                busy={pendingKey === c.key}
               />
             ))}
             {personales.map((s) => (
