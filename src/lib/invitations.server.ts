@@ -1,5 +1,6 @@
 import { formatNameTitle } from "@/lib/utils";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { centroDb } from "./centro-scope.server";
 import type { AccesoCliente, BonoTipoCliente } from "./client-portal-types";
 
 export interface InvitationCheck {
@@ -86,15 +87,18 @@ export async function acceptInvitation(input: {
 
   const { data: invitation } = await supabaseAdmin
     .from("client_invitations")
-    .select("id,acceso,client_id,role")
+    .select("id,acceso,client_id,role,centro_id")
     .eq("code", input.code)
     .single();
+  const centroId = (invitation as { centro_id?: string } | null)?.centro_id;
+  if (!centroId) return { ok: false, error: "La invitación no pertenece a ningún centro" };
+  const db = centroDb(centroId);
   const existingClientId = (invitation as { client_id?: string | null } | null)?.client_id ?? null;
 
   const emailNorm = input.email.trim().toLowerCase();
 
   // El correo no puede pertenecer a otra ficha de cliente distinta a la invitada
-  const { data: otherClients } = await supabaseAdmin
+  const { data: otherClients } = await db
     .from("clients")
     .select("id")
     .ilike("email", emailNorm);
@@ -123,7 +127,7 @@ export async function acceptInvitation(input: {
       return { ok: false, error: authError?.message ?? "No se pudo crear la cuenta" };
     }
     alreadyVerified = Boolean(existingUser.email_confirmed_at);
-    const { data: existingProfile } = await supabaseAdmin
+    const { data: existingProfile } = await db
       .from("client_profiles")
       .select("id,activo")
       .eq("id", existingUser.id)
@@ -146,7 +150,7 @@ export async function acceptInvitation(input: {
 
   let clientId = existingClientId;
   if (clientId) {
-    const { error: updError } = await supabaseAdmin
+    const { error: updError } = await db
       .from("clients")
       .update({
         ...(input.telefono?.trim() ? { telefono: input.telefono.trim() } : {}),
@@ -161,7 +165,7 @@ export async function acceptInvitation(input: {
       return { ok: false, error: updError.message };
     }
   } else {
-    const { data: client, error: clientError } = await supabaseAdmin
+    const { data: client, error: clientError } = await db
       .from("clients")
       .insert([
         {
@@ -182,7 +186,7 @@ export async function acceptInvitation(input: {
     clientId = client.id;
   }
 
-  const { error: profileError } = await supabaseAdmin.from("client_profiles").upsert(
+  const { error: profileError } = await db.from("client_profiles").upsert(
     [
       {
         id: userId,
@@ -209,12 +213,14 @@ export async function acceptInvitation(input: {
   // Un solo rol por usuario: el upsert pisa cualquier rol previo (nunca admin por invitación)
   const { error: roleError } = await supabaseAdmin
     .from("user_roles")
-    .upsert([{ user_id: userId, role: invitedRole }], { onConflict: "user_id" });
+    .upsert([{ user_id: userId, role: invitedRole, centro_id: centroId }], {
+      onConflict: "user_id",
+    });
   if (roleError) {
     await cleanupUser();
     return { ok: false, error: roleError.message };
   }
-  await supabaseAdmin
+  await db
     .from("client_invitations")
     .update({ used_at: new Date().toISOString(), used_by: userId })
     .eq("code", input.code);

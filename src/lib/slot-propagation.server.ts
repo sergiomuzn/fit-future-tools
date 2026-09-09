@@ -1,4 +1,5 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
+import { centroDb } from "./centro-scope.server";
 import { parseBookingMode } from "./booking-mode";
 import {
   buildPropagationPlan,
@@ -18,6 +19,26 @@ export async function propagarSemanasAuto(semanasArg?: number): Promise<{
   creados: number;
   motivo?: string;
 }> {
+  const { data: centros } = await rootAdmin
+    .from("centros")
+    .select("id")
+    .eq("estado", "activo");
+  let creados = 0;
+  const motivos: string[] = [];
+  for (const c of centros ?? []) {
+    const r = await propagarCentro(c.id, semanasArg);
+    if (!r.ok) return r;
+    creados += r.creados;
+    if (r.motivo) motivos.push(r.motivo);
+  }
+  return { ok: true, creados, ...(creados === 0 && motivos[0] ? { motivo: motivos[0] } : {}) };
+}
+
+async function propagarCentro(
+  centroId: string,
+  semanasArg?: number,
+): Promise<{ ok: boolean; creados: number; motivo?: string }> {
+  const supabaseAdmin = centroDb(centroId);
   const { data: config } = await supabaseAdmin
     .from("center_config")
     .select("avisos")
