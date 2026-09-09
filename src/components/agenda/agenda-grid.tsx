@@ -134,18 +134,27 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     /** Área cubierta (ancho ponderado por duración): menos huecos en blanco. */
     const area = (l: LayoutInfo[]) => l.reduce((acc, i) => acc + i.span * dur(i.session), 0);
 
-    const ordenes: Session[][] = [
-      g,
-      [...g].sort((a, b) => dur(b) - dur(a)),
-      [...g].sort((a, b) => dur(a) - dur(b)),
-      [...g].sort((a, b) => (assignments.get(b.id)! - assignments.get(a.id)!)),
-    ];
+    const ordenesPara = (asg: Map<string, number>): Session[][] => {
+      const porDuracion = [...g].sort((a, b) => dur(b) - dur(a) || a.id.localeCompare(b.id));
+      return [
+        g,
+        porDuracion,
+        [...porDuracion].reverse(),
+        [...g].sort((a, b) => (asg.get(b.id) ?? 0) - (asg.get(a.id) ?? 0) || a.id.localeCompare(b.id)),
+        // Cada sesión tiene una oportunidad explícita de reclamar primero
+        // todo su hueco lateral. Esto evita favorecer siempre a las más largas.
+        ...g.map((prioritaria) => [prioritaria, ...porDuracion.filter((s) => s.id !== prioritaria.id)]),
+      ];
+    };
 
     const mejorPara = (asg: Map<string, number>) => {
-      let best = expandir(asg, ordenes[0]!);
+      const ordenes = ordenesPara(asg);
+      let best = expandir(asg, ordenes[0] ?? g);
       let bestA = area(best);
       for (let i = 1; i < ordenes.length; i++) {
-        const l = expandir(asg, ordenes[i]!);
+        const orden = ordenes[i];
+        if (!orden) continue;
+        const l = expandir(asg, orden);
         const a = area(l);
         if (a > bestA) {
           best = l;
@@ -155,33 +164,47 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
       return { layout: best, area: bestA };
     };
 
-    // Mejora local: probamos mover cada sesión a otra columna libre y nos
-    // quedamos con la disposición que cubre más superficie (menos huecos).
-    let inicial = mejorPara(assignments);
-    let mejorLayout = inicial.layout;
-    let mejorAncho = inicial.area;
-    let mejorAsg = assignments;
-    for (let pass = 0; pass < 3; pass++) {
-      let cambio = false;
-      for (const s of g) {
-        const actual = mejorAsg.get(s.id)!;
-        for (let k = 0; k < colCount; k++) {
-          if (k === actual) continue;
-          if (!colLibre(k, s, mejorAsg)) continue;
-          const prueba = new Map(mejorAsg);
-          prueba.set(s.id, k);
-          const r = mejorPara(prueba);
-          if (r.area > mejorAncho) {
-            mejorAncho = r.area;
-            mejorLayout = r.layout;
-            mejorAsg = prueba;
-            cambio = true;
-          }
-        }
+    // Buscamos recolocaciones conjuntas, no movimientos aislados. Así podemos
+    // desplazar varias sesiones aunque cada paso intermedio no mejore el ancho:
+    // lo importante es el resultado final con la menor superficie vacía.
+    let mejor = mejorPara(assignments);
+    let mejorFirma = mejor.layout.map((item) => `${item.col}:${item.span}`).join("|");
+    const candidata = new Map<string, number>();
+    let combinaciones = 0;
+    const MAX_COMBINACIONES = 50_000;
+
+    const evaluar = () => {
+      const evaluada = mejorPara(candidata);
+      const firma = evaluada.layout.map((item) => `${item.col}:${item.span}`).join("|");
+      if (evaluada.area > mejor.area || (evaluada.area === mejor.area && firma < mejorFirma)) {
+        mejor = evaluada;
+        mejorFirma = firma;
       }
-      if (!cambio) break;
-    }
-    result.push(...mejorLayout);
+    };
+
+    const buscar = (indice: number) => {
+      if (combinaciones >= MAX_COMBINACIONES) return;
+      if (indice === g.length) {
+        combinaciones++;
+        evaluar();
+        return;
+      }
+      const sesion = g[indice];
+      if (!sesion) return;
+      for (let columna = 0; columna < colCount; columna++) {
+        const choca = g.slice(0, indice).some((otra) =>
+          candidata.get(otra.id) === columna && overlaps(otra, sesion),
+        );
+        if (choca) continue;
+        candidata.set(sesion.id, columna);
+        buscar(indice + 1);
+        candidata.delete(sesion.id);
+        if (combinaciones >= MAX_COMBINACIONES) return;
+      }
+    };
+
+    buscar(0);
+    result.push(...mejor.layout);
   }
   return result;
 }
