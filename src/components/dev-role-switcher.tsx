@@ -95,7 +95,7 @@ export function DevRoleSwitcher() {
       window.location.href = "/auth";
       return;
     }
-    const role = value as Exclude<AppRole, "entrenador">;
+    const role = value as "admin" | "cliente";
     setBusy(true);
     try {
       const session = await devSignInAs({ data: { role } });
