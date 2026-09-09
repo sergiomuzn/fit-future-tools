@@ -91,35 +91,68 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
       assignments.set(s.id, placed);
     }
     const colCount = cols.length;
-    // Prioridad: si una sesión tiene hueco libre a los lados, se expande.
-    const claimed: { col: number; ini: string; fin: string }[] = [];
-    const free = (k: number, s: Session) => {
-      if (k < 0 || k >= colCount) return false;
-      const busyAssigned = g.some(
-        (o) =>
-          o.id !== s.id &&
-          assignments.get(o.id) === k &&
-          o.hora_inicio < s.hora_fin &&
-          o.hora_fin > s.hora_inicio,
-      );
-      if (busyAssigned) return false;
-      return !claimed.some(
-        (c) => c.col === k && c.ini < s.hora_fin && c.fin > s.hora_inicio,
-      );
-    };
-    for (const s of g) {
-      const c = assignments.get(s.id)!;
-      let start = c;
-      while (free(start - 1, s)) start--;
-      let end = c;
-      while (free(end + 1, s)) end++;
-      for (let k = start; k <= end; k++) claimed.push({ col: k, ini: s.hora_inicio, fin: s.hora_fin });
-      result.push({ session: s, col: start, cols: colCount, span: end - start + 1 });
-    }
 
+    const overlaps = (a: Session, b: Session) =>
+      a.hora_inicio < b.hora_fin && a.hora_fin > b.hora_inicio;
+
+    /** ¿Puede la sesión ocupar la columna k sin chocar con otra asignada ahí? */
+    const colLibre = (k: number, s: Session, asg: Map<string, number>) =>
+      k >= 0 &&
+      k < colCount &&
+      !g.some((o) => o.id !== s.id && asg.get(o.id) === k && overlaps(o, s));
+
+    /** Expande cada sesión hacia los lados mientras haya hueco libre. */
+    const expandir = (asg: Map<string, number>) => {
+      const claimed: { col: number; ini: string; fin: string }[] = [];
+      const out: LayoutInfo[] = [];
+      for (const s of g) {
+        const c = asg.get(s.id)!;
+        const libre = (k: number) =>
+          colLibre(k, s, asg) &&
+          !claimed.some((cl) => cl.col === k && cl.ini < s.hora_fin && cl.fin > s.hora_inicio);
+        let start = c;
+        while (libre(start - 1)) start--;
+        let end = c;
+        while (libre(end + 1)) end++;
+        for (let k = start; k <= end; k++) claimed.push({ col: k, ini: s.hora_inicio, fin: s.hora_fin });
+        out.push({ session: s, col: start, cols: colCount, span: end - start + 1 });
+      }
+      return out;
+    };
+
+    const ancho = (l: LayoutInfo[]) => l.reduce((acc, i) => acc + i.span, 0);
+
+    // Mejora local: probamos mover cada sesión a otra columna libre y nos
+    // quedamos con la disposición en la que las sesiones son más anchas.
+    let mejorLayout = expandir(assignments);
+    let mejorAncho = ancho(mejorLayout);
+    let mejorAsg = assignments;
+    for (let pass = 0; pass < 3; pass++) {
+      let cambio = false;
+      for (const s of g) {
+        const actual = mejorAsg.get(s.id)!;
+        for (let k = 0; k < colCount; k++) {
+          if (k === actual) continue;
+          if (!colLibre(k, s, mejorAsg)) continue;
+          const prueba = new Map(mejorAsg);
+          prueba.set(s.id, k);
+          const layout = expandir(prueba);
+          const w = ancho(layout);
+          if (w > mejorAncho) {
+            mejorAncho = w;
+            mejorLayout = layout;
+            mejorAsg = prueba;
+            cambio = true;
+          }
+        }
+      }
+      if (!cambio) break;
+    }
+    result.push(...mejorLayout);
   }
   return result;
 }
+
 
 export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const qc = useQueryClient();
@@ -659,7 +692,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {/* draft */}
             {draft && (
               <div
-                className="absolute rounded-md bg-primary/20 border border-primary/60 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
+                className="absolute z-40 rounded-md bg-primary/20 border border-primary/60 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
                 style={{
                   top: (draft.startMin / SLOT_MIN) * SLOT_PX,
                   height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
