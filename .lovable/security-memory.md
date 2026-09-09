@@ -18,3 +18,8 @@ Fitness 360 is an internal management app for a personal training center (agenda
 - Cada fila de negocio lleva `centro_id`. Las políticas RLS comparan contra `public.get_my_centro_id()`; el superadmin (`public.is_superadmin()`) solo tiene lectura global y escritura en `centros`/`user_roles`.
 - `get_my_centro_id`, `is_superadmin`, `set_centro_id`, `claim_superadmin` y `create_centro` son `SECURITY DEFINER` a propósito y deben seguir siendo ejecutables por `authenticated` (nunca por `anon`). No reportarlas como hallazgo.
 - Todo uso de la clave de servicio en el servidor debe pasar por `centroDb(centroId)` (`src/lib/centro-scope.server.ts`); nunca consultar tablas de negocio con `supabaseAdmin` sin filtrar por centro.
+
+## Panel de plataforma (superadmin)
+- `superadmin_centros_overview`, `superadmin_centro_usuarios`, `superadmin_global_stats`, `superadmin_set_centro_estado`, `superadmin_set_soporte`, `my_centro_estado` y `create_centro` son `SECURITY DEFINER` a propósito: comprueban `is_superadmin()` dentro y solo son ejecutables por `authenticated` (nunca `anon`). No reportarlas como hallazgo.
+- `get_my_centro_id()` devuelve NULL si el centro está `inactivo` (bloqueo inmediato de acceso) y, para el superadmin, el centro elegido en `superadmin_context` (modo soporte).
+- Todas las políticas de escritura scoped por centro incluyen `AND NOT is_superadmin()`: el modo soporte es de solo lectura por RLS.
