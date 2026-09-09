@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { getDevRoleOverride } from "@/lib/dev-role-preview";
 import { getMyRole } from "@/lib/roles.functions";
 
-export type AppRole = "admin" | "entrenador" | "cliente";
+export type AppRole = "superadmin" | "admin" | "entrenador" | "cliente";
 
 /**
  * Devuelve los roles del usuario autenticado, verificados en el servidor
@@ -36,12 +36,13 @@ export async function fetchMyRoles(): Promise<AppRole[]> {
 /** Ruta inicial según el rol: administrador → gestión, cliente → portal. */
 export async function homePathForCurrentUser(): Promise<string> {
   const roles = await fetchMyRoles();
-  if (roles.includes("admin")) return "/";
+  if (roles.includes("superadmin") || roles.includes("admin")) return "/";
   if (roles.includes("cliente")) return "/cliente";
   return "/cliente";
 }
 
 /** true si el usuario autenticado tiene rol de administración. */
 export async function isAdminUser(): Promise<boolean> {
-  return (await fetchMyRoles()).includes("admin");
+  const roles = await fetchMyRoles();
+  return roles.includes("admin") || roles.includes("superadmin");
 }

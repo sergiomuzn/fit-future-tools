@@ -33,7 +33,7 @@ export const Route = createFileRoute("/_shell")({
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
     const roles = await fetchMyRoles();
-    if (!roles.includes("admin")) throw redirect({ to: "/cliente" });
+    if (!roles.includes("admin") && !roles.includes("superadmin")) throw redirect({ to: "/cliente" });
   },
   component: ShellLayout,
 });
