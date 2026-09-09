@@ -738,20 +738,31 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
             {/* draft */}
             {draft && (
-              <div
-                className="absolute z-40 rounded-md bg-primary/20 border border-primary/60 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
-                style={{
-                  top: (draft.startMin / SLOT_MIN) * SLOT_PX,
-                  height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
-                  left: 4,
-                  right: 4,
-                }}
-              >
-                <span className="mt-1 rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
-                  {minToTime(draft.startMin).slice(0,5)} – {minToTime(draft.endMin).slice(0,5)}
-                </span>
-              </div>
+              <>
+                <div
+                  className="absolute z-0 rounded-md bg-primary/20 border border-primary/60 pointer-events-none"
+                  style={{
+                    top: (draft.startMin / SLOT_MIN) * SLOT_PX,
+                    height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
+                    left: 4,
+                    right: 4,
+                  }}
+                />
+                <div
+                  className="absolute z-50 flex justify-center pointer-events-none text-[11px] font-semibold"
+                  style={{
+                    top: (draft.startMin / SLOT_MIN) * SLOT_PX + 4,
+                    left: 4,
+                    right: 4,
+                  }}
+                >
+                  <span className="rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
+                    {minToTime(draft.startMin).slice(0, 5)} – {minToTime(draft.endMin).slice(0, 5)}
+                  </span>
+                </div>
+              </>
             )}
+
 
             {/* sessions */}
             {layout.map(({ session, col, cols, span }) => {
