@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { addAttendeeToBlock } from "./client-portal.server";
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
+import { centroDb, getCentroIdOfRow } from "./centro-scope.server";
 import type { BonoTipoCliente } from "./client-portal-types";
 
 function verifySignature(body: string, signature: string | null, secret: string): boolean {
@@ -40,7 +41,7 @@ export async function handleProviderBooking(params: {
 
   let groupId = group_id ?? null;
   if (!groupId) {
-    const { data } = await supabaseAdmin
+    const { data } = await rootAdmin
       .from("sessions")
       .select("group_id")
       .eq("fecha", fecha)
@@ -52,6 +53,9 @@ export async function handleProviderBooking(params: {
     groupId = data?.group_id ?? null;
   }
   if (!groupId) return new Response("Class not found", { status: 404 });
+
+  // Todo lo que se cree a partir de aquí pertenece al centro de esa clase
+  const supabaseAdmin = centroDb(await getCentroIdOfRow("groups", groupId));
 
   // Ficha de cliente: reutiliza por nombre o crea una nueva.
   const { data: existing } = await supabaseAdmin
