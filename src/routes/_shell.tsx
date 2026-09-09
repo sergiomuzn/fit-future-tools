@@ -188,6 +188,33 @@ function ShellInner() {
           <Outlet />
         </div>
       </main>
+      </div>
+    </div>
+  );
+}
+
+/** Aviso permanente cuando el superadministrador visita un centro en modo soporte. */
+function SoporteBanner() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data } = useQuery({ queryKey: ["modo-soporte"], queryFn: () => getModoSoporte() });
+  if (!data?.centroId) return null;
+
+  async function salir() {
+    await setModoSoporte({ data: { centroId: null } });
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    navigate({ to: "/superadmin", replace: true });
+  }
+
+  return (
+    <div className="flex items-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-medium text-amber-950">
+      <span>
+        Modo soporte — {data.nombre ?? "Centro"} — Solo lectura
+      </span>
+      <Button size="sm" variant="secondary" className="ml-auto h-6 px-2 text-xs" onClick={salir}>
+        Salir del modo soporte
+      </Button>
     </div>
   );
 }
