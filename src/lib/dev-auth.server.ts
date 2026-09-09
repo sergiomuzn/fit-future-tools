@@ -61,7 +61,7 @@ async function ensureClienteProfile(userId: string, email: string, nombre: strin
 }
 
 /** Crea (si hace falta) el usuario de prueba, fija su rol e inicia sesión. */
-export async function devSignIn(role: "admin" | "cliente") {
+export async function devSignIn(role: DevRole) {
   const cfg = DEV_USERS[role];
   let userId = await findUserByEmail(cfg.email);
 
@@ -79,7 +79,7 @@ export async function devSignIn(role: "admin" | "cliente") {
   }
 
   await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-  await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
+  await supabaseAdmin.from("user_roles").insert({ user_id: userId, role, centro_id: null });
 
   if (role === "cliente") await ensureClienteProfile(userId, cfg.email, cfg.nombre);
 
