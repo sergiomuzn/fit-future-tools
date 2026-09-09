@@ -21,7 +21,7 @@ export const isDevPreview: boolean = import.meta.env.DEV || hostIsPreview();
 export function getDevRoleOverride(): AppRole | null {
   if (!isDevPreview || typeof window === "undefined") return null;
   const v = window.localStorage.getItem(DEV_ROLE_STORAGE_KEY);
-  return v === "admin" || v === "cliente" ? v : null;
+  return v === "admin" || v === "cliente" || v === "superadmin" ? v : null;
 }
 
 export function setDevRoleOverride(role: AppRole | null) {
@@ -32,5 +32,6 @@ export function setDevRoleOverride(role: AppRole | null) {
 
 export function homePathForRole(role: AppRole): string {
   if (role === "cliente") return "/cliente";
+  if (role === "superadmin") return "/superadmin";
   return "/";
 }
