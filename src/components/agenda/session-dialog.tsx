@@ -514,6 +514,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
                 ocupacion: 2,
               }).in("id", keepIds2);
             }
@@ -525,6 +526,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
                 ocupacion: 2,
                 client_id: first,
               }).eq("id", placeholder2.id);
@@ -536,6 +538,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
+                group_id: (rows[0] as any)?.group_id ?? sharedGroupFields.group_id,
                 no_contabilizar: false,
                 fecha,
                 estado: "reservada" as SesionEstado,
@@ -557,6 +561,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
+                group_id: (rows[0] as any)?.group_id ?? sharedGroupFields.group_id,
                 no_contabilizar: false,
                 fecha,
                 estado: "reservada" as SesionEstado,
@@ -565,6 +571,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 recurrencia_id: recurrenciaId,
               }]);
             }
+
           }
         }
       } else {
