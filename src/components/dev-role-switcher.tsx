@@ -95,7 +95,7 @@ export function DevRoleSwitcher() {
       window.location.href = "/auth";
       return;
     }
-    const role = value as "admin" | "cliente";
+    const role = value as "admin" | "cliente" | "superadmin";
     setBusy(true);
     try {
       const session = await devSignInAs({ data: { role } });
@@ -147,7 +147,8 @@ export function DevRoleSwitcher() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent align="end">
-            <SelectItem value="admin">Administrador</SelectItem>
+            <SelectItem value="superadmin">Admin</SelectItem>
+            <SelectItem value="admin">Centros</SelectItem>
             <SelectItem value="cliente">Cliente</SelectItem>
             <SelectItem value="real">Cerrar sesión (real)</SelectItem>
           </SelectContent>

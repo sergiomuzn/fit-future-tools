@@ -4,9 +4,12 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import type { AppRole } from "./roles";
 
 /** Usuarios de prueba fijos para la previsualización (nunca en producción). */
-export const DEV_USERS: Record<"admin" | "cliente", { email: string; password: string; nombre: string }> = {
+export type DevRole = "admin" | "cliente" | "superadmin";
+
+export const DEV_USERS: Record<DevRole, { email: string; password: string; nombre: string }> = {
   admin: { email: "preview-admin@fitness360.dev", password: "Preview-Admin-2026!", nombre: "Admin Preview" },
   cliente: { email: "preview-cliente@fitness360.dev", password: "Preview-Cliente-2026!", nombre: "Cliente Preview" },
+  superadmin: { email: "admin@tracli.app", password: "Tracli-Super-2026!", nombre: "Superadmin" },
 };
 
 /** Solo local o previews de Lovable; en el dominio publicado devuelve false. */
@@ -58,7 +61,7 @@ async function ensureClienteProfile(userId: string, email: string, nombre: strin
 }
 
 /** Crea (si hace falta) el usuario de prueba, fija su rol e inicia sesión. */
-export async function devSignIn(role: "admin" | "cliente") {
+export async function devSignIn(role: DevRole) {
   const cfg = DEV_USERS[role];
   let userId = await findUserByEmail(cfg.email);
 
@@ -76,7 +79,7 @@ export async function devSignIn(role: "admin" | "cliente") {
   }
 
   await supabaseAdmin.from("user_roles").delete().eq("user_id", userId);
-  await supabaseAdmin.from("user_roles").insert({ user_id: userId, role });
+  await supabaseAdmin.from("user_roles").insert({ user_id: userId, role, centro_id: null });
 
   if (role === "cliente") await ensureClienteProfile(userId, cfg.email, cfg.nombre);
 
