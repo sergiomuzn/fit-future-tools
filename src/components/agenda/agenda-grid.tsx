@@ -914,6 +914,20 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 </div>
               );
             })}
+            {draft && (
+              <div
+                className="absolute z-40 flex justify-center pointer-events-none"
+                style={{
+                  top: (draft.startMin / SLOT_MIN) * SLOT_PX + 4,
+                  left: 4,
+                  right: 4,
+                }}
+              >
+                <span className="rounded bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground shadow-sm">
+                  {minToTime(draft.startMin).slice(0, 5)} – {minToTime(draft.endMin).slice(0, 5)}
+                </span>
+              </div>
+            )}
             </div>
           </div>
         </div>
