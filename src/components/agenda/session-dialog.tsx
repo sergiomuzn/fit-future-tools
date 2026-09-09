@@ -381,6 +381,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       }
     } else {
       // Campos compartidos entre miembros de un grupo (mismo día).
+      // Importante: se conserva el grupo y el servicio de la sesión para que al
+      // quitar o añadir miembros no cambien el color ni las plazas del bloque.
       const sharedGroupFields = {
         trainer_id: base.trainer_id,
         hora_inicio: base.hora_inicio,
@@ -390,9 +392,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         titulo: base.titulo,
         no_contabilizar: base.no_contabilizar,
         por_confirmar: base.por_confirmar,
-        group_id: base.group_id,
+        group_id: ((session as any).group_id as string | null) ?? null,
+        servicio_slug: base.servicio_slug,
         incidencia: base.incidencia,
       };
+
 
       let updateErr: any = null;
 
@@ -510,6 +514,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
                 ocupacion: 2,
               }).in("id", keepIds2);
             }
@@ -521,6 +526,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
                 ocupacion: 2,
                 client_id: first,
               }).eq("id", placeholder2.id);
@@ -532,6 +538,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
+                group_id: (rows[0] as any)?.group_id ?? sharedGroupFields.group_id,
                 no_contabilizar: false,
                 fecha,
                 estado: "reservada" as SesionEstado,
@@ -553,6 +561,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 hora_fin: sharedGroupFields.hora_fin,
                 titulo: sharedGroupFields.titulo,
                 incidencia: sharedGroupFields.incidencia,
+                servicio_slug: sharedGroupFields.servicio_slug,
+                group_id: (rows[0] as any)?.group_id ?? sharedGroupFields.group_id,
                 no_contabilizar: false,
                 fecha,
                 estado: "reservada" as SesionEstado,
@@ -561,6 +571,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 recurrencia_id: recurrenciaId,
               }]);
             }
+
           }
         }
       } else {
