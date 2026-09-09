@@ -1099,6 +1099,21 @@ export type Database = {
           },
         ]
       }
+      superadmin_emails: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
+        Relationships: []
+      }
       trainers: {
         Row: {
           activo: boolean
@@ -1183,6 +1198,11 @@ export type Database = {
       auto_deactivate_prueba_clients: {
         Args: { p_dias?: number }
         Returns: number
+      }
+      claim_superadmin: { Args: never; Returns: boolean }
+      create_centro: {
+        Args: { p_nombre: string; p_plan?: string }
+        Returns: string
       }
       current_app_role: {
         Args: never
