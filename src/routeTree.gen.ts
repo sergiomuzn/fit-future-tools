@@ -9,11 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ClienteRouteImport } from './routes/cliente'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ShellRouteImport } from './routes/_shell'
+import { Route as SuperadminIndexRouteImport } from './routes/superadmin.index'
 import { Route as ShellIndexRouteImport } from './routes/_shell.index'
 import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
 import { Route as ShellGruposRouteImport } from './routes/_shell.grupos'
@@ -22,6 +24,7 @@ import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisti
 import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
 import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
 import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
+import { Route as SuperadminCentroCentroIdRouteImport } from './routes/superadmin.centro.$centroId'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
@@ -29,6 +32,11 @@ import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/publi
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
 
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -52,6 +60,11 @@ const AuthRoute = AuthRouteImport.update({
 const ShellRoute = ShellRouteImport.update({
   id: '/_shell',
   getParentRoute: () => rootRouteImport,
+} as any)
+const SuperadminIndexRoute = SuperadminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SuperadminRoute,
 } as any)
 const ShellIndexRoute = ShellIndexRouteImport.update({
   id: '/',
@@ -93,6 +106,12 @@ const ShellClientesRoute = ShellClientesRouteImport.update({
   path: '/clientes',
   getParentRoute: () => ShellRoute,
 } as any)
+const SuperadminCentroCentroIdRoute =
+  SuperadminCentroCentroIdRouteImport.update({
+    id: '/centro/$centroId',
+    path: '/centro/$centroId',
+    getParentRoute: () => SuperadminRoute,
+  } as any)
 const LovableEmailTransactionalPreviewRoute =
   LovableEmailTransactionalPreviewRouteImport.update({
     id: '/lovable/email/transactional/preview',
@@ -134,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/cliente': typeof ClienteRoute
   '/perfil': typeof PerfilRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/superadmin': typeof SuperadminRouteWithChildren
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
@@ -141,6 +161,8 @@ export interface FileRoutesByFullPath {
   '/facturacion': typeof ShellFacturacionRoute
   '/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
+  '/superadmin/': typeof SuperadminIndexRoute
+  '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -161,6 +183,8 @@ export interface FileRoutesByTo {
   '/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/': typeof ShellIndexRoute
+  '/superadmin': typeof SuperadminIndexRoute
+  '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -175,6 +199,7 @@ export interface FileRoutesById {
   '/cliente': typeof ClienteRoute
   '/perfil': typeof PerfilRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/superadmin': typeof SuperadminRouteWithChildren
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/configuracion': typeof ShellConfiguracionRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
@@ -183,6 +208,8 @@ export interface FileRoutesById {
   '/_shell/grupos': typeof ShellGruposRoute
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/_shell/': typeof ShellIndexRoute
+  '/superadmin/': typeof SuperadminIndexRoute
+  '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -198,6 +225,7 @@ export interface FileRouteTypes {
     | '/cliente'
     | '/perfil'
     | '/reset-password'
+    | '/superadmin'
     | '/clientes'
     | '/configuracion'
     | '/entrenadores'
@@ -205,6 +233,8 @@ export interface FileRouteTypes {
     | '/facturacion'
     | '/grupos'
     | '/invitacion/$codigo'
+    | '/superadmin/'
+    | '/superadmin/centro/$centroId'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -225,6 +255,8 @@ export interface FileRouteTypes {
     | '/grupos'
     | '/invitacion/$codigo'
     | '/'
+    | '/superadmin'
+    | '/superadmin/centro/$centroId'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -238,6 +270,7 @@ export interface FileRouteTypes {
     | '/cliente'
     | '/perfil'
     | '/reset-password'
+    | '/superadmin'
     | '/_shell/clientes'
     | '/_shell/configuracion'
     | '/_shell/entrenadores'
@@ -246,6 +279,8 @@ export interface FileRouteTypes {
     | '/_shell/grupos'
     | '/invitacion/$codigo'
     | '/_shell/'
+    | '/superadmin/'
+    | '/superadmin/centro/$centroId'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -260,6 +295,7 @@ export interface RootRouteChildren {
   ClienteRoute: typeof ClienteRoute
   PerfilRoute: typeof PerfilRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SuperadminRoute: typeof SuperadminRouteWithChildren
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
   ApiPublicHooksPropagarHuecosRoute: typeof ApiPublicHooksPropagarHuecosRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
@@ -271,6 +307,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -305,6 +348,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof ShellRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/superadmin/': {
+      id: '/superadmin/'
+      path: '/'
+      fullPath: '/superadmin/'
+      preLoaderRoute: typeof SuperadminIndexRouteImport
+      parentRoute: typeof SuperadminRoute
     }
     '/_shell/': {
       id: '/_shell/'
@@ -361,6 +411,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/clientes'
       preLoaderRoute: typeof ShellClientesRouteImport
       parentRoute: typeof ShellRoute
+    }
+    '/superadmin/centro/$centroId': {
+      id: '/superadmin/centro/$centroId'
+      path: '/centro/$centroId'
+      fullPath: '/superadmin/centro/$centroId'
+      preLoaderRoute: typeof SuperadminCentroCentroIdRouteImport
+      parentRoute: typeof SuperadminRoute
     }
     '/lovable/email/transactional/preview': {
       id: '/lovable/email/transactional/preview'
@@ -429,12 +486,27 @@ const ShellRouteChildren: ShellRouteChildren = {
 
 const ShellRouteWithChildren = ShellRoute._addFileChildren(ShellRouteChildren)
 
+interface SuperadminRouteChildren {
+  SuperadminIndexRoute: typeof SuperadminIndexRoute
+  SuperadminCentroCentroIdRoute: typeof SuperadminCentroCentroIdRoute
+}
+
+const SuperadminRouteChildren: SuperadminRouteChildren = {
+  SuperadminIndexRoute: SuperadminIndexRoute,
+  SuperadminCentroCentroIdRoute: SuperadminCentroCentroIdRoute,
+}
+
+const SuperadminRouteWithChildren = SuperadminRoute._addFileChildren(
+  SuperadminRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   ShellRoute: ShellRouteWithChildren,
   AuthRoute: AuthRoute,
   ClienteRoute: ClienteRoute,
   PerfilRoute: PerfilRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SuperadminRoute: SuperadminRouteWithChildren,
   InvitacionCodigoRoute: InvitacionCodigoRoute,
   ApiPublicHooksPropagarHuecosRoute: ApiPublicHooksPropagarHuecosRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,

@@ -117,6 +117,12 @@ function SignInForm({ onForgot, onVerify }: { onForgot: () => void; onVerify: ()
       }
       return toast.error(error.message);
     }
+    // Un centro desactivado bloquea el acceso de todos sus usuarios
+    const { data: estado } = await supabase.rpc("my_centro_estado");
+    if (estado && estado !== "activo") {
+      await supabase.auth.signOut();
+      return toast.error("El acceso de tu centro está desactivado. Contacta con la plataforma.");
+    }
     const path = await homePathForCurrentUser();
     navigate({ to: path });
   }

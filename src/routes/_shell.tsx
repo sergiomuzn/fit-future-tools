@@ -13,6 +13,8 @@ import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { useEstadoColorVars } from "@/lib/colors";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
+import { getModoSoporte, setModoSoporte } from "@/lib/superadmin.functions";
+import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
@@ -33,7 +35,13 @@ export const Route = createFileRoute("/_shell")({
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
     const roles = await fetchMyRoles();
-    if (!roles.includes("admin") && !roles.includes("superadmin")) throw redirect({ to: "/cliente" });
+    if (roles.includes("superadmin")) {
+      // El superadministrador solo entra aquí en modo soporte sobre un centro
+      const { centroId } = await getModoSoporte();
+      if (!centroId) throw redirect({ to: "/superadmin" });
+      return;
+    }
+    if (!roles.includes("admin")) throw redirect({ to: "/cliente" });
   },
   component: ShellLayout,
 });
@@ -94,7 +102,9 @@ function ShellInner() {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+      <SoporteBanner />
+      <div className="flex min-h-0 w-full flex-1 overflow-hidden">
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b h-12 px-2 py-0">
           <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
@@ -178,6 +188,33 @@ function ShellInner() {
           <Outlet />
         </div>
       </main>
+      </div>
+    </div>
+  );
+}
+
+/** Aviso permanente cuando el superadministrador visita un centro en modo soporte. */
+function SoporteBanner() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data } = useQuery({ queryKey: ["modo-soporte"], queryFn: () => getModoSoporte() });
+  if (!data?.centroId) return null;
+
+  async function salir() {
+    await setModoSoporte({ data: { centroId: null } });
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    navigate({ to: "/superadmin", replace: true });
+  }
+
+  return (
+    <div className="flex items-center gap-2 bg-amber-500 px-3 py-1.5 text-xs font-medium text-amber-950">
+      <span>
+        Modo soporte — {data.nombre ?? "Centro"} — Solo lectura
+      </span>
+      <Button size="sm" variant="secondary" className="ml-auto h-6 px-2 text-xs" onClick={salir}>
+        Salir del modo soporte
+      </Button>
     </div>
   );
 }

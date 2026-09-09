@@ -1099,6 +1099,32 @@ export type Database = {
           },
         ]
       }
+      superadmin_context: {
+        Row: {
+          centro_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          centro_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          centro_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "superadmin_context_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       superadmin_emails: {
         Row: {
           created_at: string
@@ -1224,6 +1250,7 @@ export type Database = {
       }
       is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
       is_superadmin: { Args: never; Returns: boolean }
+      my_centro_estado: { Args: never; Returns: string }
       notify_bonos_caducados: { Args: never; Returns: number }
       pick_bono_for_session: {
         Args: { p_client: string; p_for_restore?: boolean; p_servicio: string }
@@ -1251,6 +1278,35 @@ export type Database = {
             }
             Returns: string
           }
+      superadmin_centro_usuarios: {
+        Args: { p_centro: string }
+        Returns: {
+          alta: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          ultimo_acceso: string
+          user_id: string
+        }[]
+      }
+      superadmin_centros_overview: {
+        Args: never
+        Returns: {
+          estado: string
+          fecha_creacion: string
+          id: string
+          nombre: string
+          plan: string
+          sesiones_mes: number
+          ultimo_acceso: string
+          usuarios: number
+        }[]
+      }
+      superadmin_global_stats: { Args: never; Returns: Json }
+      superadmin_set_centro_estado: {
+        Args: { p_centro: string; p_estado: string }
+        Returns: undefined
+      }
+      superadmin_set_soporte: { Args: { p_centro: string }; Returns: undefined }
       sync_client_fecha_inicio: {
         Args: { p_client: string }
         Returns: undefined
