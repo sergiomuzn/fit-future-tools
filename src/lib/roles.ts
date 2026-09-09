@@ -33,10 +33,11 @@ export async function fetchMyRoles(): Promise<AppRole[]> {
   return real;
 }
 
-/** Ruta inicial según el rol: administrador → gestión, cliente → portal. */
+/** Ruta inicial según el rol: plataforma, gestión del centro o portal de cliente. */
 export async function homePathForCurrentUser(): Promise<string> {
   const roles = await fetchMyRoles();
-  if (roles.includes("superadmin") || roles.includes("admin")) return "/";
+  if (roles.includes("superadmin")) return "/superadmin";
+  if (roles.includes("admin")) return "/";
   if (roles.includes("cliente")) return "/cliente";
   return "/cliente";
 }
