@@ -102,7 +102,9 @@ function ShellInner() {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+      <SoporteBanner />
+      <div className="flex min-h-0 w-full flex-1 overflow-hidden">
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b h-12 px-2 py-0">
           <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
