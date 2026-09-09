@@ -13,6 +13,8 @@ import { AgendaDateProvider, useAgendaDate } from "@/lib/agenda-context";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { useEstadoColorVars } from "@/lib/colors";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
+import { getModoSoporte, setModoSoporte } from "@/lib/superadmin.functions";
+import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Sidebar,
@@ -33,7 +35,13 @@ export const Route = createFileRoute("/_shell")({
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/auth" });
     const roles = await fetchMyRoles();
-    if (!roles.includes("admin") && !roles.includes("superadmin")) throw redirect({ to: "/cliente" });
+    if (roles.includes("superadmin")) {
+      // El superadministrador solo entra aquí en modo soporte sobre un centro
+      const { centroId } = await getModoSoporte();
+      if (!centroId) throw redirect({ to: "/superadmin" });
+      return;
+    }
+    if (!roles.includes("admin")) throw redirect({ to: "/cliente" });
   },
   component: ShellLayout,
 });
