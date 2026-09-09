@@ -101,11 +101,18 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
       k < colCount &&
       !g.some((o) => o.id !== s.id && asg.get(o.id) === k && overlaps(o, s));
 
-    /** Expande cada sesión hacia los lados mientras haya hueco libre. */
-    const expandir = (asg: Map<string, number>) => {
+    const dur = (s: Session) =>
+      Math.max(1, timeToMin(s.hora_fin) - timeToMin(s.hora_inicio));
+
+    /**
+     * Expande cada sesión hacia los lados mientras haya hueco libre.
+     * El orden de expansión importa (el primero reclama el hueco), por eso
+     * probamos varios órdenes y nos quedamos con el mejor.
+     */
+    const expandir = (asg: Map<string, number>, orden: Session[]) => {
       const claimed: { col: number; ini: string; fin: string }[] = [];
-      const out: LayoutInfo[] = [];
-      for (const s of g) {
+      const spans = new Map<string, { start: number; end: number }>();
+      for (const s of orden) {
         const c = asg.get(s.id)!;
         const libre = (k: number) =>
           colLibre(k, s, asg) &&
@@ -115,17 +122,44 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
         let end = c;
         while (libre(end + 1)) end++;
         for (let k = start; k <= end; k++) claimed.push({ col: k, ini: s.hora_inicio, fin: s.hora_fin });
-        out.push({ session: s, col: start, cols: colCount, span: end - start + 1 });
+        spans.set(s.id, { start, end });
       }
-      return out;
+      // Mantenemos el orden original de `g` para que el render sea estable.
+      return g.map((s) => {
+        const sp = spans.get(s.id)!;
+        return { session: s, col: sp.start, cols: colCount, span: sp.end - sp.start + 1 };
+      });
     };
 
-    const ancho = (l: LayoutInfo[]) => l.reduce((acc, i) => acc + i.span, 0);
+    /** Área cubierta (ancho ponderado por duración): menos huecos en blanco. */
+    const area = (l: LayoutInfo[]) => l.reduce((acc, i) => acc + i.span * dur(i.session), 0);
+
+    const ordenes: Session[][] = [
+      g,
+      [...g].sort((a, b) => dur(b) - dur(a)),
+      [...g].sort((a, b) => dur(a) - dur(b)),
+      [...g].sort((a, b) => (assignments.get(b.id)! - assignments.get(a.id)!)),
+    ];
+
+    const mejorPara = (asg: Map<string, number>) => {
+      let best = expandir(asg, ordenes[0]!);
+      let bestA = area(best);
+      for (let i = 1; i < ordenes.length; i++) {
+        const l = expandir(asg, ordenes[i]!);
+        const a = area(l);
+        if (a > bestA) {
+          best = l;
+          bestA = a;
+        }
+      }
+      return { layout: best, area: bestA };
+    };
 
     // Mejora local: probamos mover cada sesión a otra columna libre y nos
-    // quedamos con la disposición en la que las sesiones son más anchas.
-    let mejorLayout = expandir(assignments);
-    let mejorAncho = ancho(mejorLayout);
+    // quedamos con la disposición que cubre más superficie (menos huecos).
+    let inicial = mejorPara(assignments);
+    let mejorLayout = inicial.layout;
+    let mejorAncho = inicial.area;
     let mejorAsg = assignments;
     for (let pass = 0; pass < 3; pass++) {
       let cambio = false;
@@ -136,11 +170,10 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
           if (!colLibre(k, s, mejorAsg)) continue;
           const prueba = new Map(mejorAsg);
           prueba.set(s.id, k);
-          const layout = expandir(prueba);
-          const w = ancho(layout);
-          if (w > mejorAncho) {
-            mejorAncho = w;
-            mejorLayout = layout;
+          const r = mejorPara(prueba);
+          if (r.area > mejorAncho) {
+            mejorAncho = r.area;
+            mejorLayout = r.layout;
             mejorAsg = prueba;
             cambio = true;
           }
@@ -692,18 +725,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             {/* draft */}
             {draft && (
               <div
-                className="absolute z-40 rounded-md bg-primary/20 border border-primary/60 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
+                className="absolute rounded-md bg-primary/20 border border-primary/60 pointer-events-none"
                 style={{
                   top: (draft.startMin / SLOT_MIN) * SLOT_PX,
                   height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
                   left: 4,
                   right: 4,
                 }}
-              >
-                <span className="mt-1 rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
-                  {minToTime(draft.startMin).slice(0,5)} – {minToTime(draft.endMin).slice(0,5)}
-                </span>
-              </div>
+              />
             )}
 
             {/* sessions */}
@@ -918,6 +947,20 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 </div>
               );
             })}
+            {draft && (
+              <div
+                className="absolute z-40 flex justify-center pointer-events-none"
+                style={{
+                  top: (draft.startMin / SLOT_MIN) * SLOT_PX + 4,
+                  left: 4,
+                  right: 4,
+                }}
+              >
+                <span className="rounded bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-primary-foreground shadow-sm">
+                  {minToTime(draft.startMin).slice(0, 5)} – {minToTime(draft.endMin).slice(0, 5)}
+                </span>
+              </div>
+            )}
             </div>
           </div>
         </div>
