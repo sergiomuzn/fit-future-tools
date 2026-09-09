@@ -118,9 +118,9 @@ export const getMiResumen = createServerFn({ method: "POST" })
   });
 export const getPortalPreferencias = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async (): Promise<{ clienteVeCanceladas: boolean; canceladasNCSumanTotal: boolean }> => {
+  .handler(async ({ context }): Promise<{ clienteVeCanceladas: boolean; canceladasNCSumanTotal: boolean }> => {
     const { getPortalPrefs } = await import("./client-portal.server");
-    return getPortalPrefs();
+    return getPortalPrefs(context.userId);
   });
 
 export const listHuecos = createServerFn({ method: "POST" })
@@ -130,5 +130,5 @@ export const listHuecos = createServerFn({ method: "POST" })
     const { getPortalProfile, listHuecosDisponibles } = await import("./client-portal.server");
     const profile = await getPortalProfile(context.userId);
     if (!profile) throw new Error("Cuenta de cliente no activa");
-    return listHuecosDisponibles(data.slugs);
+    return listHuecosDisponibles(data.slugs, context.userId);
   });

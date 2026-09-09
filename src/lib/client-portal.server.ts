@@ -1,4 +1,5 @@
-import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
+import { centroDb, getCentroIdForUser, getCentroIdOfRow } from "./centro-scope.server";
 import { parseAntelacion, puedeReservarse } from "./booking-antelacion";
 import type {
   AccesoCliente,
@@ -41,9 +42,10 @@ const DEFAULT_HORARIO_BASE: Record<string, DaySlot> = {
  * dado, teniendo en cuenta el horario base y los días especiales
  * (cerrado / horario especial) definidos en configuración → calendario.
  */
-export async function buildAperturaFilter(): Promise<
+export async function buildAperturaFilter(centroId: string): Promise<
   (fecha: string, horaInicio: string, horaFin: string) => boolean
 > {
+  const supabaseAdmin = centroDb(centroId);
   const [{ data: cfg }, { data: specials }] = await Promise.all([
     supabaseAdmin.from("center_config").select("horario_base").eq("id", true).maybeSingle(),
     supabaseAdmin.from("special_days").select("fecha,tipo,hora_apertura,hora_cierre"),
@@ -91,7 +93,8 @@ export function portalRange(): { from: string; to: string } {
 }
 
 /** Margen de antelación configurado (minutos) para reservas de clientes. */
-export async function getAntelacionReservaMin(): Promise<number> {
+export async function getAntelacionReservaMin(centroId: string): Promise<number> {
+  const supabaseAdmin = centroDb(centroId);
   const { data } = await supabaseAdmin
     .from("center_config")
     .select("avisos")
@@ -104,6 +107,7 @@ export async function getAntelacionReservaMin(): Promise<number> {
 }
 
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
+  const supabaseAdmin = rootAdmin;
   const { data } = await supabaseAdmin
     .from("client_profiles")
     .select("id,nombre,email,bono_tipo,activo,acceso")
@@ -121,6 +125,7 @@ export async function getPortalProfile(userId: string): Promise<PortalProfile | 
 }
 
 async function requireClientRow(userId: string): Promise<string> {
+  const supabaseAdmin = rootAdmin;
   const { data } = await supabaseAdmin
     .from("client_profiles")
     .select("client_id")
@@ -158,7 +163,8 @@ function defaultServicioColor(slug: string): string {
   return FALLBACK_SERVICIO_PALETTE[h % FALLBACK_SERVICIO_PALETTE.length];
 }
 
-async function loadBlocks(from: string, to: string) {
+async function loadBlocks(from: string, to: string, centroId: string) {
+  const supabaseAdmin = centroDb(centroId);
   const [{ data: sessions }, { data: groups }, { data: trainers }] = await Promise.all([
     supabaseAdmin
       .from("sessions")
@@ -196,9 +202,10 @@ async function loadBlocks(from: string, to: string) {
 }
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
+  const centroId = await getCentroIdForUser(userId);
   const { from, to } = portalRange();
   const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion] =
-    await Promise.all([loadBlocks(from, to), getAntelacionReservaMin()]);
+    await Promise.all([loadBlocks(from, to, centroId), getAntelacionReservaMin(centroId)]);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
@@ -240,8 +247,13 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
  * (`service_slot_instances`): son las sesiones que el cliente puede reservar.
  */
 export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[]> {
+  const centroId = await getCentroIdForUser(userId);
+  const supabaseAdmin = centroDb(centroId);
   const { from, to } = portalRange();
-  const [abierto, antelacion] = await Promise.all([buildAperturaFilter(), getAntelacionReservaMin()]);
+  const [abierto, antelacion] = await Promise.all([
+    buildAperturaFilter(centroId),
+    getAntelacionReservaMin(centroId),
+  ]);
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
     await Promise.all([
       supabaseAdmin
@@ -336,7 +348,8 @@ const DEFAULT_TIPO_COLORES: Record<string, string> = {
 };
 
 /** Todos los bonos activos del cliente, con servicio, tipo y color configurado. */
-async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
+async function listActiveBonos(clientId: string, centroId: string): Promise<BonoResumen[]> {
+  const supabaseAdmin = centroDb(centroId);
   const [{ data: bonos }, { data: cfg }, { data: servicios }] = await Promise.all([
     supabaseAdmin
       .from("client_bonos")
@@ -402,6 +415,8 @@ async function listActiveBonos(clientId: string): Promise<BonoResumen[]> {
 }
 
 export async function getClientSummary(userId: string): Promise<ResumenCliente> {
+  const centroId = await getCentroIdForUser(userId);
+  const supabaseAdmin = centroDb(centroId);
   const { data: prof } = await supabaseAdmin
     .from("client_profiles")
     .select("nombre,email,client_id")
@@ -496,7 +511,7 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
     base.cancelacionesNC = countNC ?? 0;
   }
 
-  base.bonos = await listActiveBonos(clientId);
+  base.bonos = await listActiveBonos(clientId, centroId);
 
   const groupById = new Map((groups ?? []).map((g) => [g.id, g.nombre]));
   const next = (proximas ?? [])[0];
@@ -514,6 +529,7 @@ export async function getClientSummary(userId: string): Promise<ResumenCliente> 
 
 /** Sesiones de entrenamiento personal (no grupales) del cliente. */
 export async function listMyPersonalSessions(userId: string): Promise<SesionPersonal[]> {
+  const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const clientId = await requireClientRow(userId);
   const { from, to } = portalRange();
   const [{ data: sessions }, { data: trainers }] = await Promise.all([
@@ -558,6 +574,7 @@ export async function addAttendeeToBlock(params: {
   bookingTipo: BonoTipoCliente;
   porConfirmar?: boolean;
 }): Promise<string> {
+  const supabaseAdmin = centroDb(await getCentroIdOfRow("groups", params.groupId));
   const { data: rows } = await supabaseAdmin
     .from("sessions")
     .select(
@@ -624,7 +641,9 @@ async function bookingNeedsConfirmation(
   groupId: string,
   fecha: string,
   horaInicio: string,
+  centroId: string,
 ): Promise<boolean> {
+  const supabaseAdmin = centroDb(centroId);
   const { parseConfirmacionReservas, requiereConfirmacion } = await import("./booking-confirmation");
   const [{ data: cfg }, { data: rows }] = await Promise.all([
     supabaseAdmin.from("center_config").select("avisos").eq("id", true).maybeSingle(),
@@ -652,7 +671,9 @@ async function bookHuecoForUser(
   clientId: string,
   profile: PortalProfile,
   instanceId: string,
+  centroId: string,
 ): Promise<void> {
+  const supabaseAdmin = centroDb(centroId);
   const { data: hueco } = await supabaseAdmin
     .from("service_slot_instances")
     .select("id,servicio_slug,fecha,hora_inicio,hora_fin,capacidad,trainer_id,activo")
@@ -660,11 +681,11 @@ async function bookHuecoForUser(
     .maybeSingle();
   if (!hueco || hueco.activo === false) throw new Error("Este hueco ya no está disponible");
 
-  const abierto = await buildAperturaFilter();
+  const abierto = await buildAperturaFilter(centroId);
   if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
     throw new Error("El centro está cerrado en ese horario");
   }
-  await assertReservable(hueco.fecha, hueco.hora_inicio);
+  await assertReservable(hueco.fecha, hueco.hora_inicio, centroId);
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
@@ -710,21 +731,28 @@ async function bookHuecoForUser(
   if (error) throw new Error(error.message);
 
   const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
-  await crearNotificaciones([
+  await crearNotificaciones(
+    [
     {
       targetRole: "admin",
       tipo: "reserva_creada",
       titulo: porConfirmar
         ? `Reserva pendiente de confirmar de ${profile.nombre}`
         : `Reserva creada por ${profile.nombre}`,
-      mensaje: `en ${hueco.servicio_slug} (${describeSesion(hueco.fecha, hueco.hora_inicio)})`,
-    },
-  ]);
+        mensaje: `en ${hueco.servicio_slug} (${describeSesion(hueco.fecha, hueco.hora_inicio)})`,
+      },
+    ],
+    centroId,
+  );
 }
 
 /** Bloquea reservas de sesiones pasadas o fuera del margen de antelación. */
-async function assertReservable(fecha: string, horaInicio: string): Promise<void> {
-  const antelacion = await getAntelacionReservaMin();
+async function assertReservable(
+  fecha: string,
+  horaInicio: string,
+  centroId: string,
+): Promise<void> {
+  const antelacion = await getAntelacionReservaMin(centroId);
   if (puedeReservarse(fecha, horaInicio, antelacion)) return;
   const { yaComenzo, antelacionLabel } = await import("./booking-antelacion");
   if (yaComenzo(fecha, horaInicio)) throw new Error("Esta sesión ya ha comenzado");
@@ -738,15 +766,17 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   const profile = await getPortalProfile(userId);
   if (!profile) throw new Error("Cuenta de cliente no activa");
   const clientId = await requireClientRow(userId);
+  const centroId = await getCentroIdForUser(userId);
+  const supabaseAdmin = centroDb(centroId);
 
   if (key.startsWith("hueco|")) {
-    await bookHuecoForUser(userId, clientId, profile, key.slice("hueco|".length));
+    await bookHuecoForUser(userId, clientId, profile, key.slice("hueco|".length), centroId);
     return;
   }
 
   const [groupId, fecha, horaInicio] = key.split("|");
-  await assertReservable(fecha!, horaInicio!);
-  const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio);
+  await assertReservable(fecha!, horaInicio!, centroId);
+  const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio, centroId);
 
   await addAttendeeToBlock({
     groupId,
@@ -764,19 +794,23 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     .eq("id", groupId)
     .maybeSingle();
   const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
-  await crearNotificaciones([
+  await crearNotificaciones(
+    [
     {
       targetRole: "admin",
       tipo: "reserva_creada",
       titulo: porConfirmar
         ? `Reserva pendiente de confirmar de ${profile.nombre}`
         : `Reserva creada por ${profile.nombre}`,
-      mensaje: `en ${group?.nombre ?? "Clase grupal"} (${describeSesion(fecha, horaInicio)})`,
-    },
-  ]);
+        mensaje: `en ${group?.nombre ?? "Clase grupal"} (${describeSesion(fecha, horaInicio)})`,
+      },
+    ],
+    centroId,
+  );
 }
 
 export async function cancelBookingForUser(userId: string, sessionId: string): Promise<void> {
+  const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const { data: row } = await supabaseAdmin
     .from("sessions")
     .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
@@ -814,20 +848,24 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
   ]);
 
   const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
-  await crearNotificaciones([
+  await crearNotificaciones(
+    [
     {
       targetRole: "admin",
       tipo: "reserva_cancelada_cliente",
       titulo: `Reserva cancelada por ${profile?.nombre ?? "Cliente"}`,
-      mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})`,
-    },
-  ]);
+        mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})`,
+      },
+    ],
+    centroId,
+  );
 }
 /** Preferencias del centro que afectan a la vista del cliente. */
-export async function getPortalPrefs(): Promise<{
+export async function getPortalPrefs(userId: string): Promise<{
   clienteVeCanceladas: boolean;
   canceladasNCSumanTotal: boolean;
 }> {
+  const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const { data } = await supabaseAdmin
     .from("center_config")
     .select("avisos")
@@ -865,7 +903,9 @@ export interface HuecoDisponible {
  */
 export async function listHuecosDisponibles(
   slugs: string[],
+  userId: string,
 ): Promise<{ modo: string; slots: HuecoDisponible[] }> {
+  const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const { parseBookingMode, slotVisibleForMode } = await import("./booking-mode");
 
   const { data: cfg } = await supabaseAdmin
