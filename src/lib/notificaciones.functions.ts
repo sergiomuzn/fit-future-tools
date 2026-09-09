@@ -18,7 +18,9 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
     });
     if (!isAdmin) throw new Error("Solo administradores");
 
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { centroDb, getCentroIdForUser } = await import("./centro-scope.server");
+    const centroId = await getCentroIdForUser(context.userId);
+    const supabaseAdmin = centroDb(centroId);
     const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
 
     const { data: rows } = await supabaseAdmin
@@ -35,6 +37,6 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
         mensaje: `en ${r.titulo ?? "Clase grupal"} (${describeSesion(r.fecha, r.hora_inicio)})`,
       }));
 
-    await crearNotificaciones(items);
+    await crearNotificaciones(items, centroId);
     return { notified: items.length };
   });

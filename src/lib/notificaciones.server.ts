@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { centroDb } from "./centro-scope.server";
 
 export interface NuevaNotificacion {
   userId?: string | null;
@@ -8,7 +9,11 @@ export interface NuevaNotificacion {
   mensaje: string;
 }
 
-export async function crearNotificaciones(items: NuevaNotificacion[]): Promise<void> {
+export async function crearNotificaciones(
+  items: NuevaNotificacion[],
+  centroId?: string,
+): Promise<void> {
+  const db = centroId ? centroDb(centroId) : supabaseAdmin;
   const rows = items
     .filter((i) => i.userId || i.targetRole)
     .map((i) => ({
@@ -19,7 +24,7 @@ export async function crearNotificaciones(items: NuevaNotificacion[]): Promise<v
       mensaje: i.mensaje,
     }));
   if (!rows.length) return;
-  await supabaseAdmin.from("notificaciones").insert(rows);
+  await db.from("notificaciones").insert(rows);
 }
 
 /** "7 jul · 10:00" */

@@ -7,6 +7,7 @@ export const getCenterName = createServerFn({ method: "GET" }).handler(async () 
     .from("center_config")
     .select("nombre")
     .eq("id", true)
+    .limit(1)
     .maybeSingle();
   return { nombre: (data?.nombre ?? "").trim() || "Tracli" };
 });

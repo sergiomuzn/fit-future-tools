@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           caducidad_dias: number | null
           caducidad_tipo: string | null
+          centro_id: string
           duracion_min: number | null
           id: string
           modalidad: string | null
@@ -31,6 +32,7 @@ export type Database = {
         Insert: {
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
+          centro_id?: string
           duracion_min?: number | null
           id?: string
           modalidad?: string | null
@@ -44,6 +46,7 @@ export type Database = {
         Update: {
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
+          centro_id?: string
           duracion_min?: number | null
           id?: string
           modalidad?: string | null
@@ -54,11 +57,20 @@ export type Database = {
           sesiones_incluidas?: number
           tipo?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "bonos_catalogo_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       center_config: {
         Row: {
           avisos: Json
+          centro_id: string
           colores: Json
           horario_base: Json
           id: boolean
@@ -68,6 +80,7 @@ export type Database = {
         }
         Insert: {
           avisos?: Json
+          centro_id?: string
           colores?: Json
           horario_base?: Json
           id?: boolean
@@ -77,11 +90,56 @@ export type Database = {
         }
         Update: {
           avisos?: Json
+          centro_id?: string
           colores?: Json
           horario_base?: Json
           id?: boolean
           nombre?: string
           precios?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "center_config_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: true
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      centros: {
+        Row: {
+          configuracion_json: Json
+          created_at: string
+          estado: string
+          fecha_creacion: string
+          id: string
+          logo_url: string | null
+          nombre: string
+          plan: string
+          updated_at: string
+        }
+        Insert: {
+          configuracion_json?: Json
+          created_at?: string
+          estado?: string
+          fecha_creacion?: string
+          id?: string
+          logo_url?: string | null
+          nombre: string
+          plan?: string
+          updated_at?: string
+        }
+        Update: {
+          configuracion_json?: Json
+          created_at?: string
+          estado?: string
+          fecha_creacion?: string
+          id?: string
+          logo_url?: string | null
+          nombre?: string
+          plan?: string
           updated_at?: string
         }
         Relationships: []
@@ -91,6 +149,7 @@ export type Database = {
           activo: boolean
           bono_catalogo_id: string | null
           caducidad_avisada: boolean
+          centro_id: string
           client_id: string
           created_at: string
           fecha_caducidad: string | null
@@ -110,6 +169,7 @@ export type Database = {
           activo?: boolean
           bono_catalogo_id?: string | null
           caducidad_avisada?: boolean
+          centro_id?: string
           client_id: string
           created_at?: string
           fecha_caducidad?: string | null
@@ -129,6 +189,7 @@ export type Database = {
           activo?: boolean
           bono_catalogo_id?: string | null
           caducidad_avisada?: boolean
+          centro_id?: string
           client_id?: string
           created_at?: string
           fecha_caducidad?: string | null
@@ -153,6 +214,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "client_bonos_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "client_bonos_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -163,6 +231,7 @@ export type Database = {
       }
       client_events: {
         Row: {
+          centro_id: string
           client_id: string
           created_at: string
           fecha: string
@@ -170,6 +239,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["client_event_tipo"]
         }
         Insert: {
+          centro_id?: string
           client_id: string
           created_at?: string
           fecha?: string
@@ -177,6 +247,7 @@ export type Database = {
           tipo: Database["public"]["Enums"]["client_event_tipo"]
         }
         Update: {
+          centro_id?: string
           client_id?: string
           created_at?: string
           fecha?: string
@@ -184,6 +255,13 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["client_event_tipo"]
         }
         Relationships: [
+          {
+            foreignKeyName: "client_events_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_events_client_id_fkey"
             columns: ["client_id"]
@@ -196,6 +274,7 @@ export type Database = {
       client_invitations: {
         Row: {
           acceso: string
+          centro_id: string
           client_id: string | null
           code: string
           created_at: string
@@ -212,6 +291,7 @@ export type Database = {
         }
         Insert: {
           acceso?: string
+          centro_id?: string
           client_id?: string | null
           code: string
           created_at?: string
@@ -228,6 +308,7 @@ export type Database = {
         }
         Update: {
           acceso?: string
+          centro_id?: string
           client_id?: string | null
           code?: string
           created_at?: string
@@ -244,6 +325,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "client_invitations_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "client_invitations_client_id_fkey"
             columns: ["client_id"]
             isOneToOne: false
@@ -257,6 +345,7 @@ export type Database = {
           acceso: string
           activo: boolean
           bono_tipo: string
+          centro_id: string
           client_id: string | null
           created_at: string
           email: string
@@ -269,6 +358,7 @@ export type Database = {
           acceso?: string
           activo?: boolean
           bono_tipo: string
+          centro_id?: string
           client_id?: string | null
           created_at?: string
           email: string
@@ -281,6 +371,7 @@ export type Database = {
           acceso?: string
           activo?: boolean
           bono_tipo?: string
+          centro_id?: string
           client_id?: string | null
           created_at?: string
           email?: string
@@ -290,6 +381,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "client_profiles_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "client_profiles_client_id_fkey"
             columns: ["client_id"]
@@ -309,6 +407,7 @@ export type Database = {
       clients: {
         Row: {
           activo: boolean
+          centro_id: string
           created_at: string
           cumpleanos: string | null
           email: string | null
@@ -321,6 +420,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          centro_id?: string
           created_at?: string
           cumpleanos?: string | null
           email?: string | null
@@ -333,6 +433,7 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          centro_id?: string
           created_at?: string
           cumpleanos?: string | null
           email?: string | null
@@ -343,25 +444,43 @@ export type Database = {
           sexo?: string | null
           telefono?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "clients_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       group_members: {
         Row: {
+          centro_id: string
           client_id: string
           created_at: string
           group_id: string
         }
         Insert: {
+          centro_id?: string
           client_id: string
           created_at?: string
           group_id: string
         }
         Update: {
+          centro_id?: string
           client_id?: string
           created_at?: string
           group_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "group_members_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "group_members_client_id_fkey"
             columns: ["client_id"]
@@ -380,6 +499,7 @@ export type Database = {
       }
       group_schedules: {
         Row: {
+          centro_id: string
           created_at: string
           dia_semana: number
           group_id: string
@@ -388,6 +508,7 @@ export type Database = {
           id: string
         }
         Insert: {
+          centro_id?: string
           created_at?: string
           dia_semana: number
           group_id: string
@@ -396,6 +517,7 @@ export type Database = {
           id?: string
         }
         Update: {
+          centro_id?: string
           created_at?: string
           dia_semana?: number
           group_id?: string
@@ -404,6 +526,13 @@ export type Database = {
           id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "group_schedules_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "group_schedules_group_id_fkey"
             columns: ["group_id"]
@@ -418,6 +547,7 @@ export type Database = {
           acceso_clientes: boolean
           activo: boolean
           capacidad: number
+          centro_id: string
           created_at: string
           id: string
           nombre: string
@@ -428,6 +558,7 @@ export type Database = {
           acceso_clientes?: boolean
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           id?: string
           nombre: string
@@ -438,17 +569,27 @@ export type Database = {
           acceso_clientes?: boolean
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           id?: string
           nombre?: string
           notas?: string | null
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "groups_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       invoices: {
         Row: {
           bono_catalogo_id: string | null
+          centro_id: string
           client_id: string | null
           cobrador_trainer_id: string | null
           created_at: string
@@ -460,6 +601,7 @@ export type Database = {
         }
         Insert: {
           bono_catalogo_id?: string | null
+          centro_id?: string
           client_id?: string | null
           cobrador_trainer_id?: string | null
           created_at?: string
@@ -471,6 +613,7 @@ export type Database = {
         }
         Update: {
           bono_catalogo_id?: string | null
+          centro_id?: string
           client_id?: string | null
           cobrador_trainer_id?: string | null
           created_at?: string
@@ -486,6 +629,13 @@ export type Database = {
             columns: ["bono_catalogo_id"]
             isOneToOne: false
             referencedRelation: "bonos_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
             referencedColumns: ["id"]
           },
           {
@@ -506,6 +656,7 @@ export type Database = {
       }
       modalidades: {
         Row: {
+          centro_id: string
           created_at: string
           id: string
           nombre: string
@@ -514,6 +665,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centro_id?: string
           created_at?: string
           id?: string
           nombre: string
@@ -522,6 +674,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centro_id?: string
           created_at?: string
           id?: string
           nombre?: string
@@ -529,10 +682,19 @@ export type Database = {
           servicio_slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "modalidades_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       notificaciones: {
         Row: {
+          centro_id: string
           created_at: string
           id: string
           leida: boolean
@@ -543,6 +705,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          centro_id?: string
           created_at?: string
           id?: string
           leida?: boolean
@@ -553,6 +716,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          centro_id?: string
           created_at?: string
           id?: string
           leida?: boolean
@@ -562,12 +726,21 @@ export type Database = {
           titulo?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "notificaciones_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       service_slot_instances: {
         Row: {
           activo: boolean
           capacidad: number
+          centro_id: string
           created_at: string
           fecha: string
           hora_fin: string
@@ -582,6 +755,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           fecha: string
           hora_fin: string
@@ -596,6 +770,7 @@ export type Database = {
         Update: {
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           fecha?: string
           hora_fin?: string
@@ -608,6 +783,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_slot_instances_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_slot_instances_service_slot_id_fkey"
             columns: ["service_slot_id"]
@@ -628,6 +810,7 @@ export type Database = {
         Row: {
           activo: boolean
           capacidad: number
+          centro_id: string
           created_at: string
           dia_semana: number
           hora_fin: string
@@ -641,6 +824,7 @@ export type Database = {
         Insert: {
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           dia_semana: number
           hora_fin: string
@@ -654,6 +838,7 @@ export type Database = {
         Update: {
           activo?: boolean
           capacidad?: number
+          centro_id?: string
           created_at?: string
           dia_semana?: number
           hora_fin?: string
@@ -665,6 +850,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "service_slots_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "service_slots_trainer_id_fkey"
             columns: ["trainer_id"]
@@ -680,6 +872,7 @@ export type Database = {
           caducidad_dias: number | null
           caducidad_tipo: string | null
           capacidad_default: number
+          centro_id: string
           created_at: string
           descripcion: string | null
           id: string
@@ -693,6 +886,7 @@ export type Database = {
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
           capacidad_default?: number
+          centro_id?: string
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -706,6 +900,7 @@ export type Database = {
           caducidad_dias?: number | null
           caducidad_tipo?: string | null
           capacidad_default?: number
+          centro_id?: string
           created_at?: string
           descripcion?: string | null
           id?: string
@@ -714,12 +909,21 @@ export type Database = {
           slug?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "servicios_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sessions: {
         Row: {
           booked_by_user_id: string | null
           booking_tipo: string | null
+          centro_id: string
           client_id: string | null
           created_at: string
           estado: Database["public"]["Enums"]["sesion_estado"]
@@ -743,6 +947,7 @@ export type Database = {
         Insert: {
           booked_by_user_id?: string | null
           booking_tipo?: string | null
+          centro_id?: string
           client_id?: string | null
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
@@ -766,6 +971,7 @@ export type Database = {
         Update: {
           booked_by_user_id?: string | null
           booking_tipo?: string | null
+          centro_id?: string
           client_id?: string | null
           created_at?: string
           estado?: Database["public"]["Enums"]["sesion_estado"]
@@ -787,6 +993,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "sessions_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "sessions_client_id_fkey"
             columns: ["client_id"]
@@ -812,6 +1025,7 @@ export type Database = {
       }
       slot_structures: {
         Row: {
+          centro_id: string
           created_at: string
           id: string
           nombre: string
@@ -819,6 +1033,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centro_id?: string
           created_at?: string
           id?: string
           nombre: string
@@ -826,16 +1041,26 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centro_id?: string
           created_at?: string
           id?: string
           nombre?: string
           slots?: Json
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "slot_structures_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       special_days: {
         Row: {
+          centro_id: string
           created_at: string
           etiqueta: string | null
           fecha: string
@@ -845,6 +1070,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          centro_id?: string
           created_at?: string
           etiqueta?: string | null
           fecha: string
@@ -854,6 +1080,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          centro_id?: string
           created_at?: string
           etiqueta?: string | null
           fecha?: string
@@ -862,11 +1089,35 @@ export type Database = {
           tipo?: Database["public"]["Enums"]["special_day_tipo"]
           updated_at?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "special_days_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      superadmin_emails: {
+        Row: {
+          created_at: string
+          email: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+        }
         Relationships: []
       }
       trainers: {
         Row: {
           activo: boolean
+          centro_id: string
           created_at: string
           id: string
           iniciales: string
@@ -874,6 +1125,7 @@ export type Database = {
         }
         Insert: {
           activo?: boolean
+          centro_id?: string
           created_at?: string
           id?: string
           iniciales: string
@@ -881,33 +1133,53 @@ export type Database = {
         }
         Update: {
           activo?: boolean
+          centro_id?: string
           created_at?: string
           id?: string
           iniciales?: string
           nombre?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "trainers_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
+          centro_id: string | null
           created_at: string
           id: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
+          centro_id?: string | null
           created_at?: string
           id?: string
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
+          centro_id?: string | null
           created_at?: string
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -927,6 +1199,11 @@ export type Database = {
         Args: { p_dias?: number }
         Returns: number
       }
+      claim_superadmin: { Args: never; Returns: boolean }
+      create_centro: {
+        Args: { p_nombre: string; p_plan?: string }
+        Returns: string
+      }
       current_app_role: {
         Args: never
         Returns: Database["public"]["Enums"]["app_role"]
@@ -937,6 +1214,7 @@ export type Database = {
       }
       get_aviso_umbral: { Args: never; Returns: number }
       get_center_nombre: { Args: never; Returns: string }
+      get_my_centro_id: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -945,6 +1223,7 @@ export type Database = {
         Returns: boolean
       }
       is_generic_pass_client: { Args: { _name: string }; Returns: boolean }
+      is_superadmin: { Args: never; Returns: boolean }
       notify_bonos_caducados: { Args: never; Returns: number }
       pick_bono_for_session: {
         Args: { p_client: string; p_for_restore?: boolean; p_servicio: string }
@@ -954,17 +1233,31 @@ export type Database = {
         Args: { p_bono_cat: string; p_client: string; p_fecha: string }
         Returns: undefined
       }
-      session_servicio_slug: {
-        Args: { p_group_id: string; p_ocupacion: number; p_servicio: string }
-        Returns: string
-      }
+      session_servicio_slug:
+        | {
+            Args: {
+              p_group_id: string
+              p_ocupacion: number
+              p_servicio: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_centro?: string
+              p_group_id: string
+              p_ocupacion: number
+              p_servicio: string
+            }
+            Returns: string
+          }
       sync_client_fecha_inicio: {
         Args: { p_client: string }
         Returns: undefined
       }
     }
     Enums: {
-      app_role: "admin" | "entrenador" | "cliente"
+      app_role: "admin" | "entrenador" | "cliente" | "superadmin"
       bono_tipo: "individual" | "pareja" | "grupal" | "prueba" | "gympass"
       client_event_tipo: "alta" | "baja"
       sesion_estado:
@@ -1101,7 +1394,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "entrenador", "cliente"],
+      app_role: ["admin", "entrenador", "cliente", "superadmin"],
       bono_tipo: ["individual", "pareja", "grupal", "prueba", "gympass"],
       client_event_tipo: ["alta", "baja"],
       sesion_estado: [

@@ -58,7 +58,7 @@ async function ensureClienteProfile(userId: string, email: string, nombre: strin
 }
 
 /** Crea (si hace falta) el usuario de prueba, fija su rol e inicia sesión. */
-export async function devSignIn(role: Exclude<AppRole, "entrenador">) {
+export async function devSignIn(role: "admin" | "cliente") {
   const cfg = DEV_USERS[role];
   let userId = await findUserByEmail(cfg.email);
 
