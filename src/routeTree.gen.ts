@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuperadminRouteImport } from './routes/superadmin'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as ClienteRouteImport } from './routes/cliente'
@@ -29,6 +30,11 @@ import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/publi
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
 
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/cliente': typeof ClienteRoute
   '/perfil': typeof PerfilRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/superadmin': typeof SuperadminRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/cliente': typeof ClienteRoute
   '/perfil': typeof PerfilRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/superadmin': typeof SuperadminRoute
   '/clientes': typeof ShellClientesRoute
   '/configuracion': typeof ShellConfiguracionRoute
   '/entrenadores': typeof ShellEntrenadoresRoute
@@ -175,6 +183,7 @@ export interface FileRoutesById {
   '/cliente': typeof ClienteRoute
   '/perfil': typeof PerfilRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/superadmin': typeof SuperadminRoute
   '/_shell/clientes': typeof ShellClientesRoute
   '/_shell/configuracion': typeof ShellConfiguracionRoute
   '/_shell/entrenadores': typeof ShellEntrenadoresRoute
@@ -198,6 +207,7 @@ export interface FileRouteTypes {
     | '/cliente'
     | '/perfil'
     | '/reset-password'
+    | '/superadmin'
     | '/clientes'
     | '/configuracion'
     | '/entrenadores'
@@ -217,6 +227,7 @@ export interface FileRouteTypes {
     | '/cliente'
     | '/perfil'
     | '/reset-password'
+    | '/superadmin'
     | '/clientes'
     | '/configuracion'
     | '/entrenadores'
@@ -238,6 +249,7 @@ export interface FileRouteTypes {
     | '/cliente'
     | '/perfil'
     | '/reset-password'
+    | '/superadmin'
     | '/_shell/clientes'
     | '/_shell/configuracion'
     | '/_shell/entrenadores'
@@ -260,6 +272,7 @@ export interface RootRouteChildren {
   ClienteRoute: typeof ClienteRoute
   PerfilRoute: typeof PerfilRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SuperadminRoute: typeof SuperadminRoute
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
   ApiPublicHooksPropagarHuecosRoute: typeof ApiPublicHooksPropagarHuecosRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
@@ -271,6 +284,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -435,6 +455,7 @@ const rootRouteChildren: RootRouteChildren = {
   ClienteRoute: ClienteRoute,
   PerfilRoute: PerfilRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SuperadminRoute: SuperadminRoute,
   InvitacionCodigoRoute: InvitacionCodigoRoute,
   ApiPublicHooksPropagarHuecosRoute: ApiPublicHooksPropagarHuecosRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
