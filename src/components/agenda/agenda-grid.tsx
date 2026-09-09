@@ -182,6 +182,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
+  const servicioGrupoSlug = useMemo(
+    () => servicios.find((s) => Math.max(1, s.capacidad_default ?? 1) > 1)?.slug ?? "",
+    [servicios],
+  );
   const servicioAbrevMap = useMemo(
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
@@ -722,6 +726,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const servicioSlug: string =
                 ((session as any).servicio_slug as string | null) ??
                 (members?.find((m) => (m as any).servicio_slug) as any)?.servicio_slug ??
+                (isGroup ? servicioGrupoSlug : "") ??
                 "";
               // Plazas disponibles: las define el servicio de la sesión. Solo las
               // sesiones que vienen de una reserva online usan la capacidad

@@ -104,6 +104,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
     () => new Map(servicios.map((s) => [s.slug, Math.max(1, s.capacidad_default ?? 1)])),
     [servicios],
   );
+  const servicioGrupoSlug = useMemo(
+    () => servicios.find((s) => Math.max(1, s.capacidad_default ?? 1) > 1)?.slug ?? "",
+    [servicios],
+  );
   const servicioAbrevMap = useMemo(
     () => new Map(servicios.map((s) => [s.slug, abreviaturaServicio(s.nombre, s.abreviatura)])),
     [servicios],
@@ -228,6 +232,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         ? groupSlugMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`)
                         : null) ??
                       (session as any).servicio_slug ??
+                      (isGroup ? servicioGrupoSlug : "") ??
                       "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
