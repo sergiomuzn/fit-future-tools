@@ -810,7 +810,8 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
 }
 
 export async function cancelBookingForUser(userId: string, sessionId: string): Promise<void> {
-  const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
+  const centroId = await getCentroIdForUser(userId);
+  const supabaseAdmin = centroDb(centroId);
   const { data: row } = await supabaseAdmin
     .from("sessions")
     .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
