@@ -70,30 +70,39 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
   if (current.length) groups.push(current);
 
   for (const g of groups) {
-    const cols: { end: string }[] = [];
-    const assignments = new Map<string, number>();
-    for (const s of g) {
-      let placed = -1;
-      // Best-fit: entre las columnas libres elegimos la que acaba más tarde,
-      // para que cada columna quede compacta (sin huecos) antes de abrir otra.
-      let bestEnd = "";
-      for (let i = 0; i < cols.length; i++) {
-        if (cols[i].end <= s.hora_inicio && cols[i].end >= bestEnd) {
-          bestEnd = cols[i].end;
-          placed = i;
-        }
-      }
-      if (placed !== -1) cols[placed] = { end: s.hora_fin };
-      if (placed === -1) {
-        cols.push({ end: s.hora_fin });
-        placed = cols.length - 1;
-      }
-      assignments.set(s.id, placed);
-    }
-    const colCount = cols.length;
-
     const overlaps = (a: Session, b: Session) =>
       a.hora_inicio < b.hora_fin && a.hora_fin > b.hora_inicio;
+
+    // Número mínimo de columnas = máximo de sesiones solapadas a la vez.
+    let colCount = 1;
+    for (const s of g) {
+      const depth = g.filter((o) => overlaps(o, s)).length;
+      if (depth > colCount) colCount = depth;
+    }
+
+    /** Asigna columnas con una estrategia dada. */
+    const asignar = (modo: "first" | "best" | "last") => {
+      const cols: { end: string }[] = [];
+      const asg = new Map<string, number>();
+      for (const s of g) {
+        let placed = -1;
+        let bestEnd = modo === "best" ? "" : undefined;
+        for (let i = 0; i < cols.length; i++) {
+          if (cols[i].end > s.hora_inicio) continue;
+          if (modo === "first") { placed = i; break; }
+          if (modo === "last") { placed = i; continue; }
+          if (cols[i].end >= (bestEnd as string)) { bestEnd = cols[i].end; placed = i; }
+        }
+        if (placed !== -1) cols[placed] = { end: s.hora_fin };
+        else {
+          cols.push({ end: s.hora_fin });
+          placed = cols.length - 1;
+        }
+        asg.set(s.id, placed);
+      }
+      if (cols.length > colCount) colCount = cols.length;
+      return asg;
+    };
 
     /** ¿Puede la sesión ocupar la columna k sin chocar con otra asignada ahí? */
     const colLibre = (k: number, s: Session, asg: Map<string, number>) =>
@@ -105,6 +114,7 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     const expandir = (asg: Map<string, number>) => {
       const claimed: { col: number; ini: string; fin: string }[] = [];
       const out: LayoutInfo[] = [];
+      // Expandimos primero las sesiones con menos margen para repartir mejor.
       for (const s of g) {
         const c = asg.get(s.id)!;
         const libre = (k: number) =>
@@ -122,12 +132,24 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
 
     const ancho = (l: LayoutInfo[]) => l.reduce((acc, i) => acc + i.span, 0);
 
+    // Probamos varias estrategias de asignación y nos quedamos con la mejor.
+    let mejorAsg = asignar("best");
+    let mejorLayout = expandir(mejorAsg);
+    let mejorAncho = ancho(mejorLayout);
+    for (const modo of ["first", "last"] as const) {
+      const asg = asignar(modo);
+      const l = expandir(asg);
+      const w = ancho(l);
+      if (w > mejorAncho) {
+        mejorAncho = w;
+        mejorLayout = l;
+        mejorAsg = asg;
+      }
+    }
+
     // Mejora local: probamos mover cada sesión a otra columna libre y nos
     // quedamos con la disposición en la que las sesiones son más anchas.
-    let mejorLayout = expandir(assignments);
-    let mejorAncho = ancho(mejorLayout);
-    let mejorAsg = assignments;
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < 6; pass++) {
       let cambio = false;
       for (const s of g) {
         const actual = mejorAsg.get(s.id)!;
@@ -146,10 +168,35 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
           }
         }
       }
+      // Intercambios entre pares: desbloquea casos donde un solo movimiento
+      // no mejora pero sí hacerlo a la vez con otra sesión.
+      for (const a of g) {
+        for (const b of g) {
+          if (a.id >= b.id) continue;
+          const ca = mejorAsg.get(a.id)!;
+          const cb = mejorAsg.get(b.id)!;
+          if (ca === cb) continue;
+          const prueba = new Map(mejorAsg);
+          prueba.set(a.id, cb);
+          prueba.set(b.id, ca);
+          const valido =
+            colLibre(cb, a, prueba) && colLibre(ca, b, prueba);
+          if (!valido) continue;
+          const layout = expandir(prueba);
+          const w = ancho(layout);
+          if (w > mejorAncho) {
+            mejorAncho = w;
+            mejorLayout = layout;
+            mejorAsg = prueba;
+            cambio = true;
+          }
+        }
+      }
       if (!cambio) break;
     }
     result.push(...mejorLayout);
   }
+
   return result;
 }
 
@@ -691,20 +738,31 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
             {/* draft */}
             {draft && (
-              <div
-                className="absolute z-40 rounded-md bg-primary/20 border border-primary/60 pointer-events-none flex items-start justify-center text-[11px] font-semibold text-white"
-                style={{
-                  top: (draft.startMin / SLOT_MIN) * SLOT_PX,
-                  height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
-                  left: 4,
-                  right: 4,
-                }}
-              >
-                <span className="mt-1 rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
-                  {minToTime(draft.startMin).slice(0,5)} – {minToTime(draft.endMin).slice(0,5)}
-                </span>
-              </div>
+              <>
+                <div
+                  className="absolute z-0 rounded-md bg-primary/20 border border-primary/60 pointer-events-none"
+                  style={{
+                    top: (draft.startMin / SLOT_MIN) * SLOT_PX,
+                    height: ((draft.endMin - draft.startMin) / SLOT_MIN) * SLOT_PX,
+                    left: 4,
+                    right: 4,
+                  }}
+                />
+                <div
+                  className="absolute z-50 flex justify-center pointer-events-none text-[11px] font-semibold"
+                  style={{
+                    top: (draft.startMin / SLOT_MIN) * SLOT_PX + 4,
+                    left: 4,
+                    right: 4,
+                  }}
+                >
+                  <span className="rounded bg-primary px-1.5 py-0.5 text-primary-foreground shadow-sm">
+                    {minToTime(draft.startMin).slice(0, 5)} – {minToTime(draft.endMin).slice(0, 5)}
+                  </span>
+                </div>
+              </>
             )}
+
 
             {/* sessions */}
             {layout.map(({ session, col, cols, span }) => {
