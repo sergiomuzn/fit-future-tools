@@ -173,7 +173,7 @@ const BonoCells = memo(function BonoCells({
                 <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
               ))}
             {editing ? (
-              <TableCell>
+              <TableCell className="w-36">
                 <Input
                   className="h-8 w-full"
                   defaultValue={b.nombre}
@@ -184,7 +184,7 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="truncate">{b.nombre}</TableCell>
+              <TableCell className="w-36 truncate">{b.nombre}</TableCell>
             )}
             {editing ? (
               <TableCell>
@@ -520,7 +520,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <TableRow>
                 {editing && <TableHead className="w-6 px-0" />}
                 {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
-                <TableHead className="w-48">Bono</TableHead>
+                <TableHead className="w-36">Bono</TableHead>
                 <TableHead className="w-16 text-right">Sesiones</TableHead>
                 <TableHead className="w-12 text-right">Duración</TableHead>
                 <TableHead className="w-12 text-right">Precio</TableHead>
@@ -562,7 +562,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                       </Select>
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className="w-36">
                     <Input
                       autoFocus
                       className="h-8 w-full"
@@ -625,7 +625,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   return (
     <div className="space-y-3">
       {dialog}
-      <div className="flex max-w-2xl items-center justify-between gap-2">
+      <div className="flex max-w-xl items-center justify-between gap-2">
         <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -652,7 +652,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
 
-      {!editing && <div className="max-w-2xl">{tabla}</div>}
+      {!editing && <div className="max-w-xl">{tabla}</div>}
 
       <Dialog
         open={editing}
