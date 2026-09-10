@@ -562,7 +562,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                       </Select>
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className="w-36">
                     <Input
                       autoFocus
                       className="h-8 w-full"
