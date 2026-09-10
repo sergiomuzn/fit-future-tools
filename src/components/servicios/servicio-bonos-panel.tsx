@@ -173,7 +173,7 @@ const BonoCells = memo(function BonoCells({
                 <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
               ))}
             {editing ? (
-              <TableCell>
+              <TableCell className="w-36">
                 <Input
                   className="h-8 w-full"
                   defaultValue={b.nombre}
@@ -184,7 +184,7 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="truncate">{b.nombre}</TableCell>
+              <TableCell className="w-36 truncate">{b.nombre}</TableCell>
             )}
             {editing ? (
               <TableCell>
