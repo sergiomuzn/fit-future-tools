@@ -512,7 +512,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const colCount = 5 + (showModalidad ? 1 : 0) + (editing ? 2 : 0);
 
   const tabla = (
-      <div className="rounded-lg border overflow-hidden">
+      <div className="rounded-lg border border-input overflow-hidden">
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
           <table className="w-full caption-bottom text-sm table-fixed">
