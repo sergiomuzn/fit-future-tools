@@ -652,7 +652,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
 
-      {!editing && <div className="max-w-2xl">{tabla}</div>}
+      {!editing && <div className="max-w-xl">{tabla}</div>}
 
       <Dialog
         open={editing}
