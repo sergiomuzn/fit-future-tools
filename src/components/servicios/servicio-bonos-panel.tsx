@@ -191,7 +191,7 @@ const BonoCells = memo(function BonoCells({
                 <Input
                   type="number"
                   min={0}
-                  className="h-8 px-1.5 text-right no-spinner"
+                  className="h-8 px-1.5 no-spinner"
                   defaultValue={b.sesiones_incluidas}
                   onBlur={(e) => {
                     const v = Math.max(0, Number(e.target.value) || 0);
@@ -201,14 +201,14 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="text-right">{b.sesiones_incluidas}</TableCell>
+              <TableCell>{b.sesiones_incluidas}</TableCell>
             )}
             {editing ? (
               <TableCell>
                 <Input
                   type="number"
                   min={0}
-                  className="h-8 px-1.5 text-right no-spinner"
+                  className="h-8 px-1.5 no-spinner"
                   defaultValue={b.duracion_min ?? ""}
                   onBlur={(e) => {
                     const raw = e.target.value;
@@ -219,7 +219,7 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="text-right">{b.duracion_min ?? "—"}</TableCell>
+              <TableCell>{b.duracion_min ?? "—"}</TableCell>
             )}
             {editing ? (
               <TableCell>
@@ -227,7 +227,7 @@ const BonoCells = memo(function BonoCells({
                   type="number"
                   min={0}
                   step="0.01"
-                  className="h-8 px-1.5 text-right no-spinner"
+                  className="h-8 px-1.5 no-spinner"
                   defaultValue={Number(b.precio)}
                   onBlur={(e) => {
                     const v = Number(e.target.value) || 0;
@@ -237,7 +237,7 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="text-right">{Number(b.precio)}</TableCell>
+              <TableCell>{Number(b.precio)}</TableCell>
             )}
             {editing ? (
               <TableCell className="pr-0">
@@ -520,10 +520,10 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               <TableRow>
                 {editing && <TableHead className="w-6 px-0" />}
                 {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
-                <TableHead className="w-48">Bono</TableHead>
-                <TableHead className="w-16 text-right">Sesiones</TableHead>
-                <TableHead className="w-12 text-right">Duración</TableHead>
-                <TableHead className="w-12 text-right">Precio</TableHead>
+                <TableHead className="w-40">Bono</TableHead>
+                <TableHead className="w-16">Sesiones</TableHead>
+                <TableHead className="w-12">Duración</TableHead>
+                <TableHead className="w-12">Precio</TableHead>
                 <TableHead className="w-28 pr-0">Caducidad</TableHead>
                 {editing && <TableHead className="w-8 px-0" />}
               </TableRow>
@@ -575,7 +575,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     <Input
                       type="number"
                       min={0}
-                      className="h-8 px-1.5 text-right no-spinner"
+                      className="h-8 px-1.5 no-spinner"
                       value={draft.sesiones}
                       onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
                     />
@@ -584,7 +584,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                     <Input
                       type="number"
                       min={0}
-                      className="h-8 px-1.5 text-right no-spinner"
+                      className="h-8 px-1.5 no-spinner"
                       value={draft.duracion}
                       onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
                     />
@@ -594,7 +594,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                       type="number"
                       min={0}
                       step="0.01"
-                      className="h-8 px-1.5 text-right no-spinner"
+                      className="h-8 px-1.5 no-spinner"
                       value={draft.precio}
                       onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                     />
@@ -625,7 +625,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   return (
     <div className="space-y-3">
       {dialog}
-      <div className="flex max-w-2xl items-center justify-between gap-2">
+      <div className="flex max-w-xl items-center justify-between gap-2">
         <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -652,7 +652,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
 
-      {!editing && <div className="max-w-2xl">{tabla}</div>}
+      {!editing && <div className="max-w-xl">{tabla}</div>}
 
       <Dialog
         open={editing}
