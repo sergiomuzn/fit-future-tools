@@ -515,12 +515,12 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       <div className="rounded-lg border overflow-hidden p-2">
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
-          <table className="w-full caption-bottom text-sm table-fixed border-separate border-spacing-x-2">
+          <table className="w-full caption-bottom text-sm table-fixed border-separate border-spacing-x-1">
             <TableHeader>
               <TableRow>
                 {editing && <TableHead className="w-6 px-0 text-left" />}
                 {showModalidad && <TableHead className="w-20 px-1 text-left">Modalidad</TableHead>}
-                <TableHead className="w-32 px-1 text-left">Bono</TableHead>
+                <TableHead className="w-36 px-1 text-left">Bono</TableHead>
                 <TableHead className="w-16 px-1 text-left">Sesiones</TableHead>
                 <TableHead className="w-16 px-1 text-left">Duración</TableHead>
                 <TableHead className="w-16 px-1 text-left">Precio</TableHead>
