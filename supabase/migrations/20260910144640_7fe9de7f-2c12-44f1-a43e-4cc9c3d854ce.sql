@@ -1,0 +1,1 @@
+DELETE FROM public.client_events WHERE id = 'c3925878-fd78-4c90-a20e-0b5f566b4f27';
