@@ -150,7 +150,7 @@ const BonoCells = memo(function BonoCells({
     <>
             {showModalidad &&
               (editing ? (
-                <TableCell>
+                <TableCell className="text-left">
                   <Select
                     value={b.modalidad ?? MODALIDAD_NONE}
                     onValueChange={(v) =>
@@ -170,12 +170,12 @@ const BonoCells = memo(function BonoCells({
                   </Select>
                 </TableCell>
               ) : (
-                <TableCell className="truncate">{b.modalidad ?? "—"}</TableCell>
+                <TableCell className="truncate text-left">{b.modalidad ?? "—"}</TableCell>
               ))}
             {editing ? (
-              <TableCell>
+              <TableCell className="text-left">
                 <Input
-                  className="h-8 w-full"
+                  className="h-8 w-full text-left"
                   defaultValue={b.nombre}
                   onBlur={(e) => {
                     const v = e.target.value.trim();
@@ -184,14 +184,14 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="truncate">{b.nombre}</TableCell>
+              <TableCell className="truncate text-left">{b.nombre}</TableCell>
             )}
             {editing ? (
-              <TableCell>
+              <TableCell className="text-left">
                 <Input
                   type="number"
                   min={0}
-                  className="h-8 px-1.5 no-spinner"
+                  className="h-8 px-1.5 no-spinner text-left"
                   defaultValue={b.sesiones_incluidas}
                   onBlur={(e) => {
                     const v = Math.max(0, Number(e.target.value) || 0);
@@ -201,14 +201,14 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell>{b.sesiones_incluidas}</TableCell>
+              <TableCell className="text-left">{b.sesiones_incluidas}</TableCell>
             )}
             {editing ? (
-              <TableCell>
+              <TableCell className="text-left">
                 <Input
                   type="number"
                   min={0}
-                  className="h-8 px-1.5 no-spinner"
+                  className="h-8 px-1.5 no-spinner text-left"
                   defaultValue={b.duracion_min ?? ""}
                   onBlur={(e) => {
                     const raw = e.target.value;
@@ -219,15 +219,15 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell>{b.duracion_min ?? "—"}</TableCell>
+              <TableCell className="text-left">{b.duracion_min ?? "—"}</TableCell>
             )}
             {editing ? (
-              <TableCell>
+              <TableCell className="text-left">
                 <Input
                   type="number"
                   min={0}
                   step="0.01"
-                  className="h-8 px-1.5 no-spinner"
+                  className="h-8 px-1.5 no-spinner text-left"
                   defaultValue={Number(b.precio)}
                   onBlur={(e) => {
                     const v = Number(e.target.value) || 0;
@@ -237,12 +237,12 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell>{Number(b.precio)}</TableCell>
+              <TableCell className="text-left">{Number(b.precio)}</TableCell>
             )}
             {editing ? (
-              <TableCell className="pr-0">
+              <TableCell className="pr-0 text-left">
                 <CaducidadSelect
-                  triggerClassName="h-8 w-full"
+                  triggerClassName="h-8 w-full justify-start text-left"
                   value={{
                     tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                     dias: b.caducidad_dias ?? null,
@@ -256,7 +256,7 @@ const BonoCells = memo(function BonoCells({
                 />
               </TableCell>
             ) : (
-              <TableCell className="pr-0 truncate">
+              <TableCell className="pr-0 truncate text-left">
                 {caducidadLabel({
                   tipo: (b.caducidad_tipo ?? null) as CaducidadValue["tipo"],
                   dias: b.caducidad_dias ?? null,
@@ -512,20 +512,20 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const colCount = 5 + (showModalidad ? 1 : 0) + (editing ? 2 : 0);
 
   const tabla = (
-      <div className="rounded-lg border overflow-hidden">
+      <div className="rounded-lg border overflow-hidden p-2">
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
-          <table className="w-full caption-bottom text-sm table-fixed">
+          <table className="w-full caption-bottom text-sm table-fixed border-separate border-spacing-x-1">
             <TableHeader>
               <TableRow>
-                {editing && <TableHead className="w-6 px-0" />}
-                {showModalidad && <TableHead className="w-24">Modalidad</TableHead>}
-                <TableHead className="w-40">Bono</TableHead>
-                <TableHead className="w-16">Sesiones</TableHead>
-                <TableHead className="w-12">Duración</TableHead>
-                <TableHead className="w-12">Precio</TableHead>
-                <TableHead className="w-28 pr-0">Caducidad</TableHead>
-                {editing && <TableHead className="w-8 px-0" />}
+                {editing && <TableHead className="w-6 px-0 text-left" />}
+                {showModalidad && <TableHead className="w-20 px-1 text-left">Modalidad</TableHead>}
+                <TableHead className="w-36 px-1 text-left">Bono</TableHead>
+                <TableHead className="w-16 px-1 text-left">Sesiones</TableHead>
+                <TableHead className="w-16 px-1 text-left">Duración</TableHead>
+                <TableHead className="w-16 px-1 text-left">Precio</TableHead>
+                <TableHead className="w-28 px-1 pr-0 text-left">Caducidad</TableHead>
+                {editing && <TableHead className="w-8 px-0 text-left" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -545,9 +545,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               </SortableContext>
               {adding && (
                 <TableRow>
-                  {editing && <TableCell className="p-0 w-6" />}
+                  {editing && <TableCell className="p-0 w-6 text-left" />}
                   {showModalidad && (
-                    <TableCell>
+                    <TableCell className="text-left">
                       <Select
                         value={draft.modalidad}
                         onValueChange={(v) => setDraft({ ...draft, modalidad: v })}
@@ -562,51 +562,51 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
                       </Select>
                     </TableCell>
                   )}
-                  <TableCell>
+                  <TableCell className="text-left">
                     <Input
                       autoFocus
-                      className="h-8 w-full"
+                      className="h-8 w-full text-left"
                       placeholder="Bono 10 sesiones"
                       value={draft.nombre}
                       onChange={(e) => setDraft({ ...draft, nombre: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-left">
                     <Input
                       type="number"
                       min={0}
-                      className="h-8 px-1.5 no-spinner"
+                      className="h-8 px-1.5 no-spinner text-left"
                       value={draft.sesiones}
                       onChange={(e) => setDraft({ ...draft, sesiones: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-left">
                     <Input
                       type="number"
                       min={0}
-                      className="h-8 px-1.5 no-spinner"
+                      className="h-8 px-1.5 no-spinner text-left"
                       value={draft.duracion}
                       onChange={(e) => setDraft({ ...draft, duracion: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-left">
                     <Input
                       type="number"
                       min={0}
                       step="0.01"
-                      className="h-8 px-1.5 no-spinner"
+                      className="h-8 px-1.5 no-spinner text-left"
                       value={draft.precio}
                       onChange={(e) => setDraft({ ...draft, precio: e.target.value })}
                     />
                   </TableCell>
-                  <TableCell className="pr-0">
+                  <TableCell className="pr-0 text-left">
                     <CaducidadSelect
-                      triggerClassName="h-8 w-full"
+                      triggerClassName="h-8 w-full justify-start text-left"
                       value={draft.caducidad}
                       onChange={(v) => setDraft({ ...draft, caducidad: v })}
                     />
                   </TableCell>
-                  {editing && <TableCell />}
+                  {editing && <TableCell className="text-left" />}
                 </TableRow>
               )}
               {!isLoading && bonos.length === 0 && !adding && (
