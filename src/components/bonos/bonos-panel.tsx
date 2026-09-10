@@ -508,13 +508,11 @@ export function BonosPanel() {
                   <Label>Realizadas</Label>
                   <Input
                     type="number"
-                    placeholder="0"
-                    value={editing.sesiones_realizadas === 0 ? "" : editing.sesiones_realizadas}
-                    onChange={(e) => {
-                      const total = editing.sesiones_disponibles + editing.sesiones_realizadas;
-                      const realizadas = Number(e.target.value) || 0;
-                      setEditing({ ...editing, sesiones_realizadas: realizadas, sesiones_disponibles: total - realizadas });
-                    }}
+                    readOnly
+                    disabled
+                    title="Se calcula automáticamente con las sesiones de la agenda"
+                    className="bg-muted/50 cursor-not-allowed"
+                    value={editing.sesiones_realizadas}
                   />
                 </div>
                 <div className="space-y-1.5">
