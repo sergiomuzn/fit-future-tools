@@ -203,7 +203,6 @@ export function BonosPanel() {
     const { error } = await supabase.from("client_bonos").update({
       bono_catalogo_id: editing.bono_catalogo_id,
       sesiones_disponibles: editing.sesiones_disponibles,
-      sesiones_realizadas: editing.sesiones_realizadas,
       activo: editing.activo,
       ultimo_bono_nombre: selectedCatalogo?.nombre ?? editing.ultimo_bono_nombre,
       nota: editing.nota ?? null,
