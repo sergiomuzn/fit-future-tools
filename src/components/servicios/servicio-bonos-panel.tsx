@@ -625,7 +625,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   return (
     <div className="space-y-3">
       {dialog}
-      <div className="flex max-w-xl items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -652,7 +652,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
         </DropdownMenu>
       </div>
 
-      {!editing && <div className="max-w-xl">{tabla}</div>}
+      {!editing && tabla}
 
       <Dialog
         open={editing}

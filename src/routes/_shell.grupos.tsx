@@ -204,14 +204,14 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-              <Card className="xl:col-span-7">
+            <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-4 items-start">
+              <Card className="w-fit">
                 <CardContent className="p-6">
                   <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>
               </Card>
 
-              <Card className="xl:col-span-5">
+              <Card>
                 <CardHeader>
                   <CardTitle className="text-base">Reservas</CardTitle>
                 </CardHeader>
