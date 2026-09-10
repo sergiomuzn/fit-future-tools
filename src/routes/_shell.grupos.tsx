@@ -204,9 +204,9 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[auto_1fr] gap-4 items-start">
-              <Card className="w-fit">
-                <CardContent className="p-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,576px)_1fr] gap-4 items-start">
+              <Card className="overflow-hidden">
+                <CardContent className="p-0">
                   <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>
               </Card>

@@ -512,7 +512,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   const colCount = 5 + (showModalidad ? 1 : 0) + (editing ? 2 : 0);
 
   const tabla = (
-      <div className="rounded-lg border overflow-hidden p-2">
+      <div className="rounded-lg border overflow-hidden p-2 max-w-xl">
 
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={(e) => void onDragEnd(e)}>
           <table className="w-full caption-bottom text-sm table-fixed border-separate border-spacing-x-1">
@@ -623,9 +623,9 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 py-4">
       {dialog}
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 px-4 py-2">
         <h3 className="text-base font-semibold leading-none tracking-tight">Bonos</h3>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
