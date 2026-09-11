@@ -28,6 +28,8 @@ interface Reserva {
   client_id: string | null;
   estado: string;
   titulo: string | null;
+  booking_tipo: string | null;
+  booked_by_user_id: string | null;
   clients: { nombre: string } | null;
 }
 
@@ -94,18 +96,26 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     queryFn: async () => {
       const { data } = await supabase
         .from("sessions")
-        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,titulo,clients(nombre)")
+        .select(
+          "id,fecha,hora_inicio,servicio_slug,client_id,estado,titulo,booking_tipo,booked_by_user_id,clients(nombre)",
+        )
         .gte("fecha", from)
         .lte("fecha", to);
       return (data ?? []) as unknown as Reserva[];
     },
   });
 
-  /** Reservas activas indexadas por hueco (servicio|fecha|hora). */
+  /**
+   * Reservas activas indexadas por hueco (servicio|fecha|hora).
+   * Solo cuentan las reservas hechas por clientes desde el portal: las sesiones
+   * creadas manualmente en Agenda nunca ocupan un hueco propagado.
+   */
   const reservasPorHueco = useMemo(() => {
     const m = new Map<string, Reserva[]>();
     for (const r of sesiones) {
       if (!r.client_id || r.estado === "cancelada") continue;
+      const esReservaCliente = !!r.booked_by_user_id || !!r.booking_tipo;
+      if (!esReservaCliente) continue;
       const k = `${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`;
       const arr = m.get(k) ?? [];
       arr.push(r);
