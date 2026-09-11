@@ -206,7 +206,7 @@ function ServiciosPage() {
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,576px)_1fr] gap-4 items-start">
               <Card className="overflow-hidden">
-                <CardContent className="p-0">
+                <CardContent className="p-4">
                   <ServicioBonosPanel servicioSlug={s.slug} />
                 </CardContent>
               </Card>
