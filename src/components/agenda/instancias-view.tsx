@@ -28,6 +28,8 @@ interface Reserva {
   client_id: string | null;
   estado: string;
   titulo: string | null;
+  booking_tipo: string | null;
+  booked_by_user_id: string | null;
   clients: { nombre: string } | null;
 }
 
