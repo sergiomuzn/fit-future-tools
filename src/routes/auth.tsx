@@ -195,6 +195,7 @@ function ResendVerifyForm({ onBack }: { onBack: () => void }) {
 function ForgotForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const checkEmail = useServerFn(isEmailRegistered);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -202,7 +203,7 @@ function ForgotForm({ onBack }: { onBack: () => void }) {
     if (!em.success) return toast.error(em.error.issues[0].message);
     setLoading(true);
     try {
-      const { registered } = await isEmailRegistered({ data: { email: em.data } });
+      const { registered } = await checkEmail({ data: { email: em.data } });
       if (!registered) {
         toast.error("Este correo no está registrado en la app");
         return;
