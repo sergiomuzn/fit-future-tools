@@ -223,7 +223,9 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
     const first = rows[0];
     const group = first.group_id ? groupById.get(first.group_id) : null;
     if (!group || group.activo === false || group.acceso_clientes === false) continue;
-    const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
+    const mine =
+      rows.find((r) => r.booked_by_user_id === userId) ??
+      (clientId ? (rows.find((r) => r.client_id === clientId) ?? null) : null);
     const trainerId = rows.find((r) => r.trainer_id)?.trainer_id ?? null;
     const slug =
       rows.find((r) => r.servicio_slug)?.servicio_slug ?? defaultGroupSlug ?? null;
