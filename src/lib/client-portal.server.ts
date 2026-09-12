@@ -548,15 +548,16 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
   const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const clientId = await requireClientRow(userId);
   const { from, to } = portalRange();
-  const [{ data: sessions }, { data: trainers }] = await Promise.all([
+  const [{ data: sessions }, { data: trainers }, { data: servicios }] = await Promise.all([
     supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,hora_fin,estado,titulo,trainer_id,por_confirmar,group_id")
+      .select("id,fecha,hora_inicio,hora_fin,estado,titulo,trainer_id,por_confirmar,group_id,servicio_slug")
       .eq("client_id", clientId)
       .is("group_id", null)
       .gte("fecha", from)
       .lte("fecha", to),
     supabaseAdmin.from("trainers").select("id,nombre"),
+    supabaseAdmin.from("servicios").select("slug,nombre"),
   ]);
   const { data: cfgColores } = await supabaseAdmin
     .from("center_config")
@@ -565,18 +566,25 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
     .maybeSingle();
   const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
   const trainerById = new Map((trainers ?? []).map((t) => [t.id, t.nombre]));
+  const servicioBySlug = new Map((servicios ?? []).map((s) => [s.slug as string, s.nombre as string]));
   return (sessions ?? [])
-    .map((s) => ({
-      id: s.id,
-      fecha: s.fecha,
-      horaInicio: s.hora_inicio.slice(0, 5),
-      horaFin: s.hora_fin.slice(0, 5),
-      duracionMin: minutesBetween(s.hora_inicio, s.hora_fin),
-      titulo: s.titulo,
-      entrenador: s.trainer_id ? (trainerById.get(s.trainer_id) ?? null) : null,
-      estado: s.estado,
-      porConfirmar: !!s.por_confirmar,
-    }))
+    .map((s) => {
+      const slug = (s.servicio_slug as string | null) ?? null;
+      return {
+        id: s.id,
+        fecha: s.fecha,
+        horaInicio: s.hora_inicio.slice(0, 5),
+        horaFin: s.hora_fin.slice(0, 5),
+        duracionMin: minutesBetween(s.hora_inicio, s.hora_fin),
+        titulo: s.titulo,
+        entrenador: s.trainer_id ? (trainerById.get(s.trainer_id) ?? null) : null,
+        estado: s.estado,
+        porConfirmar: !!s.por_confirmar,
+        servicioSlug: slug,
+        servicioNombre: slug ? (servicioBySlug.get(slug) ?? slug) : null,
+        color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
+      };
+    })
     .sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
 }
 
