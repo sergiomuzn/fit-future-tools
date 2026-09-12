@@ -1,4 +1,7 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/lib/db";
 import {
   Table,
@@ -9,6 +12,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
 
 interface Reserva {
   id: string;
@@ -27,6 +32,9 @@ function fechaCorta(f: string): string {
 /** Sesiones futuras reservadas por clientes desde su portal, para un servicio. */
 export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }) {
   const hoy = new Date().toISOString().slice(0, 10);
+  const qc = useQueryClient();
+  const resolver = useServerFn(resolverReservaPendiente);
+  const [procesando, setProcesando] = useState<string | null>(null);
 
   const { data: reservas = [], isLoading } = useQuery({
     queryKey: ["servicio_reservas", servicioSlug, hoy],
@@ -65,6 +73,21 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
     enabled: !!servicioSlug,
   });
 
+  async function resolverReserva(sessionId: string, accion: "confirmar" | "denegar") {
+    setProcesando(sessionId);
+    try {
+      await resolver({ data: { sessionId, accion } });
+      toast.success(accion === "confirmar" ? "Reserva confirmada" : "Reserva denegada");
+      qc.invalidateQueries({ queryKey: ["servicio_reservas"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar la acción");
+    } finally {
+      setProcesando(null);
+    }
+  }
+
   if (isLoading) return <p className="text-sm text-muted-foreground">Cargando reservas…</p>;
   if (reservas.length === 0)
     return (
@@ -87,9 +110,32 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
           <TableRow key={r.id}>
             <TableCell className="whitespace-nowrap">{fechaCorta(r.fecha)}</TableCell>
             <TableCell className="whitespace-nowrap">{r.hora_inicio.slice(0, 5)}</TableCell>
-            <TableCell className="flex items-center gap-2">
-              <span className="truncate">{r.cliente ?? r.titulo ?? "—"}</span>
-              {r.por_confirmar && <Badge variant="outline">Por confirmar</Badge>}
+            <TableCell>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="truncate">{r.cliente ?? r.titulo ?? "—"}</span>
+                {r.por_confirmar && (
+                  <>
+                    <Badge variant="outline">Por confirmar</Badge>
+                    <Button
+                      size="sm"
+                      className="h-7 px-2 text-xs"
+                      disabled={procesando === r.id}
+                      onClick={() => void resolverReserva(r.id, "confirmar")}
+                    >
+                      Confirmar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      disabled={procesando === r.id}
+                      onClick={() => void resolverReserva(r.id, "denegar")}
+                    >
+                      Denegar
+                    </Button>
+                  </>
+                )}
+              </div>
             </TableCell>
           </TableRow>
         ))}

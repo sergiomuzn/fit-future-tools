@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789256618287,
+      "tag": "0000_add_session_id_to_notificaciones",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Inbox } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
 
 interface Notificacion {
   id: string;
@@ -12,6 +15,8 @@ interface Notificacion {
   mensaje: string;
   leida: boolean;
   created_at: string;
+  tipo: string;
+  session_id: string | null;
 }
 
 function relativo(iso: string): string {
@@ -28,19 +33,53 @@ function relativo(iso: string): string {
 export function NotificationsBell({ className }: { className?: string }) {
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [procesando, setProcesando] = useState<string | null>(null);
+  const resolver = useServerFn(resolverReservaPendiente);
 
   const { data: items = [] } = useQuery({
     queryKey: ["notificaciones"],
     queryFn: async (): Promise<Notificacion[]> => {
       const { data } = await supabase
         .from("notificaciones")
-        .select("id,titulo,mensaje,leida,created_at")
+        .select("id,titulo,mensaje,leida,created_at,tipo,session_id")
         .order("created_at", { ascending: false })
         .limit(30);
       return (data ?? []) as Notificacion[];
     },
     refetchInterval: 60_000,
   });
+
+  const sessionIds = items
+    .filter((i) => i.tipo === "reserva_pendiente" && i.session_id)
+    .map((i) => i.session_id as string);
+
+  const { data: pendientes = [] } = useQuery({
+    queryKey: ["notificaciones-pendientes", sessionIds.join(",")],
+    enabled: sessionIds.length > 0,
+    queryFn: async (): Promise<string[]> => {
+      const { data } = await supabase
+        .from("sessions")
+        .select("id")
+        .in("id", sessionIds)
+        .eq("por_confirmar", true);
+      return (data ?? []).map((r) => (r as { id: string }).id);
+    },
+  });
+
+  async function resolverReserva(sessionId: string, accion: "confirmar" | "denegar") {
+    setProcesando(sessionId);
+    try {
+      await resolver({ data: { sessionId, accion } });
+      toast.success(accion === "confirmar" ? "Reserva confirmada" : "Reserva denegada");
+      qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["servicio_reservas"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar la acción");
+    } finally {
+      setProcesando(null);
+    }
+  }
 
   useEffect(() => {
     const channel = supabase
@@ -94,6 +133,27 @@ export function NotificationsBell({ className }: { className?: string }) {
                 <span className="shrink-0 text-[11px] text-muted-foreground">{relativo(n.created_at)}</span>
               </div>
               <p className="text-xs text-muted-foreground">{n.mensaje}</p>
+              {n.session_id && pendientes.includes(n.session_id) && (
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverReserva(n.session_id!, "confirmar")}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverReserva(n.session_id!, "denegar")}
+                  >
+                    Denegar
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>

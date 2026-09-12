@@ -111,3 +111,97 @@ export const notificarSesionesAsignadas = createServerFn({ method: "POST" })
     await crearNotificaciones(items, centroId);
     return { notified: items.length };
   });
+
+/**
+ * Confirma o deniega una reserva pendiente hecha por un cliente.
+ * Confirmar: la sesión se queda en la agenda sin "por confirmar".
+ * Denegar: la sesión se elimina (o la plaza del grupo queda libre).
+ * En ambos casos se avisa al cliente en su buzón.
+ */
+export const resolverReservaPendiente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        sessionId: z.string().uuid(),
+        accion: z.enum(["confirmar", "denegar"]),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const [{ data: isAdmin }, { data: isTrainer }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "entrenador" }),
+    ]);
+    if (!isAdmin && !isTrainer) throw new Error("Sin permiso");
+
+    const { centroDb, getCentroIdForUser } = await import("./centro-scope.server");
+    const centroId = await getCentroIdForUser(context.userId);
+    const supabaseAdmin = centroDb(centroId);
+    const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
+
+    const { data: row } = await supabaseAdmin
+      .from("sessions")
+      .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (!row) return { ok: false as const, reason: "no_existe" as const };
+
+    const { data: cfg } = await supabaseAdmin
+      .from("center_config")
+      .select("nombre")
+      .eq("id", true)
+      .maybeSingle();
+    const centro = (cfg as { nombre?: string } | null)?.nombre || "El centro";
+    const cuando = describeSesion(row.fecha, row.hora_inicio).replace(" · ", " a las ");
+    const donde = row.titulo || row.servicio_slug || "tu sesión";
+
+    if (data.accion === "confirmar") {
+      await supabaseAdmin
+        .from("sessions")
+        .update({ por_confirmar: false })
+        .eq("id", data.sessionId);
+    } else if (row.group_id) {
+      const { count } = await supabaseAdmin
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("group_id", row.group_id)
+        .eq("fecha", row.fecha)
+        .eq("hora_inicio", row.hora_inicio);
+      if ((count ?? 0) <= 1) {
+        await supabaseAdmin
+          .from("sessions")
+          .update({
+            client_id: null,
+            booked_by_user_id: null,
+            booking_tipo: null,
+            por_confirmar: false,
+          })
+          .eq("id", data.sessionId);
+      } else {
+        await supabaseAdmin.from("sessions").delete().eq("id", data.sessionId);
+      }
+    } else {
+      await supabaseAdmin.from("sessions").delete().eq("id", data.sessionId);
+    }
+
+    if (row.booked_by_user_id) {
+      await crearNotificaciones(
+        [
+          {
+            userId: row.booked_by_user_id,
+            tipo: data.accion === "confirmar" ? "reserva_confirmada" : "reserva_denegada",
+            titulo:
+              data.accion === "confirmar" ? "Reserva confirmada" : "Reserva no confirmada",
+            mensaje:
+              data.accion === "confirmar"
+                ? `${centro} ha confirmado tu reserva de ${donde} el ${cuando}`
+                : `${centro} no ha podido confirmar tu reserva de ${donde} el ${cuando}`,
+          },
+        ],
+        centroId,
+      );
+    }
+
+    return { ok: true as const, accion: data.accion };
+  });
