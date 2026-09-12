@@ -324,7 +324,9 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     .filter((h) => abierto(h.fecha, h.hora_inicio, h.hora_fin))
     .map((h) => {
     const rows = sesionesPorHueco.get(`${h.servicio_slug}|${h.fecha}|${h.hora_inicio.slice(0, 5)}`) ?? [];
-    const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
+    const mine =
+      rows.find((r) => r.booked_by_user_id === userId) ??
+      (clientId ? (rows.find((r) => r.client_id === clientId) ?? null) : null);
     return {
       key: `hueco|${h.id}`,
       groupId: "",
