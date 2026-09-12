@@ -36,6 +36,7 @@ function ServiciosPage() {
   }, [servicios, tab]);
 
   const editing = servicios.find((s) => s.slug === editingSlug) ?? null;
+  const { confirm, dialog: confirmDialog } = useConfirm();
 
   const queryClient = useQueryClient();
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -48,6 +49,83 @@ function ServiciosPage() {
   const [dragSlug, setDragSlug] = useState<string | null>(null);
   const [dx, setDx] = useState(0);
   const [targetIndex, setTargetIndex] = useState<number | null>(null);
+
+  async function handleDelete(servicio: Servicio) {
+    const ok = await confirm({
+      title: "¿Eliminar servicio?",
+      description: `Se eliminará "${servicio.nombre}". Esta acción no se puede deshacer. Si el servicio tiene bonos, sesiones, reservas o modalidades asociadas no se podrá eliminar.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      destructive: true,
+    });
+    if (!ok) return;
+
+    const checks = await Promise.all([
+      supabase
+        .from("bonos_catalogo")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("client_bonos")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("service_slots")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("modalidades")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+    ]);
+
+    const nombres = [
+      "bonos del catálogo",
+      "bonos de clientes",
+      "sesiones",
+      "huecos de reservas",
+      "modalidades",
+    ];
+    const conDatos = checks
+      .map((c, i) => ((c.count ?? 0) > 0 ? nombres[i] : null))
+      .filter((x): x is string => x !== null);
+
+    if (conDatos.length > 0) {
+      toast.error(
+        `No se puede eliminar porque tiene ${conDatos.join(", ")} asociados.`,
+      );
+      return;
+    }
+
+    const { error } = await supabase
+      .from("servicios")
+      .delete()
+      .eq("id", servicio.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const restantes = servicios.filter((x) => x.id !== servicio.id);
+    await Promise.all(
+      restantes.map((x, i) =>
+        x.orden === i + 1
+          ? Promise.resolve({ error: null })
+          : supabase.from("servicios").update({ orden: i + 1 }).eq("id", x.id),
+      ),
+    );
+
+    await queryClient.invalidateQueries({ queryKey: ["servicios"] });
+    toast.success("Servicio eliminado");
+
+    if (tab === servicio.slug) {
+      setTab(restantes[0]?.slug ?? "");
+    }
+  }
 
   async function persistOrden(from: number, to: number) {
     const arr = servicios.slice();
