@@ -32,8 +32,9 @@ interface Props {
 }
 
 /** Mismo menú para crear y configurar un servicio: nombre, capacidad, color y descripción. */
-export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }: Props) {
+export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, onDeleted }: Props) {
   const qc = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const { horario, precios, colores, invalidate } = useCenterConfig();
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState("1");
