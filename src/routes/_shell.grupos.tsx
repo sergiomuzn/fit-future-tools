@@ -333,6 +333,8 @@ function ServiciosPage() {
         )}
       </Tabs>
 
+      {confirmDialog}
+
       <ServicioDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
