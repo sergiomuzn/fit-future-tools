@@ -7,6 +7,8 @@ export interface NuevaNotificacion {
   tipo: string;
   titulo: string;
   mensaje: string;
+  /** Sesión relacionada, para poder actuar desde el buzón. */
+  sessionId?: string | null;
 }
 
 export async function crearNotificaciones(
@@ -22,6 +24,7 @@ export async function crearNotificaciones(
       tipo: i.tipo,
       titulo: i.titulo,
       mensaje: i.mensaje,
+      session_id: i.sessionId ?? null,
     }));
   if (!rows.length) return;
   await db.from("notificaciones").insert(rows);
