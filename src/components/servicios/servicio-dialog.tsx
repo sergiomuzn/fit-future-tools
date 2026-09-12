@@ -28,6 +28,7 @@ interface Props {
   servicio: Servicio | null;
   servicios: Servicio[];
   onCreated?: (slug: string) => void;
+  onDeleted?: () => void;
 }
 
 /** Mismo menú para crear y configurar un servicio: nombre, capacidad, color y descripción. */
