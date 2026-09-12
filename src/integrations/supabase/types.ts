@@ -699,6 +699,7 @@ export type Database = {
           id: string
           leida: boolean
           mensaje: string
+          session_id: string | null
           target_role: Database["public"]["Enums"]["app_role"] | null
           tipo: string
           titulo: string
@@ -710,6 +711,7 @@ export type Database = {
           id?: string
           leida?: boolean
           mensaje: string
+          session_id?: string | null
           target_role?: Database["public"]["Enums"]["app_role"] | null
           tipo: string
           titulo: string
@@ -721,6 +723,7 @@ export type Database = {
           id?: string
           leida?: boolean
           mensaje?: string
+          session_id?: string | null
           target_role?: Database["public"]["Enums"]["app_role"] | null
           tipo?: string
           titulo?: string
