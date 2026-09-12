@@ -807,7 +807,7 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   await assertReservable(fecha!, horaInicio!, centroId);
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio, centroId);
 
-  await addAttendeeToBlock({
+  const sesionId = await addAttendeeToBlock({
     groupId,
     fecha,
     horaInicio,
@@ -827,11 +827,12 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
     [
     {
       targetRole: "admin",
-      tipo: "reserva_creada",
+      tipo: porConfirmar ? "reserva_pendiente" : "reserva_creada",
       titulo: porConfirmar
         ? `Reserva pendiente de confirmar de ${profile.nombre}`
         : `Reserva creada por ${profile.nombre}`,
         mensaje: `en ${group?.nombre ?? "Clase grupal"} (${describeSesion(fecha, horaInicio)})`,
+        sessionId: porConfirmar ? sesionId : null,
       },
     ],
     centroId,
