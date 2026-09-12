@@ -395,6 +395,7 @@ function ClaseCard({
   onBook,
   onCancel,
   busy,
+  hideCancel,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
