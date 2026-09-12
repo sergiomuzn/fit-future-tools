@@ -318,7 +318,7 @@ function AgendaPage() {
             </Select>
           )}
           {view === "disponibilidad" && servicioSlug === "__all" && (
-            <div className="flex h-9 items-center gap-1.5 whitespace-nowrap" aria-label="Pintar servicio">
+            <div className="ml-auto flex h-9 items-center gap-1.5 whitespace-nowrap" aria-label="Pintar servicio">
               <span className="mr-1 shrink-0 text-xs">Pintar servicio:</span>
               {canScrollServicesLeft && (
                 <Button
@@ -341,7 +341,7 @@ function AgendaPage() {
                   setCanScrollServicesLeft(strip.scrollLeft > 1);
                   setCanScrollServicesRight(maxScroll > 1 && strip.scrollLeft < maxScroll - 1);
                 }}
-                className="flex w-[146px] shrink-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                className="flex w-auto max-w-[420px] shrink-0 snap-x snap-mandatory items-center gap-1.5 overflow-x-auto py-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
               >
                 {servicios.map((s) => (
                   <button
