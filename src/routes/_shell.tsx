@@ -197,7 +197,16 @@ function ShellInner() {
 function SoporteBanner() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data } = useQuery({ queryKey: ["modo-soporte"], queryFn: () => getModoSoporte() });
+  const { data } = useQuery({
+    queryKey: ["modo-soporte"],
+    retry: false,
+    queryFn: async () => {
+      // Sin sesión (por ejemplo justo tras cerrarla) no se llama al servidor.
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) return null;
+      return getModoSoporte();
+    },
+  });
   if (!data?.centroId) return null;
 
   async function salir() {
