@@ -74,6 +74,9 @@ export interface SesionPersonal {
   entrenador: string | null;
   estado: string;
   porConfirmar: boolean;
+  servicioSlug: string | null;
+  servicioNombre: string | null;
+  color: string | null;
 }
 
 export function accesoIncluyeGrupos(acceso?: string | null): boolean {
