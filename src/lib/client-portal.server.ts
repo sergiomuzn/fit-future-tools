@@ -739,19 +739,23 @@ async function bookHuecoForUser(
   const porConfirmar = requiereConfirmacion(conf, hueco.servicio_slug);
 
 
-  const { error } = await supabaseAdmin.from("sessions").insert({
-    client_id: clientId,
-    trainer_id: hueco.trainer_id,
-    fecha: hueco.fecha,
-    hora_inicio: hueco.hora_inicio,
-    hora_fin: hueco.hora_fin,
-    estado: "reservada",
-    ocupacion: 1,
-    servicio_slug: hueco.servicio_slug,
-    booked_by_user_id: userId,
-    booking_tipo: profile.bonoTipo,
-    por_confirmar: porConfirmar,
-  });
+  const { data: nueva, error } = await supabaseAdmin
+    .from("sessions")
+    .insert({
+      client_id: clientId,
+      trainer_id: hueco.trainer_id,
+      fecha: hueco.fecha,
+      hora_inicio: hueco.hora_inicio,
+      hora_fin: hueco.hora_fin,
+      estado: "reservada",
+      ocupacion: 1,
+      servicio_slug: hueco.servicio_slug,
+      booked_by_user_id: userId,
+      booking_tipo: profile.bonoTipo,
+      por_confirmar: porConfirmar,
+    })
+    .select("id")
+    .single();
   if (error) throw new Error(error.message);
 
   const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
@@ -759,11 +763,12 @@ async function bookHuecoForUser(
     [
     {
       targetRole: "admin",
-      tipo: "reserva_creada",
+      tipo: porConfirmar ? "reserva_pendiente" : "reserva_creada",
       titulo: porConfirmar
         ? `Reserva pendiente de confirmar de ${profile.nombre}`
         : `Reserva creada por ${profile.nombre}`,
         mensaje: `en ${hueco.servicio_slug} (${describeSesion(hueco.fecha, hueco.hora_inicio)})`,
+        sessionId: porConfirmar ? (nueva?.id ?? null) : null,
       },
     ],
     centroId,
