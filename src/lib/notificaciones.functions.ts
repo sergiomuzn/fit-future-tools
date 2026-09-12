@@ -105,7 +105,7 @@ export const notificarSesionesAsignadas = createServerFn({ method: "POST" })
         userId,
         tipo: "sesion_asignada",
         titulo: "Nueva sesión reservada",
-        mensaje: `${centro} te ha reservado una sesión el ${describeSesion(s.fecha, s.hora)}`,
+        mensaje: `${centro} te ha reservado una sesión el ${describeSesion(s.fecha, s.hora).replace(" · ", " a las ")}`,
       }));
 
     await crearNotificaciones(items, centroId);

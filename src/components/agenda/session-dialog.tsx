@@ -16,7 +16,7 @@ import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
-import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { notificarReservasCanceladas, notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   AlertDialog,
@@ -374,6 +374,23 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       });
       const { error } = await supabase.from("sessions").insert(inserts);
       if (error) toast.error(error.message); else toast.success(`Sesión creada${repeatWeeks > 0 ? ` (+${repeatWeeks} repeticiones)` : ""}`);
+      // Aviso al buzón de los clientes con acceso al portal.
+      if (!error) {
+        const avisos = inserts
+          .filter((i) => !!i.client_id)
+          .map((i) => ({
+            clientId: i.client_id as string,
+            fecha: i.fecha as string,
+            hora: String(i.hora_inicio),
+          }));
+        if (avisos.length) {
+          try {
+            await notificarSesionesAsignadas({ data: { sesiones: avisos.slice(0, 100) } });
+          } catch {
+            /* la sesión es válida aunque falle el aviso */
+          }
+        }
+      }
       // No se crea ningún bono: el tipo "Prueba" se deriva de la propia sesión
       // hasta que se registre un bono real (Bonos o Facturación).
       if (!error && !grupo && clientId && esPrueba) {
