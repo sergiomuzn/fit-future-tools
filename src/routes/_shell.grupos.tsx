@@ -247,14 +247,18 @@ function ServiciosPage() {
         )}
       </Tabs>
 
-      {confirmDialog}
-
       <ServicioDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         servicio={editing}
         servicios={servicios}
         onCreated={(slug) => setTab(slug)}
+        onDeleted={() => {
+          if (tab === editing?.slug) {
+            const restantes = servicios.filter((x) => x.id !== editing?.id);
+            setTab(restantes[0]?.slug ?? "");
+          }
+        }}
       />
     </div>
   );
