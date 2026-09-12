@@ -425,7 +425,7 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
   return {
     key: `personal|${s.id}`,
     groupId: "",
-    nombre: s.titulo || "Entrenamiento personal",
+    nombre: s.servicioNombre ?? s.titulo ?? "Sesión",
     fecha: s.fecha,
     horaInicio: s.horaInicio,
     horaFin: s.horaFin,
@@ -438,8 +438,8 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
     asistida: s.estado === "realizada",
     reservable: false,
     miSesionId: s.id,
-    servicioSlug: null,
-    color: null,
+    servicioSlug: s.servicioSlug,
+    color: s.color,
   };
 }
 
