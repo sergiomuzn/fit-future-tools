@@ -1,13 +1,20 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, Plus } from "lucide-react";
+import { MoreVertical, Plus, Settings, Trash2 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { useServicios } from "@/lib/servicios";
+import { useConfirm } from "@/components/confirm-dialog";
+import { useServicios, type Servicio } from "@/lib/servicios";
 import { useColores } from "@/lib/colors";
 import { ServicioBonosPanel } from "@/components/servicios/servicio-bonos-panel";
 import { ServicioReservasPanel } from "@/components/servicios/servicio-reservas-panel";
