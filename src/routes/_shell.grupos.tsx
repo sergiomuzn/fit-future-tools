@@ -266,17 +266,35 @@ function ServiciosPage() {
                   />
                   <CardTitle className="text-base">{s.nombre}</CardTitle>
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Ajustes del servicio"
-                  onClick={() => {
-                    setEditingSlug(s.slug);
-                    setDialogOpen(true);
-                  }}
-                >
-                  <MoreVertical className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Acciones del servicio"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        setEditingSlug(s.slug);
+                        setDialogOpen(true);
+                      }}
+                    >
+                      <Settings className="h-4 w-4 mr-2" />
+                      Configurar
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="text-destructive focus:text-destructive"
+                      onClick={() => void handleDelete(s)}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p>
