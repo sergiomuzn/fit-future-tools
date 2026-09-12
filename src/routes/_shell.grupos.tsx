@@ -181,28 +181,17 @@ function ServiciosPage() {
                   />
                   <CardTitle className="text-base">{s.nombre}</CardTitle>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Acciones del servicio"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setEditingSlug(s.slug);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configurar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Configurar servicio"
+                  onClick={() => {
+                    setEditingSlug(s.slug);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p>
