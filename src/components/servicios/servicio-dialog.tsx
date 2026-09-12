@@ -228,7 +228,10 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, 
         if (!o) onClose();
       }}
     >
-      <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-2xl max-h-[85vh] overflow-y-auto"
+        onOpenAutoFocus={(event) => event.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle>{servicio ? `Configurar ${servicio.nombre}` : "Nuevo servicio"}</DialogTitle>
         </DialogHeader>
@@ -238,15 +241,8 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, 
             <div className="space-y-1.5">
               <Label>Nombre del servicio</Label>
               <Input
-                autoFocus={false}
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                onFocus={(e) =>
-                  e.currentTarget.setSelectionRange(
-                    e.currentTarget.value.length,
-                    e.currentTarget.value.length,
-                  )
-                }
                 placeholder="Entrenamiento personal"
               />
             </div>
