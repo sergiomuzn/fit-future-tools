@@ -367,7 +367,7 @@ function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium">{sesion.titulo || "Entrenamiento personal"}</span>
+            <span className="font-medium">{sesion.servicioNombre ?? sesion.titulo ?? "Sesión"}</span>
             {sesion.estado === "realizada" ? (
               <Badge variant="secondary">Realizada</Badge>
             ) : sesion.estado === "cancelada" ? (
@@ -395,13 +395,15 @@ function ClaseCard({
   onBook,
   onCancel,
   busy,
+  hideCancel,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busy: boolean;
+  hideCancel?: boolean;
 }) {
-  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} />;
+  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} hideCancel={hideCancel} />;
 }
 
 const MESES = [
@@ -425,7 +427,7 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
   return {
     key: `personal|${s.id}`,
     groupId: "",
-    nombre: s.titulo || "Entrenamiento personal",
+    nombre: s.servicioNombre ?? s.titulo ?? "Sesión",
     fecha: s.fecha,
     horaInicio: s.horaInicio,
     horaFin: s.horaFin,
@@ -438,8 +440,8 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
     asistida: s.estado === "realizada",
     reservable: false,
     miSesionId: s.id,
-    servicioSlug: null,
-    color: null,
+    servicioSlug: s.servicioSlug,
+    color: s.color,
   };
 }
 
@@ -619,32 +621,16 @@ function CalendarioClases({
       <div className="space-y-2">
         <p className="text-sm font-medium capitalize">{formatFecha(selected)}</p>
         {delDia.length === 0 && <p className="text-sm text-muted-foreground">No hay clases este día.</p>}
-        {delDia.map((c) =>
-          c.key.startsWith("personal|") ? (
-            <SesionPersonalCard
-              key={c.key}
-              sesion={{
-                id: c.miSesionId ?? c.key,
-                fecha: c.fecha,
-                horaInicio: c.horaInicio,
-                horaFin: c.horaFin,
-                duracionMin: c.duracionMin,
-                titulo: c.nombre,
-                entrenador: c.entrenador,
-                estado: c.asistida ? "realizada" : "reservada",
-                porConfirmar: c.porConfirmar,
-              }}
-            />
-          ) : (
-            <ClaseCard
-              key={c.key}
-              clase={c}
-              onBook={() => onBook(c)}
-              onCancel={() => onCancel(c)}
-              busy={pendingKey === c.key}
-            />
-          ),
-        )}
+        {delDia.map((c) => (
+          <ClaseCard
+            key={c.key}
+            clase={c}
+            onBook={() => onBook(c)}
+            onCancel={() => onCancel(c)}
+            busy={pendingKey === c.key}
+            hideCancel={c.key.startsWith("personal|")}
+          />
+        ))}
       </div>
     </div>
   );
@@ -655,11 +641,13 @@ function ClaseCardImpl({
   onBook,
   onCancel,
   busy,
+  hideCancel = false,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busy: boolean;
+  hideCancel?: boolean;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
   const fueraDePlazo = !clase.reservable;
@@ -692,9 +680,11 @@ function ClaseCardImpl({
           {clase.asistida ? (
             <span className="text-sm text-muted-foreground">Completada</span>
           ) : clase.reservada ? (
-            <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
-              Cancelar
-            </Button>
+            hideCancel ? null : (
+              <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
+                Cancelar
+              </Button>
+            )
           ) : fueraDePlazo ? (
             <span className="text-sm text-muted-foreground">
               {comenzada ? "Realizada" : "Fuera de plazo"}
