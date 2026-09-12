@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useConfirm } from "@/components/confirm-dialog";
 import { slugifyServicio, type Servicio } from "@/lib/servicios";
 import { abreviaturaAutomatica } from "@/lib/session-label";
 import { CaducidadSelect, type CaducidadValue } from "@/components/caducidad-select";
@@ -26,11 +28,13 @@ interface Props {
   servicio: Servicio | null;
   servicios: Servicio[];
   onCreated?: (slug: string) => void;
+  onDeleted?: () => void;
 }
 
 /** Mismo menú para crear y configurar un servicio: nombre, capacidad, color y descripción. */
-export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }: Props) {
+export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, onDeleted }: Props) {
   const qc = useQueryClient();
+  const { confirm, dialog: confirmDialog } = useConfirm();
   const { horario, precios, colores, invalidate } = useCenterConfig();
   const [nombre, setNombre] = useState("");
   const [capacidad, setCapacidad] = useState("1");
@@ -73,6 +77,82 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
       return;
     }
     invalidate();
+  }
+
+  async function handleDelete() {
+    if (!servicio) return;
+    const ok = await confirm({
+      title: "¿Eliminar servicio?",
+      description: `Se eliminará "${servicio.nombre}". Esta acción no se puede deshacer. Si el servicio tiene bonos, sesiones, reservas o modalidades asociadas no se podrá eliminar.`,
+      confirmText: "Eliminar",
+      cancelText: "Cancelar",
+      destructive: true,
+    });
+    if (!ok) return;
+
+    const checks = await Promise.all([
+      supabase
+        .from("bonos_catalogo")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("client_bonos")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("service_slots")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+      supabase
+        .from("modalidades")
+        .select("id", { count: "exact", head: true })
+        .eq("servicio_slug", servicio.slug),
+    ]);
+
+    const nombres = [
+      "bonos del catálogo",
+      "bonos de clientes",
+      "sesiones",
+      "huecos de reservas",
+      "modalidades",
+    ];
+    const conDatos = checks
+      .map((c, i) => ((c.count ?? 0) > 0 ? nombres[i] : null))
+      .filter((x): x is string => x !== null);
+
+    if (conDatos.length > 0) {
+      toast.error(
+        `No se puede eliminar porque tiene ${conDatos.join(", ")} asociados.`,
+      );
+      return;
+    }
+
+    const { error } = await supabase
+      .from("servicios")
+      .delete()
+      .eq("id", servicio.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+
+    const restantes = servicios.filter((x) => x.id !== servicio.id);
+    await Promise.all(
+      restantes.map((x, i) =>
+        x.orden === i + 1
+          ? Promise.resolve({ error: null })
+          : supabase.from("servicios").update({ orden: i + 1 }).eq("id", x.id),
+      ),
+    );
+
+    await qc.invalidateQueries({ queryKey: ["servicios"] });
+    toast.success("Servicio eliminado");
+    onDeleted?.();
+    onClose();
   }
 
   async function save() {
@@ -239,14 +319,25 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated }
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            {slugActual ? "Cerrar" : "Cancelar"}
-          </Button>
-          <Button onClick={() => void save()}>
-            {servicio || createdSlug ? "Guardar cambios" : "Crear servicio"}
-          </Button>
+          {servicio ? (
+            <>
+              <Button variant="destructive" onClick={() => void handleDelete()}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </Button>
+              <Button onClick={() => void save()}>Guardar cambios</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button onClick={() => void save()}>Crear servicio</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
+      {confirmDialog}
     </Dialog>
   );
 }
