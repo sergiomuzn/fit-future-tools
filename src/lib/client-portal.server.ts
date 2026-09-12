@@ -263,9 +263,10 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
   const centroId = await getCentroIdForUser(userId);
   const supabaseAdmin = centroDb(centroId);
   const { from, to } = portalRange();
-  const [abierto, antelacion] = await Promise.all([
+  const [abierto, antelacion, clientId] = await Promise.all([
     buildAperturaFilter(centroId),
     getAntelacionReservaMin(centroId),
+    getClientIdForUser(userId),
   ]);
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
     await Promise.all([
