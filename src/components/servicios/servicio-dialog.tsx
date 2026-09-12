@@ -219,6 +219,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, 
     setCreatedSlug(slug);
     onCreated?.(slug);
     toast.success("Servicio creado");
+    onClose();
   }
 
   return (
