@@ -619,15 +619,32 @@ function CalendarioClases({
       <div className="space-y-2">
         <p className="text-sm font-medium capitalize">{formatFecha(selected)}</p>
         {delDia.length === 0 && <p className="text-sm text-muted-foreground">No hay clases este día.</p>}
-        {delDia.map((c) => (
-          <ClaseCard
-            key={c.key}
-            clase={c}
-            onBook={() => onBook(c)}
-            onCancel={() => onCancel(c)}
-            busy={pendingKey === c.key}
-          />
-        ))}
+        {delDia.map((c) =>
+          c.key.startsWith("personal|") ? (
+            <SesionPersonalCard
+              key={c.key}
+              sesion={{
+                id: c.miSesionId ?? c.key,
+                fecha: c.fecha,
+                horaInicio: c.horaInicio,
+                horaFin: c.horaFin,
+                duracionMin: c.duracionMin,
+                titulo: c.nombre,
+                entrenador: c.entrenador,
+                estado: c.asistida ? "realizada" : "reservada",
+                porConfirmar: c.porConfirmar,
+              }}
+            />
+          ) : (
+            <ClaseCard
+              key={c.key}
+              clase={c}
+              onBook={() => onBook(c)}
+              onCancel={() => onCancel(c)}
+              busy={pendingKey === c.key}
+            />
+          ),
+        )}
       </div>
     </div>
   );
