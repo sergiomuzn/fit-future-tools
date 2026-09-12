@@ -680,9 +680,11 @@ function ClaseCardImpl({
           {clase.asistida ? (
             <span className="text-sm text-muted-foreground">Completada</span>
           ) : clase.reservada ? (
-            <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
-              Cancelar
-            </Button>
+            hideCancel ? null : (
+              <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
+                Cancelar
+              </Button>
+            )
           ) : fueraDePlazo ? (
             <span className="text-sm text-muted-foreground">
               {comenzada ? "Realizada" : "Fuera de plazo"}
