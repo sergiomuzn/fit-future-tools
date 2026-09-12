@@ -207,13 +207,6 @@ function ServiciosPage() {
                       <Settings className="h-4 w-4 mr-2" />
                       Configurar
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="text-destructive focus:text-destructive"
-                      onClick={() => void handleDelete(s)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Eliminar
-                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </CardHeader>
