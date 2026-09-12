@@ -319,14 +319,25 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, 
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={onClose}>
-            {slugActual ? "Cerrar" : "Cancelar"}
-          </Button>
-          <Button onClick={() => void save()}>
-            {servicio || createdSlug ? "Guardar cambios" : "Crear servicio"}
-          </Button>
+          {servicio ? (
+            <>
+              <Button variant="destructive" onClick={() => void handleDelete()}>
+                <Trash2 className="h-4 w-4 mr-2" />
+                Eliminar
+              </Button>
+              <Button onClick={() => void save()}>Guardar cambios</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={onClose}>
+                Cancelar
+              </Button>
+              <Button onClick={() => void save()}>Crear servicio</Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
+      {confirmDialog}
     </Dialog>
   );
 }
