@@ -144,6 +144,9 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+  /** Ids ya mostrados como reserva, para no repetirlos como sesión personal. */
+  const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
+  const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
   /** Pestaña "Sesiones": solo sesiones futuras y aún dentro de plazo de reserva. */
   const sesionesDisponibles = clases.filter(
     (c) => c.reservable && !c.asistida && !yaComenzo(c.fecha, c.horaInicio),
