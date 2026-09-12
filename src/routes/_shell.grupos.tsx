@@ -1,17 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { MoreVertical, Plus, Settings } from "lucide-react";
+import { MoreVertical, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useServicios, type Servicio } from "@/lib/servicios";
 import { useColores } from "@/lib/colors";
@@ -187,28 +181,17 @@ function ServiciosPage() {
                   />
                   <CardTitle className="text-base">{s.nombre}</CardTitle>
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label="Acciones del servicio"
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      onClick={() => {
-                        setEditingSlug(s.slug);
-                        setDialogOpen(true);
-                      }}
-                    >
-                      <Settings className="h-4 w-4 mr-2" />
-                      Configurar
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="Configurar servicio"
+                  onClick={() => {
+                    setEditingSlug(s.slug);
+                    setDialogOpen(true);
+                  }}
+                >
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <p>
