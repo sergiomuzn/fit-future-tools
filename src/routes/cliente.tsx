@@ -400,8 +400,9 @@ function ClaseCard({
   onBook: () => void;
   onCancel: () => void;
   busy: boolean;
+  hideCancel?: boolean;
 }) {
-  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} />;
+  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} hideCancel={hideCancel} />;
 }
 
 const MESES = [
@@ -639,11 +640,13 @@ function ClaseCardImpl({
   onBook,
   onCancel,
   busy,
+  hideCancel = false,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busy: boolean;
+  hideCancel?: boolean;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
   const fueraDePlazo = !clase.reservable;
