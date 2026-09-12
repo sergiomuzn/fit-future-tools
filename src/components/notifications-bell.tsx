@@ -133,6 +133,27 @@ export function NotificationsBell({ className }: { className?: string }) {
                 <span className="shrink-0 text-[11px] text-muted-foreground">{relativo(n.created_at)}</span>
               </div>
               <p className="text-xs text-muted-foreground">{n.mensaje}</p>
+              {n.session_id && pendientes.includes(n.session_id) && (
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverReserva(n.session_id!, "confirmar")}
+                  >
+                    Confirmar
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverReserva(n.session_id!, "denegar")}
+                  >
+                    Denegar
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
