@@ -244,14 +244,14 @@ function ClientePortal() {
             {(isLoading || loadingPersonales) && (
               <p className="text-sm text-muted-foreground">Cargando reservas…</p>
             )}
-            {misReservas.length === 0 && personales.length === 0 && !isLoading && !loadingPersonales && (
+            {misReservas.length === 0 && personalesUnicas.length === 0 && !isLoading && !loadingPersonales && (
               <p className="text-sm text-muted-foreground">Todavía no tienes reservas.</p>
             )}
-            {misReservas.length + personales.length > 0 && (
+            {misReservas.length + personalesUnicas.length > 0 && (
               <div className="flex items-center gap-2 pb-1">
                 <Badge variant="secondary">
-                  {misReservas.length + personales.length}{" "}
-                  {misReservas.length + personales.length === 1 ? "reserva" : "reservas"}
+                  {misReservas.length + personalesUnicas.length}{" "}
+                  {misReservas.length + personalesUnicas.length === 1 ? "reserva" : "reservas"}
                 </Badge>
               </div>
             )}
@@ -264,7 +264,7 @@ function ClientePortal() {
                 busy={pendingKey === c.key}
               />
             ))}
-            {personales.map((s) => (
+            {personalesUnicas.map((s) => (
               <SesionPersonalCard key={s.id} sesion={s} />
             ))}
           </TabsContent>
