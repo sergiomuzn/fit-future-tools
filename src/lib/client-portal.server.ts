@@ -124,6 +124,17 @@ export async function getPortalProfile(userId: string): Promise<PortalProfile | 
   };
 }
 
+/** client_id de la ficha asociada al usuario, o null si no tiene. */
+async function getClientIdForUser(userId: string): Promise<string | null> {
+  const supabaseAdmin = rootAdmin;
+  const { data } = await supabaseAdmin
+    .from("client_profiles")
+    .select("client_id")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.client_id ?? null;
+}
+
 async function requireClientRow(userId: string): Promise<string> {
   const supabaseAdmin = rootAdmin;
   const { data } = await supabaseAdmin
@@ -204,15 +215,17 @@ async function loadBlocks(from: string, to: string, centroId: string) {
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
   const centroId = await getCentroIdForUser(userId);
   const { from, to } = portalRange();
-  const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion] =
-    await Promise.all([loadBlocks(from, to, centroId), getAntelacionReservaMin(centroId)]);
+  const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion, clientId] =
+    await Promise.all([loadBlocks(from, to, centroId), getAntelacionReservaMin(centroId), getClientIdForUser(userId)]);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
     const first = rows[0];
     const group = first.group_id ? groupById.get(first.group_id) : null;
     if (!group || group.activo === false || group.acceso_clientes === false) continue;
-    const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
+    const mine =
+      rows.find((r) => r.booked_by_user_id === userId) ??
+      (clientId ? (rows.find((r) => r.client_id === clientId) ?? null) : null);
     const trainerId = rows.find((r) => r.trainer_id)?.trainer_id ?? null;
     const slug =
       rows.find((r) => r.servicio_slug)?.servicio_slug ?? defaultGroupSlug ?? null;
@@ -250,9 +263,10 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
   const centroId = await getCentroIdForUser(userId);
   const supabaseAdmin = centroDb(centroId);
   const { from, to } = portalRange();
-  const [abierto, antelacion] = await Promise.all([
+  const [abierto, antelacion, clientId] = await Promise.all([
     buildAperturaFilter(centroId),
     getAntelacionReservaMin(centroId),
+    getClientIdForUser(userId),
   ]);
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
     await Promise.all([
@@ -310,7 +324,9 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     .filter((h) => abierto(h.fecha, h.hora_inicio, h.hora_fin))
     .map((h) => {
     const rows = sesionesPorHueco.get(`${h.servicio_slug}|${h.fecha}|${h.hora_inicio.slice(0, 5)}`) ?? [];
-    const mine = rows.find((r) => r.booked_by_user_id === userId) ?? null;
+    const mine =
+      rows.find((r) => r.booked_by_user_id === userId) ??
+      (clientId ? (rows.find((r) => r.client_id === clientId) ?? null) : null);
     return {
       key: `hueco|${h.id}`,
       groupId: "",
