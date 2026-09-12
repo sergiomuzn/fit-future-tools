@@ -13,6 +13,7 @@ import { useCenterName } from "@/lib/center-schedule";
 import { Eye, EyeOff } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { resendVerificationEmail } from "@/lib/client-portal.functions";
+import { isEmailRegistered } from "@/lib/reset-password.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
