@@ -124,6 +124,17 @@ export async function getPortalProfile(userId: string): Promise<PortalProfile | 
   };
 }
 
+/** client_id de la ficha asociada al usuario, o null si no tiene. */
+async function getClientIdForUser(userId: string): Promise<string | null> {
+  const supabaseAdmin = rootAdmin;
+  const { data } = await supabaseAdmin
+    .from("client_profiles")
+    .select("client_id")
+    .eq("id", userId)
+    .maybeSingle();
+  return data?.client_id ?? null;
+}
+
 async function requireClientRow(userId: string): Promise<string> {
   const supabaseAdmin = rootAdmin;
   const { data } = await supabaseAdmin
