@@ -13,6 +13,7 @@ import { useCenterName } from "@/lib/center-schedule";
 import { Eye, EyeOff } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { resendVerificationEmail } from "@/lib/client-portal.functions";
+import { isEmailRegistered } from "@/lib/reset-password.functions";
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
@@ -194,19 +195,30 @@ function ResendVerifyForm({ onBack }: { onBack: () => void }) {
 function ForgotForm({ onBack }: { onBack: () => void }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
+  const checkEmail = useServerFn(isEmailRegistered);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     const em = emailSchema.safeParse(email);
     if (!em.success) return toast.error(em.error.issues[0].message);
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(em.data, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Revisa tu correo para restablecer la contraseña.");
-    onBack();
+    try {
+      const { registered } = await checkEmail({ data: { email: em.data } });
+      if (!registered) {
+        toast.error("Este correo no está registrado en la app");
+        return;
+      }
+      const { error } = await supabase.auth.resetPasswordForEmail(em.data, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (error) return toast.error(error.message);
+      toast.success("Revisa tu correo para restablecer la contraseña.");
+      onBack();
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
