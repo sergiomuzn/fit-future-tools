@@ -233,6 +233,7 @@ function ClientePortal() {
             ) : (
               <CalendarioClases
                 clases={clases}
+                personales={personales}
                 onBook={(c) => bookMutation.mutate(c.key)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 pendingKey={pendingKey}
@@ -419,19 +420,44 @@ function claseColor(c: ClaseGrupal): string | undefined {
   return c.asistida ? shade(c.color, REALIZADA_SHADE) : c.color;
 }
 
+/** Convierte una sesión personal asignada por el centro en una entrada de calendario. */
+function personalToClase(s: SesionPersonal): ClaseGrupal {
+  return {
+    key: `personal|${s.id}`,
+    groupId: "",
+    nombre: s.titulo || "Entrenamiento personal",
+    fecha: s.fecha,
+    horaInicio: s.horaInicio,
+    horaFin: s.horaFin,
+    duracionMin: s.duracionMin,
+    entrenador: s.entrenador,
+    capacidad: 1,
+    ocupadas: 1,
+    reservada: s.estado !== "cancelada",
+    porConfirmar: s.porConfirmar && s.estado === "reservada",
+    asistida: s.estado === "realizada",
+    reservable: false,
+    miSesionId: s.id,
+    servicioSlug: null,
+    color: null,
+  };
+}
+
 function CalendarioClases({
   clases,
+  personales,
   onBook,
   onCancel,
   pendingKey,
 }: {
   clases: ClaseGrupal[];
+  personales: SesionPersonal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
   pendingKey: string | null;
 }) {
   const porDia = new Map<string, ClaseGrupal[]>();
-  for (const c of clases) {
+  for (const c of [...clases, ...personales.map(personalToClase)]) {
     const arr = porDia.get(c.fecha);
     if (arr) arr.push(c);
     else porDia.set(c.fecha, [c]);
