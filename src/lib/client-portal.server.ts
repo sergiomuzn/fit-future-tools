@@ -231,7 +231,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   const centroId = await getCentroIdForUser(userId);
   const { from, to } = portalRange();
   const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion, clientId] =
-    await Promise.all([loadBlocks(from, to, centroId), getAntelacionReservaMin(centroId), getClientIdForUser(userId)]);
+    await Promise.all([loadBlocks(from, to, centroId), getAntelacionConfig(centroId), getClientIdForUser(userId)]);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
