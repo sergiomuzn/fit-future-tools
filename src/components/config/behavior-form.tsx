@@ -65,6 +65,8 @@ export function BehaviorForm() {
     DEFAULT_CONFIRMACION_RESERVAS,
   );
   const [antelacion, setAntelacion] = useState<number>(DEFAULT_ANTELACION_MIN);
+  const [antelacionPorServicio, setAntelacionPorServicio] = useState<Record<string, number>>({});
+  const [antelacionDistinta, setAntelacionDistinta] = useState(false);
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
