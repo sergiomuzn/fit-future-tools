@@ -74,7 +74,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const { horario } = useCenterConfig();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedDay, setCopiedDay] = useState<SlotTemplate[] | null>(null);
-  const [editing, setEditing] = useState<(ServiceSlot & { dur: string; cap: string }) | null>(null);
+  const [editing, setEditing] = useState<(ServiceSlot & { cap: string }) | null>(null);
   const [pending, setPending] = useState<{ dia: number; inicio: string; fin: string; slug: string } | null>(null);
   const [quick, setQuick] = useState<{
     dia: number;
@@ -437,7 +437,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
       patch: {
         servicio_slug: editing.servicio_slug,
         hora_inicio: toTime(toMin(editing.hora_inicio)),
-        hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
+        hora_fin: toTime(Math.max(toMin(editing.hora_inicio) + 5, toMin(editing.hora_fin))),
         capacidad: Math.max(1, Number(editing.cap) || 1),
         trainer_id: editing.trainer_id,
       },
@@ -586,7 +586,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           onSelect={(s) =>
             setEditing({
               ...s,
-              dur: String(toMin(s.hora_fin) - toMin(s.hora_inicio)),
               cap: String(s.capacidad),
             })
           }
@@ -745,9 +744,24 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           </DialogHeader>
           {pending && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {hhmm(pending.inicio)}–{hhmm(pending.fin)}
-              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Hora de inicio</Label>
+                  <Input
+                    type="time"
+                    value={hhmm(pending.inicio)}
+                    onChange={(e) => setPending({ ...pending, inicio: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Hora de fin</Label>
+                  <Input
+                    type="time"
+                    value={hhmm(pending.fin)}
+                    onChange={(e) => setPending({ ...pending, fin: e.target.value })}
+                  />
+                </div>
+              </div>
               <div className="space-y-1.5">
                 <Label>Servicio</Label>
                 <Select value={pending.slug} onValueChange={(v) => setPending({ ...pending, slug: v })}>
@@ -800,16 +814,11 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Duración (min)</Label>
+                  <Label>Hora de fin</Label>
                   <Input
-                    type="number"
-                    min={5}
-                    step={5}
-                    value={editing.dur}
-                    onChange={(e) => setEditing({ ...editing, dur: e.target.value })}
-                    onBlur={(e) =>
-                      setEditing((ed) => (ed ? { ...ed, dur: String(Math.max(5, Number(e.target.value) || 60)) } : ed))
-                    }
+                    type="time"
+                    value={hhmm(editing.hora_fin)}
+                    onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
                   />
                 </div>
               </div>
