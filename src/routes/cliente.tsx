@@ -147,14 +147,9 @@ function ClientePortal() {
   /** Ids ya mostrados como reserva, para no repetirlos como sesión personal. */
   const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
   const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
-  /** Pestaña "Sesiones": solo sesiones futuras y aún dentro de plazo de reserva. */
-  const sesionesDisponibles = clases.filter(
-    (c) => c.reservable && !c.asistida && !yaComenzo(c.fecha, c.horaInicio),
-  );
 
-  const defaultTab = verGrupos ? "clases" : "reservas";
-  const activeTab =
-    tab === "bono" || tab === "reservas" ? tab : verGrupos ? tab : defaultTab;
+  const defaultTab = verGrupos ? "calendario" : "reservas";
+  const activeTab = ["calendario", "reservas", "bono"].includes(tab) ? tab : defaultTab;
 
   // Al cambiar de pestaña se recargan los datos para mostrar siempre la información actualizada.
   function handleTabChange(value: string) {
@@ -205,27 +200,10 @@ function ClientePortal() {
       <main className="mx-auto max-w-3xl px-4 py-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-4">
-            {verGrupos && <TabsTrigger value="clases">Sesiones</TabsTrigger>}
             {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
             <TabsTrigger value="reservas">Mis reservas</TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="clases" className="space-y-2">
-            {isLoading && <p className="text-sm text-muted-foreground">Cargando clases…</p>}
-            {!isLoading && sesionesDisponibles.length === 0 && (
-              <p className="text-sm text-muted-foreground">No hay clases programadas en las próximas semanas.</p>
-            )}
-            {sesionesDisponibles.map((c) => (
-              <ClaseCard
-                key={c.key}
-                clase={c}
-                onBook={() => bookMutation.mutate(c.key)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
-                busy={pendingKey === c.key}
-              />
-            ))}
-          </TabsContent>
 
           <TabsContent value="calendario">
             {isLoading ? (
