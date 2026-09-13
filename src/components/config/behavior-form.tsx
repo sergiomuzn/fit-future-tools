@@ -62,6 +62,62 @@ function Row({
   );
 }
 
+/** Selector de minutos con opciones predefinidas y valor personalizado. */
+function MinutosSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const isPreset = CANCELACION_OPCIONES.some((o) => o.value === value);
+  const [custom, setCustom] = useState(!isPreset);
+
+  useEffect(() => {
+    if (!CANCELACION_OPCIONES.some((o) => o.value === value)) setCustom(true);
+  }, [value]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={custom ? "custom" : String(value)}
+        onValueChange={(v) => {
+          if (v === "custom") {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          onChange(Number(v));
+        }}
+      >
+        <SelectTrigger className="w-[160px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {CANCELACION_OPCIONES.map((o) => (
+            <SelectItem key={o.value} value={String(o.value)}>
+              {o.label}
+            </SelectItem>
+          ))}
+          <SelectItem value="custom">Personalizado</SelectItem>
+        </SelectContent>
+      </Select>
+      {custom && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            className="w-20"
+            value={String(value)}
+            onChange={(e) => onChange(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+          />
+          <span className="text-xs text-muted-foreground">min</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function BehaviorForm() {
   const [cfg, setCfg] = useState<BehaviorConfig>(DEFAULT_BEHAVIOR_CONFIG);
   const [dirty, setDirty] = useState(false);
@@ -74,6 +130,9 @@ export function BehaviorForm() {
   const [antelacion, setAntelacion] = useState<number>(DEFAULT_ANTELACION_MIN);
   const [antelacionPorServicio, setAntelacionPorServicio] = useState<Record<string, number>>({});
   const [antelacionDistinta, setAntelacionDistinta] = useState(false);
+  const [cancelacionMin, setCancelacionMin] = useState<number>(DEFAULT_CANCELACION_MIN);
+  const [cancelacionPorServicio, setCancelacionPorServicio] = useState<Record<string, number>>({});
+  const [cancelacionDistinta, setCancelacionDistinta] = useState(false);
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -90,7 +149,15 @@ export function BehaviorForm() {
         confirmacion_reservas?: unknown;
         antelacion_reserva_min?: unknown;
         antelacion_reserva_por_servicio?: unknown;
+        cancelacion_antelacion_min?: unknown;
+        cancelacion_antelacion_por_servicio?: unknown;
       };
+      setCancelacionMin(parseCancelacionMin(avisos.cancelacion_antelacion_min));
+      const cancelPorServicio = parseCancelacionPorServicio(
+        avisos.cancelacion_antelacion_por_servicio,
+      );
+      setCancelacionPorServicio(cancelPorServicio);
+      setCancelacionDistinta(Object.keys(cancelPorServicio).length > 0);
       setAntelacion(parseAntelacion(avisos.antelacion_reserva_min));
       const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
       setAntelacionPorServicio(porServicio);
@@ -125,6 +192,8 @@ export function BehaviorForm() {
           modo_reservas: modoReservas,
           antelacion_reserva_min: antelacion,
           antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
+          cancelacion_antelacion_min: cancelacionMin,
+          cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
