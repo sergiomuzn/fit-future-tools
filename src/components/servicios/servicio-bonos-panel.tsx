@@ -436,6 +436,24 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const { attempt } = useUnsavedChanges();
+
+  function closeEditor() {
+    setEditing(false);
+    setAdding(false);
+    setDraft(EMPTY);
+  }
+
+  useUnsavedGuard(`bonos-edit-${servicioSlug}`, {
+    // Solo hay algo que guardar cuando se está escribiendo un bono nuevo.
+    dirty: () => editing && adding,
+    save: () => addRow(),
+    discard: () => {
+      setAdding(false);
+      setDraft(EMPTY);
+    },
+  });
+
   async function addRow(): Promise<boolean> {
     const nombre = draft.nombre.trim();
     if (!nombre) {
@@ -659,10 +677,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
       <Dialog
         open={editing}
         onOpenChange={(o) => {
-          if (!o) {
-            setEditing(false);
-            setAdding(false);
-          }
+          if (!o) attempt(closeEditor);
         }}
       >
         <DialogContent className="sm:max-w-5xl">
@@ -697,10 +712,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
             )}
             <Button
               size="sm"
-              onClick={() => {
-                setEditing(false);
-                setAdding(false);
-              }}
+              onClick={() => attempt(closeEditor)}
             >
               <Check className="h-4 w-4 mr-1" /> Listo
             </Button>
