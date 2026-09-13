@@ -426,7 +426,14 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(() => !editingLocked && saveEditing())}>
           <DialogHeader>
             <DialogTitle>
-              Hueco propagado · {editing ? `${DIA_NOMBRE[dowOf(editing.fecha)]} ${editing.fecha}` : ""}
+              Hueco propagado ·{" "}
+              {editing ? (
+                <span className="whitespace-nowrap">
+                  {DIA_NOMBRE[dowOf(editing.fecha)]} {editing.fecha}
+                </span>
+              ) : (
+                ""
+              )}
             </DialogTitle>
           </DialogHeader>
           {editing && editingLocked && (
@@ -523,9 +530,17 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              {reservasDe
-                ? `${nombreServicio(reservasDe.servicio_slug)} · ${DIA_NOMBRE[dowOf(reservasDe.fecha)]} ${reservasDe.fecha} · ${hhmm(reservasDe.hora_inicio)}`
-                : ""}
+              {reservasDe ? (
+                <>
+                  {nombreServicio(reservasDe.servicio_slug)} ·{" "}
+                  <span className="whitespace-nowrap">
+                    {DIA_NOMBRE[dowOf(reservasDe.fecha)]} {reservasDe.fecha}
+                  </span>
+                  {" · "}{hhmm(reservasDe.hora_inicio)}
+                </>
+              ) : (
+                ""
+              )}
             </DialogTitle>
           </DialogHeader>
           {reservasDe && (
