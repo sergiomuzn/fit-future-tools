@@ -1,6 +1,12 @@
 import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
 import { centroDb, getCentroIdForUser, getCentroIdOfRow } from "./centro-scope.server";
-import { parseAntelacion, puedeReservarse } from "./booking-antelacion";
+import {
+  parseAntelacion,
+  parseAntelacionPorServicio,
+  antelacionParaServicio,
+  puedeReservarse,
+  type AntelacionConfig,
+} from "./booking-antelacion";
 import type {
   AccesoCliente,
   BonoResumen,
