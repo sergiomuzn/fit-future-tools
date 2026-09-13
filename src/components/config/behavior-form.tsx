@@ -25,7 +25,7 @@ import {
   ANTELACION_OPCIONES,
   DEFAULT_ANTELACION_MIN,
   parseAntelacionPorServicio,
-  parseAntelacionPorServicio,
+
 } from "@/lib/booking-antelacion";
 import {
   CANCELACION_OPCIONES,
