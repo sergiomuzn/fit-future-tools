@@ -803,8 +803,10 @@ async function assertReservable(
   fecha: string,
   horaInicio: string,
   centroId: string,
+  servicioSlug?: string | null,
 ): Promise<void> {
-  const antelacion = await getAntelacionReservaMin(centroId);
+  const cfg = await getAntelacionConfig(centroId);
+  const antelacion = antelacionParaServicio(cfg, servicioSlug);
   if (puedeReservarse(fecha, horaInicio, antelacion)) return;
   const { yaComenzo, antelacionLabel } = await import("./booking-antelacion");
   if (yaComenzo(fecha, horaInicio)) throw new Error("Esta sesión ya ha comenzado");
@@ -812,6 +814,7 @@ async function assertReservable(
     `Las reservas se cierran ${antelacionLabel(antelacion).toLowerCase()} antes del inicio`,
   );
 }
+
 
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
 
