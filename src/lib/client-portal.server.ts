@@ -909,24 +909,29 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
 
-  // ¿Cancela con antelación suficiente para que no se le contabilice la sesión?
+  const estabaPendiente = row.por_confirmar === true;
   const cancelCfg = await getCancelacionConfig(centroId);
   const margen = cancelacionParaServicio(cancelCfg, row.servicio_slug);
-  // Una sesión pendiente de confirmar aún no está reservada: cancelarla nunca
-  // se contabiliza, sea cual sea la antelación.
-  const sinCargo = row.por_confirmar || cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
+  const sinCargo = estabaPendiente || cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
 
-  if (!sinCargo) {
+  if (estabaPendiente) {
+    // Una solicitud pendiente todavía no es una reserva confirmada. Se elimina
+    // siempre, también en grupos, y nunca pasa por el estado "cancelada".
+    const { error } = await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+    if (error) throw new Error(error.message);
+  } else if (!sinCargo) {
     // Fuera de plazo: la sesión permanece en la agenda marcada como cancelada y
     // se contabiliza (descuenta del bono) salvo que el centro la marque como
     // "No contabilizar".
-    await supabaseAdmin
+    const { error } = await supabaseAdmin
       .from("sessions")
       .update({ estado: "cancelada", no_contabilizar: false, por_confirmar: false })
       .eq("id", sessionId);
+    if (error) throw new Error(error.message);
   } else if (!row.group_id) {
     // Reserva de un hueco propagado: se elimina la sesión, el hueco vuelve a ofertarse.
-    await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+    const { error } = await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+    if (error) throw new Error(error.message);
   } else {
     const { count } = await supabaseAdmin
       .from("sessions")
@@ -937,12 +942,14 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
 
     if ((count ?? 0) <= 1) {
       // Mantener el bloque en la agenda como plaza libre.
-      await supabaseAdmin
+      const { error } = await supabaseAdmin
         .from("sessions")
         .update({ client_id: null, booked_by_user_id: null, booking_tipo: null })
         .eq("id", sessionId);
+      if (error) throw new Error(error.message);
     } else {
-      await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+      const { error } = await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
+      if (error) throw new Error(error.message);
     }
   }
 
