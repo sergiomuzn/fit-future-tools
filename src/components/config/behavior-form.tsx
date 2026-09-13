@@ -191,8 +191,9 @@ export function BehaviorForm() {
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
-          antelacion_reserva_min: antelacion,
+          antelacion_reserva_min: DEFAULT_ANTELACION_MIN,
           antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
+
           cancelacion_antelacion_min: cancelacionMin,
           cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
           confirmacion_reservas: {
