@@ -25,6 +25,7 @@ import {
   ANTELACION_OPCIONES,
   DEFAULT_ANTELACION_MIN,
   parseAntelacion,
+  parseAntelacionPorServicio,
 } from "@/lib/booking-antelacion";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -64,6 +65,8 @@ export function BehaviorForm() {
     DEFAULT_CONFIRMACION_RESERVAS,
   );
   const [antelacion, setAntelacion] = useState<number>(DEFAULT_ANTELACION_MIN);
+  const [antelacionPorServicio, setAntelacionPorServicio] = useState<Record<string, number>>({});
+  const [antelacionDistinta, setAntelacionDistinta] = useState(false);
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -79,8 +82,12 @@ export function BehaviorForm() {
         modo_reservas?: string;
         confirmacion_reservas?: unknown;
         antelacion_reserva_min?: unknown;
+        antelacion_reserva_por_servicio?: unknown;
       };
       setAntelacion(parseAntelacion(avisos.antelacion_reserva_min));
+      const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
+      setAntelacionPorServicio(porServicio);
+      setAntelacionDistinta(Object.keys(porServicio).length > 0);
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 1);
@@ -110,6 +117,7 @@ export function BehaviorForm() {
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
           antelacion_reserva_min: antelacion,
+          antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
@@ -134,6 +142,8 @@ export function BehaviorForm() {
     setModoReservas(DEFAULT_BOOKING_MODE);
     setConfirmacion(DEFAULT_CONFIRMACION_RESERVAS);
     setAntelacion(DEFAULT_ANTELACION_MIN);
+    setAntelacionPorServicio({});
+    setAntelacionDistinta(false);
     setDirty(true);
   }
 
@@ -293,6 +303,52 @@ export function BehaviorForm() {
               </SelectContent>
             </Select>
           </Row>
+          <Row
+            title="Antelación distinta según el servicio"
+            description="Por defecto todos los servicios usan la antelación general. Actívalo para definir una antelación propia en cada servicio."
+          >
+            <Switch
+              checked={antelacionDistinta}
+              onCheckedChange={(v) => {
+                setAntelacionDistinta(v);
+                if (v) {
+                  setAntelacionPorServicio((prev) => {
+                    const next = { ...prev };
+                    for (const s of servicios) if (next[s.slug] === undefined) next[s.slug] = antelacion;
+                    return next;
+                  });
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {antelacionDistinta && (
+            <div className="py-3 space-y-2 border-b">
+              {servicios.map((s) => (
+                <div key={s.slug} className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{s.nombre}</span>
+                  <Select
+                    value={String(antelacionPorServicio[s.slug] ?? antelacion)}
+                    onValueChange={(v) => {
+                      setAntelacionPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
+                      setDirty(true);
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ANTELACION_OPCIONES.map((o) => (
+                        <SelectItem key={o.value} value={String(o.value)}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
           <Row
             title="Las reservas del cliente necesitan confirmación"
             description="Si lo activas, cuando un cliente reserva desde su portal la sesión queda pendiente (por confirmar) hasta que la confirmes o la canceles desde la agenda. Desactivado por defecto."

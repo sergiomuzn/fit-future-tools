@@ -1,6 +1,12 @@
 import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
 import { centroDb, getCentroIdForUser, getCentroIdOfRow } from "./centro-scope.server";
-import { parseAntelacion, puedeReservarse } from "./booking-antelacion";
+import {
+  parseAntelacion,
+  parseAntelacionPorServicio,
+  antelacionParaServicio,
+  puedeReservarse,
+  type AntelacionConfig,
+} from "./booking-antelacion";
 import type {
   AccesoCliente,
   BonoResumen,
@@ -93,7 +99,7 @@ export function portalRange(): { from: string; to: string } {
 }
 
 /** Margen de antelación configurado (minutos) para reservas de clientes. */
-export async function getAntelacionReservaMin(centroId: string): Promise<number> {
+export async function getAntelacionConfig(centroId: string): Promise<AntelacionConfig> {
   const supabaseAdmin = centroDb(centroId);
   const { data } = await supabaseAdmin
     .from("center_config")
@@ -102,9 +108,18 @@ export async function getAntelacionReservaMin(centroId: string): Promise<number>
     .maybeSingle();
   const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
     antelacion_reserva_min?: unknown;
+    antelacion_reserva_por_servicio?: unknown;
   };
-  return parseAntelacion(avisos.antelacion_reserva_min);
+  return {
+    general: parseAntelacion(avisos.antelacion_reserva_min),
+    porServicio: parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio),
+  };
 }
+
+export async function getAntelacionReservaMin(centroId: string): Promise<number> {
+  return (await getAntelacionConfig(centroId)).general;
+}
+
 
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
   const supabaseAdmin = rootAdmin;
@@ -216,7 +231,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   const centroId = await getCentroIdForUser(userId);
   const { from, to } = portalRange();
   const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion, clientId] =
-    await Promise.all([loadBlocks(from, to, centroId), getAntelacionReservaMin(centroId), getClientIdForUser(userId)]);
+    await Promise.all([loadBlocks(from, to, centroId), getAntelacionConfig(centroId), getClientIdForUser(userId)]);
 
   const out: ClaseGrupal[] = [];
   for (const [key, rows] of blocks) {
@@ -245,7 +260,11 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: slug,
-      reservable: puedeReservarse(first.fecha, first.hora_inicio, antelacion),
+      reservable: puedeReservarse(
+        first.fecha,
+        first.hora_inicio,
+        antelacionParaServicio(antelacion, slug),
+      ),
       color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
     });
   }
@@ -265,7 +284,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
   const { from, to } = portalRange();
   const [abierto, antelacion, clientId] = await Promise.all([
     buildAperturaFilter(centroId),
-    getAntelacionReservaMin(centroId),
+    getAntelacionConfig(centroId),
     getClientIdForUser(userId),
   ]);
   const [{ data: instancias }, { data: sesiones }, { data: trainers }, { data: cfgColores }, { data: servicios }] =
@@ -343,7 +362,11 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: h.servicio_slug,
-      reservable: puedeReservarse(h.fecha, h.hora_inicio, antelacion),
+      reservable: puedeReservarse(
+        h.fecha,
+        h.hora_inicio,
+        antelacionParaServicio(antelacion, h.servicio_slug),
+      ),
       color: colores[`srv:${h.servicio_slug}`] ?? defaultServicioColor(h.servicio_slug),
     } satisfies ClaseGrupal;
   });
@@ -709,7 +732,7 @@ async function bookHuecoForUser(
   if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
     throw new Error("El centro está cerrado en ese horario");
   }
-  await assertReservable(hueco.fecha, hueco.hora_inicio, centroId);
+  await assertReservable(hueco.fecha, hueco.hora_inicio, centroId, hueco.servicio_slug);
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
@@ -780,8 +803,10 @@ async function assertReservable(
   fecha: string,
   horaInicio: string,
   centroId: string,
+  servicioSlug?: string | null,
 ): Promise<void> {
-  const antelacion = await getAntelacionReservaMin(centroId);
+  const cfg = await getAntelacionConfig(centroId);
+  const antelacion = antelacionParaServicio(cfg, servicioSlug);
   if (puedeReservarse(fecha, horaInicio, antelacion)) return;
   const { yaComenzo, antelacionLabel } = await import("./booking-antelacion");
   if (yaComenzo(fecha, horaInicio)) throw new Error("Esta sesión ya ha comenzado");
@@ -789,6 +814,7 @@ async function assertReservable(
     `Las reservas se cierran ${antelacionLabel(antelacion).toLowerCase()} antes del inicio`,
   );
 }
+
 
 export async function bookClassForUser(userId: string, key: string): Promise<void> {
 
@@ -804,7 +830,16 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   }
 
   const [groupId, fecha, horaInicio] = key.split("|");
-  await assertReservable(fecha!, horaInicio!, centroId);
+  const { data: slugRow } = await supabaseAdmin
+    .from("sessions")
+    .select("servicio_slug")
+    .eq("group_id", groupId!)
+    .eq("fecha", fecha!)
+    .eq("hora_inicio", horaInicio!)
+    .not("servicio_slug", "is", null)
+    .limit(1)
+    .maybeSingle();
+  await assertReservable(fecha!, horaInicio!, centroId, slugRow?.servicio_slug ?? null);
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio, centroId);
 
   const sesionId = await addAttendeeToBlock({
