@@ -904,7 +904,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
   const supabaseAdmin = centroDb(centroId);
   const { data: row } = await supabaseAdmin
     .from("sessions")
-    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
+    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar")
     .eq("id", sessionId)
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
@@ -912,7 +912,9 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
   // ¿Cancela con antelación suficiente para que no se le contabilice la sesión?
   const cancelCfg = await getCancelacionConfig(centroId);
   const margen = cancelacionParaServicio(cancelCfg, row.servicio_slug);
-  const sinCargo = cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
+  // Una sesión pendiente de confirmar aún no está reservada: cancelarla nunca
+  // se contabiliza, sea cual sea la antelación.
+  const sinCargo = row.por_confirmar || cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
 
   if (!sinCargo) {
     // Fuera de plazo: la sesión permanece en la agenda marcada como cancelada y
