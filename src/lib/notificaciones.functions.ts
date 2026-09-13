@@ -146,6 +146,9 @@ export const resolverReservaPendiente = createServerFn({ method: "POST" })
       .eq("id", data.sessionId)
       .maybeSingle();
     if (!row) return { ok: false as const, reason: "no_existe" as const };
+    if (row.por_confirmar !== true) {
+      return { ok: false as const, reason: "ya_resuelta" as const };
+    }
 
     const { data: cfg } = await supabaseAdmin
       .from("center_config")

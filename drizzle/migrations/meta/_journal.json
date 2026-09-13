@@ -15,6 +15,20 @@
       "when": 1789339849669,
       "tag": "0001_exclude_pending_sessions_from_bono_counting",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789340393668,
+      "tag": "0002_guard_pending_booking_cancellation",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789340415629,
+      "tag": "0003_reject_pending_booking_cancellation",
+      "breakpoints": true
     }
   ]
 }

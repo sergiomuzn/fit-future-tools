@@ -921,6 +921,9 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     // siempre, también en grupos, y nunca pasa por el estado "cancelada".
     const { error } = await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
     if (error) throw new Error(error.message);
+    // El aviso deja de ser accionable en cuanto el cliente retira la solicitud.
+    // Se elimina para que tampoco permanezca visible con botones obsoletos.
+    await supabaseAdmin.from("notificaciones").delete().eq("session_id", sessionId);
   } else if (!sinCargo) {
     // Fuera de plazo: la sesión permanece en la agenda marcada como cancelada y
     // se contabiliza (descuenta del bono) salvo que el centro la marque como
