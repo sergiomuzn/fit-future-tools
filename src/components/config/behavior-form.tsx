@@ -27,6 +27,13 @@ import {
   parseAntelacion,
   parseAntelacionPorServicio,
 } from "@/lib/booking-antelacion";
+import {
+  CANCELACION_OPCIONES,
+  DEFAULT_CANCELACION_MIN,
+  parseCancelacionMin,
+  parseCancelacionPorServicio,
+} from "@/lib/cancelacion-antelacion";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   type BehaviorConfig,
