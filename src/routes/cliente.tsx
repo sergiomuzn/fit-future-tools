@@ -112,30 +112,39 @@ function ClientePortal() {
     ? personalesAll
     : personalesAll.filter((s) => s.estado !== "cancelada");
 
-  const [pendingKey, setPendingKey] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<{
+    key: string;
+    action: "reservar" | "cancelar";
+  } | null>(null);
 
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
-    onMutate: (key: string) => setPendingKey(key),
-    onSuccess: () => {
+    onMutate: (key: string) => setPendingAction({ key, action: "reservar" }),
+    onSuccess: async () => {
       toast.success("Plaza reservada");
-      qc.invalidateQueries({ queryKey: ["portal-clases"] });
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ["portal-clases"] }),
+        qc.refetchQueries({ queryKey: ["portal-personales"] }),
+        qc.refetchQueries({ queryKey: ["portal-resumen"] }),
+      ]);
     },
     onError: (e: Error) => toast.error(e.message),
-    onSettled: () => setPendingKey(null),
+    onSettled: () => setPendingAction(null),
   });
 
   const cancelMutation = useMutation({
     mutationFn: ({ sessionId }: { sessionId: string; key: string }) => cancelar({ data: { sessionId } }),
-    onMutate: ({ key }) => setPendingKey(key),
-    onSuccess: () => {
+    onMutate: ({ key }) => setPendingAction({ key, action: "cancelar" }),
+    onSuccess: async () => {
       toast.success("Reserva cancelada");
-      qc.invalidateQueries({ queryKey: ["portal-clases"] });
-      qc.invalidateQueries({ queryKey: ["portal-personales"] });
-      qc.invalidateQueries({ queryKey: ["portal-resumen"] });
+      await Promise.all([
+        qc.refetchQueries({ queryKey: ["portal-clases"] }),
+        qc.refetchQueries({ queryKey: ["portal-personales"] }),
+        qc.refetchQueries({ queryKey: ["portal-resumen"] }),
+      ]);
     },
     onError: (e: Error) => toast.error(e.message),
-    onSettled: () => setPendingKey(null),
+    onSettled: () => setPendingAction(null),
   });
 
   async function handleSignOut() {
@@ -216,7 +225,7 @@ function ClientePortal() {
                 personales={personales}
                 onBook={(c) => bookMutation.mutate(c.key)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
-                pendingKey={pendingKey}
+                pendingAction={pendingAction}
               />
             )}
           </TabsContent>
@@ -242,14 +251,14 @@ function ClientePortal() {
                 clase={c}
                 onBook={() => bookMutation.mutate(c.key)}
                 onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
-                busy={pendingKey === c.key}
+                busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
               />
             ))}
             {personalesUnicas.map((s) => (
               <SesionPersonalCard
                 key={s.id}
                 sesion={s}
-                busy={pendingKey === `personal|${s.id}`}
+                busy={pendingAction?.key === `personal|${s.id}`}
                 onCancel={() => cancelMutation.mutate({ sessionId: s.id, key: `personal|${s.id}` })}
               />
             ))}
@@ -395,16 +404,16 @@ function ClaseCard({
   clase,
   onBook,
   onCancel,
-  busy,
+  busyAction,
   hideCancel,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
-  busy: boolean;
+  busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
 }) {
-  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busy={busy} hideCancel={hideCancel} />;
+  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busyAction={busyAction} hideCancel={hideCancel} />;
 }
 
 const MESES = [
@@ -451,13 +460,13 @@ function CalendarioClases({
   personales,
   onBook,
   onCancel,
-  pendingKey,
+  pendingAction,
 }: {
   clases: ClaseGrupal[];
   personales: SesionPersonal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
-  pendingKey: string | null;
+  pendingAction: { key: string; action: "reservar" | "cancelar" } | null;
 }) {
   // Sesiones personales que reservó el propio cliente: puede cancelarlas desde el calendario.
   const personalesCancelables = new Set(
@@ -632,7 +641,7 @@ function CalendarioClases({
             clase={c}
             onBook={() => onBook(c)}
             onCancel={() => onCancel(c)}
-            busy={pendingKey === c.key}
+            busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
             hideCancel={c.key.startsWith("personal|") && !personalesCancelables.has(c.key)}
           />
         ))}
@@ -645,13 +654,13 @@ function ClaseCardImpl({
   clase,
   onBook,
   onCancel,
-  busy,
+  busyAction,
   hideCancel = false,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
-  busy: boolean;
+  busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
@@ -682,11 +691,15 @@ function ClaseCardImpl({
           <span className="text-sm tabular-nums text-muted-foreground">
             {clase.ocupadas} de {clase.capacidad}
           </span>
-          {clase.asistida ? (
+          {busyAction ? (
+            <Button variant="outline" size="sm" className="min-w-24" disabled>
+              Procesando…
+            </Button>
+          ) : clase.asistida ? (
             <span className="text-sm text-muted-foreground">Completada</span>
           ) : clase.reservada ? (
             hideCancel ? null : (
-              <Button variant="outline" size="sm" onClick={onCancel} disabled={busy || comenzada}>
+               <Button variant="outline" size="sm" className="min-w-24" onClick={onCancel} disabled={comenzada}>
                 Cancelar
               </Button>
             )
@@ -695,7 +708,7 @@ function ClaseCardImpl({
               {comenzada ? "Realizada" : "Fuera de plazo"}
             </span>
           ) : (
-            <Button size="sm" onClick={onBook} disabled={busy || completa}>
+             <Button size="sm" className="min-w-24" onClick={onBook} disabled={completa}>
               {completa ? "Completa" : "Reservar"}
             </Button>
           )}
