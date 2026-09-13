@@ -633,6 +633,8 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
         servicioSlug: slug,
         servicioNombre: slug ? (servicioBySlug.get(slug) ?? slug) : null,
         color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
+        // Solo puede cancelar lo que reservó él mismo y sigue reservado.
+        puedeCancelar: s.booked_by_user_id === userId && s.estado === "reservada",
       };
     })
     .sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
