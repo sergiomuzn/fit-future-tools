@@ -341,7 +341,16 @@ function capitalizar(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
+function SesionPersonalCard({
+  sesion,
+  onCancel,
+  busy,
+}: {
+  sesion: SesionPersonal;
+  onCancel?: () => void;
+  busy?: boolean;
+}) {
+  const comenzada = yaComenzo(sesion.fecha, sesion.horaInicio);
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -365,6 +374,11 @@ function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
             {sesion.entrenador ? `Entrenador: ${sesion.entrenador}` : "Entrenador por asignar"}
           </p>
         </div>
+        {sesion.puedeCancelar && onCancel && !comenzada && (
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
+            Cancelar
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
