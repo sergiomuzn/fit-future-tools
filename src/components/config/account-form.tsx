@@ -38,22 +38,62 @@ export function AccountForm() {
     if (!centroTouched) setCentro(centroNombre);
   }, [centroNombre, centroTouched]);
 
-  async function onChangeCentro(e: React.FormEvent) {
-    e.preventDefault();
+  async function saveCentro(): Promise<boolean> {
     const val = centro.trim();
-    if (!val) return toast.error("El nombre del centro no puede estar vacío");
-    if (val.length > 60) return toast.error("Máximo 60 caracteres");
+    if (!val) {
+      toast.error("El nombre del centro no puede estar vacío");
+      return false;
+    }
+    if (val.length > 60) {
+      toast.error("Máximo 60 caracteres");
+      return false;
+    }
     setCentroLoading(true);
     const { error } = await supabase
       .from("center_config")
       .update({ nombre: val } as never)
       .eq("id", true);
     setCentroLoading(false);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
     setCentroTouched(false);
     invalidate();
     toast.success("Nombre del centro actualizado");
+    return true;
   }
+
+  async function onChangeCentro(e: React.FormEvent) {
+    e.preventDefault();
+    await saveCentro();
+  }
+
+  const accountDirty =
+    centroTouched || newEmail !== "" || currentPass !== "" || newPass !== "" || confirmPass !== "";
+  useUnsavedGuard("config-cuenta", {
+    dirty: () => accountDirty,
+    save: async () => {
+      // El email y la contraseña requieren verificación propia: no se auto-guardan.
+      if (centroTouched) {
+        const ok = await saveCentro();
+        if (!ok) return false;
+      }
+      setNewEmail("");
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
+      return true;
+    },
+    discard: () => {
+      setCentro(centroNombre);
+      setCentroTouched(false);
+      setNewEmail("");
+      setCurrentPass("");
+      setNewPass("");
+      setConfirmPass("");
+    },
+  });
 
   async function onChangeEmail(e: React.FormEvent) {
     e.preventDefault();
