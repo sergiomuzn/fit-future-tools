@@ -304,6 +304,52 @@ export function BehaviorForm() {
             </Select>
           </Row>
           <Row
+            title="Antelación distinta según el servicio"
+            description="Por defecto todos los servicios usan la antelación general. Actívalo para definir una antelación propia en cada servicio."
+          >
+            <Switch
+              checked={antelacionDistinta}
+              onCheckedChange={(v) => {
+                setAntelacionDistinta(v);
+                if (v) {
+                  setAntelacionPorServicio((prev) => {
+                    const next = { ...prev };
+                    for (const s of servicios) if (next[s.slug] === undefined) next[s.slug] = antelacion;
+                    return next;
+                  });
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {antelacionDistinta && (
+            <div className="py-3 space-y-2 border-b">
+              {servicios.map((s) => (
+                <div key={s.slug} className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{s.nombre}</span>
+                  <Select
+                    value={String(antelacionPorServicio[s.slug] ?? antelacion)}
+                    onValueChange={(v) => {
+                      setAntelacionPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
+                      setDirty(true);
+                    }}
+                  >
+                    <SelectTrigger className="w-[160px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ANTELACION_OPCIONES.map((o) => (
+                        <SelectItem key={o.value} value={String(o.value)}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+          )}
+          <Row
             title="Las reservas del cliente necesitan confirmación"
             description="Si lo activas, cuando un cliente reserva desde su portal la sesión queda pendiente (por confirmar) hasta que la confirmes o la canceles desde la agenda. Desactivado por defecto."
           >
