@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -30,9 +30,17 @@ import {
 import {
   CANCELACION_OPCIONES,
   DEFAULT_CANCELACION_MIN,
+  cancelacionLabel,
   parseCancelacionMin,
   parseCancelacionPorServicio,
 } from "@/lib/cancelacion-antelacion";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
