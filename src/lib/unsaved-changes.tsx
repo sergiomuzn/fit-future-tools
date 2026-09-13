@@ -43,13 +43,32 @@ type CtxValue = {
 
 const Ctx = createContext<CtxValue | null>(null);
 
+/**
+ * Dentro del editor de Lovable (la app embebida en un iframe de previsualización)
+ * no mostramos el aviso de cambios sin guardar: solo molesta mientras se edita código.
+ */
+function isLovableEditorPreview() {
+  if (typeof window === "undefined") return false;
+  try {
+    if (!window.parent || window.parent === window) return false;
+    const host = window.location.hostname;
+    const ZONES = ["lovableproject.com", "lovableproject-dev.com", "lovable.app", "gpt-eng.com", "gptengineer.run"];
+    return ZONES.some((z) => host === z || host.endsWith("." + z)) || host === "localhost";
+  } catch {
+    return false;
+  }
+}
+
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const entries = useRef(new Map<string, MutableRefObject<UnsavedEntry>>());
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [saving, setSaving] = useState(false);
   const cancelBlockRef = useRef<(() => void) | null>(null);
 
+  const disabled = useRef(isLovableEditorPreview());
+
   const hasDirty = useCallback(() => {
+    if (disabled.current) return false;
     for (const r of entries.current.values()) {
       try {
         if (r.current.dirty()) return true;
