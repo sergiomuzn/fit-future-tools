@@ -542,9 +542,9 @@ export function BehaviorForm() {
               {servicios.map((s) => (
                 <div key={s.slug} className="flex items-center justify-between gap-4">
                   <span className="text-sm">{s.nombre}</span>
-                  <MinutosSelect
+                  <AntelacionSelect
                     value={cancelacionPorServicio[s.slug] ?? DEFAULT_CANCELACION_MIN}
-                    onChange={(v) => {
+                    onChange={(v: number) => {
                       setCancelacionPorServicio((prev) => ({ ...prev, [s.slug]: v }));
                       setDirty(true);
                     }}
