@@ -726,6 +726,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
             </div>
           </div>
+          <FueraHorarioAviso
+            show={isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap)}
+          />
+
 
           <div className="space-y-1.5">
             <Label>Servicio</Label>
