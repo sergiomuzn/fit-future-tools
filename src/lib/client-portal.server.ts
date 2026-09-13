@@ -909,7 +909,20 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
 
-  if (!row.group_id) {
+  // ¿Cancela con antelación suficiente para que no se le contabilice la sesión?
+  const cancelCfg = await getCancelacionConfig(centroId);
+  const margen = cancelacionParaServicio(cancelCfg, row.servicio_slug);
+  const sinCargo = cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
+
+  if (!sinCargo) {
+    // Fuera de plazo: la sesión permanece en la agenda marcada como cancelada y
+    // se contabiliza (descuenta del bono) salvo que el centro la marque como
+    // "No contabilizar".
+    await supabaseAdmin
+      .from("sessions")
+      .update({ estado: "cancelada", no_contabilizar: false, por_confirmar: false })
+      .eq("id", sessionId);
+  } else if (!row.group_id) {
     // Reserva de un hueco propagado: se elimina la sesión, el hueco vuelve a ofertarse.
     await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
   } else {
