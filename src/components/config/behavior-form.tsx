@@ -151,6 +151,9 @@ export function BehaviorForm() {
     setAntelacion(DEFAULT_ANTELACION_MIN);
     setAntelacionPorServicio({});
     setAntelacionDistinta(false);
+    setCancelacionMin(DEFAULT_CANCELACION_MIN);
+    setCancelacionPorServicio({});
+    setCancelacionDistinta(false);
     setDirty(true);
   }
 
