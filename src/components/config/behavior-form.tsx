@@ -24,7 +24,7 @@ import { useServicios } from "@/lib/servicios";
 import {
   ANTELACION_OPCIONES,
   DEFAULT_ANTELACION_MIN,
-  parseAntelacion,
+  parseAntelacionPorServicio,
   parseAntelacionPorServicio,
 } from "@/lib/booking-antelacion";
 import {
