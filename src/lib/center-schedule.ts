@@ -105,6 +105,36 @@ export function openMinutesInHour(
   return Math.max(0, overlap);
 }
 
+/** true si el tramo [hi,hf) cae total o parcialmente fuera del horario de apertura. */
+export function isOutsideOpening(
+  fecha: string,
+  horaInicio: string,
+  horaFin: string,
+  horario: HorarioBase,
+  specials: Map<string, SpecialDay>,
+): boolean {
+  if (!fecha || !horaInicio || !horaFin) return false;
+  const s = getDayScheduleFor(new Date(`${fecha}T00:00:00`), horario, specials);
+  if (!s) return true;
+  return hmToMin(horaInicio.slice(0, 5)) < s.openMin || hmToMin(horaFin.slice(0, 5)) > s.closeMin;
+}
+
+/** Igual que `isOutsideOpening` pero para la semana tipo (día 0..6, sin días especiales). */
+export function isOutsideOpeningDow(
+  dow: number,
+  horaInicio: string,
+  horaFin: string,
+  horario: HorarioBase,
+): boolean {
+  if (!horaInicio || !horaFin) return false;
+  const base = horario[String(dow)];
+  if (!base) return true;
+  return (
+    hmToMin(horaInicio.slice(0, 5)) < hmToMin(base.open) ||
+    hmToMin(horaFin.slice(0, 5)) > hmToMin(base.close)
+  );
+}
+
 export function eachDate(from: Date, to: Date): Date[] {
   const out: Date[] = [];
   const d = new Date(from.getFullYear(), from.getMonth(), from.getDate());
