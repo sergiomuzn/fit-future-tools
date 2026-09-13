@@ -293,7 +293,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   function saveEditing() {
     if (!editing) return;
-    ...
+    update.mutate({
+      id: editing.id,
+      updates: {
+        servicio_slug: editing.servicio_slug,
         hora_inicio: toTime(toMin(editing.hora_inicio)),
         hora_fin: toTime(Math.max(toMin(editing.hora_inicio) + 5, toMin(editing.hora_fin))),
         capacidad: Math.max(1, Number(editing.cap) || 1),
