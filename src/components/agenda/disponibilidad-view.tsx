@@ -24,6 +24,8 @@ import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
+import { useCenterConfig, isOutsideOpeningDow } from "@/lib/center-schedule";
+import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +71,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   });
 
   const [mode, setMode] = useState<GridMode>("crear");
+  const { horario } = useCenterConfig();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedDay, setCopiedDay] = useState<SlotTemplate[] | null>(null);
   const [editing, setEditing] = useState<(ServiceSlot & { dur: string; cap: string }) | null>(null);
