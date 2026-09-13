@@ -598,7 +598,7 @@ export function BehaviorForm() {
           </Row>
           <Row
             title="El cliente puede ver sus sesiones canceladas"
-            description="Si lo activas, en el portal del cliente aparecerán también las sesiones canceladas (marcadas como tal). Si lo desactivas, sólo verá las sesiones vigentes."
+            description="Si lo activas, el cliente ve en su portal cuántas sesiones ha cancelado (las canceladas contabilizadas por cancelar con menos de la antelación mínima), marcadas como canceladas. Si lo desactivas, no verá ninguna cancelada."
           >
             <Switch
               checked={cfg.clienteVeCanceladas}
