@@ -28,6 +28,42 @@ export function antelacionLabel(min: number): string {
   return ANTELACION_OPCIONES.find((o) => o.value === min)?.label ?? "Sin margen";
 }
 
+/**
+ * Antelación mínima de reserva: un valor general y, opcionalmente,
+ * excepciones por servicio (slug -> minutos).
+ */
+export interface AntelacionConfig {
+  general: number;
+  porServicio: Record<string, number>;
+}
+
+export const DEFAULT_ANTELACION_CONFIG: AntelacionConfig = {
+  general: DEFAULT_ANTELACION_MIN,
+  porServicio: {},
+};
+
+export function parseAntelacionPorServicio(value: unknown): Record<string, number> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const out: Record<string, number> = {};
+  for (const [slug, v] of Object.entries(value as Record<string, unknown>)) {
+    const n = typeof v === "number" ? v : Number(v);
+    if (Number.isFinite(n) && ANTELACION_OPCIONES.some((o) => o.value === n)) out[slug] = n;
+  }
+  return out;
+}
+
+/** Minutos de antelación aplicables a un servicio concreto. */
+export function antelacionParaServicio(
+  cfg: AntelacionConfig,
+  servicioSlug?: string | null,
+): number {
+  if (servicioSlug && cfg.porServicio[servicioSlug] !== undefined) {
+    return cfg.porServicio[servicioSlug]!;
+  }
+  return cfg.general;
+}
+
+
 /** Minutos absolutos (desde epoch) de una fecha ISO + hora "HH:MM". */
 export function sessionMinutes(fecha: string, hora: string): number {
   const [y, m, d] = fecha.split("-").map(Number);
