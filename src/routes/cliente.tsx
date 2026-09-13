@@ -244,7 +244,12 @@ function ClientePortal() {
               />
             ))}
             {personalesUnicas.map((s) => (
-              <SesionPersonalCard key={s.id} sesion={s} />
+              <SesionPersonalCard
+                key={s.id}
+                sesion={s}
+                busy={pendingKey === `personal|${s.id}`}
+                onCancel={() => cancelMutation.mutate({ sessionId: s.id, key: `personal|${s.id}` })}
+              />
             ))}
           </TabsContent>
 
