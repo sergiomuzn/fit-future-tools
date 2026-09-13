@@ -82,8 +82,12 @@ export function BehaviorForm() {
         modo_reservas?: string;
         confirmacion_reservas?: unknown;
         antelacion_reserva_min?: unknown;
+        antelacion_reserva_por_servicio?: unknown;
       };
       setAntelacion(parseAntelacion(avisos.antelacion_reserva_min));
+      const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
+      setAntelacionPorServicio(porServicio);
+      setAntelacionDistinta(Object.keys(porServicio).length > 0);
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 1);
