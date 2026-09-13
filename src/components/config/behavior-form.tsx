@@ -360,31 +360,8 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
-            title="Antelación mínima para reservar"
-            description="Tiempo mínimo que debe faltar para el inicio de una sesión para que el cliente pueda reservarla. Las sesiones que ya han comenzado o pasado nunca se pueden reservar. Con “Sin margen” se puede reservar hasta el minuto exacto de inicio."
-          >
-            <Select
-              value={String(antelacion)}
-              onValueChange={(v) => {
-                setAntelacion(Number(v));
-                setDirty(true);
-              }}
-            >
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ANTELACION_OPCIONES.map((o) => (
-                  <SelectItem key={o.value} value={String(o.value)}>
-                    {o.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </Row>
-          <Row
-            title="Antelación distinta según el servicio"
-            description="Por defecto todos los servicios usan la antelación general. Actívalo para definir una antelación propia en cada servicio."
+            title="Establecer antelación mínima para reservar"
+            description="Actívalo para definir, en cada servicio, el tiempo mínimo que debe faltar para el inicio de una sesión para que el cliente pueda reservarla. Si está desactivado, se puede reservar hasta el minuto exacto de inicio."
           >
             <Switch
               checked={antelacionDistinta}
@@ -393,10 +370,14 @@ export function BehaviorForm() {
                 if (v) {
                   setAntelacionPorServicio((prev) => {
                     const next = { ...prev };
-                    for (const s of servicios) if (next[s.slug] === undefined) next[s.slug] = antelacion;
+                    for (const s of servicios)
+                      if (next[s.slug] === undefined) next[s.slug] = DEFAULT_ANTELACION_MIN;
                     return next;
                   });
+                } else {
+                  setAntelacionPorServicio({});
                 }
+                setAntelacion(DEFAULT_ANTELACION_MIN);
                 setDirty(true);
               }}
             />
@@ -407,7 +388,7 @@ export function BehaviorForm() {
                 <div key={s.slug} className="flex items-center justify-between gap-4">
                   <span className="text-sm">{s.nombre}</span>
                   <Select
-                    value={String(antelacionPorServicio[s.slug] ?? antelacion)}
+                    value={String(antelacionPorServicio[s.slug] ?? DEFAULT_ANTELACION_MIN)}
                     onValueChange={(v) => {
                       setAntelacionPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
                       setDirty(true);
@@ -428,6 +409,7 @@ export function BehaviorForm() {
               ))}
             </div>
           )}
+
           <Row
             title="Las reservas del cliente necesitan confirmación"
             description="Si lo activas, cuando un cliente reserva desde su portal la sesión queda pendiente (por confirmar) hasta que la confirmes o la canceles desde la agenda. Desactivado por defecto."
