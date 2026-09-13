@@ -70,8 +70,8 @@ function Row({
   );
 }
 
-/** Selector de minutos con opciones predefinidas; "Personalizado" abre un cuadro centrado. */
-function MinutosSelect({
+/** Selector de antelación con opciones predefinidas; "Personalizado" abre un cuadro centrado. */
+function AntelacionSelect({
   value,
   onChange,
 }: {
@@ -80,12 +80,12 @@ function MinutosSelect({
 }) {
   const isPreset = CANCELACION_OPCIONES.some((o) => o.value === value);
   const [open, setOpen] = useState(false);
-  const [customMin, setCustomMin] = useState<string>(String(value));
+  const [customHours, setCustomHours] = useState<string>(String(value / 60));
   const inputRef = useRef<HTMLInputElement>(null);
 
   function confirmCustom() {
-    const n = Math.max(0, Math.round(Number(customMin) || 0));
-    onChange(n);
+    const h = Math.max(0, Math.round(Number(customHours) || 0));
+    onChange(h * 60);
     setOpen(false);
   }
 
@@ -95,7 +95,7 @@ function MinutosSelect({
         value={isPreset ? String(value) : "custom"}
         onValueChange={(v) => {
           if (v === "custom") {
-            setCustomMin(String(value));
+            setCustomHours(String(value / 60));
             setTimeout(() => setOpen(true), 120);
             return;
           }
@@ -128,14 +128,15 @@ function MinutosSelect({
             <DialogTitle>Antelación personalizada</DialogTitle>
           </DialogHeader>
           <div className="space-y-1.5">
-            <Label>Minutos de antelación</Label>
+            <Label>Horas de antelación</Label>
             <Input
               ref={inputRef}
               type="number"
               min={0}
+              step={1}
               className="no-spinner"
-              value={customMin}
-              onChange={(e) => setCustomMin(e.target.value)}
+              value={customHours}
+              onChange={(e) => setCustomHours(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
