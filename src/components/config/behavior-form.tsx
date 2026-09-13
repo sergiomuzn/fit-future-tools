@@ -27,6 +27,13 @@ import {
   parseAntelacion,
   parseAntelacionPorServicio,
 } from "@/lib/booking-antelacion";
+import {
+  CANCELACION_OPCIONES,
+  DEFAULT_CANCELACION_MIN,
+  parseCancelacionMin,
+  parseCancelacionPorServicio,
+} from "@/lib/cancelacion-antelacion";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   type BehaviorConfig,
@@ -55,6 +62,62 @@ function Row({
   );
 }
 
+/** Selector de minutos con opciones predefinidas y valor personalizado. */
+function MinutosSelect({
+  value,
+  onChange,
+}: {
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const isPreset = CANCELACION_OPCIONES.some((o) => o.value === value);
+  const [custom, setCustom] = useState(!isPreset);
+
+  useEffect(() => {
+    if (!CANCELACION_OPCIONES.some((o) => o.value === value)) setCustom(true);
+  }, [value]);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Select
+        value={custom ? "custom" : String(value)}
+        onValueChange={(v) => {
+          if (v === "custom") {
+            setCustom(true);
+            return;
+          }
+          setCustom(false);
+          onChange(Number(v));
+        }}
+      >
+        <SelectTrigger className="w-[160px]">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          {CANCELACION_OPCIONES.map((o) => (
+            <SelectItem key={o.value} value={String(o.value)}>
+              {o.label}
+            </SelectItem>
+          ))}
+          <SelectItem value="custom">Personalizado</SelectItem>
+        </SelectContent>
+      </Select>
+      {custom && (
+        <div className="flex items-center gap-1">
+          <Input
+            type="number"
+            min={0}
+            className="w-20"
+            value={String(value)}
+            onChange={(e) => onChange(Math.max(0, Math.round(Number(e.target.value) || 0)))}
+          />
+          <span className="text-xs text-muted-foreground">min</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function BehaviorForm() {
   const [cfg, setCfg] = useState<BehaviorConfig>(DEFAULT_BEHAVIOR_CONFIG);
   const [dirty, setDirty] = useState(false);
@@ -67,6 +130,9 @@ export function BehaviorForm() {
   const [antelacion, setAntelacion] = useState<number>(DEFAULT_ANTELACION_MIN);
   const [antelacionPorServicio, setAntelacionPorServicio] = useState<Record<string, number>>({});
   const [antelacionDistinta, setAntelacionDistinta] = useState(false);
+  const [cancelacionMin, setCancelacionMin] = useState<number>(DEFAULT_CANCELACION_MIN);
+  const [cancelacionPorServicio, setCancelacionPorServicio] = useState<Record<string, number>>({});
+  const [cancelacionDistinta, setCancelacionDistinta] = useState(false);
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -83,7 +149,15 @@ export function BehaviorForm() {
         confirmacion_reservas?: unknown;
         antelacion_reserva_min?: unknown;
         antelacion_reserva_por_servicio?: unknown;
+        cancelacion_antelacion_min?: unknown;
+        cancelacion_antelacion_por_servicio?: unknown;
       };
+      setCancelacionMin(parseCancelacionMin(avisos.cancelacion_antelacion_min));
+      const cancelPorServicio = parseCancelacionPorServicio(
+        avisos.cancelacion_antelacion_por_servicio,
+      );
+      setCancelacionPorServicio(cancelPorServicio);
+      setCancelacionDistinta(Object.keys(cancelPorServicio).length > 0);
       setAntelacion(parseAntelacion(avisos.antelacion_reserva_min));
       const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
       setAntelacionPorServicio(porServicio);
@@ -118,6 +192,8 @@ export function BehaviorForm() {
           modo_reservas: modoReservas,
           antelacion_reserva_min: antelacion,
           antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
+          cancelacion_antelacion_min: cancelacionMin,
+          cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
@@ -144,6 +220,9 @@ export function BehaviorForm() {
     setAntelacion(DEFAULT_ANTELACION_MIN);
     setAntelacionPorServicio({});
     setAntelacionDistinta(false);
+    setCancelacionMin(DEFAULT_CANCELACION_MIN);
+    setCancelacionPorServicio({});
+    setCancelacionDistinta(false);
     setDirty(true);
   }
 
@@ -414,6 +493,54 @@ export function BehaviorForm() {
           <CardTitle>Cancelaciones</CardTitle>
         </CardHeader>
         <CardContent>
+          <Row
+            title="Antelación mínima para cancelar sin que cuente la sesión"
+            description="Cuando un cliente cancela una reserva con esta antelación o más, la sesión desaparece de la agenda y no se le descuenta del bono. Si cancela más tarde, la sesión permanece en la agenda marcada como cancelada y se le contabiliza; sólo deja de contar si marcas a mano la casilla “No contabilizar”."
+          >
+            <MinutosSelect
+              value={cancelacionMin}
+              onChange={(v) => {
+                setCancelacionMin(v);
+                setDirty(true);
+              }}
+            />
+          </Row>
+          <Row
+            title="Antelación de cancelación distinta según el servicio"
+            description="Por defecto todos los servicios usan la antelación general de cancelación. Actívalo para definir una propia en cada servicio."
+          >
+            <Switch
+              checked={cancelacionDistinta}
+              onCheckedChange={(v) => {
+                setCancelacionDistinta(v);
+                if (v) {
+                  setCancelacionPorServicio((prev) => {
+                    const next = { ...prev };
+                    for (const s of servicios)
+                      if (next[s.slug] === undefined) next[s.slug] = cancelacionMin;
+                    return next;
+                  });
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {cancelacionDistinta && (
+            <div className="py-3 space-y-2 border-b">
+              {servicios.map((s) => (
+                <div key={s.slug} className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{s.nombre}</span>
+                  <MinutosSelect
+                    value={cancelacionPorServicio[s.slug] ?? cancelacionMin}
+                    onChange={(v) => {
+                      setCancelacionPorServicio((prev) => ({ ...prev, [s.slug]: v }));
+                      setDirty(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
           <Row
             title="Contar las sesiones canceladas como realizadas"
             description="Define si una sesión cancelada cuenta como entrenamiento en estadísticas y en el total de sesiones del entrenador. Si no cuenta como realizada, tampoco se le suma al entrenador."

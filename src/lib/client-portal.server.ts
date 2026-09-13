@@ -7,6 +7,13 @@ import {
   puedeReservarse,
   type AntelacionConfig,
 } from "./booking-antelacion";
+import {
+  parseCancelacionMin,
+  parseCancelacionPorServicio,
+  cancelacionParaServicio,
+  cancelaSinContabilizar,
+  type CancelacionConfig,
+} from "./cancelacion-antelacion";
 import type {
   AccesoCliente,
   BonoResumen,
@@ -118,6 +125,24 @@ export async function getAntelacionConfig(centroId: string): Promise<AntelacionC
 
 export async function getAntelacionReservaMin(centroId: string): Promise<number> {
   return (await getAntelacionConfig(centroId)).general;
+}
+
+/** Margen de antelación configurado (minutos) para cancelaciones sin cargo. */
+export async function getCancelacionConfig(centroId: string): Promise<CancelacionConfig> {
+  const supabaseAdmin = centroDb(centroId);
+  const { data } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+    cancelacion_antelacion_min?: unknown;
+    cancelacion_antelacion_por_servicio?: unknown;
+  };
+  return {
+    general: parseCancelacionMin(avisos.cancelacion_antelacion_min),
+    porServicio: parseCancelacionPorServicio(avisos.cancelacion_antelacion_por_servicio),
+  };
 }
 
 
@@ -884,7 +909,20 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
 
-  if (!row.group_id) {
+  // ¿Cancela con antelación suficiente para que no se le contabilice la sesión?
+  const cancelCfg = await getCancelacionConfig(centroId);
+  const margen = cancelacionParaServicio(cancelCfg, row.servicio_slug);
+  const sinCargo = cancelaSinContabilizar(row.fecha, row.hora_inicio, margen);
+
+  if (!sinCargo) {
+    // Fuera de plazo: la sesión permanece en la agenda marcada como cancelada y
+    // se contabiliza (descuenta del bono) salvo que el centro la marque como
+    // "No contabilizar".
+    await supabaseAdmin
+      .from("sessions")
+      .update({ estado: "cancelada", no_contabilizar: false, por_confirmar: false })
+      .eq("id", sessionId);
+  } else if (!row.group_id) {
     // Reserva de un hueco propagado: se elimina la sesión, el hueco vuelve a ofertarse.
     await supabaseAdmin.from("sessions").delete().eq("id", sessionId);
   } else {
@@ -920,7 +958,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
       targetRole: "admin",
       tipo: "reserva_cancelada_cliente",
       titulo: `Reserva cancelada por ${profile?.nombre ?? "Cliente"}`,
-        mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})`,
+        mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})${sinCargo ? "" : " · fuera de plazo: la sesión se le contabiliza"}`,
       },
     ],
     centroId,
