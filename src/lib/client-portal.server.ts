@@ -732,7 +732,7 @@ async function bookHuecoForUser(
   if (!abierto(hueco.fecha, hueco.hora_inicio, hueco.hora_fin)) {
     throw new Error("El centro está cerrado en ese horario");
   }
-  await assertReservable(hueco.fecha, hueco.hora_inicio, centroId);
+  await assertReservable(hueco.fecha, hueco.hora_inicio, centroId, hueco.servicio_slug);
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
