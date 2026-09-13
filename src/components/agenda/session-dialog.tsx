@@ -14,7 +14,8 @@ import { ClientPicker } from "@/components/clients/client-picker";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { getBehaviorConfig } from "@/lib/behavior-config";
-import { useCenterConfig } from "@/lib/center-schedule";
+import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
+import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useServicios } from "@/lib/servicios";
 import { notificarReservasCanceladas, notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -111,7 +112,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     queryFn: async () => (await supabase.from("bonos_catalogo").select("id,tipo")).data ?? [],
     enabled: open,
   });
-  const { colores } = useCenterConfig();
+  const { colores, horario, specialsMap } = useCenterConfig();
   const activeBono = clientId
     ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
     : null;
@@ -726,6 +727,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
             </div>
           </div>
+          <FueraHorarioAviso
+            show={isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap)}
+          />
+
 
           <div className="space-y-1.5">
             <Label>Servicio</Label>

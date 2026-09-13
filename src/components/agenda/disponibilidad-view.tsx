@@ -24,6 +24,8 @@ import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
+import { useCenterConfig, isOutsideOpeningDow } from "@/lib/center-schedule";
+import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -69,6 +71,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   });
 
   const [mode, setMode] = useState<GridMode>("crear");
+  const { horario } = useCenterConfig();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [copiedDay, setCopiedDay] = useState<SlotTemplate[] | null>(null);
   const [editing, setEditing] = useState<(ServiceSlot & { dur: string; cap: string }) | null>(null);
@@ -654,6 +657,9 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                   </SelectContent>
                 </Select>
               </div>
+              <FueraHorarioAviso
+                show={isOutsideOpeningDow(quick.dia, quick.inicio, quickCalc.finTexto, horario)}
+              />
               <p className="rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
                 Se crearán <span className="font-semibold text-foreground">{quickCalc.n} sesiones</span> de{" "}
                 {quickCalc.dur} min · franja {quick.inicio}–{quickCalc.finTexto}

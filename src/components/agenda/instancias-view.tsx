@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { capacidadDeServicio, useServicios } from "@/lib/servicios";
 import { DIA_NOMBRE, hhmm, type ServiceSlot } from "@/lib/service-slots";
 import { mondayOf, weekDates, ymdLocal, useSlotInstances, type SlotInstance } from "@/lib/slot-propagation";
+import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
+import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { SlotsWeekGrid } from "./slots-week-grid";
 import { enterToSave } from "@/lib/enter-to-save";
 
@@ -65,6 +67,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { confirm, dialog: confirmDialog } = useConfirm();
+  const { horario, specialsMap } = useCenterConfig();
   const notificarCanceladas = useServerFn(notificarReservasCanceladas);
   const base = date ?? new Date();
 
@@ -395,6 +398,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               <p className="text-sm text-muted-foreground">
                 {pending.fecha} · {hhmm(pending.inicio)}–{hhmm(pending.fin)}
               </p>
+              <FueraHorarioAviso
+                show={isOutsideOpening(pending.fecha, pending.inicio, pending.fin, horario, specialsMap)}
+              />
               <div className="space-y-1.5">
                 <Label>Servicio</Label>
                 <Select value={pending.slug} onValueChange={(v) => setPending({ ...pending, slug: v })}>
