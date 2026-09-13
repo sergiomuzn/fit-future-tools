@@ -7,6 +7,13 @@ import {
   puedeReservarse,
   type AntelacionConfig,
 } from "./booking-antelacion";
+import {
+  parseCancelacionMin,
+  parseCancelacionPorServicio,
+  cancelacionParaServicio,
+  cancelaSinContabilizar,
+  type CancelacionConfig,
+} from "./cancelacion-antelacion";
 import type {
   AccesoCliente,
   BonoResumen,
