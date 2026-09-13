@@ -422,6 +422,54 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
+            title="Antelación mínima para cancelar sin que cuente la sesión"
+            description="Cuando un cliente cancela una reserva con esta antelación o más, la sesión desaparece de la agenda y no se le descuenta del bono. Si cancela más tarde, la sesión permanece en la agenda marcada como cancelada y se le contabiliza; sólo deja de contar si marcas a mano la casilla “No contabilizar”."
+          >
+            <MinutosSelect
+              value={cancelacionMin}
+              onChange={(v) => {
+                setCancelacionMin(v);
+                setDirty(true);
+              }}
+            />
+          </Row>
+          <Row
+            title="Antelación de cancelación distinta según el servicio"
+            description="Por defecto todos los servicios usan la antelación general de cancelación. Actívalo para definir una propia en cada servicio."
+          >
+            <Switch
+              checked={cancelacionDistinta}
+              onCheckedChange={(v) => {
+                setCancelacionDistinta(v);
+                if (v) {
+                  setCancelacionPorServicio((prev) => {
+                    const next = { ...prev };
+                    for (const s of servicios)
+                      if (next[s.slug] === undefined) next[s.slug] = cancelacionMin;
+                    return next;
+                  });
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {cancelacionDistinta && (
+            <div className="py-3 space-y-2 border-b">
+              {servicios.map((s) => (
+                <div key={s.slug} className="flex items-center justify-between gap-4">
+                  <span className="text-sm">{s.nombre}</span>
+                  <MinutosSelect
+                    value={cancelacionPorServicio[s.slug] ?? cancelacionMin}
+                    onChange={(v) => {
+                      setCancelacionPorServicio((prev) => ({ ...prev, [s.slug]: v }));
+                      setDirty(true);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <Row
             title="Contar las sesiones canceladas como realizadas"
             description="Define si una sesión cancelada cuenta como entrenamiento en estadísticas y en el total de sesiones del entrenador. Si no cuenta como realizada, tampoco se le suma al entrenador."
           >
