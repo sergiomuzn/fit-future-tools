@@ -194,7 +194,7 @@ export function BehaviorForm() {
           antelacion_reserva_min: DEFAULT_ANTELACION_MIN,
           antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
 
-          cancelacion_antelacion_min: cancelacionMin,
+          cancelacion_antelacion_min: DEFAULT_CANCELACION_MIN,
           cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
@@ -478,20 +478,8 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
-            title="Antelación mínima para cancelar sin que cuente la sesión"
-            description="Cuando un cliente cancela una reserva con esta antelación o más, la sesión desaparece de la agenda y no se le descuenta del bono. Si cancela más tarde, la sesión permanece en la agenda marcada como cancelada y se le contabiliza; sólo deja de contar si marcas a mano la casilla “No contabilizar”."
-          >
-            <MinutosSelect
-              value={cancelacionMin}
-              onChange={(v) => {
-                setCancelacionMin(v);
-                setDirty(true);
-              }}
-            />
-          </Row>
-          <Row
-            title="Antelación de cancelación distinta según el servicio"
-            description="Por defecto todos los servicios usan la antelación general de cancelación. Actívalo para definir una propia en cada servicio."
+            title="Establecer antelación mínima para cancelar sin que cuente la sesión"
+            description="Cuando un cliente cancela una reserva con esta antelación o más, la sesión desaparece de la agenda y no se le descuenta del bono. Si cancela más tarde, la sesión permanece en la agenda marcada como cancelada y se le contabiliza; sólo deja de contar si marcas a mano la casilla “No contabilizar”. Actívalo para definir el margen de cada servicio; desactivado, el cliente puede cancelar sin cargo hasta el inicio de la sesión."
           >
             <Switch
               checked={cancelacionDistinta}
@@ -501,10 +489,13 @@ export function BehaviorForm() {
                   setCancelacionPorServicio((prev) => {
                     const next = { ...prev };
                     for (const s of servicios)
-                      if (next[s.slug] === undefined) next[s.slug] = cancelacionMin;
+                      if (next[s.slug] === undefined) next[s.slug] = DEFAULT_CANCELACION_MIN;
                     return next;
                   });
+                } else {
+                  setCancelacionPorServicio({});
                 }
+                setCancelacionMin(DEFAULT_CANCELACION_MIN);
                 setDirty(true);
               }}
             />
@@ -515,7 +506,7 @@ export function BehaviorForm() {
                 <div key={s.slug} className="flex items-center justify-between gap-4">
                   <span className="text-sm">{s.nombre}</span>
                   <MinutosSelect
-                    value={cancelacionPorServicio[s.slug] ?? cancelacionMin}
+                    value={cancelacionPorServicio[s.slug] ?? DEFAULT_CANCELACION_MIN}
                     onChange={(v) => {
                       setCancelacionPorServicio((prev) => ({ ...prev, [s.slug]: v }));
                       setDirty(true);
