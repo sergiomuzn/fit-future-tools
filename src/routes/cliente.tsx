@@ -249,7 +249,7 @@ function ClientePortal() {
           </TabsContent>
 
           <TabsContent value="bono">
-            <ResumenBono resumen={resumen ?? null} sumarNC={behavior.canceladasNCSumanTotal} />
+            <ResumenBono resumen={resumen ?? null} sumarNC={behavior.canceladasNCSumanTotal} verCanceladas={behavior.clienteVeCanceladas} />
           </TabsContent>
         </Tabs>
       </main>
@@ -276,7 +276,7 @@ function DatoFila({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ResumenBono({ resumen, sumarNC }: { resumen: ResumenCliente | null; sumarNC: boolean }) {
+function ResumenBono({ resumen, sumarNC, verCanceladas }: { resumen: ResumenCliente | null; sumarNC: boolean; verCanceladas: boolean }) {
   if (!resumen) return <p className="text-sm text-muted-foreground">Cargando información…</p>;
   const prox = resumen.proximaSesion;
   return (
@@ -313,10 +313,12 @@ function ResumenBono({ resumen, sumarNC }: { resumen: ResumenCliente | null; sum
                   label="Sesiones realizadas"
                   value={b.sesionesRealizadas == null ? "—" : String(b.sesionesRealizadas)}
                 />
-                <DatoFila
-                  label="Cancelaciones de este bono"
-                  value={String(b.cancelaciones + (sumarNC ? b.cancelacionesNC : 0))}
-                />
+                {verCanceladas && (
+                  <DatoFila
+                    label="Cancelaciones de este bono"
+                    value={String(b.cancelaciones + (sumarNC ? b.cancelacionesNC : 0))}
+                  />
+                )}
               </CardContent>
             </Card>
           ))}
