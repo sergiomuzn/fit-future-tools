@@ -159,7 +159,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   );
   const lockedSet = useMemo(() => new Set(lockedIds), [lockedIds]);
 
-  const [editing, setEditing] = useState<(SlotInstance & { dur: string; cap: string }) | null>(null);
+  const [editing, setEditing] = useState<(SlotInstance & { cap: string }) | null>(null);
   const [pending, setPending] = useState<{ fecha: string; inicio: string; fin: string; slug: string } | null>(null);
   /** Hueco con reservas abierto en el diálogo de clientes. */
   const [reservasDe, setReservasDe] = useState<SlotInstance | null>(null);
@@ -298,7 +298,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       patch: {
         servicio_slug: editing.servicio_slug,
         hora_inicio: toTime(toMin(editing.hora_inicio)),
-        hora_fin: toTime(toMin(editing.hora_inicio) + Math.max(5, Number(editing.dur) || 60)),
+        hora_fin: toTime(Math.max(toMin(editing.hora_inicio) + 5, toMin(editing.hora_fin))),
         capacidad: Math.max(1, Number(editing.cap) || 1),
         trainer_id: editing.trainer_id,
       },
@@ -377,7 +377,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
             }
             setEditing({
               ...inst,
-              dur: String(toMin(inst.hora_fin) - toMin(inst.hora_inicio)),
               cap: String(inst.capacidad),
             });
           }}
@@ -395,9 +394,25 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           </DialogHeader>
           {pending && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {pending.fecha} · {hhmm(pending.inicio)}–{hhmm(pending.fin)}
-              </p>
+              <p className="text-sm text-muted-foreground">{pending.fecha}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label>Hora de inicio</Label>
+                  <Input
+                    type="time"
+                    value={hhmm(pending.inicio)}
+                    onChange={(e) => setPending({ ...pending, inicio: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Hora de fin</Label>
+                  <Input
+                    type="time"
+                    value={hhmm(pending.fin)}
+                    onChange={(e) => setPending({ ...pending, fin: e.target.value })}
+                  />
+                </div>
+              </div>
               <FueraHorarioAviso
                 show={isOutsideOpening(pending.fecha, pending.inicio, pending.fin, horario, specialsMap)}
               />
@@ -470,14 +485,12 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Duración (min)</Label>
+                  <Label>Hora de fin</Label>
                   <Input
-                    type="number"
-                    min={5}
-                    step={5}
+                    type="time"
                     disabled={editingLocked}
-                    value={editing.dur}
-                    onChange={(e) => setEditing({ ...editing, dur: e.target.value })}
+                    value={hhmm(editing.hora_fin)}
+                    onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
                   />
                 </div>
               </div>
