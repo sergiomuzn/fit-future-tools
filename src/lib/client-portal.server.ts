@@ -93,7 +93,7 @@ export function portalRange(): { from: string; to: string } {
 }
 
 /** Margen de antelación configurado (minutos) para reservas de clientes. */
-export async function getAntelacionReservaMin(centroId: string): Promise<number> {
+export async function getAntelacionConfig(centroId: string): Promise<AntelacionConfig> {
   const supabaseAdmin = centroDb(centroId);
   const { data } = await supabaseAdmin
     .from("center_config")
@@ -102,9 +102,18 @@ export async function getAntelacionReservaMin(centroId: string): Promise<number>
     .maybeSingle();
   const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
     antelacion_reserva_min?: unknown;
+    antelacion_reserva_por_servicio?: unknown;
   };
-  return parseAntelacion(avisos.antelacion_reserva_min);
+  return {
+    general: parseAntelacion(avisos.antelacion_reserva_min),
+    porServicio: parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio),
+  };
 }
+
+export async function getAntelacionReservaMin(centroId: string): Promise<number> {
+  return (await getAntelacionConfig(centroId)).general;
+}
+
 
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
   const supabaseAdmin = rootAdmin;
