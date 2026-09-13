@@ -142,6 +142,8 @@ export function BehaviorForm() {
     setModoReservas(DEFAULT_BOOKING_MODE);
     setConfirmacion(DEFAULT_CONFIRMACION_RESERVAS);
     setAntelacion(DEFAULT_ANTELACION_MIN);
+    setAntelacionPorServicio({});
+    setAntelacionDistinta(false);
     setDirty(true);
   }
 
