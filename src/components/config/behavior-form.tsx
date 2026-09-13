@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +49,7 @@ import {
   getBehaviorConfig,
   writeBehaviorConfig,
 } from "@/lib/behavior-config";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
 function Row({
   title,
@@ -173,9 +174,9 @@ export function BehaviorForm() {
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     setCfg(getBehaviorConfig());
-    void (async () => {
+    {
       const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
       const avisos = (data?.avisos ?? {}) as {
         umbral_sesiones?: number;
