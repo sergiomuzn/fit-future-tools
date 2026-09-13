@@ -49,6 +49,7 @@ import {
 } from "@/components/caducidad-select";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades, MODALIDAD_NONE, type Modalidad } from "@/lib/modalidades";
+import { useUnsavedChanges, useUnsavedGuard } from "@/lib/unsaved-changes";
 
 interface Props {
   servicioSlug: string;
@@ -435,11 +436,11 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  async function addRow() {
+  async function addRow(): Promise<boolean> {
     const nombre = draft.nombre.trim();
     if (!nombre) {
       toast.error("Pon un nombre al bono");
-      return;
+      return false;
     }
     const maxOrden = bonos.reduce((m, b) => Math.max(m, b.orden ?? 0), 0);
     const { error } = await supabase.from("bonos_catalogo").insert({
@@ -456,12 +457,13 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
     });
     if (error) {
       toast.error(error.message);
-      return;
+      return false;
     }
     setDraft(EMPTY);
     setAdding(false);
     invalidate();
     toast.success("Bono añadido");
+    return true;
   }
 
   async function removeRow(b: BonoCatalogo) {
