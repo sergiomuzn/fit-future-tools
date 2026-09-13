@@ -295,7 +295,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     if (!editing) return;
     update.mutate({
       id: editing.id,
-      updates: {
+      patch: {
         servicio_slug: editing.servicio_slug,
         hora_inicio: toTime(toMin(editing.hora_inicio)),
         hora_fin: toTime(Math.max(toMin(editing.hora_inicio) + 5, toMin(editing.hora_fin))),
