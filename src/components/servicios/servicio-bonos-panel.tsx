@@ -518,14 +518,14 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
           <table className="w-full caption-bottom text-sm table-fixed border-separate border-spacing-x-1">
             <TableHeader>
               <TableRow>
-                {editing && <TableHead className="w-6 px-0 text-left" />}
-                {showModalidad && <TableHead className="w-20 px-1 text-left">Modalidad</TableHead>}
-                <TableHead className="w-36 px-1 text-left">Bono</TableHead>
-                <TableHead className="w-16 px-1 text-left">Sesiones</TableHead>
-                <TableHead className="w-16 px-1 text-left">Duración</TableHead>
-                <TableHead className="w-16 px-1 text-left">Precio</TableHead>
-                <TableHead className="w-28 px-1 pr-0 text-left">Caducidad</TableHead>
                 {editing && <TableHead className="w-8 px-0 text-left" />}
+                {showModalidad && <TableHead className="w-28 px-1 text-left">Modalidad</TableHead>}
+                <TableHead className="min-w-0 px-1 text-left" style={{ width: "100%" }}>Bono</TableHead>
+                <TableHead className="w-20 px-1 text-left">Sesiones</TableHead>
+                <TableHead className="w-20 px-1 text-left">Duración</TableHead>
+                <TableHead className="w-24 px-1 text-left">Precio</TableHead>
+                <TableHead className="w-36 px-1 pr-0 text-left">Caducidad</TableHead>
+                {editing && <TableHead className="w-10 px-0 text-left" />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -670,7 +670,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               Modifica los datos, arrastra para cambiar el orden o elimina bonos.
             </DialogDescription>
           </DialogHeader>
-          {editing && <div className="max-w-xl">{tabla}</div>}
+          {editing && tabla}
           <div className="flex items-center justify-between gap-2">
             {adding ? (
               <div className="flex gap-2">
