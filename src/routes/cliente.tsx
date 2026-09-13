@@ -457,6 +457,10 @@ function CalendarioClases({
   onCancel: (c: ClaseGrupal) => void;
   pendingKey: string | null;
 }) {
+  // Sesiones personales que reservó el propio cliente: puede cancelarlas desde el calendario.
+  const personalesCancelables = new Set(
+    personales.filter((s) => s.puedeCancelar).map((s) => `personal|${s.id}`),
+  );
   const porDia = new Map<string, ClaseGrupal[]>();
   for (const c of [...clases, ...personales.map(personalToClase)]) {
     const arr = porDia.get(c.fecha);
