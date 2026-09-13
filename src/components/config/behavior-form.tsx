@@ -210,15 +210,20 @@ export function BehaviorForm() {
         clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
         canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
       }));
-    })();
+    }
+    setDirty(false);
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function update<K extends keyof BehaviorConfig>(key: K, value: BehaviorConfig[K]) {
     setCfg((prev) => ({ ...prev, [key]: value }));
     setDirty(true);
   }
 
-  async function save() {
+  async function save(): Promise<boolean> {
     writeBehaviorConfig(cfg);
     const { error } = await supabase
       .from("center_config")
@@ -241,15 +246,24 @@ export function BehaviorForm() {
         },
       })
       .eq("id", true);
-    setDirty(false);
     if (error) {
       toast.error("No se pudieron guardar los avisos al cliente");
-      return;
+      return false;
     }
+    setDirty(false);
     await qc.invalidateQueries({ queryKey: ["booking-mode"] });
     await qc.invalidateQueries({ queryKey: ["confirmacion-reservas"] });
     toast.success("Configuración de funcionamiento guardada");
+    return true;
   }
+
+  useUnsavedGuard("config-funcionamiento", {
+    dirty: () => dirty,
+    save,
+    discard: () => {
+      void load();
+    },
+  });
 
   function reset() {
     setCfg(DEFAULT_BEHAVIOR_CONFIG);
