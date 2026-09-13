@@ -131,6 +131,8 @@ function ClientePortal() {
     onSuccess: () => {
       toast.success("Reserva cancelada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
+      qc.invalidateQueries({ queryKey: ["portal-personales"] });
+      qc.invalidateQueries({ queryKey: ["portal-resumen"] });
     },
     onError: (e: Error) => toast.error(e.message),
     onSettled: () => setPendingKey(null),
