@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
 const emailSchema = z.string().trim().email("Email inválido").max(255);
 const passwordSchema = z.string().min(8, "Mínimo 8 caracteres").max(128);
