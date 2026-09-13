@@ -599,7 +599,9 @@ export async function listMyPersonalSessions(userId: string): Promise<SesionPers
   const [{ data: sessions }, { data: trainers }, { data: servicios }] = await Promise.all([
     supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,hora_fin,estado,titulo,trainer_id,por_confirmar,group_id,servicio_slug")
+      .select(
+        "id,fecha,hora_inicio,hora_fin,estado,titulo,trainer_id,por_confirmar,group_id,servicio_slug,booked_by_user_id",
+      )
       .eq("client_id", clientId)
       .is("group_id", null)
       .gte("fecha", from)
