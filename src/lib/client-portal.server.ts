@@ -120,6 +120,24 @@ export async function getAntelacionReservaMin(centroId: string): Promise<number>
   return (await getAntelacionConfig(centroId)).general;
 }
 
+/** Margen de antelación configurado (minutos) para cancelaciones sin cargo. */
+export async function getCancelacionConfig(centroId: string): Promise<CancelacionConfig> {
+  const supabaseAdmin = centroDb(centroId);
+  const { data } = await supabaseAdmin
+    .from("center_config")
+    .select("avisos")
+    .eq("id", true)
+    .maybeSingle();
+  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+    cancelacion_antelacion_min?: unknown;
+    cancelacion_antelacion_por_servicio?: unknown;
+  };
+  return {
+    general: parseCancelacionMin(avisos.cancelacion_antelacion_min),
+    porServicio: parseCancelacionPorServicio(avisos.cancelacion_antelacion_por_servicio),
+  };
+}
+
 
 export async function getPortalProfile(userId: string): Promise<PortalProfile | null> {
   const supabaseAdmin = rootAdmin;
