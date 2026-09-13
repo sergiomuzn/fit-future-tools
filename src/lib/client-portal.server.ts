@@ -362,7 +362,11 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: h.servicio_slug,
-      reservable: puedeReservarse(h.fecha, h.hora_inicio, antelacion),
+      reservable: puedeReservarse(
+        h.fecha,
+        h.hora_inicio,
+        antelacionParaServicio(antelacion, h.servicio_slug),
+      ),
       color: colores[`srv:${h.servicio_slug}`] ?? defaultServicioColor(h.servicio_slug),
     } satisfies ClaseGrupal;
   });
