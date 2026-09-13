@@ -117,6 +117,7 @@ export function BehaviorForm() {
           canceladas_nc_suman: cfg.canceladasNCSumanTotal,
           modo_reservas: modoReservas,
           antelacion_reserva_min: antelacion,
+          antelacion_reserva_por_servicio: antelacionDistinta ? antelacionPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
