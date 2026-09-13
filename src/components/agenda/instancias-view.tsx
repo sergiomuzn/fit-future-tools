@@ -395,6 +395,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               <p className="text-sm text-muted-foreground">
                 {pending.fecha} · {hhmm(pending.inicio)}–{hhmm(pending.fin)}
               </p>
+              <FueraHorarioAviso
+                show={isOutsideOpening(pending.fecha, pending.inicio, pending.fin, horario, specialsMap)}
+              />
               <div className="space-y-1.5">
                 <Label>Servicio</Label>
                 <Select value={pending.slug} onValueChange={(v) => setPending({ ...pending, slug: v })}>

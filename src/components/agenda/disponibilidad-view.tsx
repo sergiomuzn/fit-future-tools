@@ -654,6 +654,9 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                   </SelectContent>
                 </Select>
               </div>
+              <FueraHorarioAviso
+                show={isOutsideOpeningDow(quick.dia, quick.inicio, quickCalc.finTexto, horario)}
+              />
               <p className="rounded bg-muted px-3 py-2 text-xs text-muted-foreground">
                 Se crearán <span className="font-semibold text-foreground">{quickCalc.n} sesiones</span> de{" "}
                 {quickCalc.dur} min · franja {quick.inicio}–{quickCalc.finTexto}
