@@ -426,7 +426,14 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(() => !editingLocked && saveEditing())}>
           <DialogHeader>
             <DialogTitle>
-              Hueco propagado · {editing ? `${DIA_NOMBRE[dowOf(editing.fecha)]} ${editing.fecha}` : ""}
+              Hueco propagado ·{" "}
+              {editing ? (
+                <span className="whitespace-nowrap">
+                  {DIA_NOMBRE[dowOf(editing.fecha)]} {editing.fecha}
+                </span>
+              ) : (
+                ""
+              )}
             </DialogTitle>
           </DialogHeader>
           {editing && editingLocked && (
