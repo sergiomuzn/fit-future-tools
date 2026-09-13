@@ -688,18 +688,20 @@ export async function addAttendeeToBlock(params: {
     .from("sessions")
     .insert([
       {
-        ...payload,
         group_id: params.groupId,
         fecha: params.fecha,
         hora_inicio: template.hora_inicio,
         hora_fin: template.hora_fin,
-        estado: template.estado as never,
+        // Una reserva nueva nunca hereda "realizada" o "cancelada" de otra
+        // fila del bloque; empieza reservada y, si corresponde, pendiente.
+        estado: "reservada" as never,
         ocupacion: 2,
         titulo: template.titulo,
         trainer_id: template.trainer_id,
         recurrencia_id: template.recurrencia_id,
-        no_contabilizar: template.no_contabilizar,
-        por_confirmar: params.porConfirmar ? true : template.por_confirmar,
+        no_contabilizar: false,
+        servicio_slug: template.servicio_slug,
+        ...payload,
       },
     ])
     .select("id")
