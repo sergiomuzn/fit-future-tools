@@ -25,6 +25,7 @@ import {
   ANTELACION_OPCIONES,
   DEFAULT_ANTELACION_MIN,
   parseAntelacion,
+  parseAntelacionPorServicio,
 } from "@/lib/booking-antelacion";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
