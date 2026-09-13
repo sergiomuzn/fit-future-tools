@@ -77,6 +77,8 @@ export interface SesionPersonal {
   servicioSlug: string | null;
   servicioNombre: string | null;
   color: string | null;
+  /** La reservó el propio cliente, por lo que puede cancelarla desde el portal. */
+  puedeCancelar: boolean;
 }
 
 export function accesoIncluyeGrupos(acceso?: string | null): boolean {

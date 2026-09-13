@@ -131,6 +131,8 @@ function ClientePortal() {
     onSuccess: () => {
       toast.success("Reserva cancelada");
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
+      qc.invalidateQueries({ queryKey: ["portal-personales"] });
+      qc.invalidateQueries({ queryKey: ["portal-resumen"] });
     },
     onError: (e: Error) => toast.error(e.message),
     onSettled: () => setPendingKey(null),
@@ -244,7 +246,12 @@ function ClientePortal() {
               />
             ))}
             {personalesUnicas.map((s) => (
-              <SesionPersonalCard key={s.id} sesion={s} />
+              <SesionPersonalCard
+                key={s.id}
+                sesion={s}
+                busy={pendingKey === `personal|${s.id}`}
+                onCancel={() => cancelMutation.mutate({ sessionId: s.id, key: `personal|${s.id}` })}
+              />
             ))}
           </TabsContent>
 
@@ -341,7 +348,16 @@ function capitalizar(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
+function SesionPersonalCard({
+  sesion,
+  onCancel,
+  busy,
+}: {
+  sesion: SesionPersonal;
+  onCancel?: () => void;
+  busy?: boolean;
+}) {
+  const comenzada = yaComenzo(sesion.fecha, sesion.horaInicio);
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -365,6 +381,11 @@ function SesionPersonalCard({ sesion }: { sesion: SesionPersonal }) {
             {sesion.entrenador ? `Entrenador: ${sesion.entrenador}` : "Entrenador por asignar"}
           </p>
         </div>
+        {sesion.puedeCancelar && onCancel && !comenzada && (
+          <Button variant="outline" size="sm" onClick={onCancel} disabled={busy}>
+            Cancelar
+          </Button>
+        )}
       </CardContent>
     </Card>
   );
@@ -438,6 +459,10 @@ function CalendarioClases({
   onCancel: (c: ClaseGrupal) => void;
   pendingKey: string | null;
 }) {
+  // Sesiones personales que reservó el propio cliente: puede cancelarlas desde el calendario.
+  const personalesCancelables = new Set(
+    personales.filter((s) => s.puedeCancelar).map((s) => `personal|${s.id}`),
+  );
   const porDia = new Map<string, ClaseGrupal[]>();
   for (const c of [...clases, ...personales.map(personalToClase)]) {
     const arr = porDia.get(c.fecha);
@@ -608,7 +633,7 @@ function CalendarioClases({
             onBook={() => onBook(c)}
             onCancel={() => onCancel(c)}
             busy={pendingKey === c.key}
-            hideCancel={c.key.startsWith("personal|")}
+            hideCancel={c.key.startsWith("personal|") && !personalesCancelables.has(c.key)}
           />
         ))}
       </div>
