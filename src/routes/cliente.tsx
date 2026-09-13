@@ -631,7 +631,7 @@ function CalendarioClases({
             onBook={() => onBook(c)}
             onCancel={() => onCancel(c)}
             busy={pendingKey === c.key}
-            hideCancel={c.key.startsWith("personal|")}
+            hideCancel={c.key.startsWith("personal|") && !personalesCancelables.has(c.key)}
           />
         ))}
       </div>
