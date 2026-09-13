@@ -65,7 +65,10 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const [saving, setSaving] = useState(false);
   const cancelBlockRef = useRef<(() => void) | null>(null);
 
+  const disabled = useRef(isLovableEditorPreview());
+
   const hasDirty = useCallback(() => {
+    if (disabled.current) return false;
     for (const r of entries.current.values()) {
       try {
         if (r.current.dirty()) return true;
