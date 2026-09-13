@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -49,6 +49,7 @@ import {
   getBehaviorConfig,
   writeBehaviorConfig,
 } from "@/lib/behavior-config";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
 function Row({
   title,
@@ -173,9 +174,9 @@ export function BehaviorForm() {
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     setCfg(getBehaviorConfig());
-    void (async () => {
+    {
       const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
       const avisos = (data?.avisos ?? {}) as {
         umbral_sesiones?: number;
@@ -209,15 +210,20 @@ export function BehaviorForm() {
         clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
         canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
       }));
-    })();
+    }
+    setDirty(false);
   }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   function update<K extends keyof BehaviorConfig>(key: K, value: BehaviorConfig[K]) {
     setCfg((prev) => ({ ...prev, [key]: value }));
     setDirty(true);
   }
 
-  async function save() {
+  async function save(): Promise<boolean> {
     writeBehaviorConfig(cfg);
     const { error } = await supabase
       .from("center_config")
@@ -240,15 +246,24 @@ export function BehaviorForm() {
         },
       })
       .eq("id", true);
-    setDirty(false);
     if (error) {
       toast.error("No se pudieron guardar los avisos al cliente");
-      return;
+      return false;
     }
+    setDirty(false);
     await qc.invalidateQueries({ queryKey: ["booking-mode"] });
     await qc.invalidateQueries({ queryKey: ["confirmacion-reservas"] });
     toast.success("Configuración de funcionamiento guardada");
+    return true;
   }
+
+  useUnsavedGuard("config-funcionamiento", {
+    dirty: () => dirty,
+    save,
+    discard: () => {
+      void load();
+    },
+  });
 
   function reset() {
     setCfg(DEFAULT_BEHAVIOR_CONFIG);

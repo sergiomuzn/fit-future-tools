@@ -15,6 +15,7 @@ import {
 } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
 import { servicioColorKey, defaultServicioColor, servicioColorOf } from "@/lib/colors";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
 const DAY_LABELS: Record<string, string> = {
   "1": "Lunes", "2": "Martes", "3": "Miércoles", "4": "Jueves",
@@ -31,17 +32,26 @@ export function HorarioForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
-  async function save() {
+  async function save(): Promise<boolean> {
     const { error } = await supabase.from("center_config").update({
       horario_base: local as unknown as never,
       precios: precios as unknown as never,
     }).eq("id", true);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
     toast.success("Horario guardado");
     invalidate();
+    return true;
   }
 
   const dirty = JSON.stringify(local) !== JSON.stringify(horario);
+  useUnsavedGuard("config-horario", {
+    dirty: () => dirty,
+    save,
+    discard: () => setLocal(horario),
+  });
 
   return (
     <Card>
@@ -104,17 +114,26 @@ export function PreciosForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading]);
 
-  async function save() {
+  async function save(): Promise<boolean> {
     const { error } = await supabase.from("center_config").update({
       horario_base: horario as unknown as never,
       precios: local as unknown as never,
     }).eq("id", true);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
     toast.success("Precios guardados");
     invalidate();
+    return true;
   }
 
   const dirty = JSON.stringify(local) !== JSON.stringify(precios);
+  useUnsavedGuard("config-precios", {
+    dirty: () => dirty,
+    save,
+    discard: () => setLocal(precios),
+  });
 
   return (
     <Card>

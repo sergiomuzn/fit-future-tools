@@ -16,6 +16,7 @@ import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { getModoSoporte, setModoSoporte } from "@/lib/superadmin.functions";
 import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 import {
   Sidebar,
   SidebarContent,
@@ -102,6 +103,7 @@ function ShellInner() {
   }, [pathname]);
 
   return (
+    <UnsavedChangesProvider>
     <div className="flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
       <SoporteBanner />
       <div className="flex min-h-0 w-full flex-1 overflow-hidden">
@@ -190,6 +192,7 @@ function ShellInner() {
       </main>
       </div>
     </div>
+    </UnsavedChangesProvider>
   );
 }
 

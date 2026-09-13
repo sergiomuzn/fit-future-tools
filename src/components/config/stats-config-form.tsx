@@ -27,6 +27,7 @@ import {
   type StatsKpiKey,
   type StatsMetric,
 } from "@/lib/stats-config";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
 export function StatsConfigForm() {
   const saved = useStatsConfig();
@@ -60,6 +61,15 @@ export function StatsConfigForm() {
   }
 
   const dirty = JSON.stringify(local) !== JSON.stringify(saved);
+
+  useUnsavedGuard("config-estadisticas", {
+    dirty: () => dirty,
+    save: () => {
+      save();
+      return true;
+    },
+    discard: () => setLocal(saved),
+  });
 
   return (
     <div className="space-y-6">

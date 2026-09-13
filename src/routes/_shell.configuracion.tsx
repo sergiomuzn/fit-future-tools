@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { useUnsavedChanges } from "@/lib/unsaved-changes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Info } from "lucide-react";
@@ -17,6 +19,8 @@ import { BehaviorForm } from "@/components/config/behavior-form";
 export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
 function ConfigPage() {
+  const [tab, setTab] = useState("calendario");
+  const { attempt } = useUnsavedChanges();
   return (
     <div className="page-tabbed min-h-full p-6 space-y-6">
       <div>
@@ -24,7 +28,7 @@ function ConfigPage() {
         <p className="text-sm text-muted-foreground">Horario, calendario laboral, bonos y precios.</p>
       </div>
 
-      <Tabs defaultValue="calendario">
+      <Tabs value={tab} onValueChange={(v) => attempt(() => setTab(v))}>
         <TabsList>
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>

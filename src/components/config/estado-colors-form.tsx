@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { useUnsavedGuard } from "@/lib/unsaved-changes";
 import {
   ESTADO_COLOR_KEYS,
   ESTADO_COLOR_LABELS,
@@ -31,17 +32,32 @@ export function EstadoColorsForm() {
 
   const dirty = ESTADO_COLOR_KEYS.some((k) => local[k].toLowerCase() !== estadoColorOf(colores, k).toLowerCase());
 
-  async function save() {
+  async function save(): Promise<boolean> {
     const next = { ...colores };
     for (const k of ESTADO_COLOR_KEYS) next[estadoColorKey(k)] = local[k];
     const { error } = await supabase
       .from("center_config")
       .update({ colores: next as unknown as never })
       .eq("id", true);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
     toast.success("Colores guardados");
     invalidate();
+    return true;
   }
+
+  useUnsavedGuard("config-colores", {
+    dirty: () => dirty,
+    save,
+    discard: () =>
+      setLocal({
+        cancelada: estadoColorOf(colores, "cancelada"),
+        prueba: estadoColorOf(colores, "prueba"),
+        renovacion: estadoColorOf(colores, "renovacion"),
+      }),
+  });
 
   function reset() {
     setLocal({ ...DEFAULT_ESTADO_COLORES });

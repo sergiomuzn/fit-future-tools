@@ -12,12 +12,14 @@ import { useColores } from "@/lib/colors";
 import { ServicioBonosPanel } from "@/components/servicios/servicio-bonos-panel";
 import { ServicioReservasPanel } from "@/components/servicios/servicio-reservas-panel";
 import { ServicioDialog } from "@/components/servicios/servicio-dialog";
+import { useUnsavedChanges } from "@/lib/unsaved-changes";
 
 export const Route = createFileRoute("/_shell/grupos")({
   component: ServiciosPage,
 });
 
 function ServiciosPage() {
+  const { attempt } = useUnsavedChanges();
   const { data: servicios = [] } = useServicios();
   const { servicioColor } = useColores();
   const [tab, setTab] = useState<string>("");
@@ -141,7 +143,7 @@ function ServiciosPage() {
         </Button>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      <Tabs value={tab} onValueChange={(v) => attempt(() => setTab(v))}>
         <TabsList ref={listRef}>
           {servicios.map((s, i) => {
             const dragging = dragSlug === s.slug;
