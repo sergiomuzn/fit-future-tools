@@ -670,7 +670,7 @@ export function ServicioBonosPanel({ servicioSlug }: Props) {
               Modifica los datos, arrastra para cambiar el orden o elimina bonos.
             </DialogDescription>
           </DialogHeader>
-          {editing && <div className="max-w-xl">{tabla}</div>}
+          {editing && tabla}
           <div className="flex items-center justify-between gap-2">
             {adding ? (
               <div className="flex gap-2">
