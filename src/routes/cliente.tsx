@@ -147,14 +147,9 @@ function ClientePortal() {
   /** Ids ya mostrados como reserva, para no repetirlos como sesión personal. */
   const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
   const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
-  /** Pestaña "Sesiones": solo sesiones futuras y aún dentro de plazo de reserva. */
-  const sesionesDisponibles = clases.filter(
-    (c) => c.reservable && !c.asistida && !yaComenzo(c.fecha, c.horaInicio),
-  );
 
-  const defaultTab = verGrupos ? "clases" : "reservas";
-  const activeTab =
-    tab === "bono" || tab === "reservas" ? tab : verGrupos ? tab : defaultTab;
+  const defaultTab = verGrupos ? "calendario" : "reservas";
+  const activeTab = ["calendario", "reservas", "bono"].includes(tab) ? tab : defaultTab;
 
   // Al cambiar de pestaña se recargan los datos para mostrar siempre la información actualizada.
   function handleTabChange(value: string) {
