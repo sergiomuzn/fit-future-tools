@@ -62,7 +62,7 @@ function Row({
   );
 }
 
-/** Selector de minutos con opciones predefinidas y valor personalizado. */
+/** Selector de minutos con opciones predefinidas; "Personalizado" abre un cuadro centrado. */
 function MinutosSelect({
   value,
   onChange,
@@ -71,27 +71,31 @@ function MinutosSelect({
   onChange: (v: number) => void;
 }) {
   const isPreset = CANCELACION_OPCIONES.some((o) => o.value === value);
-  const [custom, setCustom] = useState(!isPreset);
+  const [open, setOpen] = useState(false);
+  const [customMin, setCustomMin] = useState<string>(String(value));
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (!CANCELACION_OPCIONES.some((o) => o.value === value)) setCustom(true);
-  }, [value]);
+  function confirmCustom() {
+    const n = Math.max(0, Math.round(Number(customMin) || 0));
+    onChange(n);
+    setOpen(false);
+  }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center">
       <Select
-        value={custom ? "custom" : String(value)}
+        value={isPreset ? String(value) : "custom"}
         onValueChange={(v) => {
           if (v === "custom") {
-            setCustom(true);
+            setCustomMin(String(value));
+            setTimeout(() => setOpen(true), 120);
             return;
           }
-          setCustom(false);
           onChange(Number(v));
         }}
       >
         <SelectTrigger className="w-[160px]">
-          <SelectValue />
+          <span>{isPreset ? cancelacionLabel(value) : `Personalizado (${cancelacionLabel(value)})`}</span>
         </SelectTrigger>
         <SelectContent>
           {CANCELACION_OPCIONES.map((o) => (
@@ -102,18 +106,42 @@ function MinutosSelect({
           <SelectItem value="custom">Personalizado</SelectItem>
         </SelectContent>
       </Select>
-      {custom && (
-        <div className="flex items-center gap-1">
-          <Input
-            type="number"
-            min={0}
-            className="w-20"
-            value={String(value)}
-            onChange={(e) => onChange(Math.max(0, Math.round(Number(e.target.value) || 0)))}
-          />
-          <span className="text-xs text-muted-foreground">min</span>
-        </div>
-      )}
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent
+          className="sm:max-w-sm"
+          onOpenAutoFocus={(e) => {
+            e.preventDefault();
+            inputRef.current?.focus();
+            inputRef.current?.select();
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>Antelación personalizada</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-1.5">
+            <Label>Minutos de antelación</Label>
+            <Input
+              ref={inputRef}
+              type="number"
+              min={0}
+              className="no-spinner"
+              value={customMin}
+              onChange={(e) => setCustomMin(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  confirmCustom();
+                }
+              }}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmCustom}>Guardar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
