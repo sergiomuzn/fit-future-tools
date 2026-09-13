@@ -260,7 +260,11 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: slug,
-      reservable: puedeReservarse(first.fecha, first.hora_inicio, antelacion),
+      reservable: puedeReservarse(
+        first.fecha,
+        first.hora_inicio,
+        antelacionParaServicio(antelacion, slug),
+      ),
       color: slug ? (colores[`srv:${slug}`] ?? defaultServicioColor(slug)) : null,
     });
   }
