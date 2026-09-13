@@ -958,7 +958,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
       targetRole: "admin",
       tipo: "reserva_cancelada_cliente",
       titulo: `Reserva cancelada por ${profile?.nombre ?? "Cliente"}`,
-        mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})`,
+        mensaje: `en ${row.titulo || group?.nombre || row.servicio_slug || "Sesión"} (${describeSesion(row.fecha, row.hora_inicio)})${sinCargo ? "" : " · fuera de plazo: la sesión se le contabiliza"}`,
       },
     ],
     centroId,
