@@ -28,10 +28,15 @@ function ResetPasswordPage() {
     if (password !== confirm) return toast.error("Las contraseñas no coinciden");
     setLoading(true);
     const { error } = await supabase.auth.updateUser({ password: pw.data });
+    if (error) {
+      setLoading(false);
+      return toast.error(error.message);
+    }
+    // Cierra la sesión de recuperación para forzar un nuevo inicio de sesión.
+    await supabase.auth.signOut();
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Contraseña actualizada");
-    navigate({ to: "/" });
+    toast.success("Contraseña actualizada. Inicia sesión con tu nueva contraseña.");
+    navigate({ to: "/auth" });
   }
 
   return (
