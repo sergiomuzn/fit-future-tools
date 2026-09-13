@@ -136,22 +136,27 @@ function EntrenadoresPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {trainers.map((t) => (
-              <TableRow key={t.id} className={t.activo ? "" : "opacity-60"}>
-                <TableCell><span className="rounded bg-muted px-2 py-0.5 font-semibold text-xs">{t.iniciales}</span></TableCell>
-                <TableCell className="font-medium">{t.nombre}</TableCell>
-                <TableCell>{countByTrainer[t.id] ?? 0}</TableCell>
-                <TableCell>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${t.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
-                    {t.activo ? "Activo" : "Inactivo"}
-                  </span>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
-                  <Button variant="ghost" size="icon" onClick={() => remove(t.id)}><Trash2 className="h-4 w-4" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {[...trainers]
+              .sort((a, b) => {
+                if (a.activo === b.activo) return a.nombre.localeCompare(b.nombre);
+                return a.activo ? -1 : 1;
+              })
+              .map((t) => (
+                <TableRow key={t.id} className={t.activo ? "" : "opacity-60"}>
+                  <TableCell><span className="rounded bg-muted px-2 py-0.5 font-semibold text-xs">{t.iniciales}</span></TableCell>
+                  <TableCell className="font-medium">{t.nombre}</TableCell>
+                  <TableCell>{countByTrainer[t.id] ?? 0}</TableCell>
+                  <TableCell>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${t.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>
+                      {t.activo ? "Activo" : "Inactivo"}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => remove(t.id)}><Trash2 className="h-4 w-4" /></Button>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
       </div>
