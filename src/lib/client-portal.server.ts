@@ -830,7 +830,16 @@ export async function bookClassForUser(userId: string, key: string): Promise<voi
   }
 
   const [groupId, fecha, horaInicio] = key.split("|");
-  await assertReservable(fecha!, horaInicio!, centroId);
+  const { data: slugRow } = await supabaseAdmin
+    .from("sessions")
+    .select("servicio_slug")
+    .eq("group_id", groupId!)
+    .eq("fecha", fecha!)
+    .eq("hora_inicio", horaInicio!)
+    .not("servicio_slug", "is", null)
+    .limit(1)
+    .maybeSingle();
+  await assertReservable(fecha!, horaInicio!, centroId, slugRow?.servicio_slug ?? null);
   const porConfirmar = await bookingNeedsConfirmation(groupId, fecha, horaInicio, centroId);
 
   const sesionId = await addAttendeeToBlock({
