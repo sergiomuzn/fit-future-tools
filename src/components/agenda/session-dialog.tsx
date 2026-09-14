@@ -179,6 +179,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         : !!(session as any)?.no_contabilizar,
     );
     setPorConfirmar(!!(session as any)?.por_confirmar);
+    // Al crear una sesión nueva los clientes siempre empiezan vacíos,
+    // sin arrastrar los de la sesión editada anteriormente.
+    if (isNewSession) setGroupClientIds(session?.client_id ? [session.client_id] : []);
   }, [open, session]);
 
   useEffect(() => {
