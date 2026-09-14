@@ -231,9 +231,10 @@ async function loadBlocks(from: string, to: string, centroId: string) {
   ]);
   const [{ data: cfgColores }, { data: servicios }] = await Promise.all([
     supabaseAdmin.from("center_config").select("colores").eq("id", true).maybeSingle(),
-    supabaseAdmin.from("servicios").select("slug"),
+    supabaseAdmin.from("servicios").select("slug,nombre"),
   ]);
   const colores = ((cfgColores as { colores?: Record<string, string> } | null)?.colores) ?? {};
+  const nombreServicio = new Map((servicios ?? []).map((s) => [s.slug as string, s.nombre as string]));
   const slugs = (servicios ?? []).map((s) => s.slug as string);
   const defaultGroupSlug =
     slugs.find((s) => s.includes("grupo")) ?? slugs[0] ?? null;
@@ -249,7 +250,7 @@ async function loadBlocks(from: string, to: string, centroId: string) {
     if (arr) arr.push(s);
     else blocks.set(key, [s]);
   }
-  return { blocks, groupById, trainerById, colores, defaultGroupSlug };
+  return { blocks, groupById, trainerById, colores, defaultGroupSlug, nombreServicio };
 }
 
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
