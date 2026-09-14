@@ -620,29 +620,19 @@ function CalendarioClases({
               );
             })}
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: "hsl(var(--muted))", boxShadow: `inset 0 0 0 1.5px ${leyendaBase}` }}
-              />{" "}
-              Disponible
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: leyendaBase }}
-              />{" "}
-              Reservada
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: shade(leyendaBase, REALIZADA_SHADE) }}
-              />{" "}
-              Asistida
-            </span>
-          </div>
+          {leyendaServicios.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              {leyendaServicios.map((s) => (
+                <span key={s.slug} className="flex items-center gap-1">
+                  <span
+                    className="h-2.5 w-2.5 rounded-sm"
+                    style={{ backgroundColor: s.color }}
+                  />{" "}
+                  {s.nombre}
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 
