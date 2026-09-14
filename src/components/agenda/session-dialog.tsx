@@ -759,7 +759,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 : "Cliente"}
             </Label>
             {plazas > 1 ? (
-              groupClientIds.map((cid, i) => (
+              <div className="grid grid-cols-2 gap-2">
+              {groupClientIds.map((cid, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <ClientPicker
