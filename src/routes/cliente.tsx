@@ -451,6 +451,7 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
     reservable: false,
     miSesionId: s.id,
     servicioSlug: s.servicioSlug,
+    servicioNombre: s.servicioNombre,
     color: s.color,
   };
 }
