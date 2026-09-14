@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate, Link } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -451,6 +451,7 @@ function personalToClase(s: SesionPersonal): ClaseGrupal {
     reservable: false,
     miSesionId: s.id,
     servicioSlug: s.servicioSlug,
+    servicioNombre: s.servicioNombre,
     color: s.color,
   };
 }
@@ -531,7 +532,20 @@ function CalendarioClases({
   const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
-  const leyendaBase = clases.find((c) => c.color)?.color ?? "#3CC0F3";
+  const leyendaServicios = useMemo(() => {
+    const map = new Map<string, { slug: string; nombre: string; color: string }>();
+    for (const c of [...clases, ...personales.map(personalToClase)]) {
+      if (!c.servicioSlug || !c.color) continue;
+      if (!map.has(c.servicioSlug)) {
+        map.set(c.servicioSlug, {
+          slug: c.servicioSlug,
+          nombre: c.servicioNombre ?? c.nombre,
+          color: c.color,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [clases, personales]);
 
   return (
     <div className="space-y-4">
@@ -606,29 +620,19 @@ function CalendarioClases({
               );
             })}
           </div>
-          <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: "hsl(var(--muted))", boxShadow: `inset 0 0 0 1.5px ${leyendaBase}` }}
-              />{" "}
-              Disponible
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: leyendaBase }}
-              />{" "}
-              Reservada
-            </span>
-            <span className="flex items-center gap-1">
-              <span
-                className="h-2.5 w-2.5 rounded-sm"
-                style={{ backgroundColor: shade(leyendaBase, REALIZADA_SHADE) }}
-              />{" "}
-              Asistida
-            </span>
-          </div>
+          {leyendaServicios.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              {leyendaServicios.map((s) => (
+                <span key={s.slug} className="flex items-center gap-1">
+                  <span
+                    className="h-2.5 w-2.5 rounded-sm"
+                    style={{ backgroundColor: s.color }}
+                  />{" "}
+                  {s.nombre}
+                </span>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
 

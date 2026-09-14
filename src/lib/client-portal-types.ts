@@ -51,6 +51,8 @@ export interface ClaseGrupal {
   reservable: boolean;
   miSesionId: string | null;
   servicioSlug: string | null;
+  /** Nombre del servicio al que pertenece la clase. */
+  servicioNombre: string | null;
   /** Color base del servicio (configurable en Configuración > Colores por servicio). */
   color: string | null;
 }
