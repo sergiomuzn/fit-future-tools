@@ -714,25 +714,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={enterToSave(requestSave)}>
+      <DialogContent className="max-w-3xl overflow-hidden" onKeyDown={enterToSave(requestSave)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="text-xs text-muted-foreground">{session.fecha}</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Hora inicio</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
-            </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 items-start">
+          <div className="col-span-2 -mt-1 text-xs text-muted-foreground">{session.fecha}</div>
+          <div className="space-y-1.5">
+            <Label>Hora inicio</Label>
+            <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
           </div>
-          <FueraHorarioAviso
-            show={isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap)}
-          />
+          <div className="space-y-1.5">
+            <Label>Hora fin</Label>
+            <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+          </div>
+          {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
+            <div className="col-span-2">
+              <FueraHorarioAviso show />
+            </div>
+          )}
 
 
           <div className="space-y-1.5">
@@ -747,11 +747,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2 self-end pb-1">
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-            <div className="space-y-0.5">
-              <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
-            </div>
+            <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
           </div>
 
           <div className="space-y-1.5">
