@@ -532,7 +532,20 @@ function CalendarioClases({
   const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
-  const leyendaBase = clases.find((c) => c.color)?.color ?? "#3CC0F3";
+  const leyendaServicios = useMemo(() => {
+    const map = new Map<string, { slug: string; nombre: string; color: string }>();
+    for (const c of [...clases, ...personales.map(personalToClase)]) {
+      if (!c.servicioSlug || !c.color) continue;
+      if (!map.has(c.servicioSlug)) {
+        map.set(c.servicioSlug, {
+          slug: c.servicioSlug,
+          nombre: c.servicioNombre ?? c.nombre,
+          color: c.color,
+        });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [clases, personales]);
 
   return (
     <div className="space-y-4">
