@@ -714,25 +714,25 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto" onKeyDown={enterToSave(requestSave)}>
+      <DialogContent className="max-w-3xl overflow-hidden" onKeyDown={enterToSave(requestSave)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3">
-          <div className="text-xs text-muted-foreground">{session.fecha}</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Hora inicio</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
-            </div>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-2 items-start">
+          <div className="col-span-2 -mt-1 text-xs text-muted-foreground">{session.fecha}</div>
+          <div className="space-y-1.5">
+            <Label>Hora inicio</Label>
+            <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
           </div>
-          <FueraHorarioAviso
-            show={isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap)}
-          />
+          <div className="space-y-1.5">
+            <Label>Hora fin</Label>
+            <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+          </div>
+          {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
+            <div className="col-span-2">
+              <FueraHorarioAviso show />
+            </div>
+          )}
 
 
           <div className="space-y-1.5">
@@ -747,21 +747,20 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
-          <div className="flex items-start gap-2">
+          <div className="flex items-center gap-2 self-end pb-1">
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-            <div className="space-y-0.5">
-              <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
-            </div>
+            <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
           </div>
 
-          <div className="space-y-1.5">
+          <div className="col-span-2 space-y-1.5">
             <Label>
               {plazas > 1
                 ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
                 : "Cliente"}
             </Label>
             {plazas > 1 ? (
-              groupClientIds.map((cid, i) => (
+              <div className="grid grid-cols-2 gap-2">
+              {groupClientIds.map((cid, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <ClientPicker
@@ -791,7 +790,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     />
                   </div>
                 </div>
-              ))
+              ))}
+              </div>
             ) : (
               <>
                 <ClientPicker
@@ -821,42 +821,30 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Entrenador</Label>
-              <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
-                    <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+          <div className="space-y-1.5">
+            <Label>Entrenador</Label>
+            <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
+              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+              <SelectContent>
+                {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
-
-          {estado === "cancelada" && (
-            <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
-              <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
-              <div className="space-y-0.5">
-                <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
-                <p className="text-[11px] text-muted-foreground leading-tight">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
-              </div>
-            </div>
-          )}
+          <div className="space-y-1.5">
+            <Label>Estado</Label>
+            <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
+                  <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <div className="space-y-1.5">
             <Label>Repetir semanas</Label>
-              <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
+            <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
           </div>
 
           <div className="space-y-1.5">
@@ -870,12 +858,23 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             />
           </div>
 
-          {estado === "reservada" && (
-            <div className="flex items-center gap-2">
-              <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
-              <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
-            </div>
-          )}
+          <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+            {estado === "reservada" && (
+              <div className="flex items-center gap-2">
+                <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
+                <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
+              </div>
+            )}
+            {estado === "cancelada" && (
+              <div className="flex flex-1 items-start gap-2 rounded-md border border-dashed p-2">
+                <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
+                <div className="space-y-0.5">
+                  <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <DialogFooter className="gap-2">
           {!isNew && <Button variant="destructive" onClick={requestDelete}>Eliminar</Button>}
