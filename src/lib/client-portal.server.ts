@@ -389,6 +389,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: h.servicio_slug,
+      servicioNombre: nombreServicio.get(h.servicio_slug) ?? h.servicio_slug,
       reservable: puedeReservarse(
         h.fecha,
         h.hora_inicio,
