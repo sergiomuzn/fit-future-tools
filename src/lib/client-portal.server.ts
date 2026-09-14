@@ -256,7 +256,7 @@ async function loadBlocks(from: string, to: string, centroId: string) {
 export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]> {
   const centroId = await getCentroIdForUser(userId);
   const { from, to } = portalRange();
-  const [{ blocks, groupById, trainerById, colores, defaultGroupSlug }, antelacion, clientId] =
+  const [{ blocks, groupById, trainerById, colores, defaultGroupSlug, nombreServicio }, antelacion, clientId] =
     await Promise.all([loadBlocks(from, to, centroId), getAntelacionConfig(centroId), getClientIdForUser(userId)]);
 
   const out: ClaseGrupal[] = [];
@@ -286,6 +286,7 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
       asistida: mine?.estado === "realizada",
       miSesionId: mine?.id ?? null,
       servicioSlug: slug,
+      servicioNombre: slug ? (nombreServicio.get(slug) ?? null) : null,
       reservable: puedeReservarse(
         first.fecha,
         first.hora_inicio,
