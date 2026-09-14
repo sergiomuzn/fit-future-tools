@@ -790,7 +790,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     />
                   </div>
                 </div>
-              ))
+              ))}
+              </div>
             ) : (
               <>
                 <ClientPicker
