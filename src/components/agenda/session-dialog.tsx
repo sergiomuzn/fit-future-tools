@@ -388,11 +388,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             hora: String(i.hora_inicio),
           }));
         if (avisos.length) {
-          try {
-            await notificarSesionesAsignadas({ data: { sesiones: avisos.slice(0, 100) } });
-          } catch {
+          // En segundo plano: el aviso no debe retrasar la aparición de la sesión.
+          void notificarSesionesAsignadas({ data: { sesiones: avisos.slice(0, 100) } }).catch(() => {
             /* la sesión es válida aunque falle el aviso */
-          }
+          });
         }
       }
       // No se crea ningún bono: el tipo "Prueba" se deriva de la propia sesión
