@@ -786,11 +786,52 @@ function ClaseCardImpl({
             {clase.entrenador ? `Entrenador: ${clase.entrenador}` : "Entrenador por asignar"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm tabular-nums text-muted-foreground">
             {clase.ocupadas} de {clase.capacidad}
           </span>
-          {busyAction ? (
+          {puedeCola && ofrecida ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                Tienes una plaza libre
+                {clase.colaExpiraAt ? ` · ${tiempoRestanteLabel(clase.colaExpiraAt)}` : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("aceptar")}>
+                  Confirmar plaza
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={colaBusy}
+                  onClick={() => onCola?.("rechazar")}
+                >
+                  Rechazar
+                </Button>
+              </div>
+            </div>
+          ) : puedeCola && enCola ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                En cola · {clase.colaPosicion} de {clase.colaTotal}
+              </span>
+              <Button variant="outline" size="sm" disabled={colaBusy} onClick={() => onCola?.("salir")}>
+                Salir de la cola
+              </Button>
+            </div>
+          ) : puedeCola && completa && !fueraDePlazo ? (
+            <div className="flex flex-col items-end gap-1">
+              {clase.colaAvisoMin ? (
+                <span className="text-xs text-muted-foreground">
+                  Si alguien se apunta detrás, tendrás {colaTiempoLabel(clase.colaAvisoMin)} para
+                  confirmar
+                </span>
+              ) : null}
+              <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("entrar")}>
+                {colaBusy ? "Procesando…" : "Apuntarme a la cola"}
+              </Button>
+            </div>
+          ) : busyAction ? (
             <Button variant="outline" size="sm" className="min-w-24" disabled>
               Procesando…
             </Button>
