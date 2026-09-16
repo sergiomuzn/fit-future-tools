@@ -1020,6 +1020,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
 export async function getPortalPrefs(userId: string): Promise<{
   clienteVeCanceladas: boolean;
   canceladasNCSumanTotal: boolean;
+  colaActiva: boolean;
 }> {
   const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const { data } = await supabaseAdmin
@@ -1027,13 +1028,16 @@ export async function getPortalPrefs(userId: string): Promise<{
     .select("avisos")
     .eq("id", true)
     .maybeSingle();
-  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+  const raw = (data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {};
+  const avisos = raw as {
     cliente_ve_canceladas?: boolean;
     canceladas_nc_suman?: boolean;
   };
+  const { parseColaConfig } = await import("./cola-espera");
   return {
     clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
     canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
+    colaActiva: parseColaConfig(raw).activa,
   };
 }
 
