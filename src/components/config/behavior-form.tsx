@@ -28,6 +28,11 @@ import {
 
 } from "@/lib/booking-antelacion";
 import {
+  COLA_OPCIONES,
+  DEFAULT_COLA_MIN,
+  parseColaConfig,
+} from "@/lib/cola-espera";
+import {
   CANCELACION_OPCIONES,
   DEFAULT_CANCELACION_MIN,
   cancelacionLabel,
@@ -171,6 +176,10 @@ export function BehaviorForm() {
   const [cancelacionMin, setCancelacionMin] = useState<number>(DEFAULT_CANCELACION_MIN);
   const [cancelacionPorServicio, setCancelacionPorServicio] = useState<Record<string, number>>({});
   const [cancelacionDistinta, setCancelacionDistinta] = useState(false);
+  const [colaActiva, setColaActiva] = useState(false);
+  const [colaCaducidad, setColaCaducidad] = useState(false);
+  const [colaMin, setColaMin] = useState<number>(DEFAULT_COLA_MIN);
+  const [colaPorServicio, setColaPorServicio] = useState<Record<string, number>>({});
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -200,6 +209,12 @@ export function BehaviorForm() {
       const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
       setAntelacionPorServicio(porServicio);
       setAntelacionDistinta(Object.keys(porServicio).length > 0);
+
+      const cola = parseColaConfig(data?.avisos);
+      setColaActiva(cola.activa);
+      setColaCaducidad(cola.caducidadActiva);
+      setColaMin(cola.general);
+      setColaPorServicio(cola.porServicio);
 
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
@@ -239,6 +254,10 @@ export function BehaviorForm() {
 
           cancelacion_antelacion_min: DEFAULT_CANCELACION_MIN,
           cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
+          cola_activa: colaActiva,
+          cola_caducidad_activa: colaActiva && colaCaducidad,
+          cola_confirmacion_min: colaMin,
+          cola_confirmacion_por_servicio: colaActiva && colaCaducidad ? colaPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
@@ -277,6 +296,10 @@ export function BehaviorForm() {
     setCancelacionMin(DEFAULT_CANCELACION_MIN);
     setCancelacionPorServicio({});
     setCancelacionDistinta(false);
+    setColaActiva(false);
+    setColaCaducidad(false);
+    setColaMin(DEFAULT_COLA_MIN);
+    setColaPorServicio({});
     setDirty(true);
   }
 
@@ -503,6 +526,84 @@ export function BehaviorForm() {
                 ))}
               </div>
             </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Cola de espera</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Permitir apuntarse a la cola de una sesión completa"
+            description="Cuando una sesión no tiene plazas libres, el cliente puede ponerse en cola y ver cuántas personas hay por delante. Si alguien cancela, la plaza se ofrece por orden de llegada y el cliente la confirma o la rechaza."
+          >
+            <Switch
+              checked={colaActiva}
+              onCheckedChange={(v) => {
+                setColaActiva(v);
+                if (!v) {
+                  setColaCaducidad(false);
+                  setColaPorServicio({});
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {colaActiva && (
+            <>
+              <Row
+                title="La confirmación de la plaza caduca"
+                description="Si lo activas, el cliente al que se le ofrece la plaza dispone de un tiempo limitado para confirmarla, y sólo cuando hay alguien más esperando detrás. Si pasa ese tiempo, la plaza pasa automáticamente al siguiente de la cola. Desactivado, la confirmación no caduca: puede confirmarla hasta el inicio de la sesión."
+              >
+                <Switch
+                  checked={colaCaducidad}
+                  onCheckedChange={(v) => {
+                    setColaCaducidad(v);
+                    if (v) {
+                      setColaPorServicio((prev) => {
+                        const next = { ...prev };
+                        for (const s of servicios)
+                          if (next[s.slug] === undefined) next[s.slug] = colaMin;
+                        return next;
+                      });
+                    } else {
+                      setColaPorServicio({});
+                    }
+                    setDirty(true);
+                  }}
+                />
+              </Row>
+              {colaCaducidad && (
+                <div className="py-3 space-y-2">
+                  <Label className="text-sm font-medium">Tiempo para confirmar por servicio</Label>
+                  {servicios.map((s) => (
+                    <div key={s.slug} className="flex items-center justify-between gap-4">
+                      <span className="text-sm">{s.nombre}</span>
+                      <Select
+                        value={String(colaPorServicio[s.slug] ?? colaMin)}
+                        onValueChange={(v) => {
+                          setColaPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
+                          setDirty(true);
+                        }}
+                      >
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COLA_OPCIONES.map((o) => (
+                            <SelectItem key={o.value} value={String(o.value)}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>

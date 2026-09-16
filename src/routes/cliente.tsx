@@ -15,6 +15,8 @@ import {
   getMiResumen,
   getPortalPreferencias,
 } from "@/lib/client-portal.functions";
+import { apuntarseCola, salirCola, responderCola } from "@/lib/cola-espera.functions";
+import { colaTiempoLabel, tiempoRestanteLabel } from "@/lib/cola-espera";
 import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
@@ -71,9 +73,12 @@ function ClientePortal() {
   const fetchPersonales = useServerFn(listSesionesPersonales);
   const fetchResumen = useServerFn(getMiResumen);
   const fetchPrefs = useServerFn(getPortalPreferencias);
+  const entrarCola = useServerFn(apuntarseCola);
+  const dejarCola = useServerFn(salirCola);
+  const responder = useServerFn(responderCola);
   const [tab, setTab] = useState("clases");
 
-  const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false } } = useQuery({
+  const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false, colaActiva: false } } = useQuery({
     queryKey: ["portal-prefs"],
     queryFn: () => fetchPrefs({ data: undefined }),
     refetchOnWindowFocus: true,
@@ -147,6 +152,48 @@ function ClientePortal() {
     onSettled: () => setPendingAction(null),
   });
 
+  const [colaBusy, setColaBusy] = useState<string | null>(null);
+
+  async function refrescar() {
+    await Promise.all([
+      qc.refetchQueries({ queryKey: ["portal-clases"] }),
+      qc.refetchQueries({ queryKey: ["portal-personales"] }),
+      qc.refetchQueries({ queryKey: ["portal-resumen"] }),
+      qc.refetchQueries({ queryKey: ["notificaciones"] }),
+      qc.refetchQueries({ queryKey: ["mis-ofertas-cola"] }),
+    ]);
+  }
+
+  async function handleCola(
+    clase: ClaseGrupal,
+    accion: "entrar" | "salir" | "aceptar" | "rechazar",
+  ) {
+    setColaBusy(clase.key);
+    try {
+      if (accion === "entrar") {
+        const r = await entrarCola({ data: { clave: clase.key } });
+        toast.success(
+          r.avisoMin
+            ? `Estás en la cola (posición ${r.posicion}). Si alguien se apunta detrás de ti, tendrás ${colaTiempoLabel(r.avisoMin)} para confirmar la plaza cuando quede libre.`
+            : `Estás en la cola (posición ${r.posicion}). Si queda una plaza libre te avisaremos para que la confirmes.`,
+        );
+      } else if (accion === "salir") {
+        await dejarCola({ data: { clave: clase.key } });
+        toast.success("Has salido de la cola");
+      } else if (clase.colaId) {
+        await responder({
+          data: { colaId: clase.colaId, accion: accion === "aceptar" ? "aceptar" : "rechazar" },
+        });
+        toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
+      }
+      await refrescar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar la acción");
+    } finally {
+      setColaBusy(null);
+    }
+  }
+
   async function handleSignOut() {
     await qc.cancelQueries();
     qc.clear();
@@ -155,6 +202,8 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+  /** Sesiones completas en las que estoy esperando en la cola. */
+  const misColas = clases.filter((c) => !c.reservada && !!c.colaEstado);
   /** Ids ya mostrados como reserva, para no repetirlos como sesión personal. */
   const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
   const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
@@ -226,6 +275,9 @@ function ClientePortal() {
                 onBook={(c) => bookMutation.mutate(c.key)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 pendingAction={pendingAction}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy}
+                onCola={handleCola}
               />
             )}
           </TabsContent>
@@ -252,6 +304,21 @@ function ClientePortal() {
                 onBook={() => bookMutation.mutate(c.key)}
                 onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy === c.key}
+                onCola={(accion) => void handleCola(c, accion)}
+              />
+            ))}
+            {misColas.map((c) => (
+              <ClaseCard
+                key={c.key}
+                clase={c}
+                onBook={() => bookMutation.mutate(c.key)}
+                onCancel={() => {}}
+                busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy === c.key}
+                onCola={(accion) => void handleCola(c, accion)}
               />
             ))}
             {personalesUnicas.map((s) => (
@@ -400,20 +467,39 @@ function SesionPersonalCard({
   );
 }
 
+type ColaAccion = "entrar" | "salir" | "aceptar" | "rechazar";
+
 function ClaseCard({
   clase,
   onBook,
   onCancel,
   busyAction,
   hideCancel,
+  colaActiva = false,
+  colaBusy = false,
+  onCola,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
+  colaActiva?: boolean;
+  colaBusy?: boolean;
+  onCola?: (accion: ColaAccion) => void;
 }) {
-  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busyAction={busyAction} hideCancel={hideCancel} />;
+  return (
+    <ClaseCardImpl
+      clase={clase}
+      onBook={onBook}
+      onCancel={onCancel}
+      busyAction={busyAction}
+      hideCancel={hideCancel}
+      colaActiva={colaActiva}
+      colaBusy={colaBusy}
+      onCola={onCola}
+    />
+  );
 }
 
 const MESES = [
@@ -462,12 +548,18 @@ function CalendarioClases({
   onBook,
   onCancel,
   pendingAction,
+  colaActiva = false,
+  colaBusy = null,
+  onCola,
 }: {
   clases: ClaseGrupal[];
   personales: SesionPersonal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
   pendingAction: { key: string; action: "reservar" | "cancelar" } | null;
+  colaActiva?: boolean;
+  colaBusy?: string | null;
+  onCola?: (clase: ClaseGrupal, accion: ColaAccion) => void;
 }) {
   // Sesiones personales que reservó el propio cliente: puede cancelarlas desde el calendario.
   const personalesCancelables = new Set(
@@ -647,6 +739,9 @@ function CalendarioClases({
             onCancel={() => onCancel(c)}
             busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
             hideCancel={c.key.startsWith("personal|") && !personalesCancelables.has(c.key)}
+            colaActiva={colaActiva}
+            colaBusy={colaBusy === c.key}
+            onCola={(accion) => onCola?.(c, accion)}
           />
         ))}
       </div>
@@ -660,16 +755,25 @@ function ClaseCardImpl({
   onCancel,
   busyAction,
   hideCancel = false,
+  colaActiva = false,
+  colaBusy = false,
+  onCola,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
+  colaActiva?: boolean;
+  colaBusy?: boolean;
+  onCola?: (accion: ColaAccion) => void;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
   const fueraDePlazo = !clase.reservable;
   const comenzada = yaComenzo(clase.fecha, clase.horaInicio);
+  const puedeCola = colaActiva && !!onCola && !clase.reservada && !clase.asistida && !comenzada;
+  const enCola = clase.colaEstado === "en_cola";
+  const ofrecida = clase.colaEstado === "ofrecida";
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
@@ -691,11 +795,52 @@ function ClaseCardImpl({
             {clase.entrenador ? `Entrenador: ${clase.entrenador}` : "Entrenador por asignar"}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm tabular-nums text-muted-foreground">
             {clase.ocupadas} de {clase.capacidad}
           </span>
-          {busyAction ? (
+          {puedeCola && ofrecida ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                Tienes una plaza libre
+                {clase.colaExpiraAt ? ` · ${tiempoRestanteLabel(clase.colaExpiraAt)}` : ""}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("aceptar")}>
+                  Confirmar plaza
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={colaBusy}
+                  onClick={() => onCola?.("rechazar")}
+                >
+                  Rechazar
+                </Button>
+              </div>
+            </div>
+          ) : puedeCola && enCola ? (
+            <div className="flex flex-col items-end gap-1">
+              <span className="text-xs text-muted-foreground">
+                En cola · {clase.colaPosicion} de {clase.colaTotal}
+              </span>
+              <Button variant="outline" size="sm" disabled={colaBusy} onClick={() => onCola?.("salir")}>
+                Salir de la cola
+              </Button>
+            </div>
+          ) : puedeCola && completa && !fueraDePlazo ? (
+            <div className="flex flex-col items-end gap-1">
+              {clase.colaAvisoMin ? (
+                <span className="text-xs text-muted-foreground">
+                  Si alguien se apunta detrás, tendrás {colaTiempoLabel(clase.colaAvisoMin)} para
+                  confirmar
+                </span>
+              ) : null}
+              <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("entrar")}>
+                {colaBusy ? "Procesando…" : "Apuntarme a la cola"}
+              </Button>
+            </div>
+          ) : busyAction ? (
             <Button variant="outline" size="sm" className="min-w-24" disabled>
               Procesando…
             </Button>

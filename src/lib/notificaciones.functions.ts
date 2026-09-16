@@ -188,6 +188,13 @@ export const resolverReservaPendiente = createServerFn({ method: "POST" })
       await supabaseAdmin.from("sessions").delete().eq("id", data.sessionId);
     }
 
+    if (data.accion === "denegar") {
+      // La plaza liberada se ofrece al primero de la cola de espera.
+      const { claveDeSesion, ofrecerPlazaSiguiente } = await import("./cola-espera.server");
+      const clave = await claveDeSesion(centroId, row);
+      if (clave) await ofrecerPlazaSiguiente(centroId, clave);
+    }
+
     if (row.booked_by_user_id) {
       await crearNotificaciones(
         [

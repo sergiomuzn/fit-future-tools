@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
+import { responderCola } from "@/lib/cola-espera.functions";
 
 interface Notificacion {
   id: string;
@@ -35,6 +36,7 @@ export function NotificationsBell({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [procesando, setProcesando] = useState<string | null>(null);
   const resolver = useServerFn(resolverReservaPendiente);
+  const responder = useServerFn(responderCola);
 
   const { data: items = [] } = useQuery({
     queryKey: ["notificaciones"],
@@ -65,6 +67,31 @@ export function NotificationsBell({ className }: { className?: string }) {
       return (data ?? []).map((r) => (r as { id: string }).id);
     },
   });
+
+  const { data: ofertasCola = [] } = useQuery({
+    queryKey: ["mis-ofertas-cola"],
+    queryFn: async (): Promise<string[]> => {
+      const { data } = await supabase.from("reserva_cola").select("id").eq("estado", "ofrecida");
+      return (data ?? []).map((r) => (r as { id: string }).id);
+    },
+    refetchInterval: 60_000,
+  });
+
+  async function resolverCola(colaId: string, accion: "aceptar" | "rechazar") {
+    setProcesando(colaId);
+    try {
+      await responder({ data: { colaId, accion } });
+      toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
+      qc.invalidateQueries({ queryKey: ["mis-ofertas-cola"] });
+      qc.invalidateQueries({ queryKey: ["portal-clases"] });
+      qc.invalidateQueries({ queryKey: ["portal-resumen"] });
+      qc.invalidateQueries({ queryKey: ["notificaciones"] });
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar la acción");
+    } finally {
+      setProcesando(null);
+    }
+  }
 
   async function resolverReserva(sessionId: string, accion: "confirmar" | "denegar") {
     setProcesando(sessionId);
@@ -133,7 +160,28 @@ export function NotificationsBell({ className }: { className?: string }) {
                 <span className="shrink-0 text-[11px] text-muted-foreground">{relativo(n.created_at)}</span>
               </div>
               <p className="text-xs text-muted-foreground">{n.mensaje}</p>
-              {n.session_id && pendientes.includes(n.session_id) && (
+              {n.tipo === "cola_plaza_libre" && n.session_id && ofertasCola.includes(n.session_id) && (
+                <div className="mt-2 flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverCola(n.session_id!, "aceptar")}
+                  >
+                    Confirmar plaza
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs"
+                    disabled={procesando === n.session_id}
+                    onClick={() => void resolverCola(n.session_id!, "rechazar")}
+                  >
+                    Rechazar
+                  </Button>
+                </div>
+              )}
+              {n.tipo !== "cola_plaza_libre" && n.session_id && pendientes.includes(n.session_id) && (
                 <div className="mt-2 flex gap-2">
                   <Button
                     size="sm"

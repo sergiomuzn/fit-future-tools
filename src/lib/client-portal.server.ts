@@ -298,7 +298,31 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
 
   out.push(...(await listPropagatedHuecos(userId)));
   out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
+  await enrichCola(out, userId, centroId);
   return out;
+}
+
+/** Añade a cada sesión el estado de su cola de espera para este cliente. */
+async function enrichCola(clases: ClaseGrupal[], userId: string, centroId: string): Promise<void> {
+  const { getColaConfig, procesarCaducidades, colaInfoParaUsuario } = await import(
+    "./cola-espera.server"
+  );
+  const cfg = await getColaConfig(centroId);
+  if (!cfg.activa) return;
+  await procesarCaducidades(centroId);
+  const { colaTiempoParaServicio } = await import("./cola-espera");
+  const info = await colaInfoParaUsuario(centroId, userId);
+  for (const c of clases) {
+    const i = info.get(c.key);
+    c.colaTotal = i?.total ?? 0;
+    c.colaPosicion = i?.posicion ?? null;
+    c.colaEstado = i?.estado ?? null;
+    c.colaId = i?.colaId ?? null;
+    c.colaExpiraAt = i?.expiraAt ?? null;
+    c.colaAvisoMin = cfg.caducidadActiva
+      ? colaTiempoParaServicio(cfg, c.servicioSlug)
+      : null;
+  }
 }
 
 /**
@@ -965,6 +989,13 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     }
   }
 
+  // Al liberarse la plaza se ofrece al primero de la cola de espera.
+  {
+    const { claveDeSesion, ofrecerPlazaSiguiente } = await import("./cola-espera.server");
+    const clave = await claveDeSesion(centroId, row);
+    if (clave) await ofrecerPlazaSiguiente(centroId, clave);
+  }
+
   const [profile, { data: group }] = await Promise.all([
     getPortalProfile(userId),
     row.group_id
@@ -989,6 +1020,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
 export async function getPortalPrefs(userId: string): Promise<{
   clienteVeCanceladas: boolean;
   canceladasNCSumanTotal: boolean;
+  colaActiva: boolean;
 }> {
   const supabaseAdmin = centroDb(await getCentroIdForUser(userId));
   const { data } = await supabaseAdmin
@@ -996,13 +1028,16 @@ export async function getPortalPrefs(userId: string): Promise<{
     .select("avisos")
     .eq("id", true)
     .maybeSingle();
-  const avisos = ((data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {}) as {
+  const raw = (data as { avisos?: Record<string, unknown> } | null)?.avisos ?? {};
+  const avisos = raw as {
     cliente_ve_canceladas?: boolean;
     canceladas_nc_suman?: boolean;
   };
+  const { parseColaConfig } = await import("./cola-espera");
   return {
     clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
     canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
+    colaActiva: parseColaConfig(raw).activa,
   };
 }
 

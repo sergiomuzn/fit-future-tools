@@ -55,6 +55,18 @@ export interface ClaseGrupal {
   servicioNombre: string | null;
   /** Color base del servicio (configurable en Configuración > Colores por servicio). */
   color: string | null;
+  /** Personas esperando en la cola de esta sesión. */
+  colaTotal?: number;
+  /** Mi posición en la cola (1 = el primero), null si no estoy. */
+  colaPosicion?: number | null;
+  /** Mi estado en la cola: esperando o con la plaza ofrecida. */
+  colaEstado?: "en_cola" | "ofrecida" | null;
+  /** Id de mi entrada en la cola. */
+  colaId?: string | null;
+  /** Fecha límite para confirmar la plaza ofrecida (null = sin límite). */
+  colaExpiraAt?: string | null;
+  /** Minutos que tendría para confirmar si alguien se apunta detrás. */
+  colaAvisoMin?: number | null;
 }
 
 export interface PortalProfile {
