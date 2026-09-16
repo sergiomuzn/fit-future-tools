@@ -360,7 +360,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
         .lte("fecha", to),
       supabaseAdmin
         .from("sessions")
-        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,por_confirmar")
+        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar")
         .is("group_id", null)
         .gte("fecha", from)
         .lte("fecha", to)
