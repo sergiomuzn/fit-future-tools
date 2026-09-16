@@ -51,7 +51,7 @@ export function parseColaPorServicio(value: unknown): Record<string, number> {
 
 /** Lee la configuración de cola desde `center_config.avisos`. */
 export function parseColaConfig(avisos: unknown): ColaConfig {
-  const a = ((avisos ?? {}) as Record<string, unknown>) ?? {};
+  const a = (avisos ?? {}) as Record<string, unknown>;
   return {
     activa: a["cola_activa"] === true,
     caducidadActiva: a["cola_caducidad_activa"] === true,
