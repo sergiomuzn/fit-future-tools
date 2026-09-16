@@ -98,6 +98,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
       <div className="relative">
         <Input
           autoFocus={autoFocus}
+          autoComplete="nope"
           placeholder="Buscar cliente..."
           value={search}
           className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}
@@ -188,11 +189,11 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           <div className="grid gap-3">
             <div className="space-y-1.5">
               <Label>Nombre</Label>
-              <Input autoFocus value={draft.nombre ?? ""} onChange={(e) => setDraft({ ...draft, nombre: e.target.value })} />
+              <Input autoFocus autoComplete="nope" value={draft.nombre ?? ""} onChange={(e) => setDraft({ ...draft, nombre: e.target.value })} />
             </div>
             <div className="space-y-1.5">
               <Label>Teléfono</Label>
-              <Input value={draft.telefono ?? ""} onChange={(e) => setDraft({ ...draft, telefono: e.target.value })} />
+              <Input autoComplete="nope" value={draft.telefono ?? ""} onChange={(e) => setDraft({ ...draft, telefono: e.target.value })} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">

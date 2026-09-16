@@ -557,6 +557,7 @@ export function AccesosPanel() {
             <Input
               id="email-invitacion-dialog"
               type="email"
+              autoComplete="nope"
               placeholder="cliente@correo.com"
               value={emailInvitacion}
               onChange={(e) => setEmailInvitacion(e.target.value)}
