@@ -483,9 +483,9 @@ function ClientesPage() {
         <DialogContent onKeyDown={enterToSave(save)}>
           <DialogHeader><DialogTitle>{editing?.id ? "Editar cliente" : "Nuevo cliente"}</DialogTitle></DialogHeader>
           <div className="grid gap-3">
-            <div className="space-y-1.5"><Label>Nombre</Label><Input value={editing?.nombre ?? ""} onChange={(e) => setEditing({ ...editing, nombre: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Teléfono</Label><Input value={editing?.telefono ?? ""} onChange={(e) => setEditing({ ...editing, telefono: e.target.value })} /></div>
-            <div className="space-y-1.5"><Label>Email</Label><Input type="email" value={editing?.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Nombre</Label><Input autoComplete="nope" value={editing?.nombre ?? ""} onChange={(e) => setEditing({ ...editing, nombre: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Teléfono</Label><Input autoComplete="nope" value={editing?.telefono ?? ""} onChange={(e) => setEditing({ ...editing, telefono: e.target.value })} /></div>
+            <div className="space-y-1.5"><Label>Email</Label><Input type="email" autoComplete="nope" value={editing?.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><Label>Fecha de inicio</Label><Input type="date" value={editing?.fecha_inicio ?? ""} onChange={(e) => setEditing({ ...editing, fecha_inicio: e.target.value })} /></div>
               <div className="space-y-1.5"><Label>Fecha de nacimiento</Label><Input type="date" value={editing?.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
