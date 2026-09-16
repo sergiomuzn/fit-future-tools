@@ -532,6 +532,84 @@ export function BehaviorForm() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Cola de espera</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Row
+            title="Permitir apuntarse a la cola de una sesión completa"
+            description="Cuando una sesión no tiene plazas libres, el cliente puede ponerse en cola y ver cuántas personas hay por delante. Si alguien cancela, la plaza se ofrece por orden de llegada y el cliente la confirma o la rechaza."
+          >
+            <Switch
+              checked={colaActiva}
+              onCheckedChange={(v) => {
+                setColaActiva(v);
+                if (!v) {
+                  setColaCaducidad(false);
+                  setColaPorServicio({});
+                }
+                setDirty(true);
+              }}
+            />
+          </Row>
+          {colaActiva && (
+            <>
+              <Row
+                title="La confirmación de la plaza caduca"
+                description="Si lo activas, el cliente al que se le ofrece la plaza dispone de un tiempo limitado para confirmarla, y sólo cuando hay alguien más esperando detrás. Si pasa ese tiempo, la plaza pasa automáticamente al siguiente de la cola. Desactivado, la confirmación no caduca: puede confirmarla hasta el inicio de la sesión."
+              >
+                <Switch
+                  checked={colaCaducidad}
+                  onCheckedChange={(v) => {
+                    setColaCaducidad(v);
+                    if (v) {
+                      setColaPorServicio((prev) => {
+                        const next = { ...prev };
+                        for (const s of servicios)
+                          if (next[s.slug] === undefined) next[s.slug] = colaMin;
+                        return next;
+                      });
+                    } else {
+                      setColaPorServicio({});
+                    }
+                    setDirty(true);
+                  }}
+                />
+              </Row>
+              {colaCaducidad && (
+                <div className="py-3 space-y-2">
+                  <Label className="text-sm font-medium">Tiempo para confirmar por servicio</Label>
+                  {servicios.map((s) => (
+                    <div key={s.slug} className="flex items-center justify-between gap-4">
+                      <span className="text-sm">{s.nombre}</span>
+                      <Select
+                        value={String(colaPorServicio[s.slug] ?? colaMin)}
+                        onValueChange={(v) => {
+                          setColaPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
+                          setDirty(true);
+                        }}
+                      >
+                        <SelectTrigger className="w-[160px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {COLA_OPCIONES.map((o) => (
+                            <SelectItem key={o.value} value={String(o.value)}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Sesiones grupales</CardTitle>
         </CardHeader>
         <CardContent>
