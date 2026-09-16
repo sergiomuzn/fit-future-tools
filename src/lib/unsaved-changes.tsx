@@ -103,6 +103,8 @@ export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const { proceed, reset, status } = useBlocker({
     shouldBlockFn: () => hasDirty(),
     withResolver: true,
+    // Nunca mostrar el diálogo nativo del navegador ("¿Recargar el sitio?").
+    enableBeforeUnload: false,
   });
 
   useEffect(() => {
