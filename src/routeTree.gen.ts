@@ -31,6 +31,7 @@ import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/em
 import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
 import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
 import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
+import { Route as ApiPublicHooksColaExpiracionesRouteImport } from './routes/api/public/hooks/cola-expiraciones'
 
 const SuperadminRoute = SuperadminRouteImport.update({
   id: '/superadmin',
@@ -146,6 +147,12 @@ const ApiPublicHooksPropagarHuecosRoute =
     path: '/api/public/hooks/propagar-huecos',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksColaExpiracionesRoute =
+  ApiPublicHooksColaExpiracionesRouteImport.update({
+    id: '/api/public/hooks/cola-expiraciones',
+    path: '/api/public/hooks/cola-expiraciones',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof ShellIndexRoute
@@ -163,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/invitacion/$codigo': typeof InvitacionCodigoRoute
   '/superadmin/': typeof SuperadminIndexRoute
   '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
+  '/api/public/hooks/cola-expiraciones': typeof ApiPublicHooksColaExpiracionesRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -185,6 +193,7 @@ export interface FileRoutesByTo {
   '/': typeof ShellIndexRoute
   '/superadmin': typeof SuperadminIndexRoute
   '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
+  '/api/public/hooks/cola-expiraciones': typeof ApiPublicHooksColaExpiracionesRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -210,6 +219,7 @@ export interface FileRoutesById {
   '/_shell/': typeof ShellIndexRoute
   '/superadmin/': typeof SuperadminIndexRoute
   '/superadmin/centro/$centroId': typeof SuperadminCentroCentroIdRoute
+  '/api/public/hooks/cola-expiraciones': typeof ApiPublicHooksColaExpiracionesRoute
   '/api/public/hooks/propagar-huecos': typeof ApiPublicHooksPropagarHuecosRoute
   '/api/public/webhooks/claspass': typeof ApiPublicWebhooksClaspassRoute
   '/api/public/webhooks/wellhub': typeof ApiPublicWebhooksWellhubRoute
@@ -235,6 +245,7 @@ export interface FileRouteTypes {
     | '/invitacion/$codigo'
     | '/superadmin/'
     | '/superadmin/centro/$centroId'
+    | '/api/public/hooks/cola-expiraciones'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -257,6 +268,7 @@ export interface FileRouteTypes {
     | '/'
     | '/superadmin'
     | '/superadmin/centro/$centroId'
+    | '/api/public/hooks/cola-expiraciones'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -281,6 +293,7 @@ export interface FileRouteTypes {
     | '/_shell/'
     | '/superadmin/'
     | '/superadmin/centro/$centroId'
+    | '/api/public/hooks/cola-expiraciones'
     | '/api/public/hooks/propagar-huecos'
     | '/api/public/webhooks/claspass'
     | '/api/public/webhooks/wellhub'
@@ -297,6 +310,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   SuperadminRoute: typeof SuperadminRouteWithChildren
   InvitacionCodigoRoute: typeof InvitacionCodigoRoute
+  ApiPublicHooksColaExpiracionesRoute: typeof ApiPublicHooksColaExpiracionesRoute
   ApiPublicHooksPropagarHuecosRoute: typeof ApiPublicHooksPropagarHuecosRoute
   ApiPublicWebhooksClaspassRoute: typeof ApiPublicWebhooksClaspassRoute
   ApiPublicWebhooksWellhubRoute: typeof ApiPublicWebhooksWellhubRoute
@@ -461,6 +475,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksPropagarHuecosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/cola-expiraciones': {
+      id: '/api/public/hooks/cola-expiraciones'
+      path: '/api/public/hooks/cola-expiraciones'
+      fullPath: '/api/public/hooks/cola-expiraciones'
+      preLoaderRoute: typeof ApiPublicHooksColaExpiracionesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -508,6 +529,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   SuperadminRoute: SuperadminRouteWithChildren,
   InvitacionCodigoRoute: InvitacionCodigoRoute,
+  ApiPublicHooksColaExpiracionesRoute: ApiPublicHooksColaExpiracionesRoute,
   ApiPublicHooksPropagarHuecosRoute: ApiPublicHooksPropagarHuecosRoute,
   ApiPublicWebhooksClaspassRoute: ApiPublicWebhooksClaspassRoute,
   ApiPublicWebhooksWellhubRoute: ApiPublicWebhooksWellhubRoute,
