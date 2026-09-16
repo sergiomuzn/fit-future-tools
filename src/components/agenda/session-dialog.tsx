@@ -684,6 +684,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
+    // Cerrar al instante: el borrado continúa en segundo plano.
+    setDeleteAsk(false);
+    onClose();
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
         .from("sessions")
