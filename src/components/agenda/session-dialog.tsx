@@ -847,7 +847,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
           </div>
 
-          <div className="space-y-1.5">
+          <div className="col-span-2 space-y-1.5">
             <Label>Notas</Label>
             <Textarea
               ref={notasRef}
