@@ -297,9 +297,17 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   }
 
   out.push(...(await listPropagatedHuecos(userId)));
-  out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
-  await enrichCola(out, userId, centroId);
-  return out;
+  // Una sesión desaparece del portal en cuanto termina.
+  const vigentes = out.filter((c) => !yaTerminada(c.fecha, c.horaFin));
+  vigentes.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
+  await enrichCola(vigentes, userId, centroId);
+  return vigentes;
+}
+
+/** true si la sesión ya ha finalizado (hora de fin pasada). */
+function yaTerminada(fecha: string, horaFin: string): boolean {
+  const fin = new Date(`${fecha}T${horaFin.length === 5 ? `${horaFin}:00` : horaFin}`);
+  return fin.getTime() <= Date.now();
 }
 
 /** Añade a cada sesión el estado de su cola de espera para este cliente. */
