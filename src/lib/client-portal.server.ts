@@ -298,7 +298,31 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
 
   out.push(...(await listPropagatedHuecos(userId)));
   out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
+  await enrichCola(out, userId, centroId);
   return out;
+}
+
+/** Añade a cada sesión el estado de su cola de espera para este cliente. */
+async function enrichCola(clases: ClaseGrupal[], userId: string, centroId: string): Promise<void> {
+  const { getColaConfig, procesarCaducidades, colaInfoParaUsuario } = await import(
+    "./cola-espera.server"
+  );
+  const cfg = await getColaConfig(centroId);
+  if (!cfg.activa) return;
+  await procesarCaducidades(centroId);
+  const { colaTiempoParaServicio } = await import("./cola-espera");
+  const info = await colaInfoParaUsuario(centroId, userId);
+  for (const c of clases) {
+    const i = info.get(c.key);
+    c.colaTotal = i?.total ?? 0;
+    c.colaPosicion = i?.posicion ?? null;
+    c.colaEstado = i?.estado ?? null;
+    c.colaId = i?.colaId ?? null;
+    c.colaExpiraAt = i?.expiraAt ?? null;
+    c.colaAvisoMin = cfg.caducidadActiva
+      ? colaTiempoParaServicio(cfg, c.servicioSlug)
+      : null;
+  }
 }
 
 /**
