@@ -746,16 +746,25 @@ function ClaseCardImpl({
   onCancel,
   busyAction,
   hideCancel = false,
+  colaActiva = false,
+  colaBusy = false,
+  onCola,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
+  colaActiva?: boolean;
+  colaBusy?: boolean;
+  onCola?: (accion: ColaAccion) => void;
 }) {
   const completa = clase.ocupadas >= clase.capacidad;
   const fueraDePlazo = !clase.reservable;
   const comenzada = yaComenzo(clase.fecha, clase.horaInicio);
+  const puedeCola = colaActiva && !!onCola && !clase.reservada && !clase.asistida && !comenzada;
+  const enCola = clase.colaEstado === "en_cola";
+  const ofrecida = clase.colaEstado === "ofrecida";
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
