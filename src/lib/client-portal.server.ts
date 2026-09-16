@@ -304,10 +304,14 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   return vigentes;
 }
 
-/** true si la sesión ya ha finalizado (hora de fin pasada). */
+/** true si la sesión ya ha finalizado (hora de fin pasada, horario del centro). */
 function yaTerminada(fecha: string, horaFin: string): boolean {
-  const fin = new Date(`${fecha}T${horaFin.length === 5 ? `${horaFin}:00` : horaFin}`);
-  return fin.getTime() <= Date.now();
+  const ahora = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date()); // "YYYY-MM-DD HH:mm"
+  return `${fecha} ${horaFin.slice(0, 5)}` <= ahora;
 }
 
 /** Añade a cada sesión el estado de su cola de espera para este cliente. */
