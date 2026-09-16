@@ -989,6 +989,13 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
     }
   }
 
+  // Al liberarse la plaza se ofrece al primero de la cola de espera.
+  {
+    const { claveDeSesion, ofrecerPlazaSiguiente } = await import("./cola-espera.server");
+    const clave = await claveDeSesion(centroId, row);
+    if (clave) await ofrecerPlazaSiguiente(centroId, clave);
+  }
+
   const [profile, { data: group }] = await Promise.all([
     getPortalProfile(userId),
     row.group_id
