@@ -297,9 +297,21 @@ export async function listUpcomingClasses(userId: string): Promise<ClaseGrupal[]
   }
 
   out.push(...(await listPropagatedHuecos(userId)));
-  out.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
-  await enrichCola(out, userId, centroId);
-  return out;
+  // Una sesión desaparece del portal en cuanto termina.
+  const vigentes = out.filter((c) => !yaTerminada(c.fecha, c.horaFin));
+  vigentes.sort((a, b) => (a.fecha + a.horaInicio).localeCompare(b.fecha + b.horaInicio));
+  await enrichCola(vigentes, userId, centroId);
+  return vigentes;
+}
+
+/** true si la sesión ya ha finalizado (hora de fin pasada, horario del centro). */
+function yaTerminada(fecha: string, horaFin: string): boolean {
+  const ahora = new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Madrid",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", hour12: false,
+  }).format(new Date()); // "YYYY-MM-DD HH:mm"
+  return `${fecha} ${horaFin.slice(0, 5)}` <= ahora;
 }
 
 /** Añade a cada sesión el estado de su cola de espera para este cliente. */
@@ -348,7 +360,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
         .lte("fecha", to),
       supabaseAdmin
         .from("sessions")
-        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,por_confirmar")
+        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar")
         .is("group_id", null)
         .gte("fecha", from)
         .lte("fecha", to)
@@ -372,10 +384,15 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     client_id: string | null;
     estado: string;
     booked_by_user_id: string | null;
+    booking_tipo: string | null;
     por_confirmar: boolean;
   };
+  // Igual que la pestaña Reservas: solo ocupan plaza las reservas hechas desde
+  // el portal; las sesiones creadas a mano en Agenda no ocupan huecos propagados.
   const sesionesPorHueco = new Map<string, Sesion[]>();
   for (const s of (sesiones ?? []) as Sesion[]) {
+    if (!s.client_id) continue;
+    if (!s.booked_by_user_id && !s.booking_tipo) continue;
     const k = `${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`;
     const arr = sesionesPorHueco.get(k) ?? [];
     arr.push(s);
