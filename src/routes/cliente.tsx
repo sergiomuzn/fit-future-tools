@@ -202,6 +202,8 @@ function ClientePortal() {
   }
 
   const misReservas = clases.filter((c) => c.reservada);
+  /** Sesiones completas en las que estoy esperando en la cola. */
+  const misColas = clases.filter((c) => !c.reservada && !!c.colaEstado);
   /** Ids ya mostrados como reserva, para no repetirlos como sesión personal. */
   const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
   const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
