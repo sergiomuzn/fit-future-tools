@@ -294,6 +294,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       }
     }
 
+    // Cerrar el diálogo al instante: el guardado continúa en segundo plano.
+    setScopeAsk(false);
+    onClose();
+
+
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
