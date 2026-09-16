@@ -75,7 +75,7 @@ function ClientePortal() {
   const fetchPrefs = useServerFn(getPortalPreferencias);
   const [tab, setTab] = useState("clases");
 
-  const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false } } = useQuery({
+  const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false, colaActiva: false } } = useQuery({
     queryKey: ["portal-prefs"],
     queryFn: () => fetchPrefs({ data: undefined }),
     refetchOnWindowFocus: true,
