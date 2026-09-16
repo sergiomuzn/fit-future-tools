@@ -721,24 +721,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl overflow-hidden" onKeyDown={enterToSave(requestSave)}>
+      <DialogContent onKeyDown={enterToSave(requestSave)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 items-start">
-          <div className="col-span-2 -mt-1 text-xs text-muted-foreground">{session.fecha}</div>
-          <div className="space-y-1.5">
-            <Label>Hora inicio</Label>
-            <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Hora fin</Label>
-            <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+        <div className="grid gap-2.5">
+          <div className="-mt-1 text-xs text-muted-foreground">{session.fecha}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Hora inicio</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hora fin</Label>
+              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+            </div>
           </div>
           {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
-            <div className="col-span-2">
-              <FueraHorarioAviso show />
-            </div>
+            <FueraHorarioAviso show />
           )}
 
 
@@ -754,12 +754,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 self-end pb-1">
+          <div className="flex items-center gap-2">
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
             <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
           </div>
 
-          <div className="col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label>
               {plazas > 1
                 ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
@@ -828,25 +828,27 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
 
-          <div className="space-y-1.5">
-            <Label>Entrenador</Label>
-            <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
-              <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-              <SelectContent>
-                {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Estado</Label>
-            <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
-                  <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Entrenador</Label>
+              <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Estado</Label>
+              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
+                    <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="space-y-1.5">
@@ -854,7 +856,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
           </div>
 
-          <div className="col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label>Notas</Label>
             <Textarea
               ref={notasRef}
@@ -865,7 +867,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             />
           </div>
 
-          <div className="col-span-2 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {estado === "reservada" && (
               <div className="flex items-center gap-2">
                 <Checkbox id="porconfirmar" checked={porConfirmar} onCheckedChange={(v) => setPorConfirmar(!!v)} />
