@@ -294,6 +294,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       }
     }
 
+    // Cerrar el diálogo al instante: el guardado continúa en segundo plano.
+    setScopeAsk(false);
+    onClose();
+
+
     const base = {
       client_id: grupo ? null : clientId,
       trainer_id: trainerId,
@@ -388,11 +393,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             hora: String(i.hora_inicio),
           }));
         if (avisos.length) {
-          try {
-            await notificarSesionesAsignadas({ data: { sesiones: avisos.slice(0, 100) } });
-          } catch {
+          // En segundo plano: el aviso no debe retrasar la aparición de la sesión.
+          void notificarSesionesAsignadas({ data: { sesiones: avisos.slice(0, 100) } }).catch(() => {
             /* la sesión es válida aunque falle el aviso */
-          }
+          });
         }
       }
       // No se crea ningún bono: el tipo "Prueba" se deriva de la propia sesión
@@ -680,6 +684,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
+    // Cerrar al instante: el borrado continúa en segundo plano.
+    setDeleteAsk(false);
+    onClose();
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
         .from("sessions")
