@@ -739,6 +739,72 @@ export type Database = {
           },
         ]
       }
+      reserva_cola: {
+        Row: {
+          centro_id: string
+          clave: string
+          client_id: string
+          created_at: string
+          estado: string
+          expira_at: string | null
+          fecha: string
+          group_id: string | null
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          ofrecida_at: string | null
+          servicio_slug: string | null
+          user_id: string
+        }
+        Insert: {
+          centro_id: string
+          clave: string
+          client_id: string
+          created_at?: string
+          estado?: string
+          expira_at?: string | null
+          fecha: string
+          group_id?: string | null
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          ofrecida_at?: string | null
+          servicio_slug?: string | null
+          user_id: string
+        }
+        Update: {
+          centro_id?: string
+          clave?: string
+          client_id?: string
+          created_at?: string
+          estado?: string
+          expira_at?: string | null
+          fecha?: string
+          group_id?: string | null
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          ofrecida_at?: string | null
+          servicio_slug?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reserva_cola_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reserva_cola_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_slot_instances: {
         Row: {
           activo: boolean

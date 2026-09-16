@@ -29,6 +29,13 @@
       "when": 1789340415629,
       "tag": "0003_reject_pending_booking_cancellation",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789569483978,
+      "tag": "0004_create_reserva_cola",
+      "breakpoints": true
     }
   ]
 }
