@@ -253,6 +253,15 @@ export function useUnsavedGuard(id: string, entry: UnsavedEntry) {
     discard: () => entryRef.current.discard?.(),
   };
 
+  // En cada render comprobamos si el formulario está sincronizado con lo guardado.
+  useEffect(() => {
+    try {
+      if (!entryRef.current.dirty()) sawClean.current = true;
+    } catch {
+      /* noop */
+    }
+  });
+
   useEffect(() => {
     if (!ctx) return;
     ctx.register(id, ref);
