@@ -73,6 +73,9 @@ function ClientePortal() {
   const fetchPersonales = useServerFn(listSesionesPersonales);
   const fetchResumen = useServerFn(getMiResumen);
   const fetchPrefs = useServerFn(getPortalPreferencias);
+  const entrarCola = useServerFn(apuntarseCola);
+  const dejarCola = useServerFn(salirCola);
+  const responder = useServerFn(responderCola);
   const [tab, setTab] = useState("clases");
 
   const { data: behavior = { clienteVeCanceladas: false, canceladasNCSumanTotal: false, colaActiva: false } } = useQuery({
@@ -148,6 +151,48 @@ function ClientePortal() {
     onError: (e: Error) => toast.error(e.message),
     onSettled: () => setPendingAction(null),
   });
+
+  const [colaBusy, setColaBusy] = useState<string | null>(null);
+
+  async function refrescar() {
+    await Promise.all([
+      qc.refetchQueries({ queryKey: ["portal-clases"] }),
+      qc.refetchQueries({ queryKey: ["portal-personales"] }),
+      qc.refetchQueries({ queryKey: ["portal-resumen"] }),
+      qc.refetchQueries({ queryKey: ["notificaciones"] }),
+      qc.refetchQueries({ queryKey: ["mis-ofertas-cola"] }),
+    ]);
+  }
+
+  async function handleCola(
+    clase: ClaseGrupal,
+    accion: "entrar" | "salir" | "aceptar" | "rechazar",
+  ) {
+    setColaBusy(clase.key);
+    try {
+      if (accion === "entrar") {
+        const r = await entrarCola({ data: { clave: clase.key } });
+        toast.success(
+          r.avisoMin
+            ? `Estás en la cola (posición ${r.posicion}). Si alguien se apunta detrás de ti, tendrás ${colaTiempoLabel(r.avisoMin)} para confirmar la plaza cuando quede libre.`
+            : `Estás en la cola (posición ${r.posicion}). Si queda una plaza libre te avisaremos para que la confirmes.`,
+        );
+      } else if (accion === "salir") {
+        await dejarCola({ data: { clave: clase.key } });
+        toast.success("Has salido de la cola");
+      } else if (clase.colaId) {
+        await responder({
+          data: { colaId: clase.colaId, accion: accion === "aceptar" ? "aceptar" : "rechazar" },
+        });
+        toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
+      }
+      await refrescar();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "No se pudo completar la acción");
+    } finally {
+      setColaBusy(null);
+    }
+  }
 
   async function handleSignOut() {
     await qc.cancelQueries();
