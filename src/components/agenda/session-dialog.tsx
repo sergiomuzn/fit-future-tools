@@ -742,21 +742,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           )}
 
 
-          <div className="space-y-1.5">
-            <Label>Servicio</Label>
-            <Select value={servicioSlug} onValueChange={cambiarServicio}>
-              <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
-              <SelectContent>
-                {servicios.map((s) => (
-                  <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-            <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+          <div className="flex items-end gap-3">
+            <div className="flex-1 space-y-1.5">
+              <Label>Servicio</Label>
+              <Select value={servicioSlug} onValueChange={cambiarServicio}>
+                <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
+                <SelectContent>
+                  {servicios.map((s) => (
+                    <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex h-9 items-center gap-2 pb-0.5">
+              <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
+              <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+            </div>
           </div>
 
           <div className="space-y-1.5">
