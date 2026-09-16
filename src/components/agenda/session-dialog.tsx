@@ -827,7 +827,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
 
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Entrenador</Label>
               <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
@@ -848,10 +848,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Repetir semanas</Label>
-              <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
-            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label>Repetir semanas</Label>
+            <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
           </div>
 
           <div className="space-y-1.5">
