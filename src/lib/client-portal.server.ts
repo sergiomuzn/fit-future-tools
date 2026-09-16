@@ -386,8 +386,12 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     booked_by_user_id: string | null;
     por_confirmar: boolean;
   };
+  // Igual que la pestaña Reservas: solo ocupan plaza las reservas hechas desde
+  // el portal; las sesiones creadas a mano en Agenda no ocupan huecos propagados.
   const sesionesPorHueco = new Map<string, Sesion[]>();
   for (const s of (sesiones ?? []) as Sesion[]) {
+    if (!s.client_id) continue;
+    if (!s.booked_by_user_id && !s.booking_tipo) continue;
     const k = `${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`;
     const arr = sesionesPorHueco.get(k) ?? [];
     arr.push(s);
