@@ -548,12 +548,18 @@ function CalendarioClases({
   onBook,
   onCancel,
   pendingAction,
+  colaActiva = false,
+  colaBusy = null,
+  onCola,
 }: {
   clases: ClaseGrupal[];
   personales: SesionPersonal[];
   onBook: (c: ClaseGrupal) => void;
   onCancel: (c: ClaseGrupal) => void;
   pendingAction: { key: string; action: "reservar" | "cancelar" } | null;
+  colaActiva?: boolean;
+  colaBusy?: string | null;
+  onCola?: (clase: ClaseGrupal, accion: ColaAccion) => void;
 }) {
   // Sesiones personales que reservó el propio cliente: puede cancelarlas desde el calendario.
   const personalesCancelables = new Set(
@@ -733,6 +739,9 @@ function CalendarioClases({
             onCancel={() => onCancel(c)}
             busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
             hideCancel={c.key.startsWith("personal|") && !personalesCancelables.has(c.key)}
+            colaActiva={colaActiva}
+            colaBusy={colaBusy === c.key}
+            onCola={(accion) => onCola?.(c, accion)}
           />
         ))}
       </div>
