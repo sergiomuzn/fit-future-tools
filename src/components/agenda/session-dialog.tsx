@@ -721,7 +721,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent onKeyDown={enterToSave(requestSave)}>
+      <DialogContent onKeyDown={enterToSave(requestSave)} className="max-w-2xl gap-3 p-5">
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
