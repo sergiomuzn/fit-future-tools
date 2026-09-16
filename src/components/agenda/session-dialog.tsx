@@ -754,12 +754,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2 self-end pb-1">
+          <div className="flex items-center gap-2">
             <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
             <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
           </div>
 
-          <div className="col-span-2 space-y-1.5">
+          <div className="space-y-1.5">
             <Label>
               {plazas > 1
                 ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
