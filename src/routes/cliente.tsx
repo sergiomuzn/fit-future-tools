@@ -467,20 +467,39 @@ function SesionPersonalCard({
   );
 }
 
+type ColaAccion = "entrar" | "salir" | "aceptar" | "rechazar";
+
 function ClaseCard({
   clase,
   onBook,
   onCancel,
   busyAction,
   hideCancel,
+  colaActiva = false,
+  colaBusy = false,
+  onCola,
 }: {
   clase: ClaseGrupal;
   onBook: () => void;
   onCancel: () => void;
   busyAction: "reservar" | "cancelar" | null;
   hideCancel?: boolean;
+  colaActiva?: boolean;
+  colaBusy?: boolean;
+  onCola?: (accion: ColaAccion) => void;
 }) {
-  return <ClaseCardImpl clase={clase} onBook={onBook} onCancel={onCancel} busyAction={busyAction} hideCancel={hideCancel} />;
+  return (
+    <ClaseCardImpl
+      clase={clase}
+      onBook={onBook}
+      onCancel={onCancel}
+      busyAction={busyAction}
+      hideCancel={hideCancel}
+      colaActiva={colaActiva}
+      colaBusy={colaBusy}
+      onCola={onCola}
+    />
+  );
 }
 
 const MESES = [
