@@ -721,24 +721,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="max-w-3xl overflow-hidden" onKeyDown={enterToSave(requestSave)}>
+      <DialogContent className="overflow-hidden" onKeyDown={enterToSave(requestSave)}>
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-2 items-start">
-          <div className="col-span-2 -mt-1 text-xs text-muted-foreground">{session.fecha}</div>
-          <div className="space-y-1.5">
-            <Label>Hora inicio</Label>
-            <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
-          </div>
-          <div className="space-y-1.5">
-            <Label>Hora fin</Label>
-            <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+        <div className="grid gap-2.5">
+          <div className="-mt-1 text-xs text-muted-foreground">{session.fecha}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Hora inicio</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hora fin</Label>
+              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+            </div>
           </div>
           {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
-            <div className="col-span-2">
-              <FueraHorarioAviso show />
-            </div>
+            <FueraHorarioAviso show />
           )}
 
 
