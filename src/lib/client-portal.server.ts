@@ -384,6 +384,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     client_id: string | null;
     estado: string;
     booked_by_user_id: string | null;
+    booking_tipo: string | null;
     por_confirmar: boolean;
   };
   // Igual que la pestaña Reservas: solo ocupan plaza las reservas hechas desde
