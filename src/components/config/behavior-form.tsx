@@ -28,6 +28,11 @@ import {
 
 } from "@/lib/booking-antelacion";
 import {
+  COLA_OPCIONES,
+  DEFAULT_COLA_MIN,
+  parseColaConfig,
+} from "@/lib/cola-espera";
+import {
   CANCELACION_OPCIONES,
   DEFAULT_CANCELACION_MIN,
   cancelacionLabel,
@@ -171,6 +176,10 @@ export function BehaviorForm() {
   const [cancelacionMin, setCancelacionMin] = useState<number>(DEFAULT_CANCELACION_MIN);
   const [cancelacionPorServicio, setCancelacionPorServicio] = useState<Record<string, number>>({});
   const [cancelacionDistinta, setCancelacionDistinta] = useState(false);
+  const [colaActiva, setColaActiva] = useState(false);
+  const [colaCaducidad, setColaCaducidad] = useState(false);
+  const [colaMin, setColaMin] = useState<number>(DEFAULT_COLA_MIN);
+  const [colaPorServicio, setColaPorServicio] = useState<Record<string, number>>({});
   const { data: servicios = [] } = useServicios();
   const qc = useQueryClient();
 
@@ -200,6 +209,12 @@ export function BehaviorForm() {
       const porServicio = parseAntelacionPorServicio(avisos.antelacion_reserva_por_servicio);
       setAntelacionPorServicio(porServicio);
       setAntelacionDistinta(Object.keys(porServicio).length > 0);
+
+      const cola = parseColaConfig(data?.avisos);
+      setColaActiva(cola.activa);
+      setColaCaducidad(cola.caducidadActiva);
+      setColaMin(cola.general);
+      setColaPorServicio(cola.porServicio);
 
       setConfirmacion(parseConfirmacionReservas(avisos.confirmacion_reservas));
       setModoReservas(parseBookingMode(avisos.modo_reservas));
@@ -239,6 +254,10 @@ export function BehaviorForm() {
 
           cancelacion_antelacion_min: DEFAULT_CANCELACION_MIN,
           cancelacion_antelacion_por_servicio: cancelacionDistinta ? cancelacionPorServicio : {},
+          cola_activa: colaActiva,
+          cola_caducidad_activa: colaActiva && colaCaducidad,
+          cola_confirmacion_min: colaMin,
+          cola_confirmacion_por_servicio: colaActiva && colaCaducidad ? colaPorServicio : {},
           confirmacion_reservas: {
             activo: confirmacion.activo,
             servicios: confirmacion.servicios,
@@ -277,6 +296,10 @@ export function BehaviorForm() {
     setCancelacionMin(DEFAULT_CANCELACION_MIN);
     setCancelacionPorServicio({});
     setCancelacionDistinta(false);
+    setColaActiva(false);
+    setColaCaducidad(false);
+    setColaMin(DEFAULT_COLA_MIN);
+    setColaPorServicio({});
     setDirty(true);
   }
 
