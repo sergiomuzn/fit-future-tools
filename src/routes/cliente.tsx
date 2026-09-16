@@ -273,6 +273,9 @@ function ClientePortal() {
                 onBook={(c) => bookMutation.mutate(c.key)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 pendingAction={pendingAction}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy}
+                onCola={handleCola}
               />
             )}
           </TabsContent>
@@ -299,6 +302,21 @@ function ClientePortal() {
                 onBook={() => bookMutation.mutate(c.key)}
                 onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy === c.key}
+                onCola={(accion) => void handleCola(c, accion)}
+              />
+            ))}
+            {misColas.map((c) => (
+              <ClaseCard
+                key={c.key}
+                clase={c}
+                onBook={() => bookMutation.mutate(c.key)}
+                onCancel={() => {}}
+                busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
+                colaActiva={behavior.colaActiva}
+                colaBusy={colaBusy === c.key}
+                onCola={(accion) => void handleCola(c, accion)}
               />
             ))}
             {personalesUnicas.map((s) => (
