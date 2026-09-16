@@ -203,11 +203,56 @@ export function useUnsavedChanges(): CtxValue {
   return ctx ?? { register: () => {}, unregister: () => {}, attempt: (a) => a() };
 }
 
-/** Registra un formulario con cambios pendientes. */
+/**
+ * Registra un formulario con cambios pendientes.
+ *
+ * Solo se considera que hay cambios sin guardar si el formulario llegó a estar
+ * "limpio" alguna vez y además el usuario ha interactuado con él. Así evitamos
+ * avisos falsos por diferencias de carga inicial o valores por defecto.
+ */
 export function useUnsavedGuard(id: string, entry: UnsavedEntry) {
   const ctx = useContext(Ctx);
-  const ref = useRef(entry);
-  ref.current = entry;
+  const sawClean = useRef(false);
+  const interacted = useRef(false);
+  const entryRef = useRef(entry);
+  entryRef.current = entry;
+
+  // Detecta interacción real del usuario en la página.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mark = () => {
+      interacted.current = true;
+    };
+    window.addEventListener("pointerdown", mark, true);
+    window.addEventListener("keydown", mark, true);
+    return () => {
+      window.removeEventListener("pointerdown", mark, true);
+      window.removeEventListener("keydown", mark, true);
+    };
+  }, []);
+
+  const ref = useRef<UnsavedEntry>({
+    dirty: () => false,
+    save: () => true,
+  });
+  ref.current = {
+    dirty: () => {
+      let d = false;
+      try {
+        d = entryRef.current.dirty();
+      } catch {
+        return false;
+      }
+      if (!d) {
+        sawClean.current = true;
+        return false;
+      }
+      return sawClean.current && interacted.current;
+    },
+    save: () => entryRef.current.save(),
+    discard: () => entryRef.current.discard?.(),
+  };
+
   useEffect(() => {
     if (!ctx) return;
     ctx.register(id, ref);
