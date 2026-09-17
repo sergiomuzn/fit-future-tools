@@ -43,52 +43,13 @@ type CtxValue = {
 
 const Ctx = createContext<CtxValue | null>(null);
 
-/**
- * Dentro del editor de Lovable (la app embebida en un iframe de previsualización)
- * no mostramos el aviso de cambios sin guardar: solo molesta mientras se edita código.
- */
-function isLovableEditorPreview() {
-  if (typeof window === "undefined") return false;
-  try {
-    // Debe estar embebido en un iframe; la app publicada nunca lo está.
-    if (!window.top || window.self === window.top) return false;
-
-    const host = window.location.hostname;
-    const ZONES = [
-      "lovableproject.com",
-      "lovableproject-dev.com",
-      "lovable.app",
-      "lovable.dev",
-      "gpt-eng.com",
-      "gptengineer.run",
-    ];
-    const isLovableHost = ZONES.some((z) => host === z || host.endsWith("." + z));
-    if (isLovableHost) return true;
-
-    // Si ancestorOrigins está disponible, comprobar también los orígenes superiores.
-    const ancestors = window.location.ancestorOrigins;
-    if (ancestors && ancestors.length > 0) {
-      for (let i = 0; i < ancestors.length; i++) {
-        const originHost = new URL(ancestors[i]).hostname;
-        if (ZONES.some((z) => originHost === z || originHost.endsWith("." + z))) return true;
-      }
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
-
 export function UnsavedChangesProvider({ children }: { children: ReactNode }) {
   const entries = useRef(new Map<string, MutableRefObject<UnsavedEntry>>());
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [saving, setSaving] = useState(false);
   const cancelBlockRef = useRef<(() => void) | null>(null);
 
-  const disabled = useRef(isLovableEditorPreview());
-
   const hasDirty = useCallback(() => {
-    if (disabled.current) return false;
     for (const r of entries.current.values()) {
       try {
         if (r.current.dirty()) return true;
