@@ -832,17 +832,9 @@ function ClaseCardImpl({
               </Button>
             </div>
           ) : puedeCola && completa && !fueraDePlazo ? (
-            <div className="flex flex-col items-end gap-1">
-              {clase.colaAvisoMin ? (
-                <span className="text-xs text-muted-foreground">
-                  Si alguien se apunta detrás, tendrás {colaTiempoLabel(clase.colaAvisoMin)} para
-                  confirmar
-                </span>
-              ) : null}
-              <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("entrar")}>
-                {colaBusy ? "Procesando…" : "Apuntarme a la cola"}
-              </Button>
-            </div>
+            <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("entrar")}>
+              {colaBusy ? "Procesando…" : "Apuntarme a la cola"}
+            </Button>
           ) : busyAction ? (
             <Button variant="outline" size="sm" className="min-w-24" disabled>
               Procesando…
