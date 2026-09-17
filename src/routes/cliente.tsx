@@ -629,7 +629,7 @@ function CalendarioClases({
   const delDia = porDia.get(selected) ?? [];
   const leyendaServicios = useMemo(() => {
     const map = new Map<string, { slug: string; nombre: string; color: string }>();
-    for (const c of [...clases, ...personales.map(personalToClase)]) {
+    for (const c of [...clases, ...personalesUnicas.map(personalToClase)]) {
       if (!c.servicioSlug || !c.color) continue;
       if (!map.has(c.servicioSlug)) {
         map.set(c.servicioSlug, {
