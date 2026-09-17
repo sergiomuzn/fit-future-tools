@@ -565,8 +565,11 @@ function CalendarioClases({
   const personalesCancelables = new Set(
     personales.filter((s) => s.puedeCancelar).map((s) => `personal|${s.id}`),
   );
+  // Una sesión reservada ya aparece en `clases`: no se repite como sesión personal.
+  const idsEnClases = new Set(clases.map((c) => c.miSesionId).filter(Boolean) as string[]);
+  const personalesUnicas = personales.filter((s) => !idsEnClases.has(s.id));
   const porDia = new Map<string, ClaseGrupal[]>();
-  for (const c of [...clases, ...personales.map(personalToClase)]) {
+  for (const c of [...clases, ...personalesUnicas.map(personalToClase)]) {
     const arr = porDia.get(c.fecha);
     if (arr) arr.push(c);
     else porDia.set(c.fecha, [c]);
@@ -626,7 +629,7 @@ function CalendarioClases({
   const delDia = porDia.get(selected) ?? [];
   const leyendaServicios = useMemo(() => {
     const map = new Map<string, { slug: string; nombre: string; color: string }>();
-    for (const c of [...clases, ...personales.map(personalToClase)]) {
+    for (const c of [...clases, ...personalesUnicas.map(personalToClase)]) {
       if (!c.servicioSlug || !c.color) continue;
       if (!map.has(c.servicioSlug)) {
         map.set(c.servicioSlug, {
