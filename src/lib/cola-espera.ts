@@ -39,12 +39,13 @@ export function parseColaMin(value: unknown): number {
   return Math.round(n);
 }
 
+/** 0 = ese servicio no caduca nunca. */
 export function parseColaPorServicio(value: unknown): Record<string, number> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const out: Record<string, number> = {};
   for (const [slug, v] of Object.entries(value as Record<string, unknown>)) {
     const n = typeof v === "number" ? v : Number(v);
-    if (Number.isFinite(n) && n > 0) out[slug] = Math.round(n);
+    if (Number.isFinite(n) && n >= 0) out[slug] = Math.round(n);
   }
   return out;
 }
@@ -68,6 +69,7 @@ export function colaTiempoParaServicio(cfg: ColaConfig, servicioSlug?: string | 
 }
 
 export function colaTiempoLabel(min: number): string {
+  if (!min || min <= 0) return "Sin caducidad";
   const preset = COLA_OPCIONES.find((o) => o.value === min);
   if (preset) return preset.label;
   if (min < 60) return `${min} minutos`;

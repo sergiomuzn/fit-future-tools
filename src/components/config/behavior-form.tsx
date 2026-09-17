@@ -28,10 +28,10 @@ import {
 
 } from "@/lib/booking-antelacion";
 import {
-  COLA_OPCIONES,
   DEFAULT_COLA_MIN,
   parseColaConfig,
 } from "@/lib/cola-espera";
+import { ColaTiempoSelect } from "@/components/config/cola-tiempo-select";
 import {
   CANCELACION_OPCIONES,
   DEFAULT_CANCELACION_MIN,
@@ -581,24 +581,13 @@ export function BehaviorForm() {
                   {servicios.map((s) => (
                     <div key={s.slug} className="flex items-center justify-between gap-4">
                       <span className="text-sm">{s.nombre}</span>
-                      <Select
-                        value={String(colaPorServicio[s.slug] ?? colaMin)}
-                        onValueChange={(v) => {
-                          setColaPorServicio((prev) => ({ ...prev, [s.slug]: Number(v) }));
+                      <ColaTiempoSelect
+                        value={colaPorServicio[s.slug] ?? colaMin}
+                        onChange={(v) => {
+                          setColaPorServicio((prev) => ({ ...prev, [s.slug]: v }));
                           setDirty(true);
                         }}
-                      >
-                        <SelectTrigger className="w-[160px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {COLA_OPCIONES.map((o) => (
-                            <SelectItem key={o.value} value={String(o.value)}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      />
                     </div>
                   ))}
                 </div>
