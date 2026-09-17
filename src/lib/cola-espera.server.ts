@@ -201,7 +201,7 @@ export async function ofrecerPlazaSiguiente(centroId: string, clave: string): Pr
   const hayMasDetras = entries.length > 1;
   const minutos = colaTiempoParaServicio(cfg, primero.servicio_slug);
   const expira =
-    cfg.caducidadActiva && hayMasDetras
+    cfg.caducidadActiva && hayMasDetras && minutos > 0
       ? new Date(Date.now() + minutos * 60_000).toISOString()
       : null;
 
