@@ -28,10 +28,10 @@ import {
 
 } from "@/lib/booking-antelacion";
 import {
-  COLA_OPCIONES,
   DEFAULT_COLA_MIN,
   parseColaConfig,
 } from "@/lib/cola-espera";
+import { ColaTiempoSelect } from "@/components/config/cola-tiempo-select";
 import {
   CANCELACION_OPCIONES,
   DEFAULT_CANCELACION_MIN,
