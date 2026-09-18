@@ -17,7 +17,12 @@ import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useServicios } from "@/lib/servicios";
-import { notificarReservasCanceladas, notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
+import {
+  notificarReservasCanceladas,
+  notificarSesionesAsignadas,
+  resolverReservaPendiente,
+  marcarReservaPorConfirmar,
+} from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   AlertDialog,
