@@ -51,7 +51,13 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     .sort()
     .join("|");
   const cached = layoutCache.get(cacheKey);
-  if (cached) return cached.map((i) => ({ ...i }));
+  if (cached) {
+    // El caché sólo guarda posiciones: siempre se reasocian con las sesiones
+    // actuales para que cambios como el entrenador se reflejen al instante.
+    const byId = new Map(sessions.map((s) => [s.id, s]));
+    return cached.map((i) => ({ ...i, session: byId.get(i.session.id) ?? i.session }));
+  }
+
 
   // Presupuesto de tiempo total: el layout se recalcula en cada píxel de
   // arrastre, así que nunca puede bloquear el hilo principal.
