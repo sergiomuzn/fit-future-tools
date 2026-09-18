@@ -43,7 +43,22 @@ function formatNameUpper(name: string | null | undefined): string {
   return (name ?? "").toUpperCase();
 }
 
+const layoutCache = new Map<string, LayoutInfo[]>();
+
 function computeLayout(sessions: Session[]): LayoutInfo[] {
+  const cacheKey = sessions
+    .map((s) => `${s.id}:${s.hora_inicio}-${s.hora_fin}`)
+    .sort()
+    .join("|");
+  const cached = layoutCache.get(cacheKey);
+  if (cached) return cached.map((i) => ({ ...i }));
+
+  // Presupuesto de tiempo total: el layout se recalcula en cada píxel de
+  // arrastre, así que nunca puede bloquear el hilo principal.
+  const deadline =
+    (typeof performance !== "undefined" ? performance.now() : Date.now()) + 12;
+  const ahora = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
   // Orden estable: por hora_inicio y, en caso de empate, por id.
   // Evita que las tarjetas cambien de columna al re-consultar sesiones
   // (por ejemplo tras asignar un entrenador en modo pintar).
@@ -53,6 +68,7 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     return a.id.localeCompare(b.id);
   });
   const result: LayoutInfo[] = [];
+
   // Greedy column assignment within overlap groups
   const groups: Session[][] = [];
   let current: Session[] = [];
@@ -171,7 +187,19 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     let mejorFirma = mejor.layout.map((item) => `${item.col}:${item.span}`).join("|");
     const candidata = new Map<string, number>();
     let combinaciones = 0;
-    const MAX_COMBINACIONES = 50_000;
+    // Presupuesto adaptado al tamaño del grupo: en grupos grandes la búsqueda
+    // exhaustiva crece exponencialmente y congelaba la interfaz al arrastrar.
+    const MAX_COMBINACIONES = g.length <= 4 ? 4_000 : g.length <= 6 ? 1_500 : 300;
+    let agotado = false;
+
+    const sinTiempo = () => {
+      if (agotado) return true;
+      if (combinaciones >= MAX_COMBINACIONES || ahora() > deadline) {
+        agotado = true;
+        return true;
+      }
+      return false;
+    };
 
     const evaluar = () => {
       const evaluada = mejorPara(candidata);
@@ -183,7 +211,7 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     };
 
     const buscar = (indice: number) => {
-      if (combinaciones >= MAX_COMBINACIONES) return;
+      if (sinTiempo()) return;
       if (indice === g.length) {
         combinaciones++;
         evaluar();
@@ -199,15 +227,19 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
         candidata.set(sesion.id, columna);
         buscar(indice + 1);
         candidata.delete(sesion.id);
-        if (combinaciones >= MAX_COMBINACIONES) return;
+        if (sinTiempo()) return;
       }
     };
 
-    buscar(0);
+    if (g.length > 1 && colCount > 1) buscar(0);
     result.push(...mejor.layout);
   }
+
+  if (layoutCache.size > 200) layoutCache.clear();
+  layoutCache.set(cacheKey, result.map((i) => ({ ...i })));
   return result;
 }
+
 
 
 export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
