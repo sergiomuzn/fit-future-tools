@@ -83,6 +83,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       return (data ?? []) as Session[];
     },
     enabled: open && !isNew && !!recurrenciaId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
   const isSeries = !isNew && !!recurrenciaId && futureSiblings.length > 0;
 
@@ -100,6 +103,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       return (data ?? []) as Session[];
     },
     enabled: open && !isNew && !!recurrenciaId && (session?.ocupacion === 2),
+    // Siempre datos frescos: si se guardan miembros antiguos en caché, al
+    // cambiar un cliente por otro la sesión no se actualizaría correctamente.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: bonos = [] } = useQuery({
@@ -673,6 +681,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.removeQueries({ queryKey: ["group-members"] });
+    qc.removeQueries({ queryKey: ["series-future-rows"] });
     setScopeAsk(false);
     onClose();
   }
@@ -712,6 +722,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.removeQueries({ queryKey: ["group-members"] });
+    qc.removeQueries({ queryKey: ["series-future-rows"] });
     setDeleteAsk(false);
     onClose();
   }
