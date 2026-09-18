@@ -111,10 +111,10 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
             <TableCell className="whitespace-nowrap">{fechaCorta(r.fecha)}</TableCell>
             <TableCell className="whitespace-nowrap">{r.hora_inicio.slice(0, 5)}</TableCell>
             <TableCell>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-2">
                 <span className="truncate">{r.cliente ?? r.titulo ?? "—"}</span>
                 {r.por_confirmar && (
-                  <>
+                  <div className="ml-auto flex flex-none items-center gap-2">
                     <Badge variant="outline">Por confirmar</Badge>
                     <Button
                       size="sm"
@@ -133,7 +133,7 @@ export function ServicioReservasPanel({ servicioSlug }: { servicioSlug: string }
                     >
                       Denegar
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </TableCell>
