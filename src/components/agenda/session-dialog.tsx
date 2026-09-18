@@ -83,6 +83,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       return (data ?? []) as Session[];
     },
     enabled: open && !isNew && !!recurrenciaId,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
   const isSeries = !isNew && !!recurrenciaId && futureSiblings.length > 0;
 
