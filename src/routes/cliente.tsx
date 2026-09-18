@@ -823,9 +823,9 @@ function ClaseCardImpl({
               </div>
             </div>
           ) : puedeCola && enCola ? (
-            <div className="flex flex-col items-end gap-1">
+            <div className="flex flex-row-reverse items-center justify-end gap-2 sm:flex-col sm:items-end">
               <span className="text-xs text-muted-foreground">
-                En cola · {clase.colaPosicion} de {clase.colaTotal}
+                {clase.colaPosicion}º en cola
               </span>
               <Button variant="outline" size="sm" disabled={colaBusy} onClick={() => onCola?.("salir")}>
                 Salir de la cola
