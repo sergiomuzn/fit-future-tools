@@ -321,6 +321,27 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setScopeAsk(false);
     onClose();
 
+    // Cambios en la casilla "Por confirmar" de una reserva hecha desde el
+    // portal del cliente:
+    //  - se desmarca  → la reserva queda confirmada y se avisa al cliente.
+    //  - se marca     → la reserva vuelve a pendiente en la vista del cliente.
+    if (!isNew && estado === "reservada") {
+      if (pendientesIds.length && !porConfirmar) {
+        await Promise.all(
+          pendientesIds.map((id) =>
+            resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {}),
+          ),
+        );
+      } else if (!pendientesIds.length && porConfirmar && reservasPortalIds.length) {
+        await Promise.all(
+          reservasPortalIds.map((id) =>
+            marcarReservaPorConfirmar({ data: { sessionId: id } }).catch(() => {}),
+          ),
+        );
+      }
+    }
+
+
 
     const base = {
       client_id: grupo ? null : clientId,
