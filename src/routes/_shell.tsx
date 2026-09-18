@@ -215,6 +215,7 @@ function SoporteBanner() {
 
   async function salir() {
     await setModoSoporte({ data: { centroId: null } });
+    clearModoSoporteCache();
     await queryClient.cancelQueries();
     queryClient.clear();
     navigate({ to: "/superadmin", replace: true });
