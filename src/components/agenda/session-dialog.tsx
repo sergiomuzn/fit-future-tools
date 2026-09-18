@@ -110,6 +110,21 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     refetchOnMount: "always",
   });
 
+  // Filas de esta sesión (o de todo el bloque de grupo) que son reservas del
+  // portal del cliente: sirven para avisarle al confirmar, denegar o volver a
+  // dejar la reserva pendiente.
+  const filasReserva = ((groupMembersData ?? []).length
+    ? (groupMembersData as any[])
+    : session?.id
+      ? [session as any]
+      : []) as Array<{ id: string; por_confirmar?: boolean | null; booked_by_user_id?: string | null }>;
+  const pendientesIds = filasReserva
+    .filter((r) => r?.por_confirmar && r?.booked_by_user_id)
+    .map((r) => r.id);
+  const reservasPortalIds = filasReserva
+    .filter((r) => r?.booked_by_user_id)
+    .map((r) => r.id);
+
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
     queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
