@@ -14,6 +14,8 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { DevRoleSwitcher } from "@/components/dev-role-switcher";
+import { clearRolesCache } from "@/lib/roles";
+import { clearModoSoporteCache } from "@/lib/modo-soporte-cache";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +133,8 @@ function RootComponent() {
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
+      clearRolesCache();
+      clearModoSoporteCache();
       router.invalidate();
     });
     return () => sub.subscription.unsubscribe();

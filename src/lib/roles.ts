@@ -5,14 +5,46 @@ import { getMyRole } from "@/lib/roles.functions";
 export type AppRole = "superadmin" | "admin" | "entrenador" | "cliente";
 
 /**
+ * Caché en memoria de los roles del usuario. Evita una llamada al servidor en
+ * cada cambio de apartado (la navegación entre pestañas debe ser inmediata).
+ */
+let rolesCache: { key: string; at: number; value: Promise<AppRole[]> } | null = null;
+const ROLES_TTL_MS = 5 * 60 * 1000;
+
+/** Olvida los roles cacheados (al iniciar/cerrar sesión o cambiar el rol simulado). */
+export function clearRolesCache() {
+  rolesCache = null;
+}
+
+/**
  * Devuelve los roles del usuario autenticado, verificados en el servidor
  * (vacío si no hay sesión). La simulación de rol en preview nunca puede
  * conceder permisos que el usuario no tenga realmente.
  */
 export async function fetchMyRoles(): Promise<AppRole[]> {
-  const { data: userData } = await supabase.auth.getUser();
-  const user = userData?.user;
-  if (!user) return [];
+  const { data: sessionData } = await supabase.auth.getSession();
+  const user = sessionData?.session?.user;
+  if (!user) {
+    rolesCache = null;
+    return [];
+  }
+
+  const key = `${user.id}|${getDevRoleOverride() ?? ""}`;
+  const now = Date.now();
+  if (rolesCache && rolesCache.key === key && now - rolesCache.at < ROLES_TTL_MS) {
+    return rolesCache.value;
+  }
+  const value = loadRoles(user.id).catch((e) => {
+    if (rolesCache?.key === key) rolesCache = null;
+    throw e;
+  });
+  rolesCache = { key, at: now, value };
+  return value;
+}
+
+async function loadRoles(userId: string): Promise<AppRole[]> {
+  const user = { id: userId };
+
 
   let real: AppRole[] = [];
   try {

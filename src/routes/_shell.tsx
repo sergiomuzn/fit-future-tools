@@ -14,6 +14,7 @@ import { useCenterConfig } from "@/lib/center-schedule";
 import { useEstadoColorVars } from "@/lib/colors";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { getModoSoporte, setModoSoporte } from "@/lib/superadmin.functions";
+import { getModoSoporteCached, clearModoSoporteCache } from "@/lib/modo-soporte-cache";
 import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/_shell")({
     const roles = await fetchMyRoles();
     if (roles.includes("superadmin")) {
       // El superadministrador solo entra aquí en modo soporte sobre un centro
-      const { centroId } = await getModoSoporte();
+      const { centroId } = await getModoSoporteCached();
       if (!centroId) throw redirect({ to: "/superadmin" });
       return;
     }
@@ -214,6 +215,7 @@ function SoporteBanner() {
 
   async function salir() {
     await setModoSoporte({ data: { centroId: null } });
+    clearModoSoporteCache();
     await queryClient.cancelQueries();
     queryClient.clear();
     navigate({ to: "/superadmin", replace: true });
