@@ -187,7 +187,19 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     let mejorFirma = mejor.layout.map((item) => `${item.col}:${item.span}`).join("|");
     const candidata = new Map<string, number>();
     let combinaciones = 0;
-    const MAX_COMBINACIONES = 50_000;
+    // Presupuesto adaptado al tamaño del grupo: en grupos grandes la búsqueda
+    // exhaustiva crece exponencialmente y congelaba la interfaz al arrastrar.
+    const MAX_COMBINACIONES = g.length <= 4 ? 4_000 : g.length <= 6 ? 1_500 : 300;
+    let agotado = false;
+
+    const sinTiempo = () => {
+      if (agotado) return true;
+      if (combinaciones >= MAX_COMBINACIONES || ahora() > deadline) {
+        agotado = true;
+        return true;
+      }
+      return false;
+    };
 
     const evaluar = () => {
       const evaluada = mejorPara(candidata);
@@ -199,7 +211,7 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     };
 
     const buscar = (indice: number) => {
-      if (combinaciones >= MAX_COMBINACIONES) return;
+      if (sinTiempo()) return;
       if (indice === g.length) {
         combinaciones++;
         evaluar();
@@ -215,15 +227,19 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
         candidata.set(sesion.id, columna);
         buscar(indice + 1);
         candidata.delete(sesion.id);
-        if (combinaciones >= MAX_COMBINACIONES) return;
+        if (sinTiempo()) return;
       }
     };
 
-    buscar(0);
+    if (g.length > 1 && colCount > 1) buscar(0);
     result.push(...mejor.layout);
   }
+
+  if (layoutCache.size > 200) layoutCache.clear();
+  layoutCache.set(cacheKey, result.map((i) => ({ ...i })));
   return result;
 }
+
 
 
 export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
