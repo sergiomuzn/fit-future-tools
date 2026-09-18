@@ -681,6 +681,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.removeQueries({ queryKey: ["group-members"] });
+    qc.removeQueries({ queryKey: ["series-future-rows"] });
     setScopeAsk(false);
     onClose();
   }
@@ -720,6 +722,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     qc.invalidateQueries({ queryKey: ["sessions"] });
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    qc.removeQueries({ queryKey: ["group-members"] });
+    qc.removeQueries({ queryKey: ["series-future-rows"] });
     setDeleteAsk(false);
     onClose();
   }
