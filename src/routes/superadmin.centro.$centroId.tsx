@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeft, Eye } from "lucide-react";
 import { getCentroDetalle, setModoSoporte } from "@/lib/superadmin.functions";
+import { clearModoSoporteCache } from "@/lib/modo-soporte-cache";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
@@ -34,6 +35,7 @@ function CentroDetalle() {
   async function entrarSoporte() {
     try {
       await soporte({ data: { centroId } });
+      clearModoSoporteCache();
       await qc.cancelQueries();
       qc.clear();
       navigate({ to: "/" });
