@@ -113,6 +113,64 @@ export const notificarSesionesAsignadas = createServerFn({ method: "POST" })
   });
 
 /**
+ * Marca una reserva ya confirmada como "pendiente de confirmar": el cliente
+ * la verá como pendiente en su portal y recibe un aviso en el buzón.
+ */
+export const marcarReservaPorConfirmar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ sessionId: z.string().uuid() }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const [{ data: isAdmin }, { data: isTrainer }] = await Promise.all([
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "entrenador" }),
+    ]);
+    if (!isAdmin && !isTrainer) throw new Error("Sin permiso");
+
+    const { centroDb, getCentroIdForUser } = await import("./centro-scope.server");
+    const centroId = await getCentroIdForUser(context.userId);
+    const supabaseAdmin = centroDb(centroId);
+    const { crearNotificaciones, describeSesion } = await import("./notificaciones.server");
+
+    const { data: row } = await supabaseAdmin
+      .from("sessions")
+      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,estado")
+      .eq("id", data.sessionId)
+      .maybeSingle();
+    if (!row) return { ok: false as const, reason: "no_existe" as const };
+
+    await supabaseAdmin
+      .from("sessions")
+      .update({ por_confirmar: true, estado: "reservada" as never })
+      .eq("id", data.sessionId);
+
+    const { data: cfg } = await supabaseAdmin
+      .from("center_config")
+      .select("nombre")
+      .eq("id", true)
+      .maybeSingle();
+    const centro = (cfg as { nombre?: string } | null)?.nombre || "El centro";
+    const cuando = describeSesion(row.fecha, row.hora_inicio).replace(" · ", " a las ");
+    const donde = row.titulo || row.servicio_slug || "tu sesión";
+
+    if (row.booked_by_user_id) {
+      await crearNotificaciones(
+        [
+          {
+            userId: row.booked_by_user_id,
+            tipo: "reserva_pendiente",
+            titulo: "Reserva pendiente de confirmar",
+            mensaje: `${centro} ha dejado pendiente de confirmar tu reserva de ${donde} el ${cuando}`,
+          },
+        ],
+        centroId,
+      );
+    }
+    return { ok: true as const };
+  });
+
+/**
  * Confirma o deniega una reserva pendiente hecha por un cliente.
  * Confirmar: la sesión se queda en la agenda sin "por confirmar".
  * Denegar: la sesión se elimina (o la plaza del grupo queda libre).
