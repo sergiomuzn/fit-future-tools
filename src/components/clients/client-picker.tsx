@@ -27,6 +27,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
   const [draft, setDraft] = useState<Partial<Client>>({});
   const [listOpen, setListOpen] = useState(false);
   const blurTimer = useRef<number | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [highlight, setHighlight] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -147,7 +148,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             type="button"
             aria-label="Limpiar cliente"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(true); }}
+            onClick={() => { setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(true); inputRef.current?.focus(); }}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
