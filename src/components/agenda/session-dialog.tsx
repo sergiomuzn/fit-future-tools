@@ -728,7 +728,18 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     onClose();
   }
 
-  function requestDelete() {
+  async function requestDelete() {
+    // Si la sesión está pendiente de confirmar, eliminarla equivale a denegar
+    // la reserva del cliente: se avisa antes de continuar.
+    if (pendientesIds.length) {
+      const ok = await confirm({
+        title: "¿Eliminar una sesión pendiente de confirmar?",
+        description:
+          "Esta sesión está pendiente de confirmar. Si la eliminas, se denegará la reserva del cliente y recibirá un aviso.",
+        confirmText: "Eliminar y denegar",
+      });
+      if (!ok) return;
+    }
     if (isSeries) setDeleteAsk(true);
     else void doDelete("one");
   }
@@ -738,6 +749,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // Cerrar al instante: el borrado continúa en segundo plano.
     setDeleteAsk(false);
     onClose();
+    if (pendientesIds.length) {
+      // Denegar primero para avisar al cliente y liberar la plaza a la cola.
+      await Promise.all(
+        pendientesIds.map((id) =>
+          resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {}),
+        ),
+      );
+    }
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
         .from("sessions")
