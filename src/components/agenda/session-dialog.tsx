@@ -100,6 +100,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       return (data ?? []) as Session[];
     },
     enabled: open && !isNew && !!recurrenciaId && (session?.ocupacion === 2),
+    // Siempre datos frescos: si se guardan miembros antiguos en caché, al
+    // cambiar un cliente por otro la sesión no se actualizaría correctamente.
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: "always",
   });
 
   const { data: bonos = [] } = useQuery({
