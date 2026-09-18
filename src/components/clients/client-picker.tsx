@@ -98,6 +98,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
     <div className="space-y-1.5">
       <div className="relative">
         <Input
+          ref={inputRef}
           autoFocus={autoFocus}
           autoComplete="nope"
           placeholder="Buscar cliente..."
