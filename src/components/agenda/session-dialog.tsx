@@ -17,7 +17,12 @@ import { getBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useServicios } from "@/lib/servicios";
-import { notificarReservasCanceladas, notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
+import {
+  notificarReservasCanceladas,
+  notificarSesionesAsignadas,
+  resolverReservaPendiente,
+  marcarReservaPorConfirmar,
+} from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import {
   AlertDialog,
@@ -109,6 +114,21 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     gcTime: 0,
     refetchOnMount: "always",
   });
+
+  // Filas de esta sesión (o de todo el bloque de grupo) que son reservas del
+  // portal del cliente: sirven para avisarle al confirmar, denegar o volver a
+  // dejar la reserva pendiente.
+  const filasReserva = ((groupMembersData ?? []).length
+    ? (groupMembersData as any[])
+    : session?.id
+      ? [session as any]
+      : []) as Array<{ id: string; por_confirmar?: boolean | null; booked_by_user_id?: string | null }>;
+  const pendientesIds = filasReserva
+    .filter((r) => r?.por_confirmar && r?.booked_by_user_id)
+    .map((r) => r.id);
+  const reservasPortalIds = filasReserva
+    .filter((r) => r?.booked_by_user_id)
+    .map((r) => r.id);
 
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
@@ -305,6 +325,27 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // Cerrar el diálogo al instante: el guardado continúa en segundo plano.
     setScopeAsk(false);
     onClose();
+
+    // Cambios en la casilla "Por confirmar" de una reserva hecha desde el
+    // portal del cliente:
+    //  - se desmarca  → la reserva queda confirmada y se avisa al cliente.
+    //  - se marca     → la reserva vuelve a pendiente en la vista del cliente.
+    if (!isNew && estado === "reservada") {
+      if (pendientesIds.length && !porConfirmar) {
+        await Promise.all(
+          pendientesIds.map((id) =>
+            resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {}),
+          ),
+        );
+      } else if (!pendientesIds.length && porConfirmar && reservasPortalIds.length) {
+        await Promise.all(
+          reservasPortalIds.map((id) =>
+            marcarReservaPorConfirmar({ data: { sessionId: id } }).catch(() => {}),
+          ),
+        );
+      }
+    }
+
 
 
     const base = {
@@ -687,7 +728,18 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     onClose();
   }
 
-  function requestDelete() {
+  async function requestDelete() {
+    // Si la sesión está pendiente de confirmar, eliminarla equivale a denegar
+    // la reserva del cliente: se avisa antes de continuar.
+    if (pendientesIds.length) {
+      const ok = await confirm({
+        title: "¿Eliminar una sesión pendiente de confirmar?",
+        description:
+          "Esta sesión está pendiente de confirmar. Si la eliminas, se denegará la reserva del cliente y recibirá un aviso.",
+        confirmText: "Eliminar y denegar",
+      });
+      if (!ok) return;
+    }
     if (isSeries) setDeleteAsk(true);
     else void doDelete("one");
   }
@@ -697,6 +749,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // Cerrar al instante: el borrado continúa en segundo plano.
     setDeleteAsk(false);
     onClose();
+    if (pendientesIds.length) {
+      // Denegar primero para avisar al cliente y liberar la plaza a la cola.
+      await Promise.all(
+        pendientesIds.map((id) =>
+          resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {}),
+        ),
+      );
+    }
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
         .from("sessions")
