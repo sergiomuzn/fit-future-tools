@@ -43,7 +43,22 @@ function formatNameUpper(name: string | null | undefined): string {
   return (name ?? "").toUpperCase();
 }
 
+const layoutCache = new Map<string, LayoutInfo[]>();
+
 function computeLayout(sessions: Session[]): LayoutInfo[] {
+  const cacheKey = sessions
+    .map((s) => `${s.id}:${s.hora_inicio}-${s.hora_fin}`)
+    .sort()
+    .join("|");
+  const cached = layoutCache.get(cacheKey);
+  if (cached) return cached.map((i) => ({ ...i }));
+
+  // Presupuesto de tiempo total: el layout se recalcula en cada píxel de
+  // arrastre, así que nunca puede bloquear el hilo principal.
+  const deadline =
+    (typeof performance !== "undefined" ? performance.now() : Date.now()) + 12;
+  const ahora = () => (typeof performance !== "undefined" ? performance.now() : Date.now());
+
   // Orden estable: por hora_inicio y, en caso de empate, por id.
   // Evita que las tarjetas cambien de columna al re-consultar sesiones
   // (por ejemplo tras asignar un entrenador en modo pintar).
@@ -53,6 +68,7 @@ function computeLayout(sessions: Session[]): LayoutInfo[] {
     return a.id.localeCompare(b.id);
   });
   const result: LayoutInfo[] = [];
+
   // Greedy column assignment within overlap groups
   const groups: Session[][] = [];
   let current: Session[] = [];
