@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { yaComenzo } from "@/lib/booking-antelacion";
 import { cn } from "@/lib/utils";
@@ -153,6 +154,7 @@ function ClientePortal() {
   });
 
   const [colaBusy, setColaBusy] = useState<string | null>(null);
+  const [avisoCola, setAvisoCola] = useState<{ posicion: number; avisoMin: number | null } | null>(null);
 
   async function refrescar() {
     await Promise.all([
@@ -172,11 +174,7 @@ function ClientePortal() {
     try {
       if (accion === "entrar") {
         const r = await entrarCola({ data: { clave: clase.key } });
-        toast.success(
-          r.avisoMin
-            ? `Estás en la cola (posición ${r.posicion}). Si alguien se apunta detrás de ti, tendrás ${colaTiempoLabel(r.avisoMin)} para confirmar la plaza cuando quede libre.`
-            : `Estás en la cola (posición ${r.posicion}). Si queda una plaza libre te avisaremos para que la confirmes.`,
-        );
+        setAvisoCola({ posicion: r.posicion, avisoMin: r.avisoMin });
       } else if (accion === "salir") {
         await dejarCola({ data: { clave: clase.key } });
         toast.success("Has salido de la cola");
