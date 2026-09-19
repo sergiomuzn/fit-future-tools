@@ -457,11 +457,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     hora_fin: string;
   } | null>(null);
 
+  // Un bloque de grupo son varias filas (una por cliente): mover/redimensionar
+  // debe afectar a todas ellas, no solo a la representante.
+  function blockIds(id: string) {
+    const members = groupMembers.get(id);
+    return members && members.length ? members.map((m) => m.id) : [id];
+  }
+
   async function applyTimeEdit(scope: "one" | "future") {
     if (!pendingTimeEdit) return;
     const p = pendingTimeEdit;
     if (scope === "one") {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin }).eq("id", p.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin }).in("id", blockIds(p.id));
       if (error) toast.error(error.message);
     } else {
       const { error } = await supabase.from("sessions")
