@@ -457,11 +457,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     hora_fin: string;
   } | null>(null);
 
+  // Un bloque de grupo son varias filas (una por cliente): mover/redimensionar
+  // debe afectar a todas ellas, no solo a la representante.
+  function blockIds(id: string) {
+    const members = groupMembers.get(id);
+    return members && members.length ? members.map((m) => m.id) : [id];
+  }
+
   async function applyTimeEdit(scope: "one" | "future") {
     if (!pendingTimeEdit) return;
     const p = pendingTimeEdit;
     if (scope === "one") {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin }).eq("id", p.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: p.hora_inicio, hora_fin: p.hora_fin }).in("id", blockIds(p.id));
       if (error) toast.error(error.message);
     } else {
       const { error } = await supabase.from("sessions")
@@ -480,8 +487,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const newEndDate = new Date(`${sess.fecha}T${newEnd}`);
     const revertToReservada = sess.estado === "realizada" && newEndDate > new Date();
     const extra = revertToReservada ? { estado: "reservada" as const } : {};
+    const ids = blockIds(sess.id);
     if (!sess.recurrencia_id) {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).in("id", ids);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -502,7 +510,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         hora_fin: newEnd,
       });
     } else {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).in("id", ids);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["client_bonos"] });
@@ -541,8 +549,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const newEnd = minToTime(snapped + moving.dur);
         const movingId = moving.id;
         const movingSession = sessions.find((s) => s.id === movingId);
+        const movingIds = new Set(blockIds(movingId));
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
-          (old ?? []).map((s) => (s.id === movingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
+          (old ?? []).map((s) => (movingIds.has(s.id) ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
         if (movingSession && movedRef.current) {
           void handleTimeChange(movingSession, newStart, newEnd);
@@ -557,8 +566,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const newEnd = minToTime(snapMin(resizePreview.endMin));
         const resizingId = resizing.id;
         const resizingSession = sessions.find((s) => s.id === resizingId);
+        const resizingIds = new Set(blockIds(resizingId));
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
-          (old ?? []).map((s) => (s.id === resizingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
+          (old ?? []).map((s) => (resizingIds.has(s.id) ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
         if (resizingSession) {
           void handleTimeChange(resizingSession, newStart, newEnd);
