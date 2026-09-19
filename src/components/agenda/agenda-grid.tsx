@@ -510,7 +510,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         hora_fin: newEnd,
       });
     } else {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).in("id", ids);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["client_bonos"] });
