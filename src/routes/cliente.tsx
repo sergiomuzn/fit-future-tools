@@ -181,10 +181,11 @@ function ClientePortal() {
         await dejarCola({ data: { clave: clase.key } });
         toast.success("Has salido de la cola");
       } else if (clase.colaId) {
-        await responder({
+        const res = await responder({
           data: { colaId: clase.colaId, accion: accion === "aceptar" ? "aceptar" : "rechazar" },
         });
-        toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
+        if (res?.ok === false) toast.error(res.mensaje ?? "Ya no hay plaza disponible");
+        else toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
       }
       await refrescar();
     } catch (e) {

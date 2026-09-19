@@ -390,7 +390,7 @@ export async function responderOferta(
   userId: string,
   colaId: string,
   accion: "aceptar" | "rechazar",
-): Promise<{ ok: true }> {
+): Promise<{ ok: boolean; mensaje?: string }> {
   const centroId = await getCentroIdForUser(userId);
   const db = centroDb(centroId);
   await procesarCaducidades(centroId);
@@ -406,7 +406,19 @@ export async function responderOferta(
 
   if (accion === "aceptar") {
     const { bookClassForUser } = await import("./client-portal.server");
-    await bookClassForUser(userId, entry.clave);
+    try {
+      await bookClassForUser(userId, entry.clave);
+    } catch (e) {
+      // La plaza se ha perdido (ya completa, fuera de plazo...): cerramos la oferta
+      // y se la pasamos al siguiente en vez de romper la pantalla del cliente.
+      await (db as any).from("reserva_cola").update({ estado: "caducada" }).eq("id", entry.id);
+      await (db as any).from("notificaciones").delete().eq("session_id", entry.id);
+      await ofrecerPlazaSiguiente(centroId, entry.clave);
+      return {
+        ok: false,
+        mensaje: e instanceof Error ? e.message : "Ya no hay plaza disponible",
+      };
+    }
     await (db as any).from("reserva_cola").update({ estado: "aceptada" }).eq("id", entry.id);
     await (db as any).from("notificaciones").delete().eq("session_id", entry.id);
     return { ok: true };
