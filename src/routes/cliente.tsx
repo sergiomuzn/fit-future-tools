@@ -335,6 +335,30 @@ function ClientePortal() {
           </TabsContent>
         </Tabs>
       </main>
+
+      <Dialog open={avisoCola !== null} onOpenChange={(open) => !open && setAvisoCola(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Estás en la cola</DialogTitle>
+            <DialogDescription asChild>
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p>
+                  Tu posición es la {avisoCola?.posicion}º.
+                </p>
+                {avisoCola?.avisoMin ? (
+                  <p>
+                    Si alguien se apunta detrás de ti, tendrás {colaTiempoLabel(avisoCola.avisoMin)} para
+                    confirmar la plaza cuando quede libre.
+                  </p>
+                ) : (
+                  <p>Si queda una plaza libre te avisaremos para que la confirmes.</p>
+                )}
+              </div>
+            </DialogDescription>
+          </DialogHeader>
+          <Button onClick={() => setAvisoCola(null)}>Entendido</Button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
