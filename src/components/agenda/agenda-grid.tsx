@@ -549,8 +549,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const newEnd = minToTime(snapped + moving.dur);
         const movingId = moving.id;
         const movingSession = sessions.find((s) => s.id === movingId);
+        const movingIds = new Set(blockIds(movingId));
         qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
-          (old ?? []).map((s) => (s.id === movingId ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
+          (old ?? []).map((s) => (movingIds.has(s.id) ? { ...s, hora_inicio: newStart, hora_fin: newEnd } : s)),
         );
         if (movingSession && movedRef.current) {
           void handleTimeChange(movingSession, newStart, newEnd);
