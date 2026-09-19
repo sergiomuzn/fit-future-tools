@@ -80,8 +80,9 @@ export function NotificationsBell({ className }: { className?: string }) {
   async function resolverCola(colaId: string, accion: "aceptar" | "rechazar") {
     setProcesando(colaId);
     try {
-      await responder({ data: { colaId, accion } });
-      toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
+      const res = await responder({ data: { colaId, accion } });
+      if (res?.ok === false) toast.error(res.mensaje ?? "Ya no hay plaza disponible");
+      else toast.success(accion === "aceptar" ? "Plaza confirmada" : "Plaza rechazada");
       qc.invalidateQueries({ queryKey: ["mis-ofertas-cola"] });
       qc.invalidateQueries({ queryKey: ["portal-clases"] });
       qc.invalidateQueries({ queryKey: ["portal-resumen"] });
