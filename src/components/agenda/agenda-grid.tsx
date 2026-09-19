@@ -487,8 +487,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const newEndDate = new Date(`${sess.fecha}T${newEnd}`);
     const revertToReservada = sess.estado === "realizada" && newEndDate > new Date();
     const extra = revertToReservada ? { estado: "reservada" as const } : {};
+    const ids = blockIds(sess.id);
     if (!sess.recurrencia_id) {
-      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).eq("id", sess.id);
+      const { error } = await supabase.from("sessions").update({ hora_inicio: newStart, hora_fin: newEnd, ...extra }).in("id", ids);
       if (error) toast.error(error.message);
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["client_bonos"] });
