@@ -174,7 +174,11 @@ function ClientePortal() {
     try {
       if (accion === "entrar") {
         const r = await entrarCola({ data: { clave: clase.key } });
-        setAvisoCola({ posicion: r.posicion, avisoMin: r.avisoMin });
+        if (r.avisoMin != null) {
+          setAvisoCola({ posicion: r.posicion, avisoMin: r.avisoMin });
+        } else {
+          toast.success(`Estás en la cola, posición ${r.posicion}º`);
+        }
       } else if (accion === "salir") {
         await dejarCola({ data: { clave: clase.key } });
         toast.success("Has salido de la cola");
