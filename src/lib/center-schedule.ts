@@ -188,14 +188,16 @@ function useCenterConfigInner(qcOuter: ReturnType<typeof useQueryClient>) {
   const cfg = useQuery({
     queryKey: ["center_config"],
     queryFn: async () => {
-      const { data } = await supabase.from("center_config").select("*").eq("id", true).maybeSingle();
+      const { data, error } = await supabase.from("center_config").select("*").eq("id", true).maybeSingle();
+      if (error) throw error;
       return (data ?? null) as CenterConfig | null;
     },
   });
   const special = useQuery({
     queryKey: ["special_days"],
     queryFn: async () => {
-      const { data } = await supabase.from("special_days").select("*");
+      const { data, error } = await supabase.from("special_days").select("*");
+      if (error) throw error;
       return (data ?? []) as SpecialDay[];
     },
   });
