@@ -274,7 +274,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
-      const { data } = await supabase.from("sessions").select("*").eq("fecha", isoDate).order("hora_inicio");
+      const { data, error } = await supabase.from("sessions").select("*").eq("fecha", isoDate).order("hora_inicio");
+      if (error) throw error;
       return (data ?? []) as Session[];
     },
   });

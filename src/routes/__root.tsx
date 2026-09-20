@@ -131,7 +131,17 @@ function RootComponent() {
   const router = useRouter();
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((event) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // Sesión caducada o revocada: no seguir como si estuviéramos dentro
+      if (!session && (event === "TOKEN_REFRESHED" || event === "SIGNED_OUT")) {
+        clearRolesCache();
+        clearModoSoporteCache();
+        void queryClient.cancelQueries().then(() => queryClient.clear());
+        if (typeof window !== "undefined" && !window.location.pathname.startsWith("/auth")) {
+          window.location.assign("/auth");
+        }
+        return;
+      }
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       clearRolesCache();
       clearModoSoporteCache();
