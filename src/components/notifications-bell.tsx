@@ -142,7 +142,15 @@ export function NotificationsBell({ className }: { className?: string }) {
     };
   }, [qc]);
 
-  const sinLeer = items.filter((i) => !i.leida);
+  // Avisos que piden una decisión: desaparecen si la sesión ya empezó o se resolvió.
+  const visibles = items.filter((n) => {
+    if (!n.session_id) return true;
+    if (n.tipo === "cola_plaza_libre") return ofertasCola.includes(n.session_id);
+    if (n.tipo === "reserva_pendiente") return pendientes.includes(n.session_id);
+    return true;
+  });
+
+  const sinLeer = visibles.filter((i) => !i.leida);
 
   async function marcarLeidas() {
     if (!sinLeer.length) return;
