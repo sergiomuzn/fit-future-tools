@@ -326,12 +326,35 @@ export async function apuntarseEnCola(
 
   const { data: cola } = await (db as any)
     .from("reserva_cola")
-    .select("id,user_id")
+    .select("id,user_id,estado,expira_at,servicio_slug,fecha,hora_inicio")
     .eq("clave", clave)
     .in("estado", ["en_cola", "ofrecida"])
     .order("created_at", { ascending: true });
-  const lista = (cola ?? []) as { user_id: string }[];
+  const lista = (cola ?? []) as ColaEntry[];
   const posicion = lista.findIndex((e) => e.user_id === userId) + 1;
+
+  // Si delante hay una oferta viva sin contador (no tenía a nadie detrás),
+  // el plazo de confirmación arranca ahora que existe alguien esperando.
+  const oferta = lista.find((e) => e.estado === "ofrecida" && !e.expira_at);
+  if (oferta && cfg.caducidadActiva) {
+    const minutos = colaTiempoParaServicio(cfg, oferta.servicio_slug ?? info.servicioSlug);
+    if (minutos > 0) {
+      const expira = new Date(Date.now() + minutos * 60_000).toISOString();
+      await (db as any).from("reserva_cola").update({ expira_at: expira }).eq("id", oferta.id);
+      await notificar(centroId, [
+        {
+          userId: oferta.user_id,
+          tipo: "cola_plaza_libre",
+          titulo: "Alguien más se ha apuntado a la cola",
+          mensaje: `Ahora tienes ${colaTiempoLabel(minutos)} para confirmar tu plaza del ${describe(
+            oferta.fecha,
+            oferta.hora_inicio,
+          )}`,
+          sessionId: oferta.id,
+        },
+      ]);
+    }
+  }
 
   return {
     posicion: posicion || lista.length,
