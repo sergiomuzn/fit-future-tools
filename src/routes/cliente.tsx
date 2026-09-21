@@ -126,8 +126,12 @@ function ClientePortal() {
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
     onMutate: (key: string) => setPendingAction({ key, action: "reservar" }),
-    onSuccess: async () => {
-      toast.success("Plaza reservada");
+    onSuccess: async (res) => {
+      if (res?.ok === false) {
+        toast.error(res.mensaje ?? "No se pudo reservar la plaza");
+      } else {
+        toast.success("Plaza reservada");
+      }
       await Promise.all([
         qc.refetchQueries({ queryKey: ["portal-clases"] }),
         qc.refetchQueries({ queryKey: ["portal-personales"] }),
