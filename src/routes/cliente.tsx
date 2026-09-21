@@ -16,7 +16,6 @@ import {
   getPortalPreferencias,
 } from "@/lib/client-portal.functions";
 import { apuntarseCola, salirCola, responderCola } from "@/lib/cola-espera.functions";
-import { colaTiempoLabel, tiempoRestanteLabel } from "@/lib/cola-espera";
 import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
