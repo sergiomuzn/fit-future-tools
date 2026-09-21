@@ -55,24 +55,45 @@ export function NotificationsBell({ className }: { className?: string }) {
     .filter((i) => i.tipo === "reserva_pendiente" && i.session_id)
     .map((i) => i.session_id as string);
 
+  // Una sesión ya empezada no debe poder confirmarse ni denegarse.
+  const yaEmpezada = (fecha: string, hora: string) => {
+    const [y, m, d] = fecha.split("-").map(Number);
+    const [hh, mm] = hora.split(":").map(Number);
+    return new Date(y!, (m ?? 1) - 1, d!, hh ?? 0, mm ?? 0).getTime() <= Date.now();
+  };
+
   const { data: pendientes = [] } = useQuery({
     queryKey: ["notificaciones-pendientes", sessionIds.join(",")],
     enabled: sessionIds.length > 0,
+    refetchInterval: 60_000,
     queryFn: async (): Promise<string[]> => {
       const { data } = await supabase
         .from("sessions")
-        .select("id")
+        .select("id,fecha,hora_inicio")
         .in("id", sessionIds)
         .eq("por_confirmar", true);
-      return (data ?? []).map((r) => (r as { id: string }).id);
+      return (data ?? [])
+        .filter((r) => {
+          const row = r as { fecha: string; hora_inicio: string };
+          return !yaEmpezada(row.fecha, row.hora_inicio);
+        })
+        .map((r) => (r as { id: string }).id);
     },
   });
 
   const { data: ofertasCola = [] } = useQuery({
     queryKey: ["mis-ofertas-cola"],
     queryFn: async (): Promise<string[]> => {
-      const { data } = await supabase.from("reserva_cola").select("id").eq("estado", "ofrecida");
-      return (data ?? []).map((r) => (r as { id: string }).id);
+      const { data } = await supabase
+        .from("reserva_cola")
+        .select("id,fecha,hora_inicio")
+        .eq("estado", "ofrecida");
+      return (data ?? [])
+        .filter((r) => {
+          const row = r as { fecha: string; hora_inicio: string };
+          return !yaEmpezada(row.fecha, row.hora_inicio);
+        })
+        .map((r) => (r as { id: string }).id);
     },
     refetchInterval: 60_000,
   });
@@ -121,7 +142,15 @@ export function NotificationsBell({ className }: { className?: string }) {
     };
   }, [qc]);
 
-  const sinLeer = items.filter((i) => !i.leida);
+  // Avisos que piden una decisión: desaparecen si la sesión ya empezó o se resolvió.
+  const visibles = items.filter((n) => {
+    if (!n.session_id) return true;
+    if (n.tipo === "cola_plaza_libre") return ofertasCola.includes(n.session_id);
+    if (n.tipo === "reserva_pendiente") return pendientes.includes(n.session_id);
+    return true;
+  });
+
+  const sinLeer = visibles.filter((i) => !i.leida);
 
   async function marcarLeidas() {
     if (!sinLeer.length) return;
@@ -151,10 +180,10 @@ export function NotificationsBell({ className }: { className?: string }) {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b px-3 py-2 text-sm font-medium">Buzón</div>
         <div className="max-h-80 overflow-auto">
-          {items.length === 0 && (
+          {visibles.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">No tienes avisos.</p>
           )}
-          {items.map((n) => (
+          {visibles.map((n) => (
             <div key={n.id} className={cn("border-b px-3 py-2 last:border-b-0", !n.leida && "bg-accent/40")}>
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-medium">{n.titulo}</span>
