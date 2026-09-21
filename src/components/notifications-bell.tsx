@@ -180,10 +180,10 @@ export function NotificationsBell({ className }: { className?: string }) {
       <PopoverContent align="end" className="w-80 p-0">
         <div className="border-b px-3 py-2 text-sm font-medium">Buzón</div>
         <div className="max-h-80 overflow-auto">
-          {items.length === 0 && (
+          {visibles.length === 0 && (
             <p className="px-3 py-6 text-center text-sm text-muted-foreground">No tienes avisos.</p>
           )}
-          {items.map((n) => (
+          {visibles.map((n) => (
             <div key={n.id} className={cn("border-b px-3 py-2 last:border-b-0", !n.leida && "bg-accent/40")}>
               <div className="flex items-start justify-between gap-2">
                 <span className="text-sm font-medium">{n.titulo}</span>
