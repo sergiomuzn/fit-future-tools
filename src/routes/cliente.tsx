@@ -16,7 +16,7 @@ import {
   getPortalPreferencias,
 } from "@/lib/client-portal.functions";
 import { apuntarseCola, salirCola, responderCola } from "@/lib/cola-espera.functions";
-import { colaTiempoLabel, tiempoRestanteLabel } from "@/lib/cola-espera";
+import { colaTiempoLabel } from "@/lib/cola-espera";
 import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
@@ -834,24 +834,18 @@ function ClaseCardImpl({
             {clase.ocupadas} de {clase.capacidad}
           </span>
           {puedeCola && ofrecida ? (
-            <div className="flex flex-col items-end gap-1">
-              <span className="text-xs text-muted-foreground">
-                Tienes una plaza libre
-                {clase.colaExpiraAt ? ` · ${tiempoRestanteLabel(clase.colaExpiraAt)}` : ""}
-              </span>
-              <div className="flex items-center gap-2">
-                <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("aceptar")}>
-                  Confirmar plaza
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={colaBusy}
-                  onClick={() => onCola?.("rechazar")}
-                >
-                  Rechazar
-                </Button>
-              </div>
+            <div className="flex items-center gap-2">
+              <Button size="sm" disabled={colaBusy} onClick={() => onCola?.("aceptar")}>
+                Confirmar plaza
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={colaBusy}
+                onClick={() => onCola?.("rechazar")}
+              >
+                Rechazar
+              </Button>
             </div>
           ) : puedeCola && enCola ? (
             <div className="flex flex-row-reverse items-center justify-end gap-2 sm:flex-col sm:items-end">
