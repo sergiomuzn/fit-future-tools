@@ -95,10 +95,14 @@ export const listSesionesPersonales = createServerFn({ method: "POST" })
 export const reservarClase = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ key: z.string().min(3).max(200) }).parse(d))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data, context }): Promise<{ ok: boolean; mensaje?: string }> => {
     const { bookClassForUser } = await import("./client-portal.server");
-    await bookClassForUser(context.userId, data.key);
-    return { ok: true as const };
+    try {
+      await bookClassForUser(context.userId, data.key);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, mensaje: e instanceof Error ? e.message : "No se pudo reservar la plaza" };
+    }
   });
 
 export const cancelarReserva = createServerFn({ method: "POST" })
