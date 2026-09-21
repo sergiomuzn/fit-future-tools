@@ -341,6 +341,7 @@ export async function apuntarseEnCola(
     if (minutos > 0) {
       const expira = new Date(Date.now() + minutos * 60_000).toISOString();
       await (db as any).from("reserva_cola").update({ expira_at: expira }).eq("id", oferta.id);
+      await (db as any).from("notificaciones").delete().eq("session_id", oferta.id);
       await notificar(centroId, [
         {
           userId: oferta.user_id,
