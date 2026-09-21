@@ -811,15 +811,22 @@ async function bookHuecoForUser(
 
   const { data: existentes } = await supabaseAdmin
     .from("sessions")
-    .select("id,client_id,booked_by_user_id")
+    .select("id,client_id,booked_by_user_id,booking_tipo")
     .is("group_id", null)
     .eq("fecha", hueco.fecha)
     .eq("hora_inicio", hueco.hora_inicio)
     .eq("servicio_slug", hueco.servicio_slug)
     .neq("estado", "cancelada");
-  const rows = (existentes ?? []) as { id: string; client_id: string | null; booked_by_user_id: string | null }[];
+  // Mismo criterio que el listado del portal: solo ocupan plaza las reservas
+  // hechas desde el portal; las sesiones creadas a mano en Agenda no cuentan.
+  const rows = ((existentes ?? []) as {
+    id: string;
+    client_id: string | null;
+    booked_by_user_id: string | null;
+    booking_tipo: string | null;
+  }[]).filter((r) => !!r.client_id && (!!r.booked_by_user_id || !!r.booking_tipo));
   if (rows.some((r) => r.booked_by_user_id === userId)) throw new Error("Ya tienes esta reserva");
-  if (rows.filter((r) => !!r.client_id).length >= Math.max(1, hueco.capacidad ?? 1)) {
+  if (rows.length >= Math.max(1, hueco.capacidad ?? 1)) {
     throw new Error("Este hueco está completo");
   }
 
