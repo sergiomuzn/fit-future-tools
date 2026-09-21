@@ -55,24 +55,45 @@ export function NotificationsBell({ className }: { className?: string }) {
     .filter((i) => i.tipo === "reserva_pendiente" && i.session_id)
     .map((i) => i.session_id as string);
 
+  // Una sesión ya empezada no debe poder confirmarse ni denegarse.
+  const yaEmpezada = (fecha: string, hora: string) => {
+    const [y, m, d] = fecha.split("-").map(Number);
+    const [hh, mm] = hora.split(":").map(Number);
+    return new Date(y!, (m ?? 1) - 1, d!, hh ?? 0, mm ?? 0).getTime() <= Date.now();
+  };
+
   const { data: pendientes = [] } = useQuery({
     queryKey: ["notificaciones-pendientes", sessionIds.join(",")],
     enabled: sessionIds.length > 0,
+    refetchInterval: 60_000,
     queryFn: async (): Promise<string[]> => {
       const { data } = await supabase
         .from("sessions")
-        .select("id")
+        .select("id,fecha,hora_inicio")
         .in("id", sessionIds)
         .eq("por_confirmar", true);
-      return (data ?? []).map((r) => (r as { id: string }).id);
+      return (data ?? [])
+        .filter((r) => {
+          const row = r as { fecha: string; hora_inicio: string };
+          return !yaEmpezada(row.fecha, row.hora_inicio);
+        })
+        .map((r) => (r as { id: string }).id);
     },
   });
 
   const { data: ofertasCola = [] } = useQuery({
     queryKey: ["mis-ofertas-cola"],
     queryFn: async (): Promise<string[]> => {
-      const { data } = await supabase.from("reserva_cola").select("id").eq("estado", "ofrecida");
-      return (data ?? []).map((r) => (r as { id: string }).id);
+      const { data } = await supabase
+        .from("reserva_cola")
+        .select("id,fecha,hora_inicio")
+        .eq("estado", "ofrecida");
+      return (data ?? [])
+        .filter((r) => {
+          const row = r as { fecha: string; hora_inicio: string };
+          return !yaEmpezada(row.fecha, row.hora_inicio);
+        })
+        .map((r) => (r as { id: string }).id);
     },
     refetchInterval: 60_000,
   });
