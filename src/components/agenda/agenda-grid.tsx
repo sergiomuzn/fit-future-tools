@@ -5,7 +5,7 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { SessionDialog } from "./session-dialog";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { getBehaviorConfig, useBehaviorConfig } from "@/lib/behavior-config";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { sessionFillColor } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
@@ -259,7 +259,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // reloj en vivo para la línea horaria
   const [now, setNow] = useState(() => new Date());
   const { colores } = useCenterConfig();
-  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
+  const behavior = useBehaviorConfig();
+  const mostrarAbrev = behavior.mostrarAbreviaturaServicio;
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
@@ -704,7 +705,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Auto-paso a "realizada" para las sesiones individuales pasadas
   // (los grupos se excluyen para no tocar sus futuras ocurrencias).
   useEffect(() => {
-    const cfg = getBehaviorConfig();
+    const cfg = behavior;
     const GRACE_MS = Math.max(0, cfg.graciaAutoRealizadaMin) * 60 * 1000;
     const now = Date.now();
     const toUpdate = sessions.filter((s) => {
@@ -730,7 +731,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         qc.invalidateQueries({ queryKey: ["sessions-past"] });
       }
     })();
-  }, [sessions, qc]);
+  }, [sessions, qc, behavior]);
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
 
