@@ -115,6 +115,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     refetchOnMount: "always",
   });
 
+  // Configuración de funcionamiento del centro (para valores por defecto al crear).
+  const behaviorCfg = useBehaviorConfig();
+  const cfgBehaviorRef = useRef(behaviorCfg);
+  useEffect(() => {
+    cfgBehaviorRef.current = behaviorCfg;
+  }, [behaviorCfg]);
+
   // Filas de esta sesión (o de todo el bloque de grupo) que son reservas del
   // portal del cliente: sirven para avisarle al confirmar, denegar o volver a
   // dejar la reserva pendiente.
