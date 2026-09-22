@@ -279,8 +279,10 @@ export function BehaviorForm() {
       return false;
     }
     setDirty(false);
+    clearLegacyLocalBehaviorConfig();
     await qc.invalidateQueries({ queryKey: ["booking-mode"] });
     await qc.invalidateQueries({ queryKey: ["confirmacion-reservas"] });
+    await qc.invalidateQueries({ queryKey: BEHAVIOR_QUERY_KEY });
     toast.success("Configuración de funcionamiento guardada");
     return true;
   }
