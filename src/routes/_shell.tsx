@@ -20,7 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
 import { useServerFn } from "@tanstack/react-start";
 import { barrerSesionesRealizadas } from "@/lib/auto-realizadas.functions";
-import { getBehaviorConfig } from "@/lib/behavior-config";
+import { fetchBehaviorConfig } from "@/lib/behavior-config";
 import {
   Sidebar,
   SidebarContent,
@@ -104,7 +104,7 @@ function ShellInner() {
   useEffect(() => {
     let cancelado = false;
     const run = async () => {
-      const cfg = getBehaviorConfig();
+      const cfg = await fetchBehaviorConfig();
       try {
         const r = await barrer({
           data: {

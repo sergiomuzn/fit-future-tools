@@ -30,7 +30,7 @@ import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
-import { getBehaviorConfig } from "@/lib/behavior-config";
+import { fetchBehaviorConfig } from "@/lib/behavior-config";
 import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -73,7 +73,7 @@ function ClientesPage() {
   // Ejecuta al montar la limpieza automática de clientes de prueba caducados.
   useEffect(() => {
     (async () => {
-      const cfg = getBehaviorConfig();
+      const cfg = await fetchBehaviorConfig();
       if (!cfg.pruebaAutoInactivar) return;
       const { error } = await supabase.rpc(
         "auto_deactivate_prueba_clients" as never,
