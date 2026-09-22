@@ -31,6 +31,23 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
 
+  const qc = useQueryClient();
+  const resetAvisos = useServerFn(restablecerAvisosCancelacion);
+  const [resetting, setResetting] = useState(false);
+
+  async function handleResetAvisos() {
+    setResetting(true);
+    try {
+      await resetAvisos({ data: undefined });
+      await qc.invalidateQueries({ queryKey: ["portal-avisos-cancelacion"] });
+      toast.success("Volverás a ver la política de cancelación al reservar");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
+
   async function handleForgot() {
     if (!email) return toast.error("No hay correo asociado a tu cuenta");
     setSendingReset(true);
