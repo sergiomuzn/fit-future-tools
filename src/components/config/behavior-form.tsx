@@ -51,8 +51,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   type BehaviorConfig,
   DEFAULT_BEHAVIOR_CONFIG,
-  getBehaviorConfig,
-  writeBehaviorConfig,
+  parseBehaviorConfig,
+  BEHAVIOR_QUERY_KEY,
+  readLegacyLocalBehaviorConfig,
+  clearLegacyLocalBehaviorConfig,
 } from "@/lib/behavior-config";
 import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
