@@ -423,13 +423,12 @@ function ClientePortal() {
 
       <Dialog open={confirmarCancel !== null} onOpenChange={(open) => !open && setConfirmarCancel(null)}>
         <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>¿Estás seguro de que quieres cancelar la sesión?</DialogTitle>
-            <DialogDescription>
-              Según la política del servicio, cancelar fuera de plazo puede contabilizar la sesión como realizada.
-            </DialogDescription>
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="leading-relaxed pr-2 text-left">
+              ¿Estás seguro de que quieres cancelar la sesión?
+            </DialogTitle>
           </DialogHeader>
-          <div className="flex justify-end gap-2 pt-1">
+          <div className="flex justify-end gap-2 pt-3">
             <Button variant="outline" onClick={() => setConfirmarCancel(null)}>
               No
             </Button>
