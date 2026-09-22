@@ -51,8 +51,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   type BehaviorConfig,
   DEFAULT_BEHAVIOR_CONFIG,
-  getBehaviorConfig,
-  writeBehaviorConfig,
+  parseBehaviorConfig,
+  BEHAVIOR_QUERY_KEY,
+  readLegacyLocalBehaviorConfig,
+  clearLegacyLocalBehaviorConfig,
 } from "@/lib/behavior-config";
 import { useUnsavedGuard } from "@/lib/unsaved-changes";
 
@@ -184,10 +186,11 @@ export function BehaviorForm() {
   const qc = useQueryClient();
 
   const load = useCallback(async () => {
-    setCfg(getBehaviorConfig());
+    let migratedFromLocal = false;
     {
       const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
       const avisos = (data?.avisos ?? {}) as {
+        behavior?: unknown;
         umbral_sesiones?: number;
         avisar_renovacion?: boolean;
         cliente_ve_canceladas?: boolean;
@@ -220,13 +223,19 @@ export function BehaviorForm() {
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 1);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
-      setCfg((prev) => ({
-        ...prev,
+      // La configuración de funcionamiento es del centro. Si este centro aún no
+      // la tiene guardada y existía una copia antigua en este navegador, se usa
+      // como punto de partida y se marca como pendiente de guardar.
+      const legacy = avisos.behavior === undefined ? readLegacyLocalBehaviorConfig() : null;
+      if (legacy) migratedFromLocal = true;
+      const base = parseBehaviorConfig(avisos.behavior ?? legacy ?? undefined);
+      setCfg({
+        ...base,
         clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
         canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
-      }));
+      });
     }
-    setDirty(false);
+    setDirty(migratedFromLocal);
   }, []);
 
   useEffect(() => {
@@ -239,11 +248,11 @@ export function BehaviorForm() {
   }
 
   async function save(): Promise<boolean> {
-    writeBehaviorConfig(cfg);
     const { error } = await supabase
       .from("center_config")
       .update({
         avisos: {
+          behavior: cfg,
           umbral_sesiones: avisoUmbral,
           avisar_renovacion: avisoRenovacion,
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
@@ -270,8 +279,10 @@ export function BehaviorForm() {
       return false;
     }
     setDirty(false);
+    clearLegacyLocalBehaviorConfig();
     await qc.invalidateQueries({ queryKey: ["booking-mode"] });
     await qc.invalidateQueries({ queryKey: ["confirmacion-reservas"] });
+    await qc.invalidateQueries({ queryKey: BEHAVIOR_QUERY_KEY });
     toast.success("Configuración de funcionamiento guardada");
     return true;
   }
