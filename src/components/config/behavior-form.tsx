@@ -222,13 +222,19 @@ export function BehaviorForm() {
       setModoReservas(parseBookingMode(avisos.modo_reservas));
       setAvisoUmbral(avisos.umbral_sesiones ?? 1);
       setAvisoRenovacion(avisos.avisar_renovacion ?? true);
-      setCfg((prev) => ({
-        ...prev,
+      // La configuración de funcionamiento es del centro. Si este centro aún no
+      // la tiene guardada y existía una copia antigua en este navegador, se usa
+      // como punto de partida y se marca como pendiente de guardar.
+      const legacy = avisos.behavior === undefined ? readLegacyLocalBehaviorConfig() : null;
+      const base = parseBehaviorConfig(avisos.behavior ?? legacy ?? undefined);
+      setCfg({
+        ...base,
         clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
         canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
-      }));
+      });
+      if (legacy) setDirty(true);
     }
-    setDirty(false);
+    if (!dirtyFromBehavior.current) setDirty(false);
   }, []);
 
   useEffect(() => {
