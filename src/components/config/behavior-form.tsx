@@ -227,15 +227,15 @@ export function BehaviorForm() {
       // la tiene guardada y existía una copia antigua en este navegador, se usa
       // como punto de partida y se marca como pendiente de guardar.
       const legacy = avisos.behavior === undefined ? readLegacyLocalBehaviorConfig() : null;
+      if (legacy) migratedFromLocal = true;
       const base = parseBehaviorConfig(avisos.behavior ?? legacy ?? undefined);
       setCfg({
         ...base,
         clienteVeCanceladas: avisos.cliente_ve_canceladas ?? false,
         canceladasNCSumanTotal: avisos.canceladas_nc_suman ?? false,
       });
-      if (legacy) setDirty(true);
     }
-    if (!dirtyFromBehavior.current) setDirty(false);
+    setDirty(migratedFromLocal);
   }, []);
 
   useEffect(() => {
