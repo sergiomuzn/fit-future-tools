@@ -136,3 +136,29 @@ export const listHuecos = createServerFn({ method: "POST" })
     if (!profile) throw new Error("Cuenta de cliente no activa");
     return listHuecosDisponibles(data.slugs, context.userId);
   });
+
+export const getAvisosCancelacionCliente = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { getAvisosCancelacion } = await import("./client-portal.server");
+    return getAvisosCancelacion(context.userId);
+  });
+
+export const ocultarAvisoCancelacion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ servicioSlug: z.string().min(1).max(64), cancelacionMin: z.number().int().min(0) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    const { saveAvisoCancelacion } = await import("./client-portal.server");
+    await saveAvisoCancelacion(context.userId, data.servicioSlug, data.cancelacionMin);
+    return { ok: true as const };
+  });
+
+export const restablecerAvisosCancelacion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { resetAvisosCancelacion } = await import("./client-portal.server");
+    await resetAvisosCancelacion(context.userId);
+    return { ok: true as const };
+  });
