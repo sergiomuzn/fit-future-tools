@@ -130,6 +130,9 @@ function ClientePortal() {
     action: "reservar" | "cancelar";
   } | null>(null);
 
+  // Confirmación antes de cancelar cualquier sesión
+  const [confirmarCancel, setConfirmarCancel] = useState<{ sessionId: string; key: string } | null>(null);
+
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
     onMutate: (key: string) => setPendingAction({ key, action: "reservar" }),
@@ -330,7 +333,7 @@ function ClientePortal() {
                 clases={clases}
                 personales={personales}
                 onBook={(c) => pedirReserva(c)}
-                onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                onCancel={(c) => c.miSesionId && setConfirmarCancel({ sessionId: c.miSesionId, key: c.key })}
                 pendingAction={pendingAction}
                 colaActiva={behavior.colaActiva}
                 colaBusy={colaBusy}
@@ -359,7 +362,7 @@ function ClientePortal() {
                 key={c.key}
                 clase={c}
                 onBook={() => pedirReserva(c)}
-                onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
+                onCancel={() => c.miSesionId && setConfirmarCancel({ sessionId: c.miSesionId, key: c.key })}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
                 colaActiva={behavior.colaActiva}
                 colaBusy={colaBusy === c.key}
@@ -383,7 +386,7 @@ function ClientePortal() {
                 key={s.id}
                 sesion={s}
                 busy={pendingAction?.key === `personal|${s.id}`}
-                onCancel={() => cancelMutation.mutate({ sessionId: s.id, key: `personal|${s.id}` })}
+                onCancel={() => setConfirmarCancel({ sessionId: s.id, key: `personal|${s.id}` })}
               />
             ))}
           </TabsContent>
@@ -417,6 +420,33 @@ function ClientePortal() {
           <Button onClick={() => setAvisoCola(null)}>Entendido</Button>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={confirmarCancel !== null} onOpenChange={(open) => !open && setConfirmarCancel(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Estás seguro de que quieres cancelar la sesión?</DialogTitle>
+            <DialogDescription>
+              Según la política del servicio, cancelar fuera de plazo puede contabilizar la sesión como realizada.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button variant="outline" onClick={() => setConfirmarCancel(null)}>
+              No
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                const c = confirmarCancel;
+                setConfirmarCancel(null);
+                if (c) cancelMutation.mutate(c);
+              }}
+            >
+              Sí, cancelar sesión
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
 
       <Dialog open={avisoReserva !== null} onOpenChange={(open) => !open && setAvisoReserva(null)}>
         <DialogContent className="max-w-sm">
