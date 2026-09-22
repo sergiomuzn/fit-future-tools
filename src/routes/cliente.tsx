@@ -417,8 +417,60 @@ function ClientePortal() {
           <Button onClick={() => setAvisoCola(null)}>Entendido</Button>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={avisoReserva !== null} onOpenChange={(open) => !open && setAvisoReserva(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar reserva</DialogTitle>
+            <DialogDescription>
+              {avisoReserva
+                ? `Si cancelas esta sesión con menos de ${horasAviso(avisoReserva.min)} de antelación la sesión se contabilizará como realizada y se descontará de tu bono.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="aviso-leido"
+                checked={avisoLeido}
+                onCheckedChange={(v) => setAvisoLeido(v === true)}
+              />
+              <Label htmlFor="aviso-leido" className="text-sm font-normal leading-snug">
+                He leído y entiendo la política de cancelación
+              </Label>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="aviso-no-mostrar"
+                checked={avisoNoMostrar}
+                onCheckedChange={(v) => setAvisoNoMostrar(v === true)}
+              />
+              <Label htmlFor="aviso-no-mostrar" className="text-sm font-normal leading-snug text-muted-foreground">
+                No volver a mostrar este aviso
+              </Label>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setAvisoReserva(null)}>
+                Cancelar
+              </Button>
+              <Button disabled={!avisoLeido} onClick={() => void confirmarAvisoReserva()}>
+                Confirmar reserva
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+/** "2 horas" / "90 minutos" para el texto del aviso de cancelación. */
+function horasAviso(min: number): string {
+  if (min % 60 === 0) {
+    const h = min / 60;
+    return h === 1 ? "1 hora" : `${h} horas`;
+  }
+  return `${min} minutos`;
 }
 
 function fechaCorta(fecha?: string | null): string {
