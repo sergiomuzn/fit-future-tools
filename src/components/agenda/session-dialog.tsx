@@ -13,7 +13,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
-import { getBehaviorConfig } from "@/lib/behavior-config";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useServicios } from "@/lib/servicios";
@@ -200,7 +200,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setNombreLibre(!((session as any)?.client_id) ? ((session as any)?.titulo ?? "") : "");
 
     const isNewSession = !session?.id;
-    const cfgBehavior = getBehaviorConfig();
+    const cfgBehavior = cfgBehaviorRef.current;
     setNoContabilizar(
       isNewSession
         ? cfgBehavior.cancelacionDefaultNoContabilizar
