@@ -18,6 +18,9 @@ import { getModoSoporteCached, clearModoSoporteCache } from "@/lib/modo-soporte-
 import { useQuery } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UnsavedChangesProvider } from "@/lib/unsaved-changes";
+import { useServerFn } from "@tanstack/react-start";
+import { barrerSesionesRealizadas } from "@/lib/auto-realizadas.functions";
+import { getBehaviorConfig } from "@/lib/behavior-config";
 import {
   Sidebar,
   SidebarContent,
@@ -94,6 +97,39 @@ function ShellInner() {
       setMonth(new Date(date.getFullYear(), date.getMonth(), 1));
     }
   }, [date]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Barrido global: pone en "realizada" cualquier sesión pasada pendiente,
+  // aunque nadie haya abierto ese día en la agenda.
+  const barrer = useServerFn(barrerSesionesRealizadas);
+  useEffect(() => {
+    let cancelado = false;
+    const run = async () => {
+      const cfg = getBehaviorConfig();
+      try {
+        const r = await barrer({
+          data: {
+            graciaMin: Math.max(0, cfg.graciaAutoRealizadaMin),
+            autoIndividuales: cfg.autoCompletarIndividuales,
+            autoGrupales: cfg.autoCompletarGrupales,
+            grupalesSinAsistentesCuentan: cfg.grupalesSinAsistentesCuentan,
+            dias: 400,
+          },
+        });
+        if (!cancelado && r?.actualizadas) {
+          queryClient.invalidateQueries({ queryKey: ["sessions"] });
+          queryClient.invalidateQueries({ queryKey: ["sessions-past"] });
+        }
+      } catch {
+        /* silencioso: es una tarea de mantenimiento */
+      }
+    };
+    void run();
+    const t = setInterval(run, 10 * 60 * 1000);
+    return () => {
+      cancelado = true;
+      clearInterval(t);
+    };
+  }, [barrer, queryClient]);
 
   // Al cambiar de ruta, sube al inicio de la página
   useEffect(() => {
