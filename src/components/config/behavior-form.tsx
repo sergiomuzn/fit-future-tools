@@ -186,6 +186,7 @@ export function BehaviorForm() {
   const qc = useQueryClient();
 
   const load = useCallback(async () => {
+    let migratedFromLocal = false;
     {
       const { data } = await supabase.from("center_config").select("avisos").eq("id", true).maybeSingle();
       const avisos = (data?.avisos ?? {}) as {
