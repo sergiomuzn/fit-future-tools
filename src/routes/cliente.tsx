@@ -18,6 +18,13 @@ import {
 import { apuntarseCola, salirCola, responderCola } from "@/lib/cola-espera.functions";
 import { colaTiempoLabel } from "@/lib/cola-espera";
 import {
+  getAvisosCancelacionCliente,
+  ocultarAvisoCancelacion,
+} from "@/lib/client-portal.functions";
+import { cancelacionParaServicio } from "@/lib/cancelacion-antelacion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
 
@@ -160,6 +167,49 @@ function ClientePortal() {
   const [colaBusy, setColaBusy] = useState<string | null>(null);
   const [avisoCola, setAvisoCola] = useState<{ posicion: number; avisoMin: number | null } | null>(null);
 
+  // Aviso de política de cancelación antes de reservar
+  const fetchAvisos = useServerFn(getAvisosCancelacionCliente);
+  const guardarAviso = useServerFn(ocultarAvisoCancelacion);
+  const { data: avisos } = useQuery({
+    queryKey: ["portal-avisos-cancelacion"],
+    queryFn: () => fetchAvisos({ data: undefined }),
+    enabled: !!profile,
+    refetchOnWindowFocus: true,
+  });
+  const [avisoReserva, setAvisoReserva] = useState<
+    { key: string; servicioSlug: string; min: number } | null
+  >(null);
+  const [avisoLeido, setAvisoLeido] = useState(false);
+  const [avisoNoMostrar, setAvisoNoMostrar] = useState(false);
+
+  function pedirReserva(clase: { key: string; servicioSlug: string | null }) {
+    const slug = clase.servicioSlug;
+    const cfg = avisos?.config;
+    const min = cfg ? cancelacionParaServicio(cfg, slug) : 0;
+    if (!slug || min <= 0 || avisos?.aceptados[slug] === min) {
+      bookMutation.mutate(clase.key);
+      return;
+    }
+    setAvisoLeido(false);
+    setAvisoNoMostrar(false);
+    setAvisoReserva({ key: clase.key, servicioSlug: slug, min });
+  }
+
+  async function confirmarAvisoReserva() {
+    if (!avisoReserva) return;
+    const { key, servicioSlug, min } = avisoReserva;
+    setAvisoReserva(null);
+    if (avisoNoMostrar) {
+      try {
+        await guardarAviso({ data: { servicioSlug, cancelacionMin: min } });
+        await qc.invalidateQueries({ queryKey: ["portal-avisos-cancelacion"] });
+      } catch {
+        /* la preferencia es opcional: no bloquea la reserva */
+      }
+    }
+    bookMutation.mutate(key);
+  }
+
   async function refrescar() {
     await Promise.all([
       qc.refetchQueries({ queryKey: ["portal-clases"] }),
@@ -279,7 +329,7 @@ function ClientePortal() {
               <CalendarioClases
                 clases={clases}
                 personales={personales}
-                onBook={(c) => bookMutation.mutate(c.key)}
+                onBook={(c) => pedirReserva(c)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 pendingAction={pendingAction}
                 colaActiva={behavior.colaActiva}
@@ -308,7 +358,7 @@ function ClientePortal() {
               <ClaseCard
                 key={c.key}
                 clase={c}
-                onBook={() => bookMutation.mutate(c.key)}
+                onBook={() => pedirReserva(c)}
                 onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
                 colaActiva={behavior.colaActiva}
@@ -320,7 +370,7 @@ function ClientePortal() {
               <ClaseCard
                 key={c.key}
                 clase={c}
-                onBook={() => bookMutation.mutate(c.key)}
+                onBook={() => pedirReserva(c)}
                 onCancel={() => {}}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
                 colaActiva={behavior.colaActiva}
@@ -367,8 +417,60 @@ function ClientePortal() {
           <Button onClick={() => setAvisoCola(null)}>Entendido</Button>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={avisoReserva !== null} onOpenChange={(open) => !open && setAvisoReserva(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Confirmar reserva</DialogTitle>
+            <DialogDescription>
+              {avisoReserva
+                ? `Si cancelas esta sesión con menos de ${horasAviso(avisoReserva.min)} de antelación la sesión se contabilizará como realizada y se descontará de tu bono.`
+                : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="aviso-leido"
+                checked={avisoLeido}
+                onCheckedChange={(v) => setAvisoLeido(v === true)}
+              />
+              <Label htmlFor="aviso-leido" className="text-sm font-normal leading-snug">
+                He leído y entiendo la política de cancelación
+              </Label>
+            </div>
+            <div className="flex items-start gap-2">
+              <Checkbox
+                id="aviso-no-mostrar"
+                checked={avisoNoMostrar}
+                onCheckedChange={(v) => setAvisoNoMostrar(v === true)}
+              />
+              <Label htmlFor="aviso-no-mostrar" className="text-sm font-normal leading-snug text-muted-foreground">
+                No volver a mostrar este aviso
+              </Label>
+            </div>
+            <div className="flex justify-end gap-2 pt-1">
+              <Button variant="outline" onClick={() => setAvisoReserva(null)}>
+                Cancelar
+              </Button>
+              <Button disabled={!avisoLeido} onClick={() => void confirmarAvisoReserva()}>
+                Confirmar reserva
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+/** "2 horas" / "90 minutos" para el texto del aviso de cancelación. */
+function horasAviso(min: number): string {
+  if (min % 60 === 0) {
+    const h = min / 60;
+    return h === 1 ? "1 hora" : `${h} horas`;
+  }
+  return `${min} minutos`;
 }
 
 function fechaCorta(fecha?: string | null): string {

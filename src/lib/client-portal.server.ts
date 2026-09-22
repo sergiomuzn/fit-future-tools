@@ -1146,3 +1146,50 @@ export async function listHuecosDisponibles(
 
   return { modo, slots: visibles };
 }
+
+/* ------------------------------------------------------------------ */
+/* Avisos de política de cancelación aceptados por el cliente          */
+/* ------------------------------------------------------------------ */
+
+export interface AvisosCancelacion {
+  /** Configuración vigente del centro. */
+  config: CancelacionConfig;
+  /** Minutos de antelación que el cliente aceptó "no volver a mostrar" por servicio. */
+  aceptados: Record<string, number>;
+}
+
+export async function getAvisosCancelacion(userId: string): Promise<AvisosCancelacion> {
+  const centroId = await getCentroIdForUser(userId);
+  const config = await getCancelacionConfig(centroId);
+  const db = centroDb(centroId);
+  const { data } = await db
+    .from("client_aviso_cancelacion")
+    .select("servicio_slug,cancelacion_min")
+    .eq("user_id", userId);
+  const aceptados: Record<string, number> = {};
+  for (const r of (data ?? []) as { servicio_slug: string; cancelacion_min: number }[]) {
+    aceptados[r.servicio_slug] = r.cancelacion_min;
+  }
+  return { config, aceptados };
+}
+
+export async function saveAvisoCancelacion(
+  userId: string,
+  servicioSlug: string,
+  cancelacionMin: number,
+): Promise<void> {
+  const centroId = await getCentroIdForUser(userId);
+  const db = centroDb(centroId);
+  await db
+    .from("client_aviso_cancelacion")
+    .upsert(
+      { user_id: userId, servicio_slug: servicioSlug, cancelacion_min: cancelacionMin, centro_id: centroId },
+      { onConflict: "user_id,servicio_slug" },
+    );
+}
+
+export async function resetAvisosCancelacion(userId: string): Promise<void> {
+  const centroId = await getCentroIdForUser(userId);
+  const db = centroDb(centroId);
+  await db.from("client_aviso_cancelacion").delete().eq("user_id", userId);
+}

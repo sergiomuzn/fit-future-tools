@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { restablecerAvisosCancelacion } from "@/lib/client-portal.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +30,23 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
   const [savingPass, setSavingPass] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [sendingReset, setSendingReset] = useState(false);
+
+  const qc = useQueryClient();
+  const resetAvisos = useServerFn(restablecerAvisosCancelacion);
+  const [resetting, setResetting] = useState(false);
+
+  async function handleResetAvisos() {
+    setResetting(true);
+    try {
+      await resetAvisos({ data: undefined });
+      await qc.invalidateQueries({ queryKey: ["portal-avisos-cancelacion"] });
+      toast.success("Volverás a ver la política de cancelación al reservar");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setResetting(false);
+    }
+  }
 
   async function handleForgot() {
     if (!email) return toast.error("No hay correo asociado a tu cuenta");
@@ -198,6 +218,20 @@ export function PerfilForm({ nombre, email, telefono }: Props) {
               </button>
             </div>
           ) : null}
+        </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-medium">Restablecer avisos de reserva</p>
+            <p className="text-xs text-muted-foreground">
+              Vuelve a mostrar la política de cancelación al reservar en todos los servicios.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={handleResetAvisos} disabled={resetting}>
+            {resetting ? "Restableciendo…" : "Restablecer"}
+          </Button>
         </div>
       </CardContent>
     </Card>
