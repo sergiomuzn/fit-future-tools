@@ -329,7 +329,7 @@ function ClientePortal() {
               <CalendarioClases
                 clases={clases}
                 personales={personales}
-                onBook={(c) => bookMutation.mutate(c.key)}
+                onBook={(c) => pedirReserva(c)}
                 onCancel={(c) => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 pendingAction={pendingAction}
                 colaActiva={behavior.colaActiva}
@@ -358,7 +358,7 @@ function ClientePortal() {
               <ClaseCard
                 key={c.key}
                 clase={c}
-                onBook={() => bookMutation.mutate(c.key)}
+                onBook={() => pedirReserva(c)}
                 onCancel={() => c.miSesionId && cancelMutation.mutate({ sessionId: c.miSesionId, key: c.key })}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
                 colaActiva={behavior.colaActiva}
@@ -370,7 +370,7 @@ function ClientePortal() {
               <ClaseCard
                 key={c.key}
                 clase={c}
-                onBook={() => bookMutation.mutate(c.key)}
+                onBook={() => pedirReserva(c)}
                 onCancel={() => {}}
                 busyAction={pendingAction?.key === c.key ? pendingAction.action : null}
                 colaActiva={behavior.colaActiva}
