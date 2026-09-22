@@ -248,11 +248,11 @@ export function BehaviorForm() {
   }
 
   async function save(): Promise<boolean> {
-    writeBehaviorConfig(cfg);
     const { error } = await supabase
       .from("center_config")
       .update({
         avisos: {
+          behavior: cfg,
           umbral_sesiones: avisoUmbral,
           avisar_renovacion: avisoRenovacion,
           cliente_ve_canceladas: cfg.clienteVeCanceladas,
