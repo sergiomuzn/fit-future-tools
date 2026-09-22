@@ -144,6 +144,44 @@ export type Database = {
         }
         Relationships: []
       }
+      client_aviso_cancelacion: {
+        Row: {
+          cancelacion_min: number
+          centro_id: string | null
+          created_at: string
+          id: string
+          servicio_slug: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          cancelacion_min: number
+          centro_id?: string | null
+          created_at?: string
+          id?: string
+          servicio_slug: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          cancelacion_min?: number
+          centro_id?: string | null
+          created_at?: string
+          id?: string
+          servicio_slug?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_aviso_cancelacion_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_bonos: {
         Row: {
           activo: boolean
