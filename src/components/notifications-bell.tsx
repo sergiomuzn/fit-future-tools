@@ -62,7 +62,7 @@ export function NotificationsBell({ className }: { className?: string }) {
     return new Date(y!, (m ?? 1) - 1, d!, hh ?? 0, mm ?? 0).getTime() <= Date.now();
   };
 
-  const { data: pendientes = [] } = useQuery({
+  const { data: pendientes = [], isFetched: pendientesListos } = useQuery({
     queryKey: ["notificaciones-pendientes", sessionIds.join(",")],
     enabled: sessionIds.length > 0,
     refetchInterval: 60_000,
@@ -81,7 +81,7 @@ export function NotificationsBell({ className }: { className?: string }) {
     },
   });
 
-  const { data: ofertasCola = [] } = useQuery({
+  const { data: ofertasCola = [], isFetched: ofertasListas } = useQuery({
     queryKey: ["mis-ofertas-cola"],
     queryFn: async (): Promise<string[]> => {
       const { data } = await supabase
@@ -135,6 +135,8 @@ export function NotificationsBell({ className }: { className?: string }) {
       .channel("notificaciones-inbox")
       .on("postgres_changes", { event: "*", schema: "public", table: "notificaciones" }, () => {
         qc.invalidateQueries({ queryKey: ["notificaciones"] });
+        qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+        qc.invalidateQueries({ queryKey: ["mis-ofertas-cola"] });
       })
       .subscribe();
     return () => {
@@ -145,8 +147,10 @@ export function NotificationsBell({ className }: { className?: string }) {
   // Avisos que piden una decisión: desaparecen si la sesión ya empezó o se resolvió.
   const visibles = items.filter((n) => {
     if (!n.session_id) return true;
-    if (n.tipo === "cola_plaza_libre") return ofertasCola.includes(n.session_id);
-    if (n.tipo === "reserva_pendiente") return pendientes.includes(n.session_id);
+    if (n.tipo === "cola_plaza_libre")
+      return !ofertasListas || ofertasCola.includes(n.session_id);
+    if (n.tipo === "reserva_pendiente")
+      return !pendientesListos || pendientes.includes(n.session_id);
     return true;
   });
 
