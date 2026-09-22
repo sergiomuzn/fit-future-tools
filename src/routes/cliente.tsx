@@ -18,6 +18,13 @@ import {
 import { apuntarseCola, salirCola, responderCola } from "@/lib/cola-espera.functions";
 import { colaTiempoLabel } from "@/lib/cola-espera";
 import {
+  getAvisosCancelacionCliente,
+  ocultarAvisoCancelacion,
+} from "@/lib/client-portal.functions";
+import { cancelacionParaServicio } from "@/lib/cancelacion-antelacion";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
   accesoIncluyeGrupos,
   accesoIncluyePersonal,
 
@@ -159,6 +166,49 @@ function ClientePortal() {
 
   const [colaBusy, setColaBusy] = useState<string | null>(null);
   const [avisoCola, setAvisoCola] = useState<{ posicion: number; avisoMin: number | null } | null>(null);
+
+  // Aviso de política de cancelación antes de reservar
+  const fetchAvisos = useServerFn(getAvisosCancelacionCliente);
+  const guardarAviso = useServerFn(ocultarAvisoCancelacion);
+  const { data: avisos } = useQuery({
+    queryKey: ["portal-avisos-cancelacion"],
+    queryFn: () => fetchAvisos({ data: undefined }),
+    enabled: !!profile,
+    refetchOnWindowFocus: true,
+  });
+  const [avisoReserva, setAvisoReserva] = useState<
+    { key: string; servicioSlug: string; min: number } | null
+  >(null);
+  const [avisoLeido, setAvisoLeido] = useState(false);
+  const [avisoNoMostrar, setAvisoNoMostrar] = useState(false);
+
+  function pedirReserva(clase: { key: string; servicioSlug: string | null }) {
+    const slug = clase.servicioSlug;
+    const cfg = avisos?.config;
+    const min = cfg ? cancelacionParaServicio(cfg, slug) : 0;
+    if (!slug || min <= 0 || avisos?.aceptados[slug] === min) {
+      bookMutation.mutate(clase.key);
+      return;
+    }
+    setAvisoLeido(false);
+    setAvisoNoMostrar(false);
+    setAvisoReserva({ key: clase.key, servicioSlug: slug, min });
+  }
+
+  async function confirmarAvisoReserva() {
+    if (!avisoReserva) return;
+    const { key, servicioSlug, min } = avisoReserva;
+    setAvisoReserva(null);
+    if (avisoNoMostrar) {
+      try {
+        await guardarAviso({ data: { servicioSlug, cancelacionMin: min } });
+        await qc.invalidateQueries({ queryKey: ["portal-avisos-cancelacion"] });
+      } catch {
+        /* la preferencia es opcional: no bloquea la reserva */
+      }
+    }
+    bookMutation.mutate(key);
+  }
 
   async function refrescar() {
     await Promise.all([
