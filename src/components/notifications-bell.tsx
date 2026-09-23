@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
 import { responderCola } from "@/lib/cola-espera.functions";
+import { flushMisAvisosEmail } from "@/lib/notif-prefs.functions";
 
 interface Notificacion {
   id: string;
@@ -130,10 +131,15 @@ export function NotificationsBell({ className }: { className?: string }) {
     }
   }
 
+  const flushEmails = useServerFn(flushMisAvisosEmail);
+
   useEffect(() => {
+    // Avisos creados en la base de datos (bonos): se envían también por correo.
+    void flushEmails({ data: undefined }).catch(() => undefined);
     const channel = supabase
       .channel("notificaciones-inbox")
       .on("postgres_changes", { event: "*", schema: "public", table: "notificaciones" }, () => {
+        void flushEmails({ data: undefined }).catch(() => undefined);
         qc.invalidateQueries({ queryKey: ["notificaciones"] });
         qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
         qc.invalidateQueries({ queryKey: ["mis-ofertas-cola"] });
