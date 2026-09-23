@@ -133,6 +133,17 @@ function ClientePortal() {
   // Confirmación antes de cancelar cualquier sesión
   const [confirmarCancel, setConfirmarCancel] = useState<{ sessionId: string; key: string } | null>(null);
 
+  // Carga clases y sesiones personales a la vez y las aplica en el mismo instante,
+  // para que la reserva no aparezca duplicada un momento entre ambas listas.
+  async function refrescarListas() {
+    const [nc, np] = await Promise.all([
+      verGrupos ? fetchClases({ data: undefined }) : Promise.resolve(undefined),
+      verPersonal ? fetchPersonales({ data: undefined }) : Promise.resolve(undefined),
+    ]);
+    if (nc !== undefined) qc.setQueryData(["portal-clases"], nc);
+    if (np !== undefined) qc.setQueryData(["portal-personales"], np);
+  }
+
   const bookMutation = useMutation({
     mutationFn: (key: string) => reservar({ data: { key } }),
     onMutate: (key: string) => setPendingAction({ key, action: "reservar" }),
@@ -143,8 +154,7 @@ function ClientePortal() {
         toast.success("Plaza reservada");
       }
       await Promise.all([
-        qc.refetchQueries({ queryKey: ["portal-clases"] }),
-        qc.refetchQueries({ queryKey: ["portal-personales"] }),
+        refrescarListas(),
         qc.refetchQueries({ queryKey: ["portal-resumen"] }),
       ]);
     },
@@ -158,8 +168,7 @@ function ClientePortal() {
     onSuccess: async () => {
       toast.success("Reserva cancelada");
       await Promise.all([
-        qc.refetchQueries({ queryKey: ["portal-clases"] }),
-        qc.refetchQueries({ queryKey: ["portal-personales"] }),
+        refrescarListas(),
         qc.refetchQueries({ queryKey: ["portal-resumen"] }),
       ]);
     },
@@ -215,8 +224,7 @@ function ClientePortal() {
 
   async function refrescar() {
     await Promise.all([
-      qc.refetchQueries({ queryKey: ["portal-clases"] }),
-      qc.refetchQueries({ queryKey: ["portal-personales"] }),
+      refrescarListas(),
       qc.refetchQueries({ queryKey: ["portal-resumen"] }),
       qc.refetchQueries({ queryKey: ["notificaciones"] }),
       qc.refetchQueries({ queryKey: ["mis-ofertas-cola"] }),
