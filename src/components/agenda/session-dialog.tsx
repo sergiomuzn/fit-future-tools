@@ -339,11 +339,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     //  - se marca     → la reserva vuelve a pendiente en la vista del cliente.
     if (!isNew && estado === "reservada") {
       if (pendientesIds.length && !porConfirmar) {
+        quitarAvisosPendientes(pendientesIds);
         await Promise.all(
           pendientesIds.map((id) =>
             resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {}),
           ),
         );
+        qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+        qc.invalidateQueries({ queryKey: ["notificaciones"] });
       } else if (!pendientesIds.length && porConfirmar && reservasPortalIds.length) {
         await Promise.all(
           reservasPortalIds.map((id) =>
@@ -757,12 +760,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setDeleteAsk(false);
     onClose();
     if (pendientesIds.length) {
+      quitarAvisosPendientes(pendientesIds);
       // Denegar primero para avisar al cliente y liberar la plaza a la cola.
       await Promise.all(
         pendientesIds.map((id) =>
           resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {}),
         ),
       );
+      qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+      qc.invalidateQueries({ queryKey: ["notificaciones"] });
     }
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
