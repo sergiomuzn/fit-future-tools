@@ -43,6 +43,13 @@
       "when": 1790089911425,
       "tag": "0005_create_client_aviso_cancelacion",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790175982907,
+      "tag": "0006_client_notif_email_prefs",
+      "breakpoints": true
     }
   ]
 }
