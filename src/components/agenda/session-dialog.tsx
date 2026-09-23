@@ -339,11 +339,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     //  - se marca     → la reserva vuelve a pendiente en la vista del cliente.
     if (!isNew && estado === "reservada") {
       if (pendientesIds.length && !porConfirmar) {
+        quitarAvisosPendientes(pendientesIds);
         await Promise.all(
           pendientesIds.map((id) =>
             resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {}),
           ),
         );
+        qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+        qc.invalidateQueries({ queryKey: ["notificaciones"] });
       } else if (!pendientesIds.length && porConfirmar && reservasPortalIds.length) {
         await Promise.all(
           reservasPortalIds.map((id) =>
@@ -751,18 +754,29 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     else void doDelete("one");
   }
 
+  // Oculta al instante del buzón los avisos de confirmar/denegar ya resueltos a mano.
+  function quitarAvisosPendientes(ids: string[]) {
+    const set = new Set(ids);
+    qc.setQueriesData<string[]>({ queryKey: ["notificaciones-pendientes"] }, (old) =>
+      old ? old.filter((id) => !set.has(id)) : old,
+    );
+  }
+
   async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
     // Cerrar al instante: el borrado continúa en segundo plano.
     setDeleteAsk(false);
     onClose();
     if (pendientesIds.length) {
+      quitarAvisosPendientes(pendientesIds);
       // Denegar primero para avisar al cliente y liberar la plaza a la cola.
       await Promise.all(
         pendientesIds.map((id) =>
           resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {}),
         ),
       );
+      qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+      qc.invalidateQueries({ queryKey: ["notificaciones"] });
     }
     if (scope === "future" && recurrenciaId && session.fecha) {
       const { error } = await supabase
