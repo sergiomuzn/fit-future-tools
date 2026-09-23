@@ -48,7 +48,7 @@ function AgendaPage() {
     }
   }, [agendaTabRequest]);
   const [dispView, setDispView] = useState<"dia" | "semana">("semana");
-  const [reservasModo, setReservasModo] = useState<"vista" | "edicion">("edicion");
+  const [reservasModo, setReservasModo] = useState<"vista" | "edicion">("vista");
   const { data: servicios = [] } = useServicios();
   const [servicioSlug, setServicioSlug] = useState<string>("__all");
   // Acceso directo desde Servicios → "Ver reservas de este servicio".
@@ -222,7 +222,7 @@ function AgendaPage() {
           >
             <TabsList className="h-8">
               <TabsTrigger value="agenda" className="text-xs tab-active-background">Agenda</TabsTrigger>
-              <TabsTrigger value="disponibilidad" className="text-xs tab-active-background">Reservas</TabsTrigger>
+              <TabsTrigger value="disponibilidad" className="text-xs tab-active-muted">Reservas</TabsTrigger>
               <TabsTrigger value="historial" className="text-xs tab-active-background">Historial</TabsTrigger>
 
             </TabsList>
