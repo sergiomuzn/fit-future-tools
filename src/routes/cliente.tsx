@@ -474,7 +474,7 @@ function ClientePortal() {
                 checked={avisoNoMostrar}
                 onCheckedChange={(v) => setAvisoNoMostrar(v === true)}
               />
-              <Label htmlFor="aviso-no-mostrar" className="text-sm font-normal leading-snug text-muted-foreground">
+              <Label htmlFor="aviso-no-mostrar" className="text-sm font-normal leading-snug">
                 No volver a mostrar este aviso
               </Label>
             </div>
