@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronDown } from "lucide-react";
 import { getMisNotifPrefs, saveMisNotifPrefs } from "@/lib/notif-prefs.functions";
-import { TIPOS_AVISO_CLIENTE } from "@/lib/notificaciones-tipos";
+import { TIPOS_AVISO_CLIENTE, tipoAvisoPorDefecto } from "@/lib/notificaciones-tipos";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -90,7 +90,7 @@ export function NotificacionesForm() {
                     </Label>
                     <Switch
                       id={`notif-${t.tipo}`}
-                      checked={tipos[t.tipo] !== false}
+                      checked={tipos[t.tipo] ?? tipoAvisoPorDefecto(t.tipo)}
                       onCheckedChange={(v) => toggleTipo(t.tipo, v)}
                     />
                   </div>
