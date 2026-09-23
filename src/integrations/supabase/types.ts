@@ -378,6 +378,41 @@ export type Database = {
           },
         ]
       }
+      client_notif_prefs: {
+        Row: {
+          centro_id: string | null
+          created_at: string
+          email_activo: boolean
+          tipos: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          centro_id?: string | null
+          created_at?: string
+          email_activo?: boolean
+          tipos?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          centro_id?: string | null
+          created_at?: string
+          email_activo?: boolean
+          tipos?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_notif_prefs_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_profiles: {
         Row: {
           acceso: string
@@ -734,6 +769,7 @@ export type Database = {
         Row: {
           centro_id: string
           created_at: string
+          email_enviado: boolean
           id: string
           leida: boolean
           mensaje: string
@@ -746,6 +782,7 @@ export type Database = {
         Insert: {
           centro_id?: string
           created_at?: string
+          email_enviado?: boolean
           id?: string
           leida?: boolean
           mensaje: string
@@ -758,6 +795,7 @@ export type Database = {
         Update: {
           centro_id?: string
           created_at?: string
+          email_enviado?: boolean
           id?: string
           leida?: boolean
           mensaje?: string
