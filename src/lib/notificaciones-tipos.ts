@@ -1,7 +1,7 @@
 /** Tipos de aviso que puede recibir un cliente en su buzón. */
 export const TIPOS_AVISO_CLIENTE = [
-  { tipo: "reserva_confirmada", label: "Reserva confirmada" },
-  { tipo: "reserva_denegada", label: "Reserva no confirmada" },
+  // Agrupa reserva_confirmada y reserva_denegada bajo una sola opción.
+  { tipo: "reserva_confirmada", label: "Confirmación de una reserva" },
   { tipo: "reserva_pendiente", label: "Reserva pendiente de confirmar" },
   { tipo: "reserva_cancelada", label: "Reserva cancelada por el centro" },
   { tipo: "sesion_asignada", label: "El centro te reserva una sesión" },
