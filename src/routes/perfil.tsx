@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchMyRoles } from "@/lib/roles";
 import { getMyPortalProfile, getMiResumen } from "@/lib/client-portal.functions";
 import { PerfilForm } from "@/components/cliente/perfil-form";
+import { NotificacionesForm } from "@/components/cliente/notificaciones-form";
 import { Button } from "@/components/ui/button";
 import { useCenterName } from "@/lib/center-schedule";
 
@@ -84,6 +85,7 @@ function PerfilPage() {
           email={resumen?.email ?? profile?.email ?? ""}
           telefono={resumen?.telefono ?? null}
         />
+        <NotificacionesForm />
         <Button variant="outline" onClick={handleSignOut} className="w-full gap-1.5 sm:w-auto">
           <LogOut className="h-4 w-4" />
           Cerrar sesión
