@@ -222,7 +222,7 @@ function AgendaPage() {
           >
             <TabsList className="h-8">
               <TabsTrigger value="agenda" className="text-xs tab-active-background">Agenda</TabsTrigger>
-              <TabsTrigger value="disponibilidad" className="text-xs tab-active-muted">Reservas</TabsTrigger>
+              <TabsTrigger value="disponibilidad" className="text-xs tab-active-card">Reservas</TabsTrigger>
               <TabsTrigger value="historial" className="text-xs tab-active-background">Historial</TabsTrigger>
 
             </TabsList>
