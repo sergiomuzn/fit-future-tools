@@ -754,6 +754,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     else void doDelete("one");
   }
 
+  // Oculta al instante del buzón los avisos de confirmar/denegar ya resueltos a mano.
+  function quitarAvisosPendientes(ids: string[]) {
+    const set = new Set(ids);
+    qc.setQueriesData<string[]>({ queryKey: ["notificaciones-pendientes"] }, (old) =>
+      old ? old.filter((id) => !set.has(id)) : old,
+    );
+  }
+
   async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
     // Cerrar al instante: el borrado continúa en segundo plano.
