@@ -24,9 +24,15 @@ export interface NotifPrefs {
 
 export const NOTIF_PREFS_DEFAULT: NotifPrefs = { emailActivo: true, tipos: {} };
 
+/** Tipos agrupados bajo otra opción (confirmada y denegada comparten interruptor). */
+const TIPO_A_GRUPO: Record<string, string> = {
+  reserva_denegada: "reserva_confirmada",
+};
+
 /** ¿Debe enviarse por correo un aviso de este tipo? */
 export function debeEnviarEmail(prefs: NotifPrefs, tipo: string): boolean {
   if (!prefs.emailActivo) return false;
-  if (!TIPOS_AVISO_SLUGS.includes(tipo)) return false;
-  return prefs.tipos[tipo] !== false;
+  const grupo = TIPO_A_GRUPO[tipo] ?? tipo;
+  if (!TIPOS_AVISO_SLUGS.includes(grupo)) return false;
+  return prefs.tipos[grupo] !== false;
 }
