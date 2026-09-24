@@ -25,8 +25,14 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
+      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar")
       .in("id", data.sessionIds);
+    const { data: cfgRow } = await supabaseAdmin
+      .from("center_config")
+      .select("nombre")
+      .eq("id", true)
+      .maybeSingle();
+    const centroNombre = (cfgRow as { nombre?: string } | null)?.nombre || "El centro";
 
     const servicioSlugs = [
       ...new Set((rows ?? []).map((r) => r.servicio_slug).filter((slug): slug is string => !!slug)),
@@ -38,16 +44,32 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     const items = (rows ?? [])
       .filter((r) => !!r.booked_by_user_id)
-      .map((r) => ({
-        userId: r.booked_by_user_id,
-        tipo: "reserva_cancelada",
-        titulo: "Reserva cancelada por el centro",
-        mensaje: `en ${
-          (r.servicio_slug ? nombreServicio.get(r.servicio_slug) : null) ??
-          r.titulo ??
-          "tu sesión"
-        } (${describeSesion(r.fecha, r.hora_inicio)})`,
-      }));
+      .map((r) => {
+        const donde =
+          (r.servicio_slug ? nombreServicio.get(r.servicio_slug) : null) ?? r.titulo ?? "tu sesión";
+        // Una reserva aún pendiente de confirmar se trata como denegada.
+        if (r.por_confirmar) {
+          const cuando = describeSesion(r.fecha, r.hora_inicio).replace(" · ", " a las ");
+          return {
+            userId: r.booked_by_user_id,
+            tipo: "reserva_denegada",
+            titulo: "Reserva no confirmada",
+            mensaje: `${centroNombre} no ha podido confirmar tu reserva de ${donde} el ${cuando}`,
+          };
+        }
+        return {
+          userId: r.booked_by_user_id,
+          tipo: "reserva_cancelada",
+          titulo: "Reserva cancelada por el centro",
+          mensaje: `en ${donde} (${describeSesion(r.fecha, r.hora_inicio)})`,
+        };
+      });
+
+    // Los avisos de "confirmar/denegar" del centro para estas sesiones ya no aplican.
+    const pendientesIds = (rows ?? []).filter((r) => r.por_confirmar).map((r) => r.id);
+    if (pendientesIds.length) {
+      await supabaseAdmin.from("notificaciones").delete().in("session_id", pendientesIds).is("user_id", null);
+    }
 
     await crearNotificaciones(items, centroId);
     return { notified: items.length };
