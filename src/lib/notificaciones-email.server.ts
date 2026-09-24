@@ -65,7 +65,7 @@ export async function enviarEmailsPendientes(opts?: {
       .select("id,user_id,centro_id,tipo,titulo,mensaje")
       .eq("email_enviado", false)
       .not("user_id", "is", null)
-      .gte("created_at", new Date(Date.now() - 2 * 24 * 3600_000).toISOString())
+      .gte("created_at", new Date(Date.now() - 30 * 60_000).toISOString())
       .order("created_at", { ascending: true })
       .limit(opts?.limite ?? 100);
     if (opts?.ids?.length) q = q.in("id", opts.ids);
