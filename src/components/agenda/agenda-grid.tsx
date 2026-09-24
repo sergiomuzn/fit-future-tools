@@ -1104,6 +1104,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Esta sesión tiene reservas de clientes</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingPortalEdit && pendingPortalEdit.portalIds.length > 1
+                ? `Hay ${pendingPortalEdit.portalIds.length} clientes que reservaron esta sesión desde la app.`
+                : "Un cliente reservó esta sesión desde la app."}{" "}
+              Si editas la sesión, sus reservas se cancelarán por parte del centro y se les avisará. No se les descontará del bono.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
