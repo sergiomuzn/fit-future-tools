@@ -281,7 +281,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (error) throw error;
       return (data ?? []) as Session[];
     },
-    refetchInterval: 1000,
+    refetchInterval: () => (confirmingPortalRef.current ? false : 1000),
   });
 
   const { data: clients = [] } = useQuery({
@@ -529,7 +529,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             : base;
         }),
     );
-    confirmingPortalRef.current = false;
     // Aviso a clientes en segundo plano.
     void notificarReservasCanceladas({ data: { sessionIds: p.portalIds } }).catch(() => {});
     if (keep) {
@@ -544,7 +543,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (error) toast.error(error.message);
     }
     qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
-    await handleTimeChange(p.sess, p.newStart, p.newEnd, true);
+    try {
+      await handleTimeChange(p.sess, p.newStart, p.newEnd, true);
+    } finally {
+      confirmingPortalRef.current = false;
+    }
   }
 
   async function handleTimeChange(sess: Session, newStart: string, newEnd: string, skipPortalCheck = false) {
@@ -1119,7 +1122,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         session={dialogSession}
         trainers={trainers}
       />
-      <AlertDialog open={!!pendingPortalEdit} onOpenChange={(o) => { if (!o) { setPendingPortalEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
+      <AlertDialog open={!!pendingPortalEdit} onOpenChange={(o) => { if (!o && !confirmingPortalRef.current) { setPendingPortalEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Esta sesión tiene reservas de clientes</AlertDialogTitle>
