@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
+import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -484,7 +485,58 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     qc.invalidateQueries({ queryKey: ["sessions"] });
   }
 
-  async function handleTimeChange(sess: Session, newStart: string, newEnd: string) {
+  // Edición de horario sobre una sesión con reservas hechas por clientes desde la app.
+  const [pendingPortalEdit, setPendingPortalEdit] = useState<{
+    sess: Session;
+    newStart: string;
+    newEnd: string;
+    portalIds: string[];
+  } | null>(null);
+
+  function isPortalRow(s: Session) {
+    const r = s as Session & { booked_by_user_id?: string | null; booking_tipo?: string | null };
+    return !!s.client_id && (!!r.booked_by_user_id || !!r.booking_tipo);
+  }
+
+  async function confirmPortalEdit() {
+    const p = pendingPortalEdit;
+    if (!p) return;
+    setPendingPortalEdit(null);
+    const ids = blockIds(p.sess.id);
+    try {
+      await notificarReservasCanceladas({ data: { sessionIds: p.portalIds } });
+    } catch {
+      /* aviso best-effort */
+    }
+    const restantes = ids.filter((id) => !p.portalIds.includes(id));
+    let toDelete = p.portalIds;
+    if (restantes.length === 0) {
+      // Conservar el bloque vacío en su nuevo horario (sin cliente).
+      const [keep, ...rest] = p.portalIds;
+      toDelete = rest;
+      const { error } = await supabase
+        .from("sessions")
+        .update({ client_id: null, booked_by_user_id: null, booking_tipo: null, por_confirmar: false })
+        .eq("id", keep);
+      if (error) toast.error(error.message);
+    }
+    if (toDelete.length) {
+      const { error } = await supabase.from("sessions").delete().in("id", toDelete);
+      if (error) toast.error(error.message);
+    }
+    qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+    await handleTimeChange(p.sess, p.newStart, p.newEnd, true);
+  }
+
+  async function handleTimeChange(sess: Session, newStart: string, newEnd: string, skipPortalCheck = false) {
+    if (!skipPortalCheck) {
+      const blockSet = new Set(blockIds(sess.id));
+      const portalIds = sessions.filter((s) => blockSet.has(s.id) && isPortalRow(s)).map((s) => s.id);
+      if (portalIds.length) {
+        setPendingPortalEdit({ sess, newStart, newEnd, portalIds });
+        return;
+      }
+    }
     // Si la sesión estaba "realizada" y se mueve al futuro, revertir a "reservada".
     const newEndDate = new Date(`${sess.fecha}T${newEnd}`);
     const revertToReservada = sess.estado === "realizada" && newEndDate > new Date();
@@ -1048,6 +1100,23 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         session={dialogSession}
         trainers={trainers}
       />
+      <AlertDialog open={!!pendingPortalEdit} onOpenChange={(o) => { if (!o) { setPendingPortalEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Esta sesión tiene reservas de clientes</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingPortalEdit && pendingPortalEdit.portalIds.length > 1
+                ? `Hay ${pendingPortalEdit.portalIds.length} clientes que reservaron esta sesión desde la app.`
+                : "Un cliente reservó esta sesión desde la app."}{" "}
+              Si editas la sesión, sus reservas se cancelarán por parte del centro y se les avisará. No se les descontará del bono.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void confirmPortalEdit()}>Continuar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={!!pendingTimeEdit} onOpenChange={(o) => { if (!o) { setPendingTimeEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
