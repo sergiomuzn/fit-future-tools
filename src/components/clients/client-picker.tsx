@@ -153,41 +153,41 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             type="button"
             aria-label="Limpiar cliente"
             onMouseDown={(e) => e.preventDefault()}
-            onClick={() => { setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(true); inputRef.current?.focus(); }}
+            onClick={() => { suppressOpen.current = true; setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(false); inputRef.current?.focus(); }}
             className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>
         )}
-      </div>
-      {listOpen && (
-      <div ref={listRef} className="max-h-40 overflow-y-auto rounded-md border">
-        <button
-          type="button"
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={openNew}
-          className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-accent border-b border-dashed sticky top-0 bg-secondary z-10 flex items-center gap-1.5"
-        >
-          <Plus className="h-3.5 w-3.5" /> Nuevo cliente{search.trim() ? ` «${search.trim()}»` : ""}
-        </button>
-        {filtered.map((c, idx) => (
+        {listOpen && (
+        <div ref={listRef} className="absolute left-0 right-0 top-full z-50 mt-1 max-h-40 overflow-y-auto rounded-md border bg-popover shadow-md">
           <button
-            key={c.id}
             type="button"
-            data-idx={idx}
             onMouseDown={(e) => e.preventDefault()}
-            onMouseEnter={() => setHighlight(idx)}
-            onClick={() => { onChange(c.id, c); setSearch(c.nombre); onTextChange?.(c.nombre); setListOpen(false); }}
-            className={`w-full text-left px-2 py-1.5 text-sm ${idx === highlight ? "bg-accent" : ""} ${value === c.id ? "font-medium" : ""}`}
+            onClick={openNew}
+            className="w-full text-left px-2 py-1.5 text-sm text-primary hover:bg-accent border-b border-dashed sticky top-0 bg-secondary z-10 flex items-center gap-1.5"
           >
-            {formatNameTitle(c.nombre)}
+            <Plus className="h-3.5 w-3.5" /> Nuevo cliente{search.trim() ? ` «${search.trim()}»` : ""}
           </button>
-        ))}
-        {filtered.length === 0 && (
-          <div className="p-2 text-xs text-muted-foreground">Sin coincidencias.</div>
+          {filtered.map((c, idx) => (
+            <button
+              key={c.id}
+              type="button"
+              data-idx={idx}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseEnter={() => setHighlight(idx)}
+              onClick={() => { onChange(c.id, c); setSearch(c.nombre); onTextChange?.(c.nombre); setListOpen(false); }}
+              className={`w-full text-left px-2 py-1.5 text-sm ${idx === highlight ? "bg-accent" : ""} ${value === c.id ? "font-medium" : ""}`}
+            >
+              {formatNameTitle(c.nombre)}
+            </button>
+          ))}
+          {filtered.length === 0 && (
+            <div className="p-2 text-xs text-muted-foreground">Sin coincidencias.</div>
+          )}
+        </div>
         )}
       </div>
-      )}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
