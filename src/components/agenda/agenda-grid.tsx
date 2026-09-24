@@ -273,6 +273,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const nowMin = now.getHours() * 60 + now.getMinutes() - HOUR_START * 60;
   const nowTop = (nowMin / SLOT_MIN) * SLOT_PX;
 
+  const confirmingPortalRef = useRef(false);
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
@@ -280,6 +281,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (error) throw error;
       return (data ?? []) as Session[];
     },
+    refetchInterval: 1000,
   });
 
   const { data: clients = [] } = useQuery({
@@ -501,19 +503,36 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   async function confirmPortalEdit() {
     const p = pendingPortalEdit;
     if (!p) return;
+    confirmingPortalRef.current = true;
     setPendingPortalEdit(null);
     const ids = blockIds(p.sess.id);
-    try {
-      await notificarReservasCanceladas({ data: { sessionIds: p.portalIds } });
-    } catch {
-      /* aviso best-effort */
-    }
     const restantes = ids.filter((id) => !p.portalIds.includes(id));
     let toDelete = p.portalIds;
+    let keep: string | null = null;
     if (restantes.length === 0) {
-      // Conservar el bloque vacío en su nuevo horario (sin cliente).
-      const [keep, ...rest] = p.portalIds;
+      const [k, ...rest] = p.portalIds;
+      keep = k;
       toDelete = rest;
+    }
+    // Actualización optimista inmediata en la agenda.
+    await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
+    const idSet = new Set(ids);
+    const delSet = new Set(toDelete);
+    qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
+      (old ?? [])
+        .filter((s) => !delSet.has(s.id))
+        .map((s) => {
+          if (!idSet.has(s.id)) return s;
+          const base = { ...s, hora_inicio: p.newStart, hora_fin: p.newEnd } as Session;
+          return s.id === keep
+            ? ({ ...base, client_id: null, booked_by_user_id: null, booking_tipo: null, por_confirmar: false } as Session)
+            : base;
+        }),
+    );
+    confirmingPortalRef.current = false;
+    // Aviso a clientes en segundo plano.
+    void notificarReservasCanceladas({ data: { sessionIds: p.portalIds } }).catch(() => {});
+    if (keep) {
       const { error } = await supabase
         .from("sessions")
         .update({ client_id: null, booked_by_user_id: null, booking_tipo: null, por_confirmar: false })
