@@ -173,6 +173,44 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   const reservasDeHueco = (i: SlotInstance) =>
     reservasPorHueco.get(`${i.servicio_slug}|${i.fecha}|${i.hora_inicio.slice(0, 5)}`) ?? [];
 
+  /**
+   * Si los huecos tienen reservas hechas por clientes desde la app, avisa (igual
+   * que la agenda) y, al continuar, las cancela por parte del centro: notifica a
+   * los clientes y elimina la reserva sin contabilizarla nunca.
+   */
+  async function confirmarEdicionReservadas(insts: SlotInstance[]): Promise<boolean> {
+    const reservas = insts.flatMap((i) => reservasDeHueco(i));
+    if (!reservas.length) return true;
+    const ok = await confirm({
+      title: "Esta sesión tiene reservas de clientes",
+      description: `${
+        reservas.length > 1
+          ? `Hay ${reservas.length} clientes que reservaron esta sesión desde la app.`
+          : "Un cliente reservó esta sesión desde la app."
+      } Si editas la sesión, sus reservas se cancelarán por parte del centro y se les avisará.`,
+      confirmText: "Continuar",
+      cancelText: "Cancelar",
+      destructive: false,
+    });
+    if (!ok) return false;
+    const ids = reservas.map((r) => r.id);
+    const idSet = new Set(ids);
+    qc.setQueriesData<Reserva[]>({ queryKey: ["sessions-range"] }, (old) => old?.filter((r) => !idSet.has(r.id)));
+    void (async () => {
+      try {
+        await notificarCanceladas({ data: { sessionIds: ids } });
+      } catch {
+        /* el aviso es best-effort */
+      }
+      const { error } = await supabase.from("sessions").delete().in("id", ids);
+      if (error) toast.error(error.message);
+      qc.invalidateQueries({ queryKey: ["sessions-range"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+    })();
+    return true;
+  }
+
   const cancelarReserva = useMutation({
     mutationFn: async (sessionId: string) => {
       const { error } = await supabase
@@ -271,10 +309,12 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const ordenDias = useMemo(() => [...fechaPorDia.keys()], [fechaPorDia]);
 
-  function moveSelection(deltaDias: number, deltaMin: number, ids: string[]) {
+  async function moveSelection(deltaDias: number, deltaMin: number, ids: string[]) {
+    if (!deltaDias && !deltaMin) return;
     const orden = view === "dia" ? ordenDias : [1, 2, 3, 4, 5, 6, 0];
+    const conReserva = ids.filter((id) => lockedSet.has(id)).map((id) => instById.get(id)).filter((i): i is SlotInstance => !!i);
+    if (conReserva.length && !(await confirmarEdicionReservadas(conReserva))) return;
     const updates = ids
-      .filter((id) => !lockedSet.has(id))
       .map((id) => instById.get(id))
       .filter((i): i is SlotInstance => !!i)
       .map((i) => {
@@ -291,8 +331,16 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     if (updates.length) moveMany.mutate(updates);
   }
 
-  function saveEditing() {
+  async function saveEditing() {
     if (!editing) return;
+    const orig = instById.get(editing.id);
+    if (orig && lockedSet.has(orig.id)) {
+      const cambia =
+        orig.servicio_slug !== editing.servicio_slug ||
+        hhmm(orig.hora_inicio) !== hhmm(editing.hora_inicio) ||
+        hhmm(orig.hora_fin) !== hhmm(editing.hora_fin);
+      if (cambia && !(await confirmarEdicionReservadas([orig]))) return;
+    }
     update.mutate({
       id: editing.id,
       patch: {
@@ -305,7 +353,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     });
   }
 
-  const editingLocked = !!editing && lockedSet.has(editing.id);
+  const editingLocked = false;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -451,10 +499,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               )}
             </DialogTitle>
           </DialogHeader>
-          {editing && editingLocked && (
-            <p className="rounded border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-              Este hueco tiene una reserva. Para modificarlo o eliminarlo hay que cancelar antes la
-              reserva del cliente.
+          {editing && lockedSet.has(editing.id) && (
+            <p className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
+              Este hueco tiene reservas de clientes hechas desde la app.
             </p>
           )}
           {editing && (
@@ -526,7 +573,12 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
             <Button
               variant="destructive"
               disabled={editingLocked}
-              onClick={() => editing && remove.mutate(editing.id)}
+              onClick={async () => {
+                if (!editing) return;
+                const orig = instById.get(editing.id);
+                if (orig && lockedSet.has(orig.id) && !(await confirmarEdicionReservadas([orig]))) return;
+                remove.mutate(editing.id);
+              }}
             >
               Eliminar
             </Button>
@@ -589,8 +641,17 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               </p>
             </div>
           )}
-          <DialogFooter>
+          <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setReservasDe(null)}>Cerrar</Button>
+            <Button
+              onClick={() => {
+                if (!reservasDe) return;
+                setEditing({ ...reservasDe, cap: String(reservasDe.capacidad) });
+                setReservasDe(null);
+              }}
+            >
+              Editar sesión
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

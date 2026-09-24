@@ -218,7 +218,7 @@ export function SlotsWeekGrid({
         bodyRef.current?.querySelectorAll<HTMLElement>("[data-slot-id]").forEach((el) => {
           const r = el.getBoundingClientRect();
           if (
-            el.dataset["locked"] !== "1" &&
+            (el.dataset["locked"] !== "1" || lockedMark === "reservado") &&
             r.left < right && r.right > left && r.top < bottom && r.bottom > top
           ) {
             hit.push(el.dataset["slotId"]!);
@@ -417,7 +417,7 @@ export function SlotsWeekGrid({
                     onMouseDown={(e) => {
                       if (e.button !== 0) return;
                       e.stopPropagation();
-                      if (isLocked) return;
+                      if (isLocked && lockedMark !== "reservado") return;
                       draggedRef.current = false;
                       if (selecting) {
                         if (e.ctrlKey || e.metaKey) {
