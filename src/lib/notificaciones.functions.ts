@@ -25,8 +25,16 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,titulo,booked_by_user_id")
+      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id")
       .in("id", data.sessionIds);
+
+    const servicioSlugs = [
+      ...new Set((rows ?? []).map((r) => r.servicio_slug).filter((slug): slug is string => !!slug)),
+    ];
+    const { data: servicios } = servicioSlugs.length
+      ? await supabaseAdmin.from("servicios").select("slug,nombre").in("slug", servicioSlugs)
+      : { data: [] };
+    const nombreServicio = new Map((servicios ?? []).map((s) => [s.slug, s.nombre]));
 
     const items = (rows ?? [])
       .filter((r) => !!r.booked_by_user_id)
@@ -34,7 +42,11 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
         userId: r.booked_by_user_id,
         tipo: "reserva_cancelada",
         titulo: "Reserva cancelada por el centro",
-        mensaje: `en ${r.titulo ?? "Clase grupal"} (${describeSesion(r.fecha, r.hora_inicio)})`,
+        mensaje: `en ${
+          (r.servicio_slug ? nombreServicio.get(r.servicio_slug) : null) ??
+          r.titulo ??
+          "tu sesión"
+        } (${describeSesion(r.fecha, r.hora_inicio)})`,
       }));
 
     await crearNotificaciones(items, centroId);
