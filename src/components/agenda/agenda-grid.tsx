@@ -529,8 +529,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             : base;
         }),
     );
-    // Aviso a clientes en segundo plano.
-    void notificarReservasCanceladas({ data: { sessionIds: p.portalIds } }).catch(() => {});
+    // Aviso a clientes antes de borrar las filas (el servidor necesita leerlas).
+    await notificarReservasCanceladas({ data: { sessionIds: p.portalIds } }).catch(() => {});
     if (keep) {
       const { error } = await supabase
         .from("sessions")
