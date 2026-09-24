@@ -28,6 +28,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
   const [listOpen, setListOpen] = useState(false);
   const blurTimer = useRef<number | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const suppressOpen = useRef(false);
   const [highlight, setHighlight] = useState(0);
   const listRef = useRef<HTMLDivElement | null>(null);
 
@@ -138,6 +139,9 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           }}
           onFocus={() => {
             if (blurTimer.current) window.clearTimeout(blurTimer.current);
+            // Tras quitar un cliente con la X no reabrimos el desplegable:
+            // solo se abre al escribir.
+            if (suppressOpen.current) { suppressOpen.current = false; return; }
             setListOpen(true);
           }}
           onBlur={() => {
