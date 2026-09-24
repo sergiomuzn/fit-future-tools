@@ -101,6 +101,7 @@ function ClientePortal() {
   const { data: clases = [], isLoading } = useQuery({
     queryKey: ["portal-clases"],
     queryFn: () => fetchClases({ data: undefined }),
+    refetchInterval: 1000,
     enabled: !!profile && accesoIncluyeGrupos(profile?.acceso),
     refetchOnWindowFocus: true,
   });
@@ -118,6 +119,7 @@ function ClientePortal() {
   const { data: personalesAll = [], isLoading: loadingPersonales } = useQuery({
     queryKey: ["portal-personales"],
     queryFn: () => fetchPersonales({ data: undefined }),
+    refetchInterval: 1000,
     enabled: !!profile && verPersonal,
     refetchOnWindowFocus: true,
   });
