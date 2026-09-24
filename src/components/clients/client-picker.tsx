@@ -107,6 +107,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}
           onChange={(e) => {
             const v = e.target.value;
+            suppressOpen.current = false;
             setSearch(v);
             setListOpen(true);
             onTextChange?.(v);
