@@ -338,7 +338,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const cambia =
         orig.servicio_slug !== editing.servicio_slug ||
         hhmm(orig.hora_inicio) !== hhmm(editing.hora_inicio) ||
-        hhmm(orig.hora_fin) !== hhmm(editing.hora_fin);
+        hhmm(orig.hora_fin) !== hhmm(editing.hora_fin) ||
+        orig.capacidad !== Math.max(1, Number(editing.cap) || 1) ||
+        (orig.trainer_id ?? null) !== (editing.trainer_id ?? null);
       if (cambia && !(await confirmarEdicionReservadas([orig]))) return;
     }
     update.mutate({
