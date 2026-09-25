@@ -50,6 +50,13 @@
       "when": 1790175982907,
       "tag": "0006_client_notif_email_prefs",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1790337572726,
+      "tag": "0007_grant_center_config_special_days",
+      "breakpoints": true
     }
   ]
 }
