@@ -20,7 +20,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { enterToSave } from "@/lib/enter-to-save";
+import { closedSelectEnterToSave, enterToSave } from "@/lib/enter-to-save";
 import { normalizeText, fuzzyMatch } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
@@ -344,7 +344,7 @@ function FacturacionPage() {
               <div className="space-y-1.5">
                 <Label>Cobrador</Label>
                 <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => setForm({ ...form, cobrador_trainer_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectTrigger onKeyDown={closedSelectEnterToSave(save)}><SelectValue placeholder="—" /></SelectTrigger>
                   <SelectContent>{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
@@ -365,7 +365,7 @@ function FacturacionPage() {
                   sesiones_override: v === "__none__" ? null : (b ? b.sesiones_incluidas : null),
                 });
               }}>
-                <SelectTrigger>
+                <SelectTrigger onKeyDown={closedSelectEnterToSave(save)}>
                   <SelectValue placeholder="Selecciona bono...">
                     {(() => {
                       const b = catalogo.find((x) => x.id === form.bono_catalogo_id);
