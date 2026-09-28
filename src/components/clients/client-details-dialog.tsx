@@ -91,49 +91,56 @@ export function ClientDetailsDialog({
                 <div className="min-w-0">
                   {activos.length > 0 && (
                     <div className="mb-4">
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pb-1.5 border-b">Bono actual</h3>
-                      <div className="mt-2 rounded-lg border bg-muted/40 p-3">
-                        {activos.map((b) => {
-                          const cat = catMap.get(b.bono_catalogo_id ?? "");
-                          const slug = cat?.servicio_slug ?? b.servicio_slug;
-                          return (
-                            <div key={b.id} className="grid grid-cols-[1.4fr_1.6fr_0.9fr_0.8fr_0.8fr] items-center gap-2">
-                              <div className="min-w-0 truncate text-sm font-medium">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</div>
-                              <div className="min-w-0 flex items-center gap-1.5">
-                                {slug ? (
-                                  <>
-                                    <span
-                                      className="min-w-0 truncate rounded-full px-2 py-0.5 text-xs font-medium"
-                                      style={chipStyle(servicioColor(slug) ?? "#888888")}
-                                    >
-                                      {servMap.get(slug) ?? slug}
-                                    </span>
-                                    {(cat?.modalidad ?? b.modalidad) && (
-                                      <span className="shrink-0 whitespace-nowrap rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                        {cat?.modalidad ?? b.modalidad}
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bono actual</h3>
+                      <Table className="table-fixed mt-1">
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[22%]">Bono</TableHead>
+                            <TableHead className="w-[36%]">Servicio</TableHead>
+                            <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
+                            <TableHead className="w-[12%] px-1 text-center text-xs">Realizadas</TableHead>
+                            <TableHead className="w-[16%] whitespace-nowrap px-1 text-center text-[11px]">Restantes</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {activos.map((b) => {
+                            const cat = catMap.get(b.bono_catalogo_id ?? "");
+                            const slug = cat?.servicio_slug ?? b.servicio_slug;
+                            return (
+                              <TableRow key={b.id} className="bg-muted/40">
+                                <TableCell className="truncate">
+                                  <span className="truncate font-medium">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
+                                </TableCell>
+                                <TableCell>
+                                  {slug ? (
+                                    <div className="flex min-w-0 items-center gap-1.5">
+                                      <span
+                                        className="min-w-0 truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                                        style={chipStyle(servicioColor(slug) ?? "#888888")}
+                                      >
+                                        {servMap.get(slug) ?? slug}
                                       </span>
-                                    )}
-                                  </>
-                                ) : "—"}
-                              </div>
-                              <div className="whitespace-nowrap text-sm">{formatDateShort(b.fecha_inicio)}</div>
-                              <div className="text-center text-sm">
-                                <div className="text-[10px] text-muted-foreground leading-none">Realizadas</div>
-                                <div>{b.sesiones_realizadas}</div>
-                              </div>
-                              <div className="text-center text-sm">
-                                <div className="text-[10px] text-muted-foreground leading-none">Restantes</div>
-                                <div>{b.sesiones_disponibles}</div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                                      {(cat?.modalidad ?? b.modalidad) && (
+                                        <span className="shrink-0 whitespace-nowrap rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                          {cat?.modalidad ?? b.modalidad}
+                                        </span>
+                                      )}
+                                    </div>
+                                  ) : "—"}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">{formatDateShort(b.fecha_inicio)}</TableCell>
+                                <TableCell className="px-1 text-center">{b.sesiones_realizadas}</TableCell>
+                                <TableCell className="px-1 text-center">{b.sesiones_disponibles}</TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
                     </div>
                   )}
                   {anteriores.length > 0 && (
                     <div>
-                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground pb-1.5 border-b">Bonos anteriores</h3>
+                      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bonos anteriores</h3>
                       <Table className="table-fixed mt-1">
                         <TableHeader>
                           <TableRow>
