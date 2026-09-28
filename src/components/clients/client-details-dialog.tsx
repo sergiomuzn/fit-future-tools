@@ -43,6 +43,8 @@ export function ClientDetailsDialog({
           (b.ultimo_bono_fecha ?? b.fecha_inicio ?? "").localeCompare(a.ultimo_bono_fecha ?? a.fecha_inicio ?? ""),
         )
     : [];
+  const activos = history.filter((b) => b.activo);
+  const anteriores = history.filter((b) => !b.activo);
 
   return (
     <Dialog open={!!client} onOpenChange={onOpenChange}>
