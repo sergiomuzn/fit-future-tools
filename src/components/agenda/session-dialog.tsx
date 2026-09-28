@@ -12,7 +12,6 @@ import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, 
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
-import { formatNameTitle } from "@/lib/utils";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -889,26 +888,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                         }
                         setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
-                  {renderPerfilLink(cid)}
                 </div>
               ))}
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <ClientPicker
-                      value={clientId}
-                      onChange={(id) => setClientId(id)}
-                      autoFocus={isNew}
-                      initialText={nombreLibre}
-                      onTextChange={(t) => setNombreLibre(t)}
-                    />
-                  </div>
-                  {renderPerfilLink(clientId)}
-                </div>
+                <ClientPicker
+                  value={clientId}
+                  onChange={(id) => setClientId(id)}
+                  autoFocus={isNew}
+                  initialText={nombreLibre}
+                  onTextChange={(t) => setNombreLibre(t)}
+                  onNameClick={(c) => setPerfilCliente(c)}
+                />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
                     Sesiones restantes:{" "}
