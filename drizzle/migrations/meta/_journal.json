@@ -57,6 +57,13 @@
       "when": 1790337572726,
       "tag": "0007_grant_center_config_special_days",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790606462847,
+      "tag": "0008_skip_bono_when_invoice_sin_bono",
+      "breakpoints": true
     }
   ]
 }
