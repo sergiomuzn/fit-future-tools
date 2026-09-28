@@ -219,11 +219,11 @@ function FacturacionPage() {
       cliente_nombre: clientId ? null : (clientText.trim() || null),
     };
     if (editingId) {
-      const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
+      const { error } = await supabase.from("invoices").update(payload as never).eq("id", editingId);
       if (error) { toast.error(error.message); return; }
       toast.success("Factura actualizada");
     } else {
-      const { error } = await supabase.from("invoices").insert(payload);
+      const { error } = await supabase.from("invoices").insert(payload as never);
       if (error) { toast.error(error.message); return; }
       toast.success("Factura registrada · bono actualizado");
     }
