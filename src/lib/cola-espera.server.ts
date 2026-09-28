@@ -12,6 +12,7 @@ import {
   colaTiempoLabel,
   type ColaConfig,
 } from "./cola-espera";
+import { formatDateShort } from "./utils";
 
 export interface ColaEntry {
   id: string;
