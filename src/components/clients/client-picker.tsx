@@ -99,34 +99,27 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
   return (
     <div className="space-y-1.5">
       <div className="relative">
-        {selected && onNameClick ? (
-          <div className="flex h-9 w-full items-center rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm">
+        {selected && onNameClick && (
+          <span className="pointer-events-none absolute left-3 top-1/2 z-10 max-w-[calc(100%-3rem)] -translate-y-1/2 truncate text-sm font-medium text-primary">
             <button
               type="button"
+              tabIndex={-1}
+              onMouseDown={(e) => e.preventDefault()}
               onClick={() => onNameClick(selected)}
-              className="min-w-0 flex-1 truncate text-left font-medium text-primary underline-offset-2 hover:underline"
+              className="pointer-events-auto underline-offset-2 hover:underline"
               title="Ver perfil del cliente"
             >
               {formatNameTitle(selected.nombre)}
             </button>
-            <button
-              type="button"
-              aria-label="Limpiar cliente"
-              onClick={() => { suppressOpen.current = true; setSearch(""); onTextChange?.(""); onChange(null, null); setListOpen(false); }}
-              className="ml-1 shrink-0 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        ) : (
-        <>
+          </span>
+        )}
         <Input
           ref={inputRef}
           autoFocus={autoFocus}
           autoComplete="nope"
           placeholder="Buscar cliente..."
           value={search}
-          className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""}`.trim() || undefined}
+          className={`${selected ? "placeholder:text-foreground/90" : ""} ${selected || search ? "pr-8" : ""} ${selected && onNameClick ? "text-transparent caret-foreground" : ""}`.trim() || undefined}
           onChange={(e) => {
             const v = e.target.value;
             suppressOpen.current = false;
@@ -208,8 +201,6 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             <div className="p-2 text-xs text-muted-foreground">Sin coincidencias.</div>
           )}
         </div>
-        )}
-        </>
         )}
       </div>
 
