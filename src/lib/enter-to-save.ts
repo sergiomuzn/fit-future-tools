@@ -25,3 +25,20 @@ export function enterToSave(save: () => void) {
     save();
   };
 }
+
+/**
+ * Handler for Radix Select triggers: when the select is CLOSED and the user
+ * presses Enter, prevent the select from re-opening and invoke `save()`
+ * instead. Enter on the open listbox (options) is left untouched.
+ */
+export function closedSelectEnterToSave(save: () => void) {
+  return (e: KeyboardEvent<HTMLElement>) => {
+    if (e.key !== "Enter") return;
+    if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
+    const t = e.target as HTMLElement | null;
+    if (!t) return;
+    if (t.getAttribute("aria-expanded") !== "false") return;
+    e.preventDefault();
+    save();
+  };
+}
