@@ -12,7 +12,6 @@ import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, 
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
-import { formatNameTitle } from "@/lib/utils";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -65,29 +64,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
-
-  const { data: clientsList = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [],
-    enabled: open,
-  });
-
-  // Nombre clicable: abre el perfil del cliente en la pestaña Calendario.
-  const renderPerfilLink = (cid: string | null) => {
-    if (!cid) return null;
-    const c = clientsList.find((cl) => cl.id === cid);
-    if (!c) return null;
-    return (
-      <button
-        type="button"
-        onClick={() => setPerfilCliente(c)}
-        className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"
-        title="Ver perfil del cliente"
-      >
-        {formatNameTitle(c.nombre)}
-      </button>
-    );
-  };
   const notasRef = useRef<HTMLTextAreaElement>(null);
 
   function ajustarAlturaNotas() {
@@ -912,26 +888,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                         }
                         setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
-                  {renderPerfilLink(cid)}
                 </div>
               ))}
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 min-w-0">
-                    <ClientPicker
-                      value={clientId}
-                      onChange={(id) => setClientId(id)}
-                      autoFocus={isNew}
-                      initialText={nombreLibre}
-                      onTextChange={(t) => setNombreLibre(t)}
-                    />
-                  </div>
-                  {renderPerfilLink(clientId)}
-                </div>
+                <ClientPicker
+                  value={clientId}
+                  onChange={(id) => setClientId(id)}
+                  autoFocus={isNew}
+                  initialText={nombreLibre}
+                  onTextChange={(t) => setNombreLibre(t)}
+                  onNameClick={(c) => setPerfilCliente(c)}
+                />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
                     Sesiones restantes:{" "}
