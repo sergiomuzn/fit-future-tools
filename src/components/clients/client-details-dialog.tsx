@@ -126,12 +126,16 @@ export function ClientDetailsDialog({
                   </TableBody>
                 </Table>
               )}
+              </div>
             </TabsContent>
-            <TabsContent value="calendario" className="min-w-0 overflow-x-hidden pt-4">
-              <ClientCalendar clientId={client.id} />
+            <TabsContent value="calendario" className="min-w-0 overflow-x-hidden">
+              <div className="px-6">
+                <ClientCalendar clientId={client.id} />
+              </div>
             </TabsContent>
           </Tabs>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
