@@ -76,8 +76,10 @@ export function ClientDetailsDialog({
                   <div className="text-sm whitespace-pre-wrap">{client.notas}</div>
                 </div>
               )}
+              </div>
             </TabsContent>
-            <TabsContent value="historial" className="min-w-0 overflow-x-hidden pt-4">
+            <TabsContent value="historial" className="min-w-0 overflow-x-hidden">
+              <div className="px-6">
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">Sin bonos anteriores.</p>
               ) : (
