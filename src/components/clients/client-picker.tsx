@@ -141,10 +141,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           }}
           onFocus={() => {
             if (blurTimer.current) window.clearTimeout(blurTimer.current);
-            // Tras quitar un cliente con la X no reabrimos el desplegable:
-            // solo se abre al escribir.
-            if (suppressOpen.current) { suppressOpen.current = false; return; }
-            setListOpen(true);
+            // El desplegable nunca se abre automáticamente: solo al escribir.
           }}
           onBlur={() => {
             blurTimer.current = window.setTimeout(() => setListOpen(false), 150);
