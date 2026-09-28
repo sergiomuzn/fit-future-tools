@@ -69,7 +69,6 @@ function AuthPage() {
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="font-display text-2xl">TRACLI</CardTitle>
-          {!isCliente && <CardDescription>Accede a la gestión del centro</CardDescription>}
         </CardHeader>
         <CardContent>
           {checking ? (
