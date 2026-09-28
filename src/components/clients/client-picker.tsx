@@ -50,9 +50,8 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
 
   const filtered = useMemo(
     () => {
-      const q = normalizeText(search);
-      // If the current search text exactly matches the selected client name,
-      // treat it as "no filter" so the user sees the full list to switch.
+      const q = normalizeText(search).trim();
+      // Texto vacío o solo espacios → lista completa.
       if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
       const exact = clients.filter((c) => normalizeText(c.nombre).includes(q));
       if (exact.length > 0) return exact;
@@ -109,7 +108,8 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             const v = e.target.value;
             suppressOpen.current = false;
             setSearch(v);
-            setListOpen(true);
+            // El desplegable solo aparece al escribir algo (una letra o un espacio).
+            setListOpen(v.length > 0);
             onTextChange?.(v);
             // If the user edits the text away from the selected client, clear
             // the selection so the parent state reflects "no client picked".
@@ -117,12 +117,13 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           }}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
+              if (!search) return; // sin texto, no se abre el desplegable
               e.preventDefault();
               setListOpen(true);
               setHighlight((h) => Math.min(h + 1, filtered.length - 1));
             } else if (e.key === "ArrowUp") {
+              if (!search || !listOpen) return;
               e.preventDefault();
-              setListOpen(true);
               setHighlight((h) => Math.max(h - 1, 0));
             } else if (e.key === "Enter") {
               if (listOpen && filtered[highlight]) {
