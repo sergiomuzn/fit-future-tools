@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -193,29 +193,30 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["client-altas"] });
   }
 
-  async function save() {
-    if (!form.client_id) {
+  async function save(overrides: Partial<Invoice> = {}) {
+    const f = { ...form, ...overrides };
+    if (!f.client_id) {
       setConfirmNoClient(true);
       return;
     }
-    await persist();
+    await persist(f);
   }
 
-  async function persist() {
-    const clientId = form.client_id ?? null;
-    const bonoId = form.bono_catalogo_id?.trim() || null;
-    const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
+  async function persist(f: Partial<Invoice> = form) {
+    const clientId = f.client_id ?? null;
+    const bonoId = f.bono_catalogo_id?.trim() || null;
+    const overrideRaw = (f as { sesiones_override?: number | null }).sesiones_override;
     const sesionesOverride =
       overrideRaw === undefined || overrideRaw === null || (overrideRaw as unknown as string) === ""
         ? null
         : Number(overrideRaw);
     const payload = {
-      fecha: form.fecha!,
-      cobrador_trainer_id: form.cobrador_trainer_id ?? null,
+      fecha: f.fecha!,
+      cobrador_trainer_id: f.cobrador_trainer_id ?? null,
       client_id: clientId,
       bono_catalogo_id: bonoId,
-      precio_cobrado: form.precio_cobrado!,
-      nota: form.nota ?? null,
+      precio_cobrado: f.precio_cobrado!,
+      nota: f.nota ?? null,
       sesiones_override: bonoId && clientId ? sesionesOverride : null,
     };
     if (editingId) {
