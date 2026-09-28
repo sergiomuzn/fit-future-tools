@@ -49,6 +49,8 @@ function FacturacionPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [confirmNoClient, setConfirmNoClient] = useState(false);
+  const trainerEnterSave = useRef(false);
+  const suppressTrainerEnter = useRef(0);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -344,9 +346,31 @@ function FacturacionPage() {
               <div className="space-y-1.5"><Label>Fecha</Label><Input type="date" value={form.fecha ?? ""} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></div>
               <div className="space-y-1.5">
                 <Label>Cobrador</Label>
-                <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => setForm({ ...form, cobrador_trainer_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
+                <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => {
+                  setForm((f) => ({ ...f, cobrador_trainer_id: v }));
+                  // Enter sobre la lista: guardar la factura en cuanto se elige el entrenador.
+                  if (trainerEnterSave.current) {
+                    trainerEnterSave.current = false;
+                    void save({ cobrador_trainer_id: v });
+                  }
+                }}>
+                  <SelectTrigger
+                    onKeyDown={(e) => {
+                      // Evita que el Enter que confirma la selección reabra la lista.
+                      if (e.key === "Enter" && Date.now() - suppressTrainerEnter.current < 400) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                  ><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        trainerEnterSave.current = true;
+                        suppressTrainerEnter.current = Date.now();
+                      }
+                    }}
+                  >{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
