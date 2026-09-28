@@ -147,7 +147,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   });
   const { data: catalogoAll = [] } = useQuery({
     queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("id,tipo")).data ?? [],
+    queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data ?? [],
     enabled: open,
   });
   const { colores, horario, specialsMap } = useCenterConfig();
