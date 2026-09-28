@@ -22,7 +22,7 @@ import { useModalidades } from "@/lib/modalidades";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { servicioColorOf } from "@/lib/colors";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
@@ -941,7 +941,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
                     <ul className="mt-1 space-y-0.5 pl-1">
                       {unclassified.samples.map((s) => (
                         <li key={s.id} className="font-mono text-[11px]">
-                          {s.fecha} {s.hora} — {s.reason}
+                           {formatDateShort(s.fecha)} {s.hora} — {s.reason}
                         </li>
                       ))}
                     </ul>

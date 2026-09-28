@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Search, X, SlidersHorizontal } from "lucide-react";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
-import { normalizeText, formatNameTitle } from "@/lib/utils";
+import { normalizeText, formatDateShort, formatNameTitle } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 
@@ -230,7 +230,7 @@ export function HistorialPanel() {
           <TableBody>
             {filtered.map((s) => (
               <TableRow key={s.id}>
-                <TableCell>{s.fecha}</TableCell>
+                 <TableCell className="whitespace-nowrap">{formatDateShort(s.fecha)}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
                 <TableCell>{nameForSession(s)}</TableCell>
                 <TableCell>

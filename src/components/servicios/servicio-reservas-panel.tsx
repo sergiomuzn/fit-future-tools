@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
+import { formatDateShort } from "@/lib/utils";
 
 interface Reserva {
   id: string;
@@ -25,8 +26,7 @@ interface Reserva {
 }
 
 function fechaCorta(f: string): string {
-  const d = new Date(`${f}T00:00:00`);
-  return d.toLocaleDateString("es-ES", { day: "2-digit", month: "short" });
+  return formatDateShort(f);
 }
 
 /** Sesiones futuras reservadas por clientes desde su portal, para un servicio. */

@@ -25,6 +25,7 @@ import {
   marcarReservaPorConfirmar,
 } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
+import { formatDateShort } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -821,7 +822,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
         </DialogHeader>
         <div className="grid gap-2.5">
-          <div className="-mt-1 text-xs text-muted-foreground">{session.fecha}</div>
+           <div className="-mt-1 text-xs text-muted-foreground">{formatDateShort(session.fecha)}</div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label>Hora inicio</Label>

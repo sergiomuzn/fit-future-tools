@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { centroDb } from "./centro-scope.server";
+import { formatDateShort } from "./utils";
 
 export interface NuevaNotificacion {
   userId?: string | null;
@@ -43,10 +44,7 @@ export async function crearNotificaciones(
   }
 }
 
-/** "7 jul · 10:00" */
+/** "07/07/26 · 10:00" */
 export function describeSesion(fecha: string, hora: string): string {
-  const [y, m, d] = fecha.split("-").map(Number);
-  const date = new Date(y!, (m ?? 1) - 1, d!);
-  const dia = date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-  return `${dia} · ${hora.slice(0, 5)}`;
+  return `${formatDateShort(fecha)} · ${hora.slice(0, 5)}`;
 }

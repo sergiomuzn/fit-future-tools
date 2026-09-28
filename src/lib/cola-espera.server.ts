@@ -157,10 +157,7 @@ export async function claveDeSesion(
 }
 
 function describe(fecha: string, hora: string): string {
-  const [y, m, d] = fecha.split("-").map(Number);
-  const date = new Date(y!, (m ?? 1) - 1, d!);
-  const dia = date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
-  return `${dia} a las ${hora.slice(0, 5)}`;
+  return `${formatDateShort(fecha)} a las ${hora.slice(0, 5)}`;
 }
 
 async function notificar(

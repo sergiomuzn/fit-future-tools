@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { formatDateShort } from "@/lib/utils";
 
 export const Route = createFileRoute("/superadmin/centro/$centroId")({
   ssr: false,
@@ -16,8 +17,7 @@ export const Route = createFileRoute("/superadmin/centro/$centroId")({
 });
 
 function fmt(v?: string | null) {
-  if (!v) return "—";
-  return new Date(v).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDateShort(v);
 }
 
 function CentroDetalle() {
