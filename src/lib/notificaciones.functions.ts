@@ -67,9 +67,8 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     // Los avisos de "confirmar/denegar" del centro para estas sesiones ya no aplican.
     const pendientesIds = (rows ?? []).filter((r) => r.por_confirmar).map((r) => r.id);
-    if (pendientesIds.length) {
-      await supabaseAdmin.from("notificaciones").delete().in("session_id", pendientesIds).is("user_id", null);
-    }
+    const { resolverAvisoCentro } = await import("./notificaciones.server");
+    for (const id of pendientesIds) await resolverAvisoCentro(centroId, id, "denegada");
 
     await crearNotificaciones(items, centroId);
     return { notified: items.length };
@@ -250,6 +249,13 @@ export const resolverReservaPendiente = createServerFn({ method: "POST" })
     const centro = (cfg as { nombre?: string } | null)?.nombre || "El centro";
     const cuando = describeSesion(row.fecha, row.hora_inicio).replace(" · ", " a las ");
     const donde = row.titulo || row.servicio_slug || "tu sesión";
+
+    const { resolverAvisoCentro } = await import("./notificaciones.server");
+    await resolverAvisoCentro(
+      centroId,
+      data.sessionId,
+      data.accion === "confirmar" ? "confirmada" : "denegada",
+    );
 
     if (data.accion === "confirmar") {
       await supabaseAdmin
