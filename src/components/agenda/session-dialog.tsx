@@ -1037,6 +1037,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       </AlertDialog>
     </Dialog>
     {confirmDialog}
+    <ClientDetailsDialog
+      client={perfilCliente}
+      defaultTab="calendario"
+      onOpenChange={(o) => { if (!o) setPerfilCliente(null); }}
+    />
     </>
   );
 }
