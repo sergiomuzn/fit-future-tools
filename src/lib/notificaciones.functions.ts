@@ -307,3 +307,17 @@ export const resolverReservaPendiente = createServerFn({ method: "POST" })
 
     return { ok: true as const, accion: data.accion };
   });
+
+/**
+ * Deniega las reservas pendientes de confirmar cuya sesión ya ha empezado.
+ * Lo puede lanzar cualquier usuario del centro (se ejecuta periódicamente).
+ */
+export const procesarPendientesVencidas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { getCentroIdForUser } = await import("./centro-scope.server");
+    const centroId = await getCentroIdForUser(context.userId);
+    if (!centroId) return { denegadas: 0 };
+    const { denegarPendientesVencidas } = await import("./pendientes-vencidas.server");
+    return { denegadas: await denegarPendientesVencidas(centroId) };
+  });

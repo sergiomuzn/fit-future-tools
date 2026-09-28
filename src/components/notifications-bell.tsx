@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import { resolverReservaPendiente } from "@/lib/notificaciones.functions";
 import { responderCola } from "@/lib/cola-espera.functions";
 import { flushMisAvisosEmail } from "@/lib/notif-prefs.functions";
+import { procesarPendientesVencidas } from "@/lib/notificaciones.functions";
 
 interface Notificacion {
   id: string;
@@ -132,6 +133,15 @@ export function NotificationsBell({ className }: { className?: string }) {
   }
 
   const flushEmails = useServerFn(flushMisAvisosEmail);
+  const procesarVencidas = useServerFn(procesarPendientesVencidas);
+
+  useEffect(() => {
+    // Deniega automáticamente las reservas sin confirmar cuya sesión ya empezó.
+    const run = () => void procesarVencidas().catch(() => undefined);
+    run();
+    const t = setInterval(run, 30_000);
+    return () => clearInterval(t);
+  }, [procesarVencidas]);
 
   useEffect(() => {
     // Avisos creados en la base de datos (bonos): se envían también por correo.
