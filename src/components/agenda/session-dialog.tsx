@@ -914,18 +914,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       }}
                     />
                   </div>
+                  {renderPerfilLink(cid)}
                 </div>
               ))}
               </div>
             ) : (
               <>
-                <ClientPicker
-                  value={clientId}
-                  onChange={(id) => setClientId(id)}
-                  autoFocus={isNew}
-                  initialText={nombreLibre}
-                  onTextChange={(t) => setNombreLibre(t)}
-                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ClientPicker
+                      value={clientId}
+                      onChange={(id) => setClientId(id)}
+                      autoFocus={isNew}
+                      initialText={nombreLibre}
+                      onTextChange={(t) => setNombreLibre(t)}
+                    />
+                  </div>
+                  {renderPerfilLink(clientId)}
+                </div>
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
                     Sesiones restantes:{" "}
