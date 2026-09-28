@@ -431,7 +431,7 @@ function FacturacionPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>{editingId ? "Guardar" : "Registrar"}</Button>
+            <Button onClick={() => save()}>{editingId ? "Guardar" : "Registrar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
