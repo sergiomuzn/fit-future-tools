@@ -450,7 +450,7 @@ export function BonosPanel() {
                   {g.bonos.map((b) => <div key={b.id} className={SUB}>{prettyBonoNombre(b.ultimo_bono_nombre)}</div>)}
                 </TableCell>}
                 {show("fecha") && <TableCell>
-                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.ultimo_bono_fecha ?? "—"}</div>)}
+                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{formatDateShort(b.ultimo_bono_fecha)}</div>)}
                 </TableCell>}
                 <TableCell>
                   {g.bonos.map((b) => (
