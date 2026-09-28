@@ -141,10 +141,10 @@ export function ClientDetailsDialog({
                   {anteriores.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bonos anteriores</h3>
-                      <div className="mt-1 max-h-[13rem] overflow-y-auto overscroll-contain">
+                      <div className="mt-1 max-h-[12rem] overflow-y-auto overscroll-contain">
                         <Table className="table-fixed">
                           <TableHeader className="sticky top-0 z-10 bg-card">
-                            <TableRow>
+                            <TableRow className="h-8">
                               <TableHead className="w-[22%]">Bono</TableHead>
                               <TableHead className="w-[36%]">Servicio</TableHead>
                               <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
@@ -157,7 +157,7 @@ export function ClientDetailsDialog({
                               const cat = catMap.get(b.bono_catalogo_id ?? "");
                               const slug = cat?.servicio_slug ?? b.servicio_slug;
                               return (
-                                <TableRow key={b.id}>
+                                <TableRow key={b.id} className="h-10">
                                   <TableCell className="truncate">
                                     <span className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
                                   </TableCell>
