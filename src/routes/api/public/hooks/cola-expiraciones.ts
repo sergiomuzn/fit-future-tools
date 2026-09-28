@@ -15,6 +15,8 @@ export const Route = createFileRoute("/api/public/hooks/cola-expiraciones")({
         }
         const { procesarCaducidadesTodosLosCentros } = await import("@/lib/cola-espera.server");
         const result = await procesarCaducidadesTodosLosCentros();
+        const { denegarPendientesVencidasTodosLosCentros } = await import("@/lib/pendientes-vencidas.server");
+        await denegarPendientesVencidasTodosLosCentros();
         // Envía por correo los avisos generados en la base de datos (bonos, caducidades).
         const { enviarEmailsPendientes } = await import("@/lib/notificaciones-email.server");
         await enviarEmailsPendientes({ limite: 200 });
