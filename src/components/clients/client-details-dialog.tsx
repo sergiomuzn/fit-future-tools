@@ -81,7 +81,7 @@ export function ClientDetailsDialog({
             <TabsContent value="historial" className="min-w-0 overflow-x-hidden">
               <div className="px-6">
               {history.length === 0 ? (
-                <p className="text-sm text-muted-foreground py-4">Sin bonos anteriores.</p>
+                <p className="text-sm text-muted-foreground py-4">Sin bonos.</p>
               ) : (
                 <Table className="table-fixed">
                   <TableHeader>
@@ -99,7 +99,14 @@ export function ClientDetailsDialog({
                       const slug = cat?.servicio_slug ?? b.servicio_slug;
                       return (
                         <TableRow key={b.id}>
-                          <TableCell className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
+                          <TableCell>
+                            <div className="flex min-w-0 items-center gap-1.5">
+                              <span className="min-w-0 truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
+                              {b.activo && (
+                                <span className="shrink-0 rounded-full bg-state-prueba/30 px-2 py-0.5 text-[10px] font-medium text-state-prueba-fg">Activo</span>
+                              )}
+                            </div>
+                          </TableCell>
                            <TableCell>
                              {slug ? (
                                <div className="flex min-w-0 items-center gap-1.5">
