@@ -43,18 +43,20 @@ export function ClientDetailsDialog({
 
   return (
     <Dialog open={!!client} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl overflow-x-hidden">
-        <DialogHeader>
-          <DialogTitle>{formatNameTitle(client?.nombre)}</DialogTitle>
-        </DialogHeader>
-        {client && (
+      <DialogContent className="max-w-3xl overflow-x-hidden p-0 gap-0">
+        <div className="page-tabbed overflow-x-hidden">
+          <DialogHeader className="px-6 pt-5 pb-2">
+            <DialogTitle>{formatNameTitle(client?.nombre)}</DialogTitle>
+          </DialogHeader>
+          {client && (
           <Tabs defaultValue={defaultTab} className="min-w-0 w-full overflow-x-hidden">
-            <TabsList className="w-full min-w-0 [&::after]:left-0 [&::after]:right-0">
+            <TabsList className="w-full min-w-0 px-6 [&::after]:left-0 [&::after]:right-0">
               <TabsTrigger value="info">Información</TabsTrigger>
               <TabsTrigger value="historial">Historial de bonos</TabsTrigger>
               <TabsTrigger value="calendario">Calendario</TabsTrigger>
             </TabsList>
-            <TabsContent value="info" className="min-w-0 overflow-x-hidden pt-4">
+            <TabsContent value="info" className="min-w-0 overflow-x-hidden">
+              <div className="px-6">
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <Field label="Nombre" value={formatNameTitle(client.nombre)} />
                 <Field label="Estado" value={
@@ -74,8 +76,10 @@ export function ClientDetailsDialog({
                   <div className="text-sm whitespace-pre-wrap">{client.notas}</div>
                 </div>
               )}
+              </div>
             </TabsContent>
-            <TabsContent value="historial" className="min-w-0 overflow-x-hidden pt-4">
+            <TabsContent value="historial" className="min-w-0 overflow-x-hidden">
+              <div className="px-6">
               {history.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-4">Sin bonos anteriores.</p>
               ) : (
@@ -122,12 +126,16 @@ export function ClientDetailsDialog({
                   </TableBody>
                 </Table>
               )}
+              </div>
             </TabsContent>
-            <TabsContent value="calendario" className="min-w-0 overflow-x-hidden pt-4">
-              <ClientCalendar clientId={client.id} />
+            <TabsContent value="calendario" className="min-w-0 overflow-x-hidden">
+              <div className="px-6">
+                <ClientCalendar clientId={client.id} />
+              </div>
             </TabsContent>
           </Tabs>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );
