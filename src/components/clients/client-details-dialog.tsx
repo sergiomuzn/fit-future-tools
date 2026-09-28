@@ -157,7 +157,7 @@ export function ClientDetailsDialog({
                               const cat = catMap.get(b.bono_catalogo_id ?? "");
                               const slug = cat?.servicio_slug ?? b.servicio_slug;
                               return (
-                                <TableRow key={b.id}>
+                                <TableRow key={b.id} className="h-9">
                                   <TableCell className="truncate">
                                     <span className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
                                   </TableCell>
