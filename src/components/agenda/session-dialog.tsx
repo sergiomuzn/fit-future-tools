@@ -8,9 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
-import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono } from "@/lib/db";
+import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono, type Client } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
+import { formatNameTitle } from "@/lib/utils";
 import { formatDateISO } from "./types";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -62,6 +64,30 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
+
+  const { data: clientsList = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [],
+    enabled: open,
+  });
+
+  // Nombre clicable: abre el perfil del cliente en la pestaña Calendario.
+  const renderPerfilLink = (cid: string | null) => {
+    if (!cid) return null;
+    const c = clientsList.find((cl) => cl.id === cid);
+    if (!c) return null;
+    return (
+      <button
+        type="button"
+        onClick={() => setPerfilCliente(c)}
+        className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"
+        title="Ver perfil del cliente"
+      >
+        {formatNameTitle(c.nombre)}
+      </button>
+    );
+  };
   const notasRef = useRef<HTMLTextAreaElement>(null);
 
   function ajustarAlturaNotas() {
@@ -888,18 +914,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       }}
                     />
                   </div>
+                  {renderPerfilLink(cid)}
                 </div>
               ))}
               </div>
             ) : (
               <>
-                <ClientPicker
-                  value={clientId}
-                  onChange={(id) => setClientId(id)}
-                  autoFocus={isNew}
-                  initialText={nombreLibre}
-                  onTextChange={(t) => setNombreLibre(t)}
-                />
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ClientPicker
+                      value={clientId}
+                      onChange={(id) => setClientId(id)}
+                      autoFocus={isNew}
+                      initialText={nombreLibre}
+                      onTextChange={(t) => setNombreLibre(t)}
+                    />
+                  </div>
+                  {renderPerfilLink(clientId)}
+                </div>
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
                     Sesiones restantes:{" "}
@@ -1005,6 +1037,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       </AlertDialog>
     </Dialog>
     {confirmDialog}
+    <ClientDetailsDialog
+      client={perfilCliente}
+      defaultTab="calendario"
+      onOpenChange={(o) => { if (!o) setPerfilCliente(null); }}
+    />
     </>
   );
 }
