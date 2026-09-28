@@ -664,6 +664,7 @@ export type Database = {
           bono_catalogo_id: string | null
           centro_id: string
           client_id: string | null
+          cliente_nombre: string | null
           cobrador_trainer_id: string | null
           created_at: string
           fecha: string
@@ -676,6 +677,7 @@ export type Database = {
           bono_catalogo_id?: string | null
           centro_id?: string
           client_id?: string | null
+          cliente_nombre?: string | null
           cobrador_trainer_id?: string | null
           created_at?: string
           fecha?: string
@@ -688,6 +690,7 @@ export type Database = {
           bono_catalogo_id?: string | null
           centro_id?: string
           client_id?: string | null
+          cliente_nombre?: string | null
           cobrador_trainer_id?: string | null
           created_at?: string
           fecha?: string

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -78,13 +78,17 @@ function FacturacionPage() {
 
   // Al elegir cliente en una NUEVA factura, precargar su último bono contratado
   // y el precio del catálogo (si aún no se han modificado a mano).
+  // Solo una vez por cliente: si el usuario elige "Sin bono", no se vuelve a rellenar solo.
+  const preloadedClientRef = useRef<string | null>(null);
   useEffect(() => {
     if (editingId) return;
     if (!form.client_id) return;
     if (form.bono_catalogo_id) return;
+    if (preloadedClientRef.current === form.client_id) return;
     const bonoId = lastBonoByClient.get(form.client_id);
     if (!bonoId) return;
     const cat = catalogo.find((b) => b.id === bonoId);
+    preloadedClientRef.current = form.client_id;
     setForm((f) => ({
       ...f,
       bono_catalogo_id: bonoId,
@@ -170,6 +174,7 @@ function FacturacionPage() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
     setClientText("");
     setEditingId(null);
+    preloadedClientRef.current = null;
     setOpen(true);
   }
 
