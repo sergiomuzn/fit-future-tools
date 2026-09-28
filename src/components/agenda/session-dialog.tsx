@@ -65,29 +65,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [scopeAsk, setScopeAsk] = useState(false);
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
-
-  const { data: clientsList = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [],
-    enabled: open,
-  });
-
-  // Nombre clicable: abre el perfil del cliente en la pestaña Calendario.
-  const renderPerfilLink = (cid: string | null) => {
-    if (!cid) return null;
-    const c = clientsList.find((cl) => cl.id === cid);
-    if (!c) return null;
-    return (
-      <button
-        type="button"
-        onClick={() => setPerfilCliente(c)}
-        className="shrink-0 text-xs font-medium text-primary underline-offset-2 hover:underline"
-        title="Ver perfil del cliente"
-      >
-        {formatNameTitle(c.nombre)}
-      </button>
-    );
-  };
   const notasRef = useRef<HTMLTextAreaElement>(null);
 
   function ajustarAlturaNotas() {
