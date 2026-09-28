@@ -908,15 +908,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 )}
               </>
             )}
-            {(plazas > 1 ? groupClientIds.every((id) => !id) : !clientId) && (
-              <p className="text-[11px] text-muted-foreground leading-tight">
-                Sin cliente, la sesión se llamará{" "}
-                <span className="font-medium">
-                  {nombreLibre.trim() || (servicioActual?.nombre?.toUpperCase() ?? "")}
-                </span>
-                . Escribe un texto libre en el buscador para cambiarlo.
-              </p>
-            )}
           </div>
 
 
