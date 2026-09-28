@@ -202,8 +202,6 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
           )}
         </div>
         )}
-        </>
-        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
