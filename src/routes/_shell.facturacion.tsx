@@ -20,6 +20,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { closedSelectEnterToSave, enterToSave } from "@/lib/enter-to-save";
 import { normalizeText, fuzzyMatch } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -49,6 +50,7 @@ function FacturacionPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [confirmNoClient, setConfirmNoClient] = useState(false);
+  const [clientText, setClientText] = useState("");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -155,28 +157,25 @@ function FacturacionPage() {
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   const searchNorm = search.trim().toLowerCase();
+  const invName = (i: Invoice & { cliente_nombre?: string | null }) => (i.client_id ? clientMap.get(i.client_id)?.nombre ?? "" : i.cliente_nombre ?? "");
   const exactInvoices = searchNorm
-    ? invoices.filter((i) => {
-        const c = i.client_id ? clientMap.get(i.client_id) : null;
-        return normalizeText(c?.nombre).includes(normalizeText(searchNorm));
-      })
+    ? invoices.filter((i) => normalizeText(invName(i as Invoice & { cliente_nombre?: string | null })).includes(normalizeText(searchNorm)))
     : invoices;
   const filteredInvoices = !searchNorm || exactInvoices.length > 0
     ? exactInvoices
-    : invoices.filter((i) => {
-        const c = i.client_id ? clientMap.get(i.client_id) : null;
-        return fuzzyMatch(c?.nombre, searchNorm);
-      });
+    : invoices.filter((i) => fuzzyMatch(invName(i as Invoice & { cliente_nombre?: string | null }), searchNorm));
   const filteredTotal = filteredInvoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   function openNew() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
+    setClientText("");
     setEditingId(null);
     setOpen(true);
   }
 
   function openEdit(inv: Invoice) {
     setForm(inv);
+    setClientText((inv as Invoice & { cliente_nombre?: string | null }).cliente_nombre ?? "");
     setEditingId(inv.id);
     setOpen(true);
   }
@@ -217,13 +216,14 @@ function FacturacionPage() {
       precio_cobrado: form.precio_cobrado!,
       nota: form.nota ?? null,
       sesiones_override: bonoId && clientId ? sesionesOverride : null,
+      cliente_nombre: clientId ? null : (clientText.trim() || null),
     };
     if (editingId) {
-      const { error } = await supabase.from("invoices").update(payload).eq("id", editingId);
+      const { error } = await supabase.from("invoices").update(payload as never).eq("id", editingId);
       if (error) { toast.error(error.message); return; }
       toast.success("Factura actualizada");
     } else {
-      const { error } = await supabase.from("invoices").insert(payload);
+      const { error } = await supabase.from("invoices").insert(payload as never);
       if (error) { toast.error(error.message); return; }
       toast.success("Factura registrada · bono actualizado");
     }
@@ -296,6 +296,18 @@ function FacturacionPage() {
                           <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-300">Alta</span>
                         )}
                       </div>
+                    ) : (i as Invoice & { cliente_nombre?: string | null }).cliente_nombre ? (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="text-muted-foreground">
+                              {formatNameTitle((i as Invoice & { cliente_nombre?: string | null }).cliente_nombre!)}
+                              <span className="ml-0.5 font-bold text-amber-600 dark:text-amber-400">*</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent>Cliente no registrado</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
                     ) : <span className="text-muted-foreground italic">Sin cliente</span>;
                   })()}
                 </TableCell>
@@ -351,7 +363,7 @@ function FacturacionPage() {
             </div>
             <div className="space-y-1.5">
               <Label>Cliente</Label>
-            <ClientPicker autoFocus value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} />
+              <ClientPicker autoFocus value={form.client_id ?? null} onChange={(id) => setForm({ ...form, client_id: id ?? undefined })} onTextChange={setClientText} initialText={clientText} />
             </div>
             <div className="flex items-end gap-3">
               <div className="space-y-1.5 flex-1 min-w-0">
