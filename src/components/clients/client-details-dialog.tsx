@@ -141,10 +141,10 @@ export function ClientDetailsDialog({
                   {anteriores.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bonos anteriores</h3>
-                      <div className="mt-1 max-h-[13rem] overflow-y-auto overscroll-contain">
+                      <div className="mt-1 max-h-[11rem] overflow-y-auto overscroll-contain">
                         <Table className="table-fixed">
                           <TableHeader className="sticky top-0 z-10 bg-card">
-                            <TableRow>
+                            <TableRow className="h-8">
                               <TableHead className="w-[22%]">Bono</TableHead>
                               <TableHead className="w-[36%]">Servicio</TableHead>
                               <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
