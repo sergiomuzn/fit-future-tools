@@ -141,50 +141,52 @@ export function ClientDetailsDialog({
                   {anteriores.length > 0 && (
                     <div>
                       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Bonos anteriores</h3>
-                      <Table className="table-fixed mt-1">
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead className="w-[22%]">Bono</TableHead>
-                            <TableHead className="w-[36%]">Servicio</TableHead>
-                            <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
-                            <TableHead className="w-[12%] px-1 text-center text-xs">Realizadas</TableHead>
-                            <TableHead className="w-[16%] whitespace-nowrap px-1 text-center text-[11px]">Restantes al cerrar</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {anteriores.map((b) => {
-                            const cat = catMap.get(b.bono_catalogo_id ?? "");
-                            const slug = cat?.servicio_slug ?? b.servicio_slug;
-                            return (
-                              <TableRow key={b.id}>
-                                <TableCell className="truncate">
-                                  <span className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
-                                </TableCell>
-                                <TableCell>
-                                  {slug ? (
-                                    <div className="flex min-w-0 items-center gap-1.5">
-                                      <span
-                                        className="min-w-0 truncate rounded-full px-2 py-0.5 text-xs font-medium"
-                                        style={chipStyle(servicioColor(slug) ?? "#888888")}
-                                      >
-                                        {servMap.get(slug) ?? slug}
-                                      </span>
-                                      {(cat?.modalidad ?? b.modalidad) && (
-                                        <span className="shrink-0 whitespace-nowrap rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                          {cat?.modalidad ?? b.modalidad}
+                      <div className="mt-1 max-h-64 overflow-y-auto">
+                        <Table className="table-fixed">
+                          <TableHeader className="sticky top-0 z-10 bg-card">
+                            <TableRow>
+                              <TableHead className="w-[22%]">Bono</TableHead>
+                              <TableHead className="w-[36%]">Servicio</TableHead>
+                              <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
+                              <TableHead className="w-[12%] px-1 text-center text-xs">Realizadas</TableHead>
+                              <TableHead className="w-[16%] whitespace-nowrap px-1 text-center text-[11px]">Restantes al cerrar</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {anteriores.map((b) => {
+                              const cat = catMap.get(b.bono_catalogo_id ?? "");
+                              const slug = cat?.servicio_slug ?? b.servicio_slug;
+                              return (
+                                <TableRow key={b.id}>
+                                  <TableCell className="truncate">
+                                    <span className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</span>
+                                  </TableCell>
+                                  <TableCell>
+                                    {slug ? (
+                                      <div className="flex min-w-0 items-center gap-1.5">
+                                        <span
+                                          className="min-w-0 truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                                          style={chipStyle(servicioColor(slug) ?? "#888888")}
+                                        >
+                                          {servMap.get(slug) ?? slug}
                                         </span>
-                                      )}
-                                    </div>
-                                  ) : "—"}
-                                </TableCell>
-                                <TableCell className="whitespace-nowrap">{formatDateShort(b.ultimo_bono_fecha ?? b.fecha_inicio)}</TableCell>
-                                <TableCell className="px-1 text-center">{b.sesiones_realizadas}</TableCell>
-                                <TableCell className={cn("px-1 text-center", b.sesiones_disponibles < 0 && "text-red-500")}>{b.sesiones_disponibles}</TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
+                                        {(cat?.modalidad ?? b.modalidad) && (
+                                          <span className="shrink-0 whitespace-nowrap rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                            {cat?.modalidad ?? b.modalidad}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : "—"}
+                                  </TableCell>
+                                  <TableCell className="whitespace-nowrap">{formatDateShort(b.ultimo_bono_fecha ?? b.fecha_inicio)}</TableCell>
+                                  <TableCell className="px-1 text-center">{b.sesiones_realizadas}</TableCell>
+                                  <TableCell className={cn("px-1 text-center", b.sesiones_disponibles < 0 && "text-red-500")}>{b.sesiones_disponibles}</TableCell>
+                                </TableRow>
+                              );
+                            })}
+                          </TableBody>
+                        </Table>
+                      </div>
                     </div>
                   )}
                 </div>
