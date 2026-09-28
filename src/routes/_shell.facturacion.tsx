@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -174,6 +174,7 @@ function FacturacionPage() {
     setForm({ fecha: new Date().toISOString().slice(0, 10) });
     setClientText("");
     setEditingId(null);
+    preloadedClientRef.current = null;
     setOpen(true);
   }
 
