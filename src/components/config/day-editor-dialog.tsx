@@ -8,6 +8,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ymd, type SpecialDay } from "@/lib/center-schedule";
+import { formatDateShort } from "@/lib/utils";
 
 type Mode = "normal" | "cerrado" | "horario_especial";
 
@@ -76,7 +77,7 @@ export function DayEditorDialog({ open, onOpenChange, date, existing, onSaved }:
       <DialogContent onKeyDown={enterToSave(save)}>
         <DialogHeader>
           <DialogTitle>
-            {date ? date.toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", year: "numeric" }) : ""}
+             {date ? formatDateShort(date) : ""}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">

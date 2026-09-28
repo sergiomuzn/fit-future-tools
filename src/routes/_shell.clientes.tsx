@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExpandableSearch } from "@/components/expandable-search";
 import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
-import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { normalizeText, formatDateShort, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
@@ -452,11 +452,11 @@ function ClientesPage() {
                   })()}
                 </TableCell>}
                 {show("telefono") && <TableCell>{c.telefono ?? "—"}</TableCell>}
-                {show("inicio") && <TableCell>{c.fecha_inicio ?? "—"}</TableCell>}
+                {show("inicio") && <TableCell className="whitespace-nowrap">{formatDateShort(c.fecha_inicio)}</TableCell>}
                 {show("estado") && <TableCell>
                   <span className={`text-xs px-2 py-0.5 rounded-full ${c.activo ? "bg-state-prueba/30 text-state-prueba-fg" : "bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20"}`}>{c.activo ? "Activo" : "Inactivo"}</span>
                 </TableCell>}
-                {show("nacimiento") && <TableCell>{c.cumpleanos ?? "—"}</TableCell>}
+                {show("nacimiento") && <TableCell className="whitespace-nowrap">{formatDateShort(c.cumpleanos)}</TableCell>}
                 {show("sexo") && <TableCell>{SEXO_LABEL[c.sexo ?? ""] ?? "—"}</TableCell>}
                 <TableCell className="text-right">
                   <Button variant="ghost" size="icon" onClick={() => { setEditing(c); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>

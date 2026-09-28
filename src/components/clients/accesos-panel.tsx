@@ -21,7 +21,7 @@ import {
 import { accesoClienteLabel, type AccesoCliente } from "@/lib/client-portal-types";
 import { bonoTipoClienteLabel } from "@/lib/client-portal-types";
 import { useServicios } from "@/lib/servicios";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { crearInvitacionCliente, actualizarAccesoCliente } from "@/lib/accesos.functions";
 import { InvitarClientesInline } from "./invitar-clientes-inline";
 import { ClientDetailsDialog } from "./client-details-dialog";
@@ -383,7 +383,7 @@ export function AccesosPanel() {
                         </div>
                         <p className="truncate text-xs text-muted-foreground">
                           {formatAcceso(inv.acceso, servicioLabel)} · /invitacion/{inv.code} · caduca{" "}
-                          {new Date(inv.expires_at).toLocaleDateString("es-ES")}
+                           {formatDateShort(inv.expires_at)}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">

@@ -38,11 +38,10 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { yaComenzo } from "@/lib/booking-antelacion";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 import { shade, REALIZADA_SHADE } from "@/lib/colors";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { NotificationsBell } from "@/components/notifications-bell";
-import { DIAS_SEMANA_LONG } from "@/lib/db";
 import { useCenterName } from "@/lib/center-schedule";
 
 export const Route = createFileRoute("/cliente")({
@@ -65,9 +64,7 @@ export const Route = createFileRoute("/cliente")({
 });
 
 function formatFecha(fecha: string): string {
-  const [y, m, d] = fecha.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return `${DIAS_SEMANA_LONG[date.getDay()]} ${d} de ${date.toLocaleDateString("es-ES", { month: "long" })}`;
+  return formatDateShort(fecha);
 }
 
 function ClientePortal() {
@@ -513,13 +510,7 @@ function horasAviso(min: number): string {
 }
 
 function fechaCorta(fecha?: string | null): string {
-  if (!fecha) return "—";
-  const [y, m, d] = fecha.split("-").map(Number);
-  return new Date(y, m - 1, d).toLocaleDateString("es-ES", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatDateShort(fecha);
 }
 
 function DatoFila({ label, value }: { label: string; value: string }) {

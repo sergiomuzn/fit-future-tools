@@ -7,8 +7,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn, formatNameTitle } from "@/lib/utils";
+import { cn, formatDateShort, formatNameTitle } from "@/lib/utils";
 import { useServicios } from "@/lib/servicios";
+import { chipStyle, useColores } from "@/lib/colors";
 
 export type ClientDetailsTab = "info" | "historial" | "calendario";
 
@@ -32,6 +33,7 @@ export function ClientDetailsDialog({
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const { data: servicios = [] } = useServicios();
   const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
+  const { servicioColor } = useColores();
 
   const history = client
     ? bonos
@@ -41,7 +43,7 @@ export function ClientDetailsDialog({
 
   return (
     <Dialog open={!!client} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl overflow-x-hidden">
+      <DialogContent className="max-w-3xl overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>{formatNameTitle(client?.nombre)}</DialogTitle>
         </DialogHeader>
@@ -62,8 +64,8 @@ export function ClientDetailsDialog({
                 } />
                 <Field label="Teléfono" value={client.telefono ?? "—"} />
                 <Field label="Email" value={client.email ?? "—"} />
-                <Field label="Fecha de inicio" value={client.fecha_inicio ?? "—"} />
-                <Field label="Fecha de nacimiento" value={client.cumpleanos ?? "—"} />
+                <Field label="Fecha de inicio" value={formatDateShort(client.fecha_inicio)} />
+                <Field label="Fecha de nacimiento" value={formatDateShort(client.cumpleanos)} />
                 <Field label="Sexo" value={client.sexo === "hombre" ? "Hombre" : client.sexo === "mujer" ? "Mujer" : "—"} />
               </dl>
               {client.notas && (
@@ -80,12 +82,11 @@ export function ClientDetailsDialog({
                 <Table className="table-fixed">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[24%]">Bono</TableHead>
-                      <TableHead className="w-[19%]">Servicio</TableHead>
-                      <TableHead className="w-[16%]">Modalidad</TableHead>
-                      <TableHead className="w-[15%]">Fecha</TableHead>
+                      <TableHead className="w-[22%]">Bono</TableHead>
+                      <TableHead className="w-[36%]">Servicio</TableHead>
+                      <TableHead className="w-[14%] whitespace-nowrap">Fecha</TableHead>
                       <TableHead className="w-[12%] px-1 text-center text-xs">Realizadas</TableHead>
-                      <TableHead className="w-[14%] px-1 text-center text-xs leading-tight">Restantes al cerrar</TableHead>
+                      <TableHead className="w-[16%] whitespace-nowrap px-1 text-center text-[11px]">Restantes al cerrar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -95,13 +96,24 @@ export function ClientDetailsDialog({
                       return (
                         <TableRow key={b.id}>
                           <TableCell className="truncate">{prettyBonoNombre(cat?.nombre ?? b.ultimo_bono_nombre)}</TableCell>
-                          <TableCell className="truncate">{slug ? (
-                            <span className="block truncate rounded-full border bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                              {servMap.get(slug) ?? slug}
-                            </span>
-                          ) : "—"}</TableCell>
-                          <TableCell className="truncate">{cat?.modalidad ?? b.modalidad ?? "—"}</TableCell>
-                          <TableCell className="truncate">{b.ultimo_bono_fecha ?? b.fecha_inicio}</TableCell>
+                           <TableCell>
+                             {slug ? (
+                               <div className="flex min-w-0 items-center gap-1.5">
+                                 <span
+                                   className="min-w-0 truncate rounded-full px-2 py-0.5 text-xs font-medium"
+                                   style={chipStyle(servicioColor(slug) ?? "#888888")}
+                                 >
+                                   {servMap.get(slug) ?? slug}
+                                 </span>
+                                 {(cat?.modalidad ?? b.modalidad) && (
+                                   <span className="shrink-0 whitespace-nowrap rounded-full border bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                     {cat?.modalidad ?? b.modalidad}
+                                   </span>
+                                 )}
+                               </div>
+                             ) : "—"}
+                           </TableCell>
+                           <TableCell className="whitespace-nowrap">{formatDateShort(b.ultimo_bono_fecha ?? b.fecha_inicio)}</TableCell>
                           <TableCell className="px-1 text-center">{b.sesiones_realizadas}</TableCell>
                           <TableCell className={cn("px-1 text-center", b.sesiones_disponibles < 0 && "text-red-500")}>{b.sesiones_disponibles}</TableCell>
                         </TableRow>

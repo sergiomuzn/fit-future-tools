@@ -25,6 +25,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { formatDateShort } from "@/lib/utils";
 
 export const Route = createFileRoute("/superadmin/")({
   ssr: false,
@@ -32,8 +33,7 @@ export const Route = createFileRoute("/superadmin/")({
 });
 
 function fmtDate(v?: string | null) {
-  if (!v) return "—";
-  return new Date(v).toLocaleDateString("es-ES", { day: "2-digit", month: "short", year: "numeric" });
+  return formatDateShort(v);
 }
 
 function SuperadminHome() {

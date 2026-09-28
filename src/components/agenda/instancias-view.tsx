@@ -18,6 +18,7 @@ import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { SlotsWeekGrid } from "./slots-week-grid";
 import { enterToSave } from "@/lib/enter-to-save";
+import { formatDateShort } from "@/lib/utils";
 
 const NONE = "__none";
 
@@ -444,7 +445,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           </DialogHeader>
           {pending && (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">{pending.fecha}</p>
+               <p className="text-sm text-muted-foreground">{formatDateShort(pending.fecha)}</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <Label>Hora de inicio</Label>
@@ -494,7 +495,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               Hueco propagado ·{" "}
               {editing ? (
                 <span className="whitespace-nowrap">
-                  {DIA_NOMBRE[dowOf(editing.fecha)]} {editing.fecha}
+                   {DIA_NOMBRE[dowOf(editing.fecha)]} {formatDateShort(editing.fecha)}
                 </span>
               ) : (
                 ""
@@ -601,7 +602,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
                 <>
                   {nombreServicio(reservasDe.servicio_slug)} ·{" "}
                   <span className="whitespace-nowrap">
-                    {DIA_NOMBRE[dowOf(reservasDe.fecha)]} {reservasDe.fecha}
+                     {DIA_NOMBRE[dowOf(reservasDe.fecha)]} {formatDateShort(reservasDe.fecha)}
                   </span>
                   {" · "}{hhmm(reservasDe.hora_inicio)}
                 </>

@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Format every user-visible date through `formatDateShort` as `dd/mm/yy`; keep ISO only for storage, inputs, queries, and comparisons so presentation stays consistent without changing date semantics.

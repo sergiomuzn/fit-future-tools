@@ -27,6 +27,22 @@ export function formatNameTitle(name: string | null | undefined): string {
     .join(" ");
 }
 
+/** Muestra fechas visibles de forma uniforme como dd/mm/aa. */
+export function formatDateShort(value: Date | string | null | undefined): string {
+  if (!value) return "—";
+  if (typeof value === "string") {
+    const dateOnly = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+    if (dateOnly) return `${dateOnly[3]}/${dateOnly[2]}/${dateOnly[1].slice(-2)}`;
+  }
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return [
+    String(date.getDate()).padStart(2, "0"),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getFullYear()).slice(-2),
+  ].join("/");
+}
+
 /** Distancia de Levenshtein simple. */
 function levenshtein(a: string, b: string): number {
   if (a === b) return 0;

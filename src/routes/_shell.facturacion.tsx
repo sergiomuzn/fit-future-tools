@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { closedSelectEnterToSave, enterToSave } from "@/lib/enter-to-save";
-import { normalizeText, fuzzyMatch } from "@/lib/utils";
+import { normalizeText, fuzzyMatch, formatDateShort } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -288,7 +288,7 @@ function FacturacionPage() {
               const cat = catMap.get(i.bono_catalogo_id ?? "");
               return (
               <TableRow key={i.id}>
-                <TableCell>{i.fecha}</TableCell>
+                <TableCell className="whitespace-nowrap">{formatDateShort(i.fecha)}</TableCell>
                 <TableCell>{i.cobrador_trainer_id ? trainerMap.get(i.cobrador_trainer_id)?.nombre : "—"}</TableCell>
                 <TableCell className="font-medium">
                   {(() => {

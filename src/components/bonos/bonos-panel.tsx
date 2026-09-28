@@ -8,7 +8,7 @@ import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
-import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { normalizeText, formatDateShort, formatNameTitle, fuzzyMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -436,7 +436,7 @@ export function BonosPanel() {
                           <span className="text-xs px-2 py-0.5 rounded-full bg-state-prueba/30 text-state-prueba-fg">Activo</span>
                         ) : caducado ? (
                           <span
-                            title={`Bono caducado el ${b.fecha_caducidad}`}
+                             title={`Bono caducado el ${formatDateShort(b.fecha_caducidad)}`}
                             className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
                           >Agotado</span>
                         ) : (
@@ -450,7 +450,7 @@ export function BonosPanel() {
                   {g.bonos.map((b) => <div key={b.id} className={SUB}>{prettyBonoNombre(b.ultimo_bono_nombre)}</div>)}
                 </TableCell>}
                 {show("fecha") && <TableCell>
-                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{b.ultimo_bono_fecha ?? "—"}</div>)}
+                  {g.bonos.map((b) => <div key={b.id} className={SUB}>{formatDateShort(b.ultimo_bono_fecha)}</div>)}
                 </TableCell>}
                 <TableCell>
                   {g.bonos.map((b) => (
