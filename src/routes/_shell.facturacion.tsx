@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -49,6 +49,8 @@ function FacturacionPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [viewingClient, setViewingClient] = useState<Client | null>(null);
   const [confirmNoClient, setConfirmNoClient] = useState(false);
+  const trainerEnterSave = useRef(false);
+  const suppressTrainerEnter = useRef(0);
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
   const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
@@ -193,29 +195,30 @@ function FacturacionPage() {
     qc.invalidateQueries({ queryKey: ["client-altas"] });
   }
 
-  async function save() {
-    if (!form.client_id) {
+  async function save(overrides: Partial<Invoice> = {}) {
+    const f = { ...form, ...overrides };
+    if (!f.client_id) {
       setConfirmNoClient(true);
       return;
     }
-    await persist();
+    await persist(f);
   }
 
-  async function persist() {
-    const clientId = form.client_id ?? null;
-    const bonoId = form.bono_catalogo_id?.trim() || null;
-    const overrideRaw = (form as { sesiones_override?: number | null }).sesiones_override;
+  async function persist(f: Partial<Invoice> = form) {
+    const clientId = f.client_id ?? null;
+    const bonoId = f.bono_catalogo_id?.trim() || null;
+    const overrideRaw = (f as { sesiones_override?: number | null }).sesiones_override;
     const sesionesOverride =
       overrideRaw === undefined || overrideRaw === null || (overrideRaw as unknown as string) === ""
         ? null
         : Number(overrideRaw);
     const payload = {
-      fecha: form.fecha!,
-      cobrador_trainer_id: form.cobrador_trainer_id ?? null,
+      fecha: f.fecha!,
+      cobrador_trainer_id: f.cobrador_trainer_id ?? null,
       client_id: clientId,
       bono_catalogo_id: bonoId,
-      precio_cobrado: form.precio_cobrado!,
-      nota: form.nota ?? null,
+      precio_cobrado: f.precio_cobrado!,
+      nota: f.nota ?? null,
       sesiones_override: bonoId && clientId ? sesionesOverride : null,
     };
     if (editingId) {
@@ -343,9 +346,31 @@ function FacturacionPage() {
               <div className="space-y-1.5"><Label>Fecha</Label><Input type="date" value={form.fecha ?? ""} onChange={(e) => setForm({ ...form, fecha: e.target.value })} /></div>
               <div className="space-y-1.5">
                 <Label>Cobrador</Label>
-                <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => setForm({ ...form, cobrador_trainer_id: v })}>
-                  <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
+                <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => {
+                  setForm((f) => ({ ...f, cobrador_trainer_id: v }));
+                  // Enter sobre la lista: guardar la factura en cuanto se elige el entrenador.
+                  if (trainerEnterSave.current) {
+                    trainerEnterSave.current = false;
+                    void save({ cobrador_trainer_id: v });
+                  }
+                }}>
+                  <SelectTrigger
+                    onKeyDown={(e) => {
+                      // Evita que el Enter que confirma la selección reabra la lista.
+                      if (e.key === "Enter" && Date.now() - suppressTrainerEnter.current < 400) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }
+                    }}
+                  ><SelectValue placeholder="—" /></SelectTrigger>
+                  <SelectContent
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        trainerEnterSave.current = true;
+                        suppressTrainerEnter.current = Date.now();
+                      }
+                    }}
+                  >{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
@@ -406,7 +431,7 @@ function FacturacionPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button onClick={save}>{editingId ? "Guardar" : "Registrar"}</Button>
+            <Button onClick={() => save()}>{editingId ? "Guardar" : "Registrar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
