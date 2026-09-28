@@ -37,8 +37,11 @@ export function ClientDetailsDialog({
 
   const history = client
     ? bonos
-        .filter((b) => b.client_id === client.id && !b.activo)
-        .sort((a, b) => (b.ultimo_bono_fecha ?? "").localeCompare(a.ultimo_bono_fecha ?? ""))
+        .filter((b) => b.client_id === client.id)
+        .sort((a, b) =>
+          Number(b.activo) - Number(a.activo) ||
+          (b.ultimo_bono_fecha ?? b.fecha_inicio ?? "").localeCompare(a.ultimo_bono_fecha ?? a.fecha_inicio ?? ""),
+        )
     : [];
 
   return (
