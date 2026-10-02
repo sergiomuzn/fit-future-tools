@@ -170,7 +170,7 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
  */
 export function asignarReservasAHuecos<
   H extends { id: string; servicio_slug: string; fecha: string; hora_inicio: string; capacidad: number; trainer_id: string | null },
-  S extends { servicio_slug: string | null; fecha: string; hora_inicio: string; trainer_id?: string | null },
+  S extends { servicio_slug: string | null; fecha: string; hora_inicio: string; trainer_id?: string | null; slot_instance_id?: string | null },
 >(huecos: H[], sesiones: S[]): Map<string, S[]> {
   const out = new Map<string, S[]>();
   const grupos = new Map<string, H[]>();
@@ -183,8 +183,14 @@ export function asignarReservasAHuecos<
   }
   for (const arr of grupos.values()) arr.sort((a, b) => a.id.localeCompare(b.id));
   const libre = (h: H) => out.get(h.id)!.length < Math.max(1, h.capacidad ?? 1);
+  // Las reservas hechas sobre un hueco concreto van siempre a ese hueco.
+  const resto: S[] = [];
+  for (const s of sesiones) {
+    if (s.slot_instance_id && out.has(s.slot_instance_id)) out.get(s.slot_instance_id)!.push(s);
+    else resto.push(s);
+  }
   // Primero las que tienen entrenador, para que ocupen su hueco antes que las genéricas.
-  const orden = [...sesiones].sort((a, b) => Number(!a.trainer_id) - Number(!b.trainer_id));
+  const orden = resto.sort((a, b) => Number(!a.trainer_id) - Number(!b.trainer_id));
   for (const s of orden) {
     const grupo = grupos.get(`${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`);
     if (!grupo?.length) continue;

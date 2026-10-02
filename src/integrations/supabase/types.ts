@@ -1087,6 +1087,7 @@ export type Database = {
           por_confirmar: boolean
           recurrencia_id: string | null
           servicio_slug: string | null
+          slot_instance_id: string | null
           tipo: string | null
           titulo: string | null
           trainer_id: string | null
@@ -1111,6 +1112,7 @@ export type Database = {
           por_confirmar?: boolean
           recurrencia_id?: string | null
           servicio_slug?: string | null
+          slot_instance_id?: string | null
           tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
@@ -1135,6 +1137,7 @@ export type Database = {
           por_confirmar?: boolean
           recurrencia_id?: string | null
           servicio_slug?: string | null
+          slot_instance_id?: string | null
           tipo?: string | null
           titulo?: string | null
           trainer_id?: string | null
@@ -1160,6 +1163,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_slot_instance_id_fkey"
+            columns: ["slot_instance_id"]
+            isOneToOne: false
+            referencedRelation: "service_slot_instances"
             referencedColumns: ["id"]
           },
           {

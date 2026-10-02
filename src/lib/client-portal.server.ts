@@ -361,7 +361,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
         .lte("fecha", to),
       supabaseAdmin
         .from("sessions")
-        .select("id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar")
+        .select("id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar,slot_instance_id")
         .is("group_id", null)
         .gte("fecha", from)
         .lte("fecha", to)
@@ -388,6 +388,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     booked_by_user_id: string | null;
     booking_tipo: string | null;
     por_confirmar: boolean;
+    slot_instance_id: string | null;
   };
   type Hueco = {
     id: string;
@@ -811,7 +812,7 @@ async function bookHuecoForUser(
   const [{ data: existentes }, { data: hermanos }] = await Promise.all([
     supabaseAdmin
       .from("sessions")
-      .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id")
+      .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id,slot_instance_id")
       .is("group_id", null)
       .eq("fecha", hueco.fecha)
       .eq("hora_inicio", hueco.hora_inicio)
@@ -836,6 +837,7 @@ async function bookHuecoForUser(
     fecha: string;
     hora_inicio: string;
     trainer_id: string | null;
+    slot_instance_id: string | null;
   }[]).filter((r) => !!r.client_id && (!!r.booked_by_user_id || !!r.booking_tipo));
   if (todas.some((r) => r.booked_by_user_id === userId)) throw new Error("Ya tienes esta reserva");
   const grupo = (hermanos ?? []) as {
@@ -880,6 +882,7 @@ async function bookHuecoForUser(
       booked_by_user_id: userId,
       booking_tipo: profile.bonoTipo,
       por_confirmar: porConfirmar,
+      slot_instance_id: hueco.id,
     })
     .select("id")
     .single();
@@ -983,7 +986,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
   const supabaseAdmin = centroDb(centroId);
   const { data: row } = await supabaseAdmin
     .from("sessions")
-    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,trainer_id,booked_by_user_id,por_confirmar")
+    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,trainer_id,booked_by_user_id,por_confirmar,slot_instance_id")
     .eq("id", sessionId)
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");

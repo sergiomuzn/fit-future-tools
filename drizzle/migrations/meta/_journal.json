@@ -71,6 +71,13 @@
       "when": 1790954730085,
       "tag": "0009_slot_instances_unique_per_template_slot",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790956038973,
+      "tag": "0010_sessions_slot_instance_id",
+      "breakpoints": true
     }
   ]
 }

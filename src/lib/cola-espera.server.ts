@@ -88,7 +88,7 @@ async function slotInfo(
     const [{ data: rows }, { data: hermanos }] = await Promise.all([
       db
         .from("sessions")
-        .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id")
+        .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id,slot_instance_id")
         .is("group_id", null)
         .eq("fecha", hueco.fecha)
         .eq("hora_inicio", hueco.hora_inicio)
@@ -178,9 +178,11 @@ export async function claveDeSesion(
     hora_inicio: string;
     servicio_slug: string | null;
     trainer_id?: string | null;
+    slot_instance_id?: string | null;
   },
 ): Promise<string | null> {
   if (row.group_id) return `${row.group_id}|${row.fecha}|${row.hora_inicio}`;
+  if (row.slot_instance_id) return `hueco|${row.slot_instance_id}`;
   if (!row.servicio_slug) return null;
   const db = centroDb(centroId);
   const { data } = await db
