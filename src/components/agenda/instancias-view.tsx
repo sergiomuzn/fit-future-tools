@@ -102,7 +102,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const { data } = await supabase
         .from("sessions")
         .select(
-          "id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,titulo,booking_tipo,booked_by_user_id,clients(nombre)",
+          "id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,titulo,booking_tipo,booked_by_user_id,slot_instance_id,clients(nombre)",
         )
         .gte("fecha", from)
         .lte("fecha", to);
