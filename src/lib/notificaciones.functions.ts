@@ -233,7 +233,7 @@ export const resolverReservaPendiente = createServerFn({ method: "POST" })
 
     const { data: row } = await supabaseAdmin
       .from("sessions")
-      .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,trainer_id,booked_by_user_id,por_confirmar")
+      .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,trainer_id,booked_by_user_id,por_confirmar,slot_instance_id")
       .eq("id", data.sessionId)
       .maybeSingle();
     if (!row) return { ok: false as const, reason: "no_existe" as const };
