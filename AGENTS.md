@@ -10,3 +10,4 @@
 <!-- LOVABLE:END -->
 
 - Format every user-visible date through `formatDateShort` as `dd/mm/yy`; keep ISO only for storage, inputs, queries, and comparisons so presentation stays consistent without changing date semantics.
+- Propagated slot instances are unique per (service_slot_id, fecha), never merged by service+time; bookings are distributed across same-time instances via asignarReservasAHuecos (trainer match first) — two template slots at the same hour are distinct sessions.

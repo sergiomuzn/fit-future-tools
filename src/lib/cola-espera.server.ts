@@ -1,3 +1,4 @@
+import { asignarReservasAHuecos } from "./slot-propagation-core";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /**
  * Lógica de servidor de la cola de espera.
@@ -80,19 +81,49 @@ async function slotInfo(
   if (clave.startsWith("hueco|")) {
     const { data: hueco } = await db
       .from("service_slot_instances")
-      .select("id,servicio_slug,fecha,hora_inicio,hora_fin,capacidad,activo")
+      .select("id,servicio_slug,fecha,hora_inicio,hora_fin,capacidad,activo,trainer_id")
       .eq("id", clave.slice("hueco|".length))
       .maybeSingle();
     if (!hueco || hueco.activo === false) return null;
-    const { data: rows } = await db
-      .from("sessions")
-      .select("id,client_id,booked_by_user_id")
-      .is("group_id", null)
-      .eq("fecha", hueco.fecha)
-      .eq("hora_inicio", hueco.hora_inicio)
-      .eq("servicio_slug", hueco.servicio_slug)
-      .neq("estado", "cancelada");
-    const list = (rows ?? []) as { client_id: string | null; booked_by_user_id: string | null }[];
+    const [{ data: rows }, { data: hermanos }] = await Promise.all([
+      db
+        .from("sessions")
+        .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id")
+        .is("group_id", null)
+        .eq("fecha", hueco.fecha)
+        .eq("hora_inicio", hueco.hora_inicio)
+        .eq("servicio_slug", hueco.servicio_slug)
+        .neq("estado", "cancelada"),
+      db
+        .from("service_slot_instances")
+        .select("id,servicio_slug,fecha,hora_inicio,capacidad,trainer_id")
+        .eq("activo", true)
+        .eq("fecha", hueco.fecha)
+        .eq("hora_inicio", hueco.hora_inicio)
+        .eq("servicio_slug", hueco.servicio_slug),
+    ]);
+    type Fila = {
+      client_id: string | null;
+      booked_by_user_id: string | null;
+      booking_tipo: string | null;
+      servicio_slug: string | null;
+      fecha: string;
+      hora_inicio: string;
+      trainer_id: string | null;
+    };
+    const grupo = (hermanos ?? []) as {
+      id: string;
+      servicio_slug: string;
+      fecha: string;
+      hora_inicio: string;
+      capacidad: number;
+      trainer_id: string | null;
+    }[];
+    if (!grupo.some((h) => h.id === hueco.id)) grupo.push(hueco);
+    const portal = ((rows ?? []) as Fila[]).filter(
+      (r) => !!r.client_id && (!!r.booked_by_user_id || !!r.booking_tipo),
+    );
+    const list = asignarReservasAHuecos(grupo, portal).get(hueco.id) ?? [];
     return {
       servicioSlug: hueco.servicio_slug,
       groupId: null,
@@ -141,20 +172,29 @@ async function slotInfo(
 /** Clave de portal correspondiente a una sesión concreta. */
 export async function claveDeSesion(
   centroId: string,
-  row: { group_id: string | null; fecha: string; hora_inicio: string; servicio_slug: string | null },
+  row: {
+    group_id: string | null;
+    fecha: string;
+    hora_inicio: string;
+    servicio_slug: string | null;
+    trainer_id?: string | null;
+  },
 ): Promise<string | null> {
   if (row.group_id) return `${row.group_id}|${row.fecha}|${row.hora_inicio}`;
   if (!row.servicio_slug) return null;
   const db = centroDb(centroId);
   const { data } = await db
     .from("service_slot_instances")
-    .select("id")
+    .select("id,trainer_id")
     .eq("fecha", row.fecha)
     .eq("hora_inicio", row.hora_inicio)
     .eq("servicio_slug", row.servicio_slug)
-    .limit(1)
-    .maybeSingle();
-  return data?.id ? `hueco|${data.id}` : null;
+    .order("id");
+  const lista = (data ?? []) as { id: string; trainer_id: string | null }[];
+  // Si hay varios huecos a la misma hora, el del entrenador de la reserva.
+  const hueco =
+    lista.find((h) => row.trainer_id && h.trainer_id === row.trainer_id) ?? lista[0];
+  return hueco ? `hueco|${hueco.id}` : null;
 }
 
 function describe(fecha: string, hora: string): string {

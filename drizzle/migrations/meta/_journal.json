@@ -64,6 +64,13 @@
       "when": 1790606462847,
       "tag": "0008_skip_bono_when_invoice_sin_bono",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790954730085,
+      "tag": "0009_slot_instances_unique_per_template_slot",
+      "breakpoints": true
     }
   ]
 }

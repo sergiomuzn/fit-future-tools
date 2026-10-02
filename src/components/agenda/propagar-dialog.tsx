@@ -22,7 +22,7 @@ import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 import { useServiceSlots } from "@/lib/service-slots";
 import {
   buildPropagationPlan,
-  instanceKey,
+  existingInstanceKeys,
   mondayOf,
   usePropagacionAuto,
   usePropagacionSemanas,
@@ -126,7 +126,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
           .neq("estado", "cancelada"),
         supabase
           .from("service_slot_instances")
-          .select("servicio_slug,fecha,hora_inicio,hora_fin")
+          .select("service_slot_id,servicio_slug,fecha,hora_inicio,hora_fin")
           .gte("fecha", rango!.from)
           .lte("fecha", rango!.to),
       ]);
@@ -137,14 +137,13 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         sesionesPorFecha.set(s.fecha, arr);
       }
       const filas = (instancias ?? []) as {
+        service_slot_id: string | null;
         servicio_slug: string;
         fecha: string;
         hora_inicio: string;
         hora_fin: string;
       }[];
-      const existentes = new Set(
-        filas.map((i) => instanceKey(i.servicio_slug, i.fecha, i.hora_inicio, i.hora_fin)),
-      );
+      const existentes = existingInstanceKeys(filas);
       return { sesionesPorFecha, existentes };
     },
   });
@@ -169,7 +168,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
         const { error } = await supabase
           .from("service_slot_instances")
           .upsert(plan.rows.slice(i, i + 200), {
-            onConflict: "servicio_slug,fecha,hora_inicio,hora_fin",
+            onConflict: "service_slot_id,fecha",
             ignoreDuplicates: true,
           });
         if (error) throw new Error(error.message);
