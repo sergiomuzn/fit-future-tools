@@ -100,8 +100,16 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
   for (const fecha of fechas) {
     const dow = new Date(`${fecha}T00:00:00`).getDay();
     const sesionesDia = sesionesPorFecha.get(fecha) ?? [];
+    // Huecos idénticos (mismo servicio y horario) en la semana tipo se fusionan
+    // en una sola instancia sumando sus plazas, para no perder ninguno.
+    const nuevosDia = new Map<string, NuevaInstancia>();
     for (const s of plantilla.filter((p) => p.dia_semana === dow)) {
       const key = instanceKey(s.servicio_slug, fecha, s.hora_inicio, s.hora_fin);
+      const previo = nuevosDia.get(key);
+      if (previo) {
+        previo.capacidad += Math.max(1, s.capacidad);
+        continue;
+      }
       if (vistos.has(key)) {
         yaExistentes++;
         continue;
@@ -116,7 +124,7 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
         omitidosPorModo++;
         continue;
       }
-      rows.push({
+      const row: NuevaInstancia = {
         service_slot_id: s.id,
         servicio_slug: s.servicio_slug,
         fecha,
@@ -125,7 +133,9 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
         capacidad: Math.max(1, s.capacidad),
         trainer_id: s.trainer_id,
         origen: input.origen ?? "manual",
-      });
+      };
+      nuevosDia.set(key, row);
+      rows.push(row);
       porFecha[fecha] = (porFecha[fecha] ?? 0) + 1;
     }
   }
