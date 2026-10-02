@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { capacidadDeServicio, useServicios } from "@/lib/servicios";
 import { DIA_NOMBRE, hhmm, type ServiceSlot } from "@/lib/service-slots";
-import { mondayOf, weekDates, ymdLocal, useSlotInstances, type SlotInstance } from "@/lib/slot-propagation";
+import { asignarReservasAHuecos, mondayOf, weekDates, ymdLocal, useSlotInstances, type SlotInstance } from "@/lib/slot-propagation";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { SlotsWeekGrid } from "./slots-week-grid";
@@ -28,6 +28,7 @@ interface Reserva {
   fecha: string;
   hora_inicio: string;
   servicio_slug: string | null;
+  trainer_id: string | null;
   client_id: string | null;
   estado: string;
   titulo: string | null;
