@@ -1,0 +1,2 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS slot_instance_id uuid REFERENCES public.service_slot_instances(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS sessions_slot_instance_id_idx ON public.sessions(slot_instance_id);
