@@ -101,7 +101,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const { data } = await supabase
         .from("sessions")
         .select(
-          "id,fecha,hora_inicio,servicio_slug,client_id,estado,titulo,booking_tipo,booked_by_user_id,clients(nombre)",
+          "id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,titulo,booking_tipo,booked_by_user_id,clients(nombre)",
         )
         .gte("fecha", from)
         .lte("fecha", to);
@@ -114,22 +114,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
    * Solo cuentan las reservas hechas por clientes desde el portal: las sesiones
    * creadas manualmente en Agenda nunca ocupan un hueco propagado.
    */
-  const reservasPorHueco = useMemo(() => {
-    const m = new Map<string, Reserva[]>();
-    for (const r of sesiones) {
-      if (!r.client_id || r.estado === "cancelada") continue;
-      const esReservaCliente = !!r.booked_by_user_id || !!r.booking_tipo;
-      if (!esReservaCliente) continue;
-      const k = `${r.servicio_slug ?? ""}|${r.fecha}|${r.hora_inicio.slice(0, 5)}`;
-      const arr = m.get(k) ?? [];
-      arr.push(r);
-      m.set(k, arr);
-    }
-    return m;
-  }, [sesiones]);
-
-  const reservadas = useMemo(() => new Set(reservasPorHueco.keys()), [reservasPorHueco]);
-
   const visibles = useMemo(
     () => instancias.filter((i) => (servicioSlug ? i.servicio_slug === servicioSlug : true)),
     [instancias, servicioSlug],
@@ -151,12 +135,20 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     [visibles],
   );
   const instById = useMemo(() => new Map(visibles.map((i) => [i.id, i])), [visibles]);
+  /**
+   * Reservas activas por hueco propagado. Solo cuentan las reservas hechas por
+   * clientes desde el portal: las sesiones creadas manualmente en Agenda nunca
+   * ocupan un hueco. Varios huecos a la misma hora se reparten las reservas.
+   */
+  const reservasPorHueco = useMemo(() => {
+    const portal = sesiones.filter(
+      (r) => !!r.client_id && r.estado !== "cancelada" && (!!r.booked_by_user_id || !!r.booking_tipo),
+    );
+    return asignarReservasAHuecos(instancias, portal);
+  }, [sesiones, instancias]);
   const lockedIds = useMemo(
-    () =>
-      visibles
-        .filter((i) => reservadas.has(`${i.servicio_slug}|${i.fecha}|${i.hora_inicio.slice(0, 5)}`))
-        .map((i) => i.id),
-    [visibles, reservadas],
+    () => visibles.filter((i) => (reservasPorHueco.get(i.id)?.length ?? 0) > 0).map((i) => i.id),
+    [visibles, reservasPorHueco],
   );
   const lockedSet = useMemo(() => new Set(lockedIds), [lockedIds]);
 
@@ -172,7 +164,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   };
 
   const reservasDeHueco = (i: SlotInstance) =>
-    reservasPorHueco.get(`${i.servicio_slug}|${i.fecha}|${i.hora_inicio.slice(0, 5)}`) ?? [];
+    reservasPorHueco.get(i.id) ?? [];
 
   /**
    * Si los huecos tienen reservas hechas por clientes desde la app, avisa (igual

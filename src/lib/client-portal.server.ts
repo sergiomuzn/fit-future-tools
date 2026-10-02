@@ -1,3 +1,4 @@
+import { asignarReservasAHuecos } from "./slot-propagation-core";
 import { supabaseAdmin as rootAdmin } from "@/integrations/supabase/client.server";
 import { centroDb, getCentroIdForUser, getCentroIdOfRow } from "./centro-scope.server";
 import {
