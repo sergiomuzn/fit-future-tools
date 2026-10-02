@@ -88,7 +88,7 @@ async function slotInfo(
     const [{ data: rows }, { data: hermanos }] = await Promise.all([
       db
         .from("sessions")
-        .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id")
+        .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id,slot_instance_id")
         .is("group_id", null)
         .eq("fecha", hueco.fecha)
         .eq("hora_inicio", hueco.hora_inicio)
