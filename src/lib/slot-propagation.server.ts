@@ -3,7 +3,7 @@ import { centroDb } from "./centro-scope.server";
 import { parseBookingMode } from "./booking-mode";
 import {
   buildPropagationPlan,
-  instanceKey,
+  existingInstanceKeys,
   mondayOf,
   parsePropagacionSemanas,
   weekDates,
@@ -80,7 +80,7 @@ async function propagarCentro(
       .neq("estado", "cancelada"),
     supabaseAdmin
       .from("service_slot_instances")
-      .select("servicio_slug,fecha,hora_inicio,hora_fin")
+      .select("service_slot_id,servicio_slug,fecha,hora_inicio,hora_fin")
       .gte("fecha", from)
       .lte("fecha", to),
   ]);
@@ -91,15 +91,14 @@ async function propagarCentro(
     arr.push({ inicio: s.hora_inicio, fin: s.hora_fin });
     sesionesPorFecha.set(s.fecha, arr);
   }
-  const existentes = new Set(
-    (
-      (instancias ?? []) as {
-        servicio_slug: string;
-        fecha: string;
-        hora_inicio: string;
-        hora_fin: string;
-      }[]
-    ).map((i) => instanceKey(i.servicio_slug, i.fecha, i.hora_inicio, i.hora_fin)),
+  const existentes = existingInstanceKeys(
+    (instancias ?? []) as {
+      service_slot_id: string | null;
+      servicio_slug: string;
+      fecha: string;
+      hora_inicio: string;
+      hora_fin: string;
+    }[],
   );
 
   const plan = buildPropagationPlan({
@@ -117,7 +116,7 @@ async function propagarCentro(
     const { error } = await supabaseAdmin
       .from("service_slot_instances")
       .upsert(plan.rows.slice(i, i + 200), {
-        onConflict: "servicio_slug,fecha,hora_inicio,hora_fin",
+        onConflict: "service_slot_id,fecha",
         ignoreDuplicates: true,
       });
     if (error) return { ok: false, creados: 0, motivo: error.message };
