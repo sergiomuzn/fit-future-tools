@@ -360,7 +360,7 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
         .lte("fecha", to),
       supabaseAdmin
         .from("sessions")
-        .select("id,fecha,hora_inicio,servicio_slug,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar")
+        .select("id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,booked_by_user_id,booking_tipo,por_confirmar")
         .is("group_id", null)
         .gte("fecha", from)
         .lte("fecha", to)
@@ -381,25 +381,14 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     fecha: string;
     hora_inicio: string;
     servicio_slug: string | null;
+    trainer_id: string | null;
     client_id: string | null;
     estado: string;
     booked_by_user_id: string | null;
     booking_tipo: string | null;
     por_confirmar: boolean;
   };
-  // Igual que la pestaña Reservas: solo ocupan plaza las reservas hechas desde
-  // el portal; las sesiones creadas a mano en Agenda no ocupan huecos propagados.
-  const sesionesPorHueco = new Map<string, Sesion[]>();
-  for (const s of (sesiones ?? []) as Sesion[]) {
-    if (!s.client_id) continue;
-    if (!s.booked_by_user_id && !s.booking_tipo) continue;
-    const k = `${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`;
-    const arr = sesionesPorHueco.get(k) ?? [];
-    arr.push(s);
-    sesionesPorHueco.set(k, arr);
-  }
-
-  return ((instancias ?? []) as {
+  type Hueco = {
     id: string;
     servicio_slug: string;
     fecha: string;
@@ -407,10 +396,19 @@ export async function listPropagatedHuecos(userId: string): Promise<ClaseGrupal[
     hora_fin: string;
     capacidad: number;
     trainer_id: string | null;
-  }[])
+  };
+  const huecos = (instancias ?? []) as Hueco[];
+  // Igual que la pestaña Reservas: solo ocupan plaza las reservas hechas desde
+  // el portal; las sesiones creadas a mano en Agenda no ocupan huecos propagados.
+  const reservasPortal = ((sesiones ?? []) as Sesion[]).filter(
+    (s) => !!s.client_id && (!!s.booked_by_user_id || !!s.booking_tipo),
+  );
+  const sesionesPorHueco = asignarReservasAHuecos(huecos, reservasPortal);
+
+  return huecos
     .filter((h) => abierto(h.fecha, h.hora_inicio, h.hora_fin))
     .map((h) => {
-    const rows = sesionesPorHueco.get(`${h.servicio_slug}|${h.fecha}|${h.hora_inicio.slice(0, 5)}`) ?? [];
+    const rows = sesionesPorHueco.get(h.id) ?? [];
     const mine =
       rows.find((r) => r.booked_by_user_id === userId) ??
       (clientId ? (rows.find((r) => r.client_id === clientId) ?? null) : null);
@@ -809,23 +807,46 @@ async function bookHuecoForUser(
   }
   await assertReservable(hueco.fecha, hueco.hora_inicio, centroId, hueco.servicio_slug);
 
-  const { data: existentes } = await supabaseAdmin
-    .from("sessions")
-    .select("id,client_id,booked_by_user_id,booking_tipo")
-    .is("group_id", null)
-    .eq("fecha", hueco.fecha)
-    .eq("hora_inicio", hueco.hora_inicio)
-    .eq("servicio_slug", hueco.servicio_slug)
-    .neq("estado", "cancelada");
+  const [{ data: existentes }, { data: hermanos }] = await Promise.all([
+    supabaseAdmin
+      .from("sessions")
+      .select("id,client_id,booked_by_user_id,booking_tipo,servicio_slug,fecha,hora_inicio,trainer_id")
+      .is("group_id", null)
+      .eq("fecha", hueco.fecha)
+      .eq("hora_inicio", hueco.hora_inicio)
+      .eq("servicio_slug", hueco.servicio_slug)
+      .neq("estado", "cancelada"),
+    supabaseAdmin
+      .from("service_slot_instances")
+      .select("id,servicio_slug,fecha,hora_inicio,capacidad,trainer_id")
+      .eq("activo", true)
+      .eq("fecha", hueco.fecha)
+      .eq("hora_inicio", hueco.hora_inicio)
+      .eq("servicio_slug", hueco.servicio_slug),
+  ]);
   // Mismo criterio que el listado del portal: solo ocupan plaza las reservas
   // hechas desde el portal; las sesiones creadas a mano en Agenda no cuentan.
-  const rows = ((existentes ?? []) as {
+  const todas = ((existentes ?? []) as {
     id: string;
     client_id: string | null;
     booked_by_user_id: string | null;
     booking_tipo: string | null;
+    servicio_slug: string | null;
+    fecha: string;
+    hora_inicio: string;
+    trainer_id: string | null;
   }[]).filter((r) => !!r.client_id && (!!r.booked_by_user_id || !!r.booking_tipo));
-  if (rows.some((r) => r.booked_by_user_id === userId)) throw new Error("Ya tienes esta reserva");
+  if (todas.some((r) => r.booked_by_user_id === userId)) throw new Error("Ya tienes esta reserva");
+  const grupo = (hermanos ?? []) as {
+    id: string;
+    servicio_slug: string;
+    fecha: string;
+    hora_inicio: string;
+    capacidad: number;
+    trainer_id: string | null;
+  }[];
+  if (!grupo.some((h) => h.id === hueco.id)) grupo.push(hueco);
+  const rows = asignarReservasAHuecos(grupo, todas).get(hueco.id) ?? [];
   if (rows.length >= Math.max(1, hueco.capacidad ?? 1)) {
     throw new Error("Este hueco está completo");
   }
