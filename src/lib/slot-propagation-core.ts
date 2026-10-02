@@ -65,13 +65,40 @@ export function instanceKey(slug: string, fecha: string, ini: string, fin: strin
   return `${slug}|${fecha}|${ini.slice(0, 5)}|${fin.slice(0, 5)}`;
 }
 
+/** Clave de una instancia generada desde un hueco concreto de la semana tipo. */
+export function slotFechaKey(serviceSlotId: string, fecha: string): string {
+  return `slot:${serviceSlotId}|${fecha}`;
+}
+
+/**
+ * Claves de instancias existentes: las que vienen de la semana tipo se
+ * identifican por (hueco plantilla, fecha), de modo que dos huecos distintos a
+ * la misma hora se mantienen separados; las creadas a mano por servicio+horario.
+ */
+export function existingInstanceKeys(
+  filas: {
+    service_slot_id: string | null;
+    servicio_slug: string;
+    fecha: string;
+    hora_inicio: string;
+    hora_fin: string;
+  }[],
+): Set<string> {
+  const out = new Set<string>();
+  for (const i of filas) {
+    if (i.service_slot_id) out.add(slotFechaKey(i.service_slot_id, i.fecha));
+    else out.add(instanceKey(i.servicio_slug, i.fecha, i.hora_inicio, i.hora_fin));
+  }
+  return out;
+}
+
 export interface PropagationInput {
   plantilla: PlantillaSlot[];
   /** Fechas destino en formato YYYY-MM-DD. */
   fechas: string[];
   /** Sesiones reales de la agenda agrupadas por fecha. */
   sesionesPorFecha: Map<string, { inicio: string; fin: string }[]>;
-  /** Claves de instancias ya existentes (instanceKey). */
+  /** Claves de instancias ya existentes (existingInstanceKeys). */
   existentes: Set<string>;
   modo: BookingMode;
   origen?: string;
@@ -87,7 +114,11 @@ export interface PropagationPlan {
   yaExistentes: number;
 }
 
-/** Calcula qué huecos se crearían, aplicando el modo de reservas activo. */
+/**
+ * Calcula qué huecos se crearían, aplicando el modo de reservas activo.
+ * Cada hueco de la semana tipo genera su propia instancia: dos huecos a la
+ * misma hora (p. ej. con entrenadores distintos) siguen siendo dos sesiones.
+ */
 export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
   const { plantilla, fechas, sesionesPorFecha, existentes, modo } = input;
   const rows: NuevaInstancia[] = [];
@@ -95,26 +126,17 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
   let omitidosPorModo = 0;
   let yaExistentes = 0;
 
-  const vistos = new Set(existentes);
-
   for (const fecha of fechas) {
     const dow = new Date(`${fecha}T00:00:00`).getDay();
     const sesionesDia = sesionesPorFecha.get(fecha) ?? [];
-    // Huecos idénticos (mismo servicio y horario) en la semana tipo se fusionan
-    // en una sola instancia sumando sus plazas, para no perder ninguno.
-    const nuevosDia = new Map<string, NuevaInstancia>();
     for (const s of plantilla.filter((p) => p.dia_semana === dow)) {
-      const key = instanceKey(s.servicio_slug, fecha, s.hora_inicio, s.hora_fin);
-      const previo = nuevosDia.get(key);
-      if (previo) {
-        previo.capacidad += Math.max(1, s.capacidad);
-        continue;
-      }
-      if (vistos.has(key)) {
+      if (
+        existentes.has(slotFechaKey(s.id, fecha)) ||
+        existentes.has(instanceKey(s.servicio_slug, fecha, s.hora_inicio, s.hora_fin))
+      ) {
         yaExistentes++;
         continue;
       }
-      vistos.add(key);
       const visible = slotVisibleForMode(
         { inicio: s.hora_inicio, fin: s.hora_fin },
         sesionesDia,
@@ -124,7 +146,7 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
         omitidosPorModo++;
         continue;
       }
-      const row: NuevaInstancia = {
+      rows.push({
         service_slot_id: s.id,
         servicio_slug: s.servicio_slug,
         fecha,
@@ -133,15 +155,49 @@ export function buildPropagationPlan(input: PropagationInput): PropagationPlan {
         capacidad: Math.max(1, s.capacidad),
         trainer_id: s.trainer_id,
         origen: input.origen ?? "manual",
-      };
-      nuevosDia.set(key, row);
-      rows.push(row);
+      });
       porFecha[fecha] = (porFecha[fecha] ?? 0) + 1;
     }
   }
 
   return { rows, porFecha, omitidosPorModo, yaExistentes };
 }
+
+/**
+ * Reparte las reservas entre huecos propagados. Varios huecos pueden coincidir
+ * en servicio y hora (p. ej. uno por entrenador): cada reserva va al hueco de su
+ * entrenador con plaza libre; si no, al primero con plaza libre.
+ */
+export function asignarReservasAHuecos<
+  H extends { id: string; servicio_slug: string; fecha: string; hora_inicio: string; capacidad: number; trainer_id: string | null },
+  S extends { servicio_slug: string | null; fecha: string; hora_inicio: string; trainer_id?: string | null },
+>(huecos: H[], sesiones: S[]): Map<string, S[]> {
+  const out = new Map<string, S[]>();
+  const grupos = new Map<string, H[]>();
+  for (const h of huecos) {
+    out.set(h.id, []);
+    const k = `${h.servicio_slug}|${h.fecha}|${h.hora_inicio.slice(0, 5)}`;
+    const arr = grupos.get(k) ?? [];
+    arr.push(h);
+    grupos.set(k, arr);
+  }
+  for (const arr of grupos.values()) arr.sort((a, b) => a.id.localeCompare(b.id));
+  const libre = (h: H) => out.get(h.id)!.length < Math.max(1, h.capacidad ?? 1);
+  // Primero las que tienen entrenador, para que ocupen su hueco antes que las genéricas.
+  const orden = [...sesiones].sort((a, b) => Number(!a.trainer_id) - Number(!b.trainer_id));
+  for (const s of orden) {
+    const grupo = grupos.get(`${s.servicio_slug ?? ""}|${s.fecha}|${s.hora_inicio.slice(0, 5)}`);
+    if (!grupo?.length) continue;
+    const destino =
+      grupo.find((h) => s.trainer_id && h.trainer_id === s.trainer_id && libre(h)) ??
+      grupo.find(libre) ??
+      grupo.find((h) => s.trainer_id && h.trainer_id === s.trainer_id) ??
+      grupo[0]!;
+    out.get(destino.id)!.push(s);
+  }
+  return out;
+}
+
 
 
 /** Nº de semanas por delante de la propagación automática (1-12, por defecto 2). */
