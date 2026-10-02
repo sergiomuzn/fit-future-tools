@@ -172,20 +172,29 @@ async function slotInfo(
 /** Clave de portal correspondiente a una sesión concreta. */
 export async function claveDeSesion(
   centroId: string,
-  row: { group_id: string | null; fecha: string; hora_inicio: string; servicio_slug: string | null },
+  row: {
+    group_id: string | null;
+    fecha: string;
+    hora_inicio: string;
+    servicio_slug: string | null;
+    trainer_id?: string | null;
+  },
 ): Promise<string | null> {
   if (row.group_id) return `${row.group_id}|${row.fecha}|${row.hora_inicio}`;
   if (!row.servicio_slug) return null;
   const db = centroDb(centroId);
   const { data } = await db
     .from("service_slot_instances")
-    .select("id")
+    .select("id,trainer_id")
     .eq("fecha", row.fecha)
     .eq("hora_inicio", row.hora_inicio)
     .eq("servicio_slug", row.servicio_slug)
-    .limit(1)
-    .maybeSingle();
-  return data?.id ? `hueco|${data.id}` : null;
+    .order("id");
+  const lista = (data ?? []) as { id: string; trainer_id: string | null }[];
+  // Si hay varios huecos a la misma hora, el del entrenador de la reserva.
+  const hueco =
+    lista.find((h) => row.trainer_id && h.trainer_id === row.trainer_id) ?? lista[0];
+  return hueco ? `hueco|${hueco.id}` : null;
 }
 
 function describe(fecha: string, hora: string): string {
