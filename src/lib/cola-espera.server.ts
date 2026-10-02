@@ -178,9 +178,11 @@ export async function claveDeSesion(
     hora_inicio: string;
     servicio_slug: string | null;
     trainer_id?: string | null;
+    slot_instance_id?: string | null;
   },
 ): Promise<string | null> {
   if (row.group_id) return `${row.group_id}|${row.fecha}|${row.hora_inicio}`;
+  if (row.slot_instance_id) return `hueco|${row.slot_instance_id}`;
   if (!row.servicio_slug) return null;
   const db = centroDb(centroId);
   const { data } = await db
