@@ -983,7 +983,7 @@ export async function cancelBookingForUser(userId: string, sessionId: string): P
   const supabaseAdmin = centroDb(centroId);
   const { data: row } = await supabaseAdmin
     .from("sessions")
-    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar")
+    .select("id,group_id,fecha,hora_inicio,titulo,servicio_slug,trainer_id,booked_by_user_id,por_confirmar")
     .eq("id", sessionId)
     .maybeSingle();
   if (!row || row.booked_by_user_id !== userId) throw new Error("Reserva no encontrada");
