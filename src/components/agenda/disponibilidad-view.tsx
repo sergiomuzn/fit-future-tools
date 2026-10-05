@@ -557,7 +557,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="h-8">Importar estructura</Button>
+              <Button size="sm" variant="outline" className="h-8">Estructuras</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Estructuras guardadas</DropdownMenuLabel>
@@ -566,17 +566,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                 <DropdownMenuItem disabled>No hay ninguna guardada</DropdownMenuItem>
               )}
               {structures.map((st) => (
-                <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)} className="justify-between gap-3">
+                <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)}>
                   <span className="truncate">{st.nombre}</span>
-                  <button
-                    type="button"
-                    aria-label={`Borrar ${st.nombre}`}
-                    className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                    onPointerDown={(e) => e.stopPropagation()}
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBorrando(st); }}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -703,7 +694,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
         </DialogContent>
       </Dialog>
 
-      {/* Importar estructura (aviso + previsualización) */}
+      {/* Estructuras (aviso + previsualización) */}
       <Dialog open={!!importing} onOpenChange={(o) => !o && setImporting(null)}>
         <DialogContent className="w-[95vw] sm:max-w-[1100px]">
           <DialogHeader>
@@ -717,17 +708,30 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           <div className="h-[50vh] min-h-0 rounded border">
             <SlotsWeekGrid slots={previewSlots} nombreServicio={nombreServicio} />
           </div>
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setImporting(null)}>Cancelar</Button>
+          <DialogFooter className="gap-2 sm:justify-between">
             <Button
-              variant="destructive"
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => {
-                importStructure.mutate(importing?.slots ?? []);
+                if (!importing) return;
                 setImporting(null);
+                setBorrando(importing);
               }}
             >
-              Sí, importar y reemplazar
+              <Trash2 className="h-3.5 w-3.5" /> Borrar estructura
             </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setImporting(null)}>Cancelar</Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  importStructure.mutate(importing?.slots ?? []);
+                  setImporting(null);
+                }}
+              >
+                Sí, importar y reemplazar
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
