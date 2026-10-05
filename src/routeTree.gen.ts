@@ -9,47 +9,33 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ShellRouteImport } from './routes/_shell'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as ClienteRouteImport } from './routes/cliente'
-import { Route as PerfilRouteImport } from './routes/perfil'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as SuperadminRouteImport } from './routes/superadmin'
-import { Route as ShellIndexRouteImport } from './routes/_shell.index'
-import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
-import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
-import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
-import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
-import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
-import { Route as ShellGruposRouteImport } from './routes/_shell.grupos'
-import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as ClienteRouteImport } from './routes/cliente'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ShellRouteImport } from './routes/_shell'
 import { Route as SuperadminIndexRouteImport } from './routes/superadmin.index'
+import { Route as ShellIndexRouteImport } from './routes/_shell.index'
+import { Route as InvitacionCodigoRouteImport } from './routes/invitacion.$codigo'
+import { Route as ShellGruposRouteImport } from './routes/_shell.grupos'
+import { Route as ShellFacturacionRouteImport } from './routes/_shell.facturacion'
+import { Route as ShellEstadisticasRouteImport } from './routes/_shell.estadisticas'
+import { Route as ShellEntrenadoresRouteImport } from './routes/_shell.entrenadores'
+import { Route as ShellConfiguracionRouteImport } from './routes/_shell.configuracion'
+import { Route as ShellClientesRouteImport } from './routes/_shell.clientes'
 import { Route as SuperadminCentroCentroIdRouteImport } from './routes/superadmin.centro.$centroId'
-import { Route as ApiPublicHooksColaExpiracionesRouteImport } from './routes/api/public/hooks/cola-expiraciones'
-import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
-import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
-import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
-import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
-import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
+import { Route as LovableEmailAuthWebhookRouteImport } from './routes/lovable/email/auth/webhook'
+import { Route as LovableEmailAuthPreviewRouteImport } from './routes/lovable/email/auth/preview'
+import { Route as ApiPublicWebhooksWellhubRouteImport } from './routes/api/public/webhooks/wellhub'
+import { Route as ApiPublicWebhooksClaspassRouteImport } from './routes/api/public/webhooks/claspass'
+import { Route as ApiPublicHooksPropagarHuecosRouteImport } from './routes/api/public/hooks/propagar-huecos'
+import { Route as ApiPublicHooksColaExpiracionesRouteImport } from './routes/api/public/hooks/cola-expiraciones'
 
-const ShellRoute = ShellRouteImport.update({
-  id: '/_shell',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClienteRoute = ClienteRouteImport.update({
-  id: '/cliente',
-  path: '/cliente',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PerfilRoute = PerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
+const SuperadminRoute = SuperadminRouteImport.update({
+  id: '/superadmin',
+  path: '/superadmin',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -57,49 +43,23 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SuperadminRoute = SuperadminRouteImport.update({
-  id: '/superadmin',
-  path: '/superadmin',
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ShellIndexRoute = ShellIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => ShellRoute,
+const ClienteRoute = ClienteRouteImport.update({
+  id: '/cliente',
+  path: '/cliente',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ShellClientesRoute = ShellClientesRouteImport.update({
-  id: '/clientes',
-  path: '/clientes',
-  getParentRoute: () => ShellRoute,
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const ShellConfiguracionRoute = ShellConfiguracionRouteImport.update({
-  id: '/configuracion',
-  path: '/configuracion',
-  getParentRoute: () => ShellRoute,
-} as any)
-const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
-  id: '/entrenadores',
-  path: '/entrenadores',
-  getParentRoute: () => ShellRoute,
-} as any)
-const ShellEstadisticasRoute = ShellEstadisticasRouteImport.update({
-  id: '/estadisticas',
-  path: '/estadisticas',
-  getParentRoute: () => ShellRoute,
-} as any)
-const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
-  id: '/facturacion',
-  path: '/facturacion',
-  getParentRoute: () => ShellRoute,
-} as any)
-const ShellGruposRoute = ShellGruposRouteImport.update({
-  id: '/grupos',
-  path: '/grupos',
-  getParentRoute: () => ShellRoute,
-} as any)
-const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
-  id: '/invitacion/$codigo',
-  path: '/invitacion/$codigo',
+const ShellRoute = ShellRouteImport.update({
+  id: '/_shell',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SuperadminIndexRoute = SuperadminIndexRouteImport.update({
@@ -107,22 +67,72 @@ const SuperadminIndexRoute = SuperadminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => SuperadminRoute,
 } as any)
+const ShellIndexRoute = ShellIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ShellRoute,
+} as any)
+const InvitacionCodigoRoute = InvitacionCodigoRouteImport.update({
+  id: '/invitacion/$codigo',
+  path: '/invitacion/$codigo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ShellGruposRoute = ShellGruposRouteImport.update({
+  id: '/grupos',
+  path: '/grupos',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellFacturacionRoute = ShellFacturacionRouteImport.update({
+  id: '/facturacion',
+  path: '/facturacion',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEstadisticasRoute = ShellEstadisticasRouteImport.update({
+  id: '/estadisticas',
+  path: '/estadisticas',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellEntrenadoresRoute = ShellEntrenadoresRouteImport.update({
+  id: '/entrenadores',
+  path: '/entrenadores',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellConfiguracionRoute = ShellConfiguracionRouteImport.update({
+  id: '/configuracion',
+  path: '/configuracion',
+  getParentRoute: () => ShellRoute,
+} as any)
+const ShellClientesRoute = ShellClientesRouteImport.update({
+  id: '/clientes',
+  path: '/clientes',
+  getParentRoute: () => ShellRoute,
+} as any)
 const SuperadminCentroCentroIdRoute =
   SuperadminCentroCentroIdRouteImport.update({
     id: '/centro/$centroId',
     path: '/centro/$centroId',
     getParentRoute: () => SuperadminRoute,
   } as any)
-const ApiPublicHooksColaExpiracionesRoute =
-  ApiPublicHooksColaExpiracionesRouteImport.update({
-    id: '/api/public/hooks/cola-expiraciones',
-    path: '/api/public/hooks/cola-expiraciones',
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicHooksPropagarHuecosRoute =
-  ApiPublicHooksPropagarHuecosRouteImport.update({
-    id: '/api/public/hooks/propagar-huecos',
-    path: '/api/public/hooks/propagar-huecos',
+const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
+  id: '/lovable/email/auth/webhook',
+  path: '/lovable/email/auth/webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
+  id: '/lovable/email/auth/preview',
+  path: '/lovable/email/auth/preview',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicWebhooksWellhubRoute =
+  ApiPublicWebhooksWellhubRouteImport.update({
+    id: '/api/public/webhooks/wellhub',
+    path: '/api/public/webhooks/wellhub',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicWebhooksClaspassRoute =
@@ -131,26 +141,16 @@ const ApiPublicWebhooksClaspassRoute =
     path: '/api/public/webhooks/claspass',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicWebhooksWellhubRoute =
-  ApiPublicWebhooksWellhubRouteImport.update({
-    id: '/api/public/webhooks/wellhub',
-    path: '/api/public/webhooks/wellhub',
+const ApiPublicHooksPropagarHuecosRoute =
+  ApiPublicHooksPropagarHuecosRouteImport.update({
+    id: '/api/public/hooks/propagar-huecos',
+    path: '/api/public/hooks/propagar-huecos',
     getParentRoute: () => rootRouteImport,
   } as any)
-const LovableEmailAuthPreviewRoute = LovableEmailAuthPreviewRouteImport.update({
-  id: '/lovable/email/auth/preview',
-  path: '/lovable/email/auth/preview',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailAuthWebhookRoute = LovableEmailAuthWebhookRouteImport.update({
-  id: '/lovable/email/auth/webhook',
-  path: '/lovable/email/auth/webhook',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
+const ApiPublicHooksColaExpiracionesRoute =
+  ApiPublicHooksColaExpiracionesRouteImport.update({
+    id: '/api/public/hooks/cola-expiraciones',
+    path: '/api/public/hooks/cola-expiraciones',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -321,32 +321,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_shell': {
-      id: '/_shell'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof ShellRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/cliente': {
-      id: '/cliente'
-      path: '/cliente'
-      fullPath: '/cliente'
-      preLoaderRoute: typeof ClienteRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/perfil': {
-      id: '/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof PerfilRouteImport
+    '/superadmin': {
+      id: '/superadmin'
+      path: '/superadmin'
+      fullPath: '/superadmin'
+      preLoaderRoute: typeof SuperadminRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -356,67 +335,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/superadmin': {
-      id: '/superadmin'
-      path: '/superadmin'
-      fullPath: '/superadmin'
-      preLoaderRoute: typeof SuperadminRouteImport
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_shell/': {
-      id: '/_shell/'
-      path: '/'
+    '/cliente': {
+      id: '/cliente'
+      path: '/cliente'
+      fullPath: '/cliente'
+      preLoaderRoute: typeof ClienteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_shell': {
+      id: '/_shell'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof ShellIndexRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/clientes': {
-      id: '/_shell/clientes'
-      path: '/clientes'
-      fullPath: '/clientes'
-      preLoaderRoute: typeof ShellClientesRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/configuracion': {
-      id: '/_shell/configuracion'
-      path: '/configuracion'
-      fullPath: '/configuracion'
-      preLoaderRoute: typeof ShellConfiguracionRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/entrenadores': {
-      id: '/_shell/entrenadores'
-      path: '/entrenadores'
-      fullPath: '/entrenadores'
-      preLoaderRoute: typeof ShellEntrenadoresRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/estadisticas': {
-      id: '/_shell/estadisticas'
-      path: '/estadisticas'
-      fullPath: '/estadisticas'
-      preLoaderRoute: typeof ShellEstadisticasRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/facturacion': {
-      id: '/_shell/facturacion'
-      path: '/facturacion'
-      fullPath: '/facturacion'
-      preLoaderRoute: typeof ShellFacturacionRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/_shell/grupos': {
-      id: '/_shell/grupos'
-      path: '/grupos'
-      fullPath: '/grupos'
-      preLoaderRoute: typeof ShellGruposRouteImport
-      parentRoute: typeof ShellRoute
-    }
-    '/invitacion/$codigo': {
-      id: '/invitacion/$codigo'
-      path: '/invitacion/$codigo'
-      fullPath: '/invitacion/$codigo'
-      preLoaderRoute: typeof InvitacionCodigoRouteImport
+      preLoaderRoute: typeof ShellRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/superadmin/': {
@@ -426,6 +370,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperadminIndexRouteImport
       parentRoute: typeof SuperadminRoute
     }
+    '/_shell/': {
+      id: '/_shell/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof ShellIndexRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/invitacion/$codigo': {
+      id: '/invitacion/$codigo'
+      path: '/invitacion/$codigo'
+      fullPath: '/invitacion/$codigo'
+      preLoaderRoute: typeof InvitacionCodigoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_shell/grupos': {
+      id: '/_shell/grupos'
+      path: '/grupos'
+      fullPath: '/grupos'
+      preLoaderRoute: typeof ShellGruposRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/facturacion': {
+      id: '/_shell/facturacion'
+      path: '/facturacion'
+      fullPath: '/facturacion'
+      preLoaderRoute: typeof ShellFacturacionRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/estadisticas': {
+      id: '/_shell/estadisticas'
+      path: '/estadisticas'
+      fullPath: '/estadisticas'
+      preLoaderRoute: typeof ShellEstadisticasRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/entrenadores': {
+      id: '/_shell/entrenadores'
+      path: '/entrenadores'
+      fullPath: '/entrenadores'
+      preLoaderRoute: typeof ShellEntrenadoresRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/configuracion': {
+      id: '/_shell/configuracion'
+      path: '/configuracion'
+      fullPath: '/configuracion'
+      preLoaderRoute: typeof ShellConfiguracionRouteImport
+      parentRoute: typeof ShellRoute
+    }
+    '/_shell/clientes': {
+      id: '/_shell/clientes'
+      path: '/clientes'
+      fullPath: '/clientes'
+      preLoaderRoute: typeof ShellClientesRouteImport
+      parentRoute: typeof ShellRoute
+    }
     '/superadmin/centro/$centroId': {
       id: '/superadmin/centro/$centroId'
       path: '/centro/$centroId'
@@ -433,39 +433,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SuperadminCentroCentroIdRouteImport
       parentRoute: typeof SuperadminRoute
     }
-    '/api/public/hooks/cola-expiraciones': {
-      id: '/api/public/hooks/cola-expiraciones'
-      path: '/api/public/hooks/cola-expiraciones'
-      fullPath: '/api/public/hooks/cola-expiraciones'
-      preLoaderRoute: typeof ApiPublicHooksColaExpiracionesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/hooks/propagar-huecos': {
-      id: '/api/public/hooks/propagar-huecos'
-      path: '/api/public/hooks/propagar-huecos'
-      fullPath: '/api/public/hooks/propagar-huecos'
-      preLoaderRoute: typeof ApiPublicHooksPropagarHuecosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/webhooks/claspass': {
-      id: '/api/public/webhooks/claspass'
-      path: '/api/public/webhooks/claspass'
-      fullPath: '/api/public/webhooks/claspass'
-      preLoaderRoute: typeof ApiPublicWebhooksClaspassRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/webhooks/wellhub': {
-      id: '/api/public/webhooks/wellhub'
-      path: '/api/public/webhooks/wellhub'
-      fullPath: '/api/public/webhooks/wellhub'
-      preLoaderRoute: typeof ApiPublicWebhooksWellhubRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/lovable/email/auth/preview': {
-      id: '/lovable/email/auth/preview'
-      path: '/lovable/email/auth/preview'
-      fullPath: '/lovable/email/auth/preview'
-      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/lovable/email/auth/webhook': {
@@ -475,11 +447,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LovableEmailAuthWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+    '/lovable/email/auth/preview': {
+      id: '/lovable/email/auth/preview'
+      path: '/lovable/email/auth/preview'
+      fullPath: '/lovable/email/auth/preview'
+      preLoaderRoute: typeof LovableEmailAuthPreviewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/wellhub': {
+      id: '/api/public/webhooks/wellhub'
+      path: '/api/public/webhooks/wellhub'
+      fullPath: '/api/public/webhooks/wellhub'
+      preLoaderRoute: typeof ApiPublicWebhooksWellhubRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/webhooks/claspass': {
+      id: '/api/public/webhooks/claspass'
+      path: '/api/public/webhooks/claspass'
+      fullPath: '/api/public/webhooks/claspass'
+      preLoaderRoute: typeof ApiPublicWebhooksClaspassRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/propagar-huecos': {
+      id: '/api/public/hooks/propagar-huecos'
+      path: '/api/public/hooks/propagar-huecos'
+      fullPath: '/api/public/hooks/propagar-huecos'
+      preLoaderRoute: typeof ApiPublicHooksPropagarHuecosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/hooks/cola-expiraciones': {
+      id: '/api/public/hooks/cola-expiraciones'
+      path: '/api/public/hooks/cola-expiraciones'
+      fullPath: '/api/public/hooks/cola-expiraciones'
+      preLoaderRoute: typeof ApiPublicHooksColaExpiracionesRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
