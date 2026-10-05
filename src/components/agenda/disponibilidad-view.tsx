@@ -90,6 +90,8 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const [saveOpen, setSaveOpen] = useState(false);
   const [propagarOpen, setPropagarOpen] = useState(false);
   const [structName, setStructName] = useState("");
+  const [overwriteId, setOverwriteId] = useState<string>("nueva");
+  const [borrando, setBorrando] = useState<SlotStructure | null>(null);
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
   const visibles = servicioSlug ? slots.filter((s) => s.servicio_slug === servicioSlug) : slots;
@@ -291,17 +293,36 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
         capacidad: s.capacidad,
         trainer_id: s.trainer_id,
       }));
-      const { error } = await supabase.from("slot_structures").insert([{ nombre, slots: rows as unknown as never }]);
+      const { error } = overwriteId !== "nueva"
+        ? await supabase.from("slot_structures").update({ nombre, slots: rows as unknown as never }).eq("id", overwriteId)
+        : await supabase.from("slot_structures").insert([{ nombre, slots: rows as unknown as never }]);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["slot_structures"] });
       setSaveOpen(false);
       setStructName("");
-      toast.success("Estructura guardada");
+      toast.success(overwriteId !== "nueva" ? "Estructura actualizada" : "Estructura guardada");
+      setOverwriteId("nueva");
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  const deleteStructure = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("slot_structures").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["slot_structures"] });
+      setBorrando(null);
+      toast.success("Estructura borrada");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const puedeGuardar = !!structName.trim() && !saveStructure.isPending;
+  const doSaveStructure = () => { if (puedeGuardar) saveStructure.mutate(structName.trim()); };
 
   const importStructure = useMutation({
     mutationFn: async (rows: SlotTemplate[]) => {
@@ -545,8 +566,17 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
                 <DropdownMenuItem disabled>No hay ninguna guardada</DropdownMenuItem>
               )}
               {structures.map((st) => (
-                <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)}>
-                  {st.nombre}
+                <DropdownMenuItem key={st.id} onSelect={() => setImporting(st)} className="justify-between gap-3">
+                  <span className="truncate">{st.nombre}</span>
+                  <button
+                    type="button"
+                    aria-label={`Borrar ${st.nombre}`}
+                    className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    onPointerDown={(e) => e.stopPropagation()}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBorrando(st); }}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
@@ -705,29 +735,70 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
       <PropagarDialog open={propagarOpen} onOpenChange={setPropagarOpen} servicioSlug={servicioSlug} />
 
       {/* Guardar estructura */}
-      <Dialog open={saveOpen} onOpenChange={setSaveOpen}>
+      <Dialog open={saveOpen} onOpenChange={(o) => { setSaveOpen(o); if (!o) setOverwriteId("nueva"); }}>
         <DialogContent
           className="sm:max-w-sm"
-          onKeyDown={enterToSave(() => structName.trim() && saveStructure.mutate(structName.trim()))}
+          onKeyDown={enterToSave(() => puedeGuardar && doSaveStructure())}
         >
           <DialogHeader>
             <DialogTitle>Guardar estructura</DialogTitle>
           </DialogHeader>
-          <div className="space-y-1.5">
-            <Label>Nombre</Label>
-            <Input
-              value={structName}
-              onChange={(e) => setStructName(e.target.value)}
-              placeholder="Ej. Horario de temporada"
-            />
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label>Guardar como</Label>
+              <Select
+                value={overwriteId}
+                onValueChange={(v) => {
+                  setOverwriteId(v);
+                  const st = structures.find((s) => s.id === v);
+                  setStructName(st ? st.nombre : "");
+                }}
+              >
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nueva">Nueva estructura</SelectItem>
+                  {structures.map((st) => (
+                    <SelectItem key={st.id} value={st.id}>Sobrescribir: {st.nombre}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Nombre</Label>
+              <Input
+                value={structName}
+                onChange={(e) => setStructName(e.target.value)}
+                placeholder="Ej. Horario de temporada"
+              />
+            </div>
             <p className="text-xs text-muted-foreground">
-              Se guardarán los {slots.length} huecos de la semana actual para poder importarlos después.
+              {overwriteId === "nueva"
+                ? `Se guardarán los ${slots.length} huecos de la semana actual para poder importarlos después.`
+                : `Los huecos de la estructura elegida se reemplazarán por los ${slots.length} huecos de la semana actual.`}
             </p>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setSaveOpen(false)}>Cancelar</Button>
-            <Button disabled={!structName.trim()} onClick={() => saveStructure.mutate(structName.trim())}>
-              Guardar
+            <Button disabled={!puedeGuardar} onClick={doSaveStructure}>
+              {overwriteId === "nueva" ? "Guardar" : "Sobrescribir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Borrar estructura */}
+      <Dialog open={!!borrando} onOpenChange={(o) => !o && setBorrando(null)}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Borrar la estructura "{borrando?.nombre}"?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Se eliminará la estructura guardada. Los huecos de la semana actual no cambian.
+          </p>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setBorrando(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => borrando && deleteStructure.mutate(borrando.id)}>
+              Borrar
             </Button>
           </DialogFooter>
         </DialogContent>
