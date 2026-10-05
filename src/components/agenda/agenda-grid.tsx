@@ -274,6 +274,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const nowTop = (nowMin / SLOT_MIN) * SLOT_PX;
 
   const confirmingPortalRef = useRef(false);
+  const paintingTrainerCountRef = useRef(0);
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
@@ -281,7 +282,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       if (error) throw error;
       return (data ?? []) as Session[];
     },
-    refetchInterval: () => (confirmingPortalRef.current ? false : 1000),
+    refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 ? false : 1000),
   });
 
   const { data: clients = [] } = useQuery({
@@ -761,14 +762,26 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     if (paintTrainerId) {
       e.stopPropagation();
       const newTrainerId = s.trainer_id === paintTrainerId ? null : paintTrainerId;
-      // Actualización optimista: refleja el cambio en la UI al instante.
-      qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
-        (old ?? []).map((x) => (x.id === s.id ? { ...x, trainer_id: newTrainerId } : x)),
-      );
-      const { error } = await supabase.from("sessions").update({ trainer_id: newTrainerId }).eq("id", s.id);
-      if (error) {
-        toast.error(error.message);
-        qc.invalidateQueries({ queryKey: ["sessions"] });
+      const ids = blockIds(s.id);
+      const idSet = new Set(ids);
+      paintingTrainerCountRef.current += 1;
+      try {
+        await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
+        const previous = qc.getQueryData<Session[]>(["sessions", isoDate]);
+        // Actualización optimista de todo el bloque: refleja las iniciales al instante
+        // y evita que una recarga ya iniciada restaure temporalmente el entrenador anterior.
+        qc.setQueryData<Session[]>(["sessions", isoDate], (old) =>
+          (old ?? []).map((x) => (idSet.has(x.id) ? { ...x, trainer_id: newTrainerId } : x)),
+        );
+        const { error } = await supabase.from("sessions").update({ trainer_id: newTrainerId }).in("id", ids);
+        if (error) {
+          toast.error(error.message);
+          qc.setQueryData(["sessions", isoDate], previous);
+        } else {
+          void qc.invalidateQueries({ queryKey: ["trainer-month-counts"] });
+        }
+      } finally {
+        paintingTrainerCountRef.current = Math.max(0, paintingTrainerCountRef.current - 1);
       }
       return;
     }
