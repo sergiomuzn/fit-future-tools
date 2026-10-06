@@ -119,6 +119,8 @@ interface Props {
   onSelectedChange?: (ids: string[]) => void;
   /** Mueve los huecos indicados (días y minutos de desplazamiento). */
   onMoveSelection?: (deltaDias: number, deltaMin: number, ids: string[]) => void;
+  /** Cambia la duración de un hueco arrastrando su borde inferior. */
+  onResize?: (id: string, deltaMin: number) => void;
   onCopyDay?: (dia: number) => void;
   onPasteDay?: (dia: number) => void;
   onClearDay?: (dia: number) => void;
@@ -156,6 +158,7 @@ export function SlotsWeekGrid({
   selectedIds = [],
   onSelectedChange,
   onMoveSelection,
+  onResize,
   onCopyDay,
   onPasteDay,
   onClearDay,
@@ -186,9 +189,12 @@ export function SlotsWeekGrid({
   const moveRef = useRef<{ x: number; y: number; colW: number; ids: string[] } | null>(null);
   const deltaRef = useRef<{ dias: number; min: number; ids: string[] } | null>(null);
   const draggedRef = useRef(false);
+  const [resizeDelta, setResizeDelta] = useState<{ id: string; min: number } | null>(null);
+  const resizeRef = useRef<{ id: string; y: number; minDelta: number; min: number } | null>(null);
   /** Al soltar mantenemos el desplazamiento hasta que llegan los datos nuevos (evita el parpadeo). */
   useEffect(() => {
     setMoveDelta(null);
+    setResizeDelta(null);
   }, [slots]);
 
   const byDia = useMemo(() => {
@@ -207,6 +213,14 @@ export function SlotsWeekGrid({
   // ---- Selección por rectángulo y movimiento (individual o en bloque) ----
   useEffect(() => {
     function onMove(e: MouseEvent) {
+      if (resizeRef.current) {
+        const r = resizeRef.current;
+        const min = Math.max(r.minDelta, Math.round((e.clientY - r.y) / SLOT_PX) * SLOT_MIN);
+        if (min !== 0) draggedRef.current = true;
+        r.min = min;
+        setResizeDelta({ id: r.id, min });
+        return;
+      }
       if (marqueeRef.current) {
         const m = marqueeRef.current;
         setMarquee({ x1: m.x, y1: m.y, x2: e.clientX, y2: e.clientY });
@@ -241,6 +255,13 @@ export function SlotsWeekGrid({
       }
     }
     function onUp() {
+      if (resizeRef.current) {
+        const r = resizeRef.current;
+        resizeRef.current = null;
+        if (r.min !== 0) onResize?.(r.id, r.min);
+        else setResizeDelta(null);
+        return;
+      }
       if (marqueeRef.current) {
         marqueeRef.current = null;
         setMarquee(null);
@@ -263,7 +284,7 @@ export function SlotsWeekGrid({
       window.removeEventListener("mousemove", onMove);
       window.removeEventListener("mouseup", onUp);
     };
-  }, [onSelectedChange, onMoveSelection]);
+  }, [onSelectedChange, onMoveSelection, onResize]);
 
   // ---- Atajos de teclado: Ctrl/Cmd + C / V ----
   useEffect(() => {
@@ -396,7 +417,8 @@ export function SlotsWeekGrid({
                 const startMin = timeToMin(s.hora_inicio);
                 const endMin = timeToMin(s.hora_fin);
                 const top = (startMin / SLOT_MIN) * SLOT_PX;
-                const height = Math.max(((endMin - startMin) / SLOT_MIN) * SLOT_PX - 2, 10);
+                const extra = resizeDelta?.id === s.id ? resizeDelta.min : 0;
+                const height = Math.max(((endMin + extra - startMin) / SLOT_MIN) * SLOT_PX - 2, 10);
                 const full = nombreServicio ? nombreServicio(s.servicio_slug) : "";
                 const colWidthPct = 92 / cols; // deja 8% de márgenes laterales para crear huecos
                 const widthPct = colWidthPct * span;
@@ -499,6 +521,18 @@ export function SlotsWeekGrid({
                       </>
                     )}
                     {height > 34 && <div className="truncate opacity-90">{s.capacidad} plazas</div>}
+                    {onResize && !selecting && !(isLocked && lockedMark !== "reservado") && (
+                      <span
+                        className="absolute inset-x-0 bottom-0 h-1.5 cursor-ns-resize"
+                        onMouseDown={(e) => {
+                          if (e.button !== 0) return;
+                          e.stopPropagation();
+                          e.preventDefault();
+                          draggedRef.current = false;
+                          resizeRef.current = { id: s.id, y: e.clientY, minDelta: SLOT_MIN - (endMin - startMin), min: 0 };
+                        }}
+                      />
+                    )}
                   </button>
                 );
               })}
