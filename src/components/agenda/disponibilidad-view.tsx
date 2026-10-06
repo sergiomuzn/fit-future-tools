@@ -427,6 +427,12 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
     if (updates.length) moveMany.mutate(updates);
   }
 
+  function resizeSlot(id: string, deltaMin: number) {
+    const s = slotById.get(id);
+    if (!s || !deltaMin) return;
+    moveMany.mutate([{ id: s.id, dia_semana: s.dia_semana, hora_inicio: s.hora_inicio, hora_fin: toTime(toMin(s.hora_fin) + deltaMin) }]);
+  }
+
   // ---- Copiar / pegar selección ----
   function copySelection() {
     const rows = selectedIds
@@ -589,6 +595,7 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
           selectedIds={selectedIds}
           onSelectedChange={setSelectedIds}
           onMoveSelection={moveSelection}
+          onResize={resizeSlot}
           onCopyDay={copyDay}
           onPasteDay={pasteDay}
           onClearDay={clearDay}

@@ -325,6 +325,13 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     if (updates.length) moveMany.mutate(updates);
   }
 
+  async function resizeInstance(id: string, deltaMin: number) {
+    const i = instById.get(id);
+    if (!i || !deltaMin) return;
+    if (lockedSet.has(id) && !(await confirmarEdicionReservadas([i]))) return;
+    moveMany.mutate([{ id: i.id, fecha: i.fecha, hora_inicio: i.hora_inicio, hora_fin: toTime(toMin(i.hora_fin) + deltaMin) }]);
+  }
+
   async function saveEditing() {
     if (!editing) return;
     const orig = instById.get(editing.id);
@@ -405,6 +412,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           lockedIds={lockedIds}
           lockedMark="reservado"
           onMoveSelection={moveSelection}
+          onResize={resizeInstance}
           onCreate={(dia, inicio, fin) => {
             const fecha = fechaPorDia.get(dia);
             if (!fecha) return;
