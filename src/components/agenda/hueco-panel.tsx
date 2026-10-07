@@ -171,7 +171,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                       type="button"
                       onClick={() => setTab(c.key)}
                       className={cn(
-                        "rounded-lg border px-2 py-1.5 text-left transition-colors hover:bg-muted",
+                        "h-auto flex-col items-start rounded-lg border px-2 py-1.5 text-left transition-colors hover:bg-muted",
                         tab === c.key && "bg-muted",
                       )}
                     >
@@ -206,7 +206,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                 </div>
               ))}
 
-              <div className="max-h-56 space-y-1 overflow-y-auto">
+              {!(clientFields && tab === "reservados") && <div className="max-h-56 space-y-1 overflow-y-auto">
                 {listas[tab].length === 0 ? (
                   <p className="py-3 text-center text-xs text-muted-foreground">
                     Esta sesión no tiene clientes en esta categoría
@@ -233,6 +233,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                   ))
                 )}
               </div>
+              }
               {extraFields}
             </div>
             {footer}
