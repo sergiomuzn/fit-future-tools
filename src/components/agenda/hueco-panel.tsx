@@ -1,6 +1,6 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreVertical, Pencil, Plus } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import {
 import { ClientPicker } from "@/components/clients/client-picker";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
-import { cn } from "@/lib/utils";
+import { cn, formatDateShort } from "@/lib/utils";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -32,33 +32,27 @@ interface Props {
   trainerNombre: string | null;
   reservas: PanelReserva[];
   onClose: () => void;
-  onEdit: () => void;
+  headerFields?: ReactNode;
+  clientFields?: ReactNode;
+  extraFields?: ReactNode;
+  footer?: ReactNode;
   onCancelarReserva: (r: PanelReserva) => void;
   /** Estado a mostrar en la etiqueta (si no, se calcula). */
   estadoFijo?: { label: string; cls: string };
-  /** Acción propia del botón "+" (si no, buscador para añadir reserva). */
-  onAdd?: () => void;
 }
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-const MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
-
-function fechaLarga(fecha: string) {
-  const d = new Date(`${fecha}T00:00:00`);
-  return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`;
-}
-
-export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onEdit, onCancelarReserva, estadoFijo, onAdd }: Props) {
+export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onCancelarReserva, estadoFijo, headerFields, clientFields, extraFields, footer }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Pestana>("reservados");
-  const [adding, setAdding] = useState(false);
   const [nuevoCliente, setNuevoCliente] = useState<string | null>(null);
 
   const { data: extra } = useQuery({
     queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio],
     enabled: !!inst,
     queryFn: async () => {
-      const i = inst!;
+      const i = inst;
+      if (!i) throw new Error("Sesión no disponible");
       const [cola, canc] = await Promise.all([
         (supabase as any)
           .from("reserva_cola")
@@ -94,7 +88,8 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
 
   const anadir = useMutation({
     mutationFn: async (clientId: string) => {
-      const i = inst!;
+      const i = inst;
+      if (!i) throw new Error("Sesión no disponible");
       const { error } = await supabase.from("sessions").insert({
         fecha: i.fecha,
         hora_inicio: i.hora_inicio,
@@ -109,7 +104,6 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
       if (error) throw error;
     },
     onSuccess: () => {
-      setAdding(false);
       setNuevoCliente(null);
       qc.invalidateQueries({ queryKey: ["sessions-range"] });
       qc.invalidateQueries({ queryKey: ["sessions"] });
@@ -140,32 +134,30 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
   ];
 
   return (
-    <Dialog open={!!inst} onOpenChange={(o) => { if (!o) { setTab("reservados"); setAdding(false); onClose(); } }}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-md">
+    <Dialog open={!!inst} onOpenChange={(o) => { if (!o) { setTab("reservados"); onClose(); } }}>
+      <DialogContent aria-describedby={undefined} className="gap-0 p-0 sm:max-w-xl">
         {inst && (
           <>
             <div className="relative space-y-1.5 bg-primary px-5 pb-4 pt-5 text-primary-foreground">
               <span className={cn("absolute right-12 top-4 rounded-full px-2.5 py-0.5 text-[11px] font-semibold", estado.cls)}>
                 {estado.label}
               </span>
-              <DialogTitle className="flex items-center gap-2 pr-28 text-base">
+              <DialogTitle className="flex flex-wrap items-center gap-2 pr-28 text-base">
                 <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                <span className="truncate">{servicioNombre}</span>
+                <span className="min-w-0 break-words">{servicioNombre}</span>
+                <span className="text-[11px] font-normal opacity-80">{reservas.length} ocupadas · {Math.max(0, inst.capacidad - reservas.length)} disponibles</span>
               </DialogTitle>
-              <div className="text-sm opacity-80">
-                {fechaLarga(inst.fecha)} · {hhmm(inst.hora_inicio)}—{hhmm(inst.hora_fin)}
-              </div>
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px] font-semibold">
-                    {(trainerNombre ?? "?").charAt(0).toUpperCase()}
-                  </span>
-                  <span className="opacity-90">{trainerNombre ?? "Sin entrenador"}</span>
-                </div>
-                <Button size="sm" variant="secondary" className="h-8 gap-1.5" onClick={onEdit}>
-                  <Pencil className="h-3.5 w-3.5" /> Editar sesión
-                </Button>
-              </div>
+              {headerFields ?? (
+                <>
+                  <div className="text-sm opacity-80">
+                    {DIAS[new Date(`${inst.fecha}T00:00:00`).getDay()]} {formatDateShort(inst.fecha)} · {hhmm(inst.hora_inicio)}—{hhmm(inst.hora_fin)}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px] font-semibold">{(trainerNombre ?? "?").charAt(0).toUpperCase()}</span>
+                    <span className="opacity-90">{trainerNombre ?? "Sin entrenador"}</span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="space-y-3 p-5">
@@ -173,7 +165,8 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
               <div className="flex items-center gap-2">
                 <div className="grid flex-1 grid-cols-3 gap-2">
                   {contadores.map((c) => (
-                    <button
+                    <Button
+                      variant="ghost"
                       key={c.key}
                       type="button"
                       onClick={() => setTab(c.key)}
@@ -184,19 +177,10 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                     >
                       <div className={cn("text-lg font-semibold leading-tight", c.cls)}>{listas[c.key].length}</div>
                       <div className="text-[11px] text-muted-foreground">{c.label}</div>
-                    </button>
+                    </Button>
                   ))}
                 </div>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-10 w-10 shrink-0"
-                  title={completa ? "Sesión completa" : "Añadir reserva"}
-                  disabled={completa && !onAdd}
-                  onClick={() => { if (onAdd) return onAdd(); setTab("reservados"); setAdding((a) => !a); }}
-                >
-                  <Plus className="h-4 w-4" />
-                </Button>
+
               </div>
 
               <div className="flex gap-1 border-b">
@@ -211,20 +195,16 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                     )}
                   >
                     {c.label}
-                  </button>
+                  </Button>
                 ))}
               </div>
 
-              {adding && tab === "reservados" && (
+              {tab === "reservados" && (clientFields ?? (
                 <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <ClientPicker value={nuevoCliente} onChange={setNuevoCliente} autoFocus />
-                  </div>
-                  <Button size="sm" disabled={!nuevoCliente || anadir.isPending} onClick={() => nuevoCliente && anadir.mutate(nuevoCliente)}>
-                    Reservar
-                  </Button>
+                  <div className="min-w-0 flex-1"><ClientPicker value={nuevoCliente} onChange={setNuevoCliente} /></div>
+                  <Button size="sm" disabled={completa || !nuevoCliente || anadir.isPending} onClick={() => nuevoCliente && anadir.mutate(nuevoCliente)}>Reservar</Button>
                 </div>
-              )}
+              ))}
 
               <div className="max-h-56 space-y-1 overflow-y-auto">
                 {listas[tab].length === 0 ? (
@@ -243,7 +223,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuItem className="text-destructive" onClick={() => onCancelarReserva(r.reserva!)}>
+                            <DropdownMenuItem className="text-destructive" onClick={() => { if (r.reserva) onCancelarReserva(r.reserva); }}>
                               Cancelar reserva
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -253,7 +233,9 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                   ))
                 )}
               </div>
+              {extraFields}
             </div>
+            {footer}
           </>
         )}
       </DialogContent>
