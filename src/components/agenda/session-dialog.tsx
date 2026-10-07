@@ -869,6 +869,160 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   return (
     <>
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      {detalle ? (
+        <DialogContent className="flex max-h-[85vh] max-w-md flex-col gap-0 p-0">
+          {(() => {
+            const ids = (plazas > 1 ? groupClientIds : [clientId]).filter(Boolean) as string[];
+            const reservados = estado === "cancelada" ? [] : ids;
+            const libres = plazas > 1 && reservados.length === 0 && !clientId ? [] : [];
+            void libres;
+            const nombre = (id: string | null, fallback?: string | null) =>
+              (id && clientePorId.get(id)?.nombre) || fallback || "Cliente";
+            const estadoLabel = esPrueba && estado !== "cancelada" ? "Prueba" : ESTADO_LABEL[estado];
+            const pendienteDe = (cid: string) =>
+              filasReserva.some((r: any) => r.client_id === cid && r.por_confirmar) ||
+              (plazas <= 1 && porConfirmar);
+            const completa = reservados.length >= plazas;
+            const fila = (key: string, texto: string, extra: React.ReactNode, menu?: React.ReactNode) => (
+              <div key={key} className="flex h-10 items-center gap-2 rounded-md px-2 hover:bg-muted/60">
+                <span className="min-w-0 flex-1 truncate text-sm">{texto}</span>
+                {extra}
+                {menu ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="h-7 w-7" aria-label="Acciones">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">{menu}</DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <span className="w-7" />
+                )}
+              </div>
+            );
+            const vacio = (t: string) => (
+              <p className="px-2 py-6 text-center text-sm text-muted-foreground">{t}</p>
+            );
+            const dia = session.fecha
+              ? new Date(`${session.fecha}T00:00:00`).toLocaleDateString("es-ES", { weekday: "long" })
+              : "";
+            return (
+              <>
+                <DialogHeader className="space-y-1.5 px-5 pb-4 pt-5 text-left">
+                  <div className="flex items-start justify-between gap-3 pr-6">
+                    <DialogTitle className="text-lg leading-tight">
+                      {servicioActual?.nombre ?? (session as any)?.titulo ?? "Sesión"}
+                    </DialogTitle>
+                    <Badge variant={estado === "cancelada" ? "destructive" : "secondary"} className="shrink-0">
+                      {estadoLabel}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                    <span className="whitespace-nowrap capitalize">{dia} {formatDateShort(session.fecha)}</span>
+                    <span>·</span>
+                    <span className="whitespace-nowrap font-medium text-foreground">{horaInicio} – {horaFin}</span>
+                    <span>·</span>
+                    <span className="truncate">{trainers.find((t) => t.id === trainerId)?.nombre ?? "Sin entrenador"}</span>
+                  </div>
+                  {incidencia && <p className="line-clamp-2 text-xs text-muted-foreground">{incidencia}</p>}
+                  <div className="flex items-center justify-between pt-1">
+                    <span className="text-xs text-muted-foreground">
+                      {reservados.length} de {plazas} {plazas === 1 ? "plaza" : "plazas"} ocupadas
+                    </span>
+                    <Button size="sm" variant="outline" className="h-8" onClick={() => setModo("editar")}>
+                      <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                      Editar sesión
+                    </Button>
+                  </div>
+                </DialogHeader>
+                <Tabs value={tabClientes} onValueChange={setTabClientes} className="flex min-h-0 flex-1 flex-col border-t px-5 pb-4 pt-3">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="reservados">Reservados · {reservados.length}</TabsTrigger>
+                    <TabsTrigger value="cola">En cola · {colaSesion.length}</TabsTrigger>
+                    <TabsTrigger value="cancelados">Cancelados · {canceladasSesion.length}</TabsTrigger>
+                  </TabsList>
+                  <div className="mt-2 h-[200px] overflow-y-auto">
+                    <TabsContent value="reservados" className="mt-0 space-y-0.5">
+                      {reservados.length === 0 &&
+                        vacio(nombreLibre ? `Sesión sin cliente: ${nombreLibre}` : "Sin clientes en esta sesión.")}
+                      {reservados.map((cid) =>
+                        fila(
+                          cid,
+                          nombre(cid),
+                          pendienteDe(cid) ? <Badge variant="outline" className="text-xs">Por confirmar</Badge> : null,
+                          <>
+                            <DropdownMenuItem onSelect={() => { const c = clientePorId.get(cid); if (c) setPerfilCliente(c); }}>
+                              Ver perfil
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => setModo("editar")}>Cambiar o quitar cliente</DropdownMenuItem>
+                          </>,
+                        ),
+                      )}
+                    </TabsContent>
+                    <TabsContent value="cola" className="mt-0 space-y-0.5">
+                      {colaSesion.length === 0 && vacio("No hay clientes en cola.")}
+                      {colaSesion.map((c, i) =>
+                        fila(
+                          c.id,
+                          `${i + 1}º · ${nombre(c.client_id)}`,
+                          c.estado === "ofrecida" ? <Badge variant="outline" className="text-xs">Plaza ofrecida</Badge> : null,
+                          <>
+                            <DropdownMenuItem onSelect={() => { const cl = clientePorId.get(c.client_id); if (cl) setPerfilCliente(cl); }}>
+                              Ver perfil
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onSelect={async () => {
+                                const ok = await confirm({
+                                  title: "Quitar de la cola",
+                                  description: `${nombre(c.client_id)} dejará de esperar plaza en esta sesión.`,
+                                  confirmText: "Quitar",
+                                });
+                                if (!ok) return;
+                                const { error } = await supabase.from("reserva_cola").delete().eq("id", c.id);
+                                if (error) toast.error(error.message);
+                                else toast.success("Cliente quitado de la cola");
+                                qc.invalidateQueries({ queryKey: ["reserva_cola"] });
+                              }}
+                            >
+                              Quitar de la cola
+                            </DropdownMenuItem>
+                          </>,
+                        ),
+                      )}
+                    </TabsContent>
+                    <TabsContent value="cancelados" className="mt-0 space-y-0.5">
+                      {canceladasSesion.length === 0 && vacio("Nadie ha cancelado esta sesión.")}
+                      {canceladasSesion.map((c) =>
+                        fila(
+                          c.id,
+                          nombre(c.client_id, c.titulo),
+                          <span className="text-xs text-muted-foreground">
+                            {c.no_contabilizar ? "No contabiliza" : "Contabiliza"}
+                          </span>,
+                        ),
+                      )}
+                    </TabsContent>
+                  </div>
+                  {tabClientes === "reservados" && (
+                    <Button variant="outline" className="mt-3 w-full" disabled={completa} onClick={() => setModo("editar")}>
+                      <Plus className="mr-1.5 h-4 w-4" />
+                      {completa ? "Sesión completa" : "Reservar cliente"}
+                    </Button>
+                  )}
+                </Tabs>
+                <div className="flex items-center justify-between border-t px-5 py-3">
+                  <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={requestDelete}>
+                    Eliminar sesión
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={onClose}>Cerrar</Button>
+                </div>
+              </>
+            );
+          })()}
+        </DialogContent>
+      ) : (
       <DialogContent onKeyDown={enterToSave(requestSave)} className="max-w-2xl gap-3 p-5">
         <DialogHeader>
           <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
@@ -1030,6 +1184,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <Button onClick={requestSave}>{isNew ? "Crear" : "Guardar"}</Button>
         </DialogFooter>
       </DialogContent>
+      )}
       <AlertDialog open={scopeAsk} onOpenChange={setScopeAsk}>
         <AlertDialogContent>
           <AlertDialogHeader>
