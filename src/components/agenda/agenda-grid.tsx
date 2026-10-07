@@ -801,8 +801,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     const portalIds = rows.filter(isPortalRow).map((row) => row.id);
     const changesBookedSlot =
-      hhmm(ps.hora_inicio) !== draft.horaInicio ||
-      hhmm(ps.hora_fin) !== draft.horaFin ||
+      ps.hora_inicio.slice(0, 5) !== draft.horaInicio ||
+      ps.hora_fin.slice(0, 5) !== draft.horaFin ||
       (ps.trainer_id ?? null) !== draft.trainerId;
     if (changesBookedSlot && portalIds.length) {
       const proceed = await confirmPanel({
