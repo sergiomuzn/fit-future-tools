@@ -20,7 +20,7 @@ import { SlotsWeekGrid } from "./slots-week-grid";
 import { enterToSave } from "@/lib/enter-to-save";
 import { formatDateShort } from "@/lib/utils";
 import { useColores } from "@/lib/colors";
-import { HuecoPanel } from "./hueco-panel";
+import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 
 const NONE = "__none";
 
@@ -228,6 +228,73 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
+  async function savePanelHueco(inst: SlotInstance, draft: HuecoPanelDraft): Promise<boolean> {
+    const timeOrTrainerChanged =
+      hhmm(inst.hora_inicio) !== draft.horaInicio ||
+      hhmm(inst.hora_fin) !== draft.horaFin ||
+      (inst.trainer_id ?? null) !== draft.trainerId;
+    if (timeOrTrainerChanged && !(await confirmarEdicionReservadas([inst]))) return false;
+    const { error } = await supabase.from("service_slot_instances").update({
+      hora_inicio: `${draft.horaInicio}:00`,
+      hora_fin: `${draft.horaFin}:00`,
+      trainer_id: draft.trainerId,
+    }).eq("id", inst.id);
+    if (error) {
+      toast.error(error.message);
+      return false;
+    }
+    const activeReservations = reservasDeHueco(inst);
+    if (activeReservations.length && !timeOrTrainerChanged) {
+      const nextEstado = draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado;
+      const { error: sessionError } = await supabase.from("sessions").update({
+        estado: nextEstado,
+        tipo: draft.esPrueba ? "prueba" : null,
+        por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+        hora_inicio: `${draft.horaInicio}:00`,
+        hora_fin: `${draft.horaFin}:00`,
+        trainer_id: draft.trainerId,
+        incidencia: draft.notas || null,
+      }).in("id", activeReservations.map((reservation) => reservation.id));
+      if (sessionError) {
+        toast.error(sessionError.message);
+        return false;
+      }
+    }
+    if (draft.repeatWeeks > 0) {
+      const inserts = Array.from({ length: draft.repeatWeeks }, (_, index) => {
+        const fecha = new Date(`${inst.fecha}T00:00:00`);
+        fecha.setDate(fecha.getDate() + (index + 1) * 7);
+        return {
+          service_slot_id: inst.service_slot_id,
+          servicio_slug: inst.servicio_slug,
+          fecha: ymdLocal(fecha),
+          hora_inicio: `${draft.horaInicio}:00`,
+          hora_fin: `${draft.horaFin}:00`,
+          capacidad: inst.capacidad,
+          trainer_id: null,
+          activo: true,
+          origen: "vista",
+        };
+      });
+      const { error: repeatError } = await supabase.from("service_slot_instances").insert(inserts);
+      if (repeatError) toast.error(repeatError.message);
+    }
+    invalidate();
+    toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
+    return true;
+  }
+
+  async function deletePanelHueco(inst: SlotInstance) {
+    if (!(await confirmarEdicionReservadas([inst]))) return;
+    const ok = await confirm({ title: "¿Eliminar sesión?", description: "La sesión se eliminará de Reservas.", confirmText: "Eliminar" });
+    if (!ok) return;
+    const { error } = await supabase.from("service_slot_instances").delete().eq("id", inst.id);
+    if (error) return toast.error(error.message);
+    setReservasDe(null);
+    invalidate();
+    toast.success("Sesión eliminada");
+  }
 
   const eliminarSemana = useMutation({
     mutationFn: async () => {
@@ -598,13 +665,14 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         servicioNombre={reservasDe ? nombreServicio(reservasDe.servicio_slug) : ""}
         color={reservasDe ? (servicioColor(reservasDe.servicio_slug) ?? "#888888") : "#888888"}
         trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
+        trainers={trainers}
         reservas={reservasDe ? reservasDeHueco(reservasDe) : []}
+        estadoInicial={(reservasDe && reservasDeHueco(reservasDe)[0]?.estado as any) ?? "reservada"}
+        esPruebaInicial={false}
+        porConfirmarInicial={false}
         onClose={() => setReservasDe(null)}
-        onEdit={() => {
-          if (!reservasDe) return;
-          setEditing({ ...reservasDe, cap: String(reservasDe.capacidad) });
-          setReservasDe(null);
-        }}
+        onSave={(draft) => reservasDe ? savePanelHueco(reservasDe, draft) : false}
+        onDelete={() => { if (reservasDe) void deletePanelHueco(reservasDe); }}
         onCancelarReserva={async (r) => {
           const ok = await confirm({
             title: "Cancelar la reserva",
