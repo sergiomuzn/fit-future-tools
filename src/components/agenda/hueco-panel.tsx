@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
-import { ESTADO_BG, ESTADO_LABEL, type SesionEstado, type Trainer } from "@/lib/db";
+import { ESTADO_BG, ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
@@ -45,7 +45,7 @@ interface Props {
   servicioNombre: string;
   color: string;
   trainerNombre: string | null;
-  trainers?: Trainer[];
+  trainers?: { id: string; nombre: string }[];
   reservas: PanelReserva[];
   estadoInicial?: SesionEstado;
   esPruebaInicial?: boolean;
