@@ -1,19 +1,20 @@
-# Historial de bonos y fechas uniformes
+# Menú único de sesión
 
 ## Resultado
-- Mantener las seis columnas del historial en una sola tabla compacta y sin desplazamiento lateral.
-- Mostrar **Servicio** con la etiqueta y el color configurado para ese servicio.
-- Mostrar **Modalidad** con la misma etiqueta gris contorneada usada en las pestañas Bonos y Clientes.
-- Reservar ancho suficiente para que la fecha se vea completa y **Restantes al cerrar** permanezca en una sola línea.
-- Mostrar todas las fechas visibles de la app como `dd/mm/aa`.
+- Sustituir la secuencia de panel visual y formulario antiguo por un único menú limpio y funcional.
+- Permitir editar directamente el horario, el entrenador y el estado mediante controles compactos con indicador de color y flecha.
+- Mostrar a la derecha del servicio las plazas ocupadas y disponibles, y colocar allí la casilla **Sesión de prueba**.
+- Simplificar las pestañas a **Reservados**, **En cola** y **Cancelados**, con su cantidad en un pequeño contador circular y sin los cuadros resumen ni el botón `+`.
+- Mostrar dentro de **Reservados** una fila de búsqueda por cada plaza libre para añadir clientes manualmente.
+- Añadir al final **Notas**, **Por confirmar** y **Repetir semanas**.
 
-## Implementación
-- Crear un único formateador seguro para fechas, evitando cambios de día por zona horaria en valores guardados como `aaaa-mm-dd`.
-- Sustituir fechas ISO y formatos largos visibles en tablas, perfiles, agenda, reservas, facturación, estadísticas, accesos y administración.
-- Mantener los valores ISO internos de campos de fecha, consultas y comparaciones; solo cambia su presentación.
-- Conservar encabezados de meses o días de la semana cuando funcionan como navegación, añadiendo `dd/mm/aa` cuando también muestran una fecha concreta.
+## Funcionamiento conservado
+- Mantener el guardado, borrado, cancelaciones, avisos a clientes, sesiones pendientes, límites de plazas y edición de series futuras.
+- Mantener los avisos de sesión fuera del horario y de repetición semanal.
+- Mantener visibles las listas de clientes en cola y cancelados.
+- Usar el mismo menú tanto desde Agenda como desde Reservas, sin abrir después otro formulario.
 
 ## Comprobación
-- Revisar el historial del cliente al ancho actual para confirmar que no corta fechas ni encabezados.
-- Comprobar varias pantallas con fechas y verificar que no quedan fechas visibles en formato `aaaa-mm-dd`.
-- Confirmar que la app sigue cargando sin errores.
+- Abrir y editar una sesión desde Agenda y Reservas, añadir y quitar clientes, y comprobar las tres pestañas.
+- Verificar los avisos de fuera de horario, reservas del portal y series futuras.
+- Confirmar que cancelar un aviso no deja cambios aparentes y que la aplicación carga sin errores.
