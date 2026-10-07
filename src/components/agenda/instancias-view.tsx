@@ -19,6 +19,8 @@ import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { SlotsWeekGrid } from "./slots-week-grid";
 import { enterToSave } from "@/lib/enter-to-save";
 import { formatDateShort } from "@/lib/utils";
+import { useColores } from "@/lib/colors";
+import { HuecoPanel } from "./hueco-panel";
 
 const NONE = "__none";
 
@@ -68,6 +70,7 @@ interface Props {
 export function InstanciasView({ servicioSlug, view = "semana", date, paintServicioSlug, label, onNavigate }: Props) {
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
+  const { servicioColor } = useColores();
   const { confirm, dialog: confirmDialog } = useConfirm();
   const { horario, specialsMap } = useCenterConfig();
   const notificarCanceladas = useServerFn(notificarReservasCanceladas);
@@ -425,14 +428,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           onSelect={(s) => {
             const inst = instById.get(s.id);
             if (!inst) return;
-            if (lockedSet.has(inst.id)) {
-              setReservasDe(inst);
-              return;
-            }
-            setEditing({
-              ...inst,
-              cap: String(inst.capacidad),
-            });
+            setReservasDe(inst);
           }}
         />
       </div>
@@ -596,71 +592,28 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         </DialogContent>
       </Dialog>
 
-      {/* Reservas del hueco */}
-      <Dialog open={!!reservasDe} onOpenChange={(o) => !o && setReservasDe(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {reservasDe ? (
-                <>
-                  {nombreServicio(reservasDe.servicio_slug)} ·{" "}
-                  <span className="whitespace-nowrap">
-                     {DIA_NOMBRE[dowOf(reservasDe.fecha)]} {formatDateShort(reservasDe.fecha)}
-                  </span>
-                  {" · "}{hhmm(reservasDe.hora_inicio)}
-                </>
-              ) : (
-                ""
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {reservasDe && (
-            <div className="space-y-2">
-              {reservasDeHueco(reservasDe).map((r) => (
-                <div key={r.id} className="flex items-center justify-between gap-3 rounded border px-3 py-2">
-                  <span className="truncate text-sm">
-                    {r.clients?.nombre ?? r.titulo ?? "Cliente"}
-                  </span>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="text-destructive"
-                    disabled={cancelarReserva.isPending}
-                    onClick={async () => {
-                      const ok = await confirm({
-                        title: "Cancelar la reserva",
-                        description: `Se cancelará la reserva de ${r.clients?.nombre ?? "este cliente"} y se le notificará.`,
-                        confirmText: "Cancelar reserva",
-                      });
-                      if (ok) cancelarReserva.mutate(r.id);
-                    }}
-                  >
-                    Cancelar sesión
-                  </Button>
-                </div>
-              ))}
-              {reservasDeHueco(reservasDe).length === 0 && (
-                <p className="text-sm text-muted-foreground">Este hueco ya no tiene reservas.</p>
-              )}
-              <p className="text-xs text-muted-foreground">
-                {reservasDeHueco(reservasDe).length} de {reservasDe.capacidad} plazas ocupadas.
-              </p>
-            </div>
-          )}
-          <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setReservasDe(null)}>Cerrar</Button>
-            <Button
-              onClick={() => {
-                if (!reservasDe) return;
-                setEditing({ ...reservasDe, cap: String(reservasDe.capacidad) });
-                setReservasDe(null);
-              }}
-            >
-              Editar sesión
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Panel del hueco */}
+      <HuecoPanel
+        inst={reservasDe}
+        servicioNombre={reservasDe ? nombreServicio(reservasDe.servicio_slug) : ""}
+        color={reservasDe ? (servicioColor(reservasDe.servicio_slug) ?? "#888888") : "#888888"}
+        trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
+        reservas={reservasDe ? reservasDeHueco(reservasDe) : []}
+        onClose={() => setReservasDe(null)}
+        onEdit={() => {
+          if (!reservasDe) return;
+          setEditing({ ...reservasDe, cap: String(reservasDe.capacidad) });
+          setReservasDe(null);
+        }}
+        onCancelarReserva={async (r) => {
+          const ok = await confirm({
+            title: "Cancelar la reserva",
+            description: `Se cancelará la reserva de ${r.clients?.nombre ?? "este cliente"} y se le notificará.`,
+            confirmText: "Cancelar reserva",
+          });
+          if (ok) cancelarReserva.mutate(r.id);
+        }}
+      />
       {confirmDialog}
     </div>
   );
