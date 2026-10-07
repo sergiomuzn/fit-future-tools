@@ -7,7 +7,7 @@ import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
-import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { marcarReservaPorConfirmar, notificarReservasCanceladas, resolverReservaPendiente } from "@/lib/notificaciones.functions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -797,6 +797,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   async function savePanelSession(ps: Session, draft: HuecoPanelDraft): Promise<boolean> {
     const ids = blockIds(ps.id);
     const idSet = new Set(ids);
+    const rows = sessions.filter((row) => idSet.has(row.id));
+    const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
+    const portalIds = rows.filter(isPortalRow).map((row) => row.id);
+    if (pendingPortalIds.length && !draft.porConfirmar && draft.estado === "reservada") {
+      await Promise.all(pendingPortalIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {})));
+    } else if (!pendingPortalIds.length && draft.porConfirmar && draft.estado === "reservada") {
+      await Promise.all(portalIds.map((id) => marcarReservaPorConfirmar({ data: { sessionId: id } }).catch(() => {})));
+    }
     const nextEstado = draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado;
     await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
     const previous = qc.getQueryData<Session[]>(["sessions", isoDate]);
@@ -865,7 +873,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       confirmText: "Eliminar",
     });
     if (!ok) return;
-    if (portalIds.length) await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isPortalRow(row)).map((row) => row.id);
+    if (pendingIds.length) {
+      await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
+    } else if (portalIds.length) {
+      await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+    }
     const { error } = await supabase.from("sessions").delete().in("id", ids);
     if (error) return toast.error(error.message);
     setPanelSession(null);
@@ -1221,7 +1234,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
-            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, block.length) } as any) : null}
+            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, huecoCapMap.get(`${ps.servicio_slug ?? ""}|${ps.hora_inicio}`) ?? servicioCapMap.get(ps.servicio_slug ?? "") ?? block.length) } as any) : null}
             servicioNombre={ps ? (servicios.find((x) => x.slug === ps.servicio_slug)?.nombre ?? ps.titulo ?? "Sesión") : ""}
             color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
             trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}

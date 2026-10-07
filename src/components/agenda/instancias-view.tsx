@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { capacidadDeServicio, useServicios } from "@/lib/servicios";
-import { DIA_NOMBRE, hhmm, type ServiceSlot } from "@/lib/service-slots";
+import { hhmm, type ServiceSlot } from "@/lib/service-slots";
 import { asignarReservasAHuecos, mondayOf, weekDates, ymdLocal, useSlotInstances, type SlotInstance } from "@/lib/slot-propagation";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";

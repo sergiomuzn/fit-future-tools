@@ -189,7 +189,7 @@ export function HuecoPanel({
 
   return (
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg" aria-describedby={undefined}>
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-lg">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
