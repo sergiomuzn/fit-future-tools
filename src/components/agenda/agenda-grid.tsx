@@ -610,15 +610,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       stopAutoScroll();
       if (dragStartRef.current !== null && draftRef.current) {
         const d = draftRef.current;
-        setDialogSession({
+        setPanelSession({
+          id: "",
           fecha: isoDate,
           hora_inicio: minToTime(d.startMin),
           hora_fin: minToTime(d.endMin),
           trainer_id: paintTrainerId,
           estado: "reservada",
           ocupacion: 1,
-        });
-        setDialogOpen(true);
+          servicio_slug: servicios[0]?.slug ?? "",
+        } as Session);
         dragStartRef.current = null;
         draftRef.current = null;
         setDraft(null);
@@ -753,8 +754,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId]);
 
   // Dialog
-  const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [panelSession, setPanelSession] = useState<Session | null>(null);
   const { confirm: confirmPanel, dialog: confirmPanelDialog } = useConfirm();
 
@@ -795,6 +794,37 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }
 
   async function savePanelSession(ps: Session, draft: HuecoPanelDraft): Promise<boolean> {
+    if (!ps.id) {
+      const capacity = Math.max(1, servicioCapMap.get(draft.servicioSlug) ?? 1);
+      const selected = draft.clientIds.slice(0, capacity);
+      const clientIds: (string | null)[] = selected.length ? selected : [null];
+      const recurrenciaId = draft.repeatWeeks > 0 || capacity > 1 ? crypto.randomUUID() : null;
+      const inserts = Array.from({ length: draft.repeatWeeks + 1 }, (_, week) => clientIds.map((clientId) => {
+        const fecha = new Date(`${ps.fecha}T00:00:00`);
+        fecha.setDate(fecha.getDate() + week * 7);
+        return {
+          fecha: formatDateISO(fecha),
+          hora_inicio: `${draft.horaInicio}:00`,
+          hora_fin: `${draft.horaFin}:00`,
+          trainer_id: week === 0 ? draft.trainerId : null,
+          servicio_slug: draft.servicioSlug,
+          client_id: clientId,
+          estado: draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado,
+          tipo: draft.esPrueba ? "prueba" : null,
+          por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+          incidencia: draft.notas || null,
+          ocupacion: capacity > 1 ? 2 : 1,
+          recurrencia_id: recurrenciaId,
+        };
+      })).flat();
+      const { error } = await supabase.from("sessions").insert(inserts as any);
+      if (error) return toast.error(error.message), false;
+      const assigned = inserts.filter((row) => !!row.client_id).map((row) => ({ clientId: row.client_id as string, fecha: row.fecha, hora: row.hora_inicio }));
+      if (assigned.length) void import("@/lib/notificaciones.functions").then(({ notificarSesionesAsignadas }) => notificarSesionesAsignadas({ data: { sesiones: assigned.slice(0, 100) } })).catch(() => {});
+      void qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
+      return true;
+    }
     const ids = blockIds(ps.id);
     const idSet = new Set(ids);
     const rows = sessions.filter((row) => idSet.has(row.id));
@@ -840,6 +870,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const previous = qc.getQueryData<Session[]>(["sessions", isoDate]);
     qc.setQueryData<Session[]>(["sessions", isoDate], (old) => (old ?? []).map((row) => idSet.has(row.id) ? ({
       ...row,
+      servicio_slug: draft.servicioSlug,
       hora_inicio: `${draft.horaInicio}:00`,
       hora_fin: `${draft.horaFin}:00`,
       trainer_id: draft.trainerId,
@@ -852,6 +883,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const { error } = updateIds.length ? await supabase.from("sessions").update({
       hora_inicio: `${draft.horaInicio}:00`,
       hora_fin: `${draft.horaFin}:00`,
+      servicio_slug: draft.servicioSlug,
       trainer_id: draft.trainerId,
       estado: nextEstado,
       tipo: draft.esPrueba ? "prueba" : null,
@@ -1260,6 +1292,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
       {(() => {
         const ps = panelSession;
+        const isNewPanel = ps?.id === "";
         const block = ps ? sessions.filter((x) => blockIds(ps.id).includes(x.id)) : [];
         const activos = block.filter((x) => x.client_id && x.estado !== "cancelada");
         const est = (ps?.estado ?? "reservada") as SesionEstado;
@@ -1270,6 +1303,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
             trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}
             trainers={trainers}
+            servicios={servicios}
+            isNew={isNewPanel}
             reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null }))}
             estadoInicial={est}
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
@@ -1277,7 +1312,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             notasIniciales={ps?.incidencia}
             onClose={() => setPanelSession(null)}
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
-            onDelete={() => { if (ps) void deletePanelSession(ps); }}
+            onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r) => {
               const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión de ${r.clients?.nombre ?? "este cliente"}.`, confirmText: "Cancelar reserva" });
               if (!ok) return;
@@ -1290,12 +1325,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         );
       })()}
       {confirmPanelDialog}
-      <SessionDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        session={dialogSession}
-        trainers={trainers}
-      />
       <AlertDialog open={!!pendingPortalEdit} onOpenChange={(o) => { if (!o && !confirmingPortalRef.current) { setPendingPortalEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
