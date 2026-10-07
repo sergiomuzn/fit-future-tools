@@ -30,6 +30,7 @@ export interface PanelReserva {
 }
 
 export interface HuecoPanelDraft {
+  servicioSlug: string;
   horaInicio: string;
   horaFin: string;
   trainerId: string | null;
@@ -38,6 +39,7 @@ export interface HuecoPanelDraft {
   porConfirmar: boolean;
   repeatWeeks: number;
   notas: string;
+  clientIds: string[];
 }
 
 interface Props {
@@ -46,6 +48,8 @@ interface Props {
   color: string;
   trainerNombre: string | null;
   trainers?: { id: string; nombre: string }[];
+  servicios?: { slug: string; nombre: string; capacidad_default: number | null }[];
+  isNew?: boolean;
   reservas: PanelReserva[];
   estadoInicial?: SesionEstado;
   esPruebaInicial?: boolean;
@@ -66,6 +70,8 @@ export function HuecoPanel({
   color,
   trainerNombre,
   trainers = [],
+  servicios = [],
+  isNew = false,
   reservas,
   estadoInicial,
   esPruebaInicial = false,
@@ -89,6 +95,7 @@ export function HuecoPanel({
   const [notas, setNotas] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
   const [saving, setSaving] = useState(false);
+  const [servicioSlug, setServicioSlug] = useState("");
 
   useEffect(() => {
     if (!inst) return;
@@ -101,6 +108,7 @@ export function HuecoPanel({
     setPorConfirmar(porConfirmarInicial);
     setRepeatWeeks(0);
     setNotas(notasIniciales ?? "");
+    setServicioSlug(inst.servicio_slug);
     setPickerValues([]);
   }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
 
@@ -130,14 +138,16 @@ export function HuecoPanel({
     },
   });
 
-  const libres = Math.max(0, (inst?.capacidad ?? 0) - reservas.length);
+  const capacidad = Math.max(1, servicios.find((service) => service.slug === servicioSlug)?.capacidad_default ?? inst?.capacidad ?? 1);
+  const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
+  const libres = Math.max(0, capacidad - reservas.length - selectedNewCount);
   useEffect(() => {
-    setPickerValues((old) => Array.from({ length: libres }, (_, i) => old[i] ?? null));
-  }, [libres, inst?.id]);
+    setPickerValues((old) => Array.from({ length: Math.max(0, capacidad - reservas.length) }, (_, i) => old[i] ?? null));
+  }, [capacidad, reservas.length, inst?.id]);
 
   const anadir = useMutation({
     mutationFn: async ({ clientId, row }: { clientId: string; row: number }) => {
-      if (!inst) return;
+      if (!inst || isNew) return;
       const { data, error } = await supabase.from("sessions").insert({
         fecha: inst.fecha,
         hora_inicio: `${horaInicio}:00`,
@@ -178,7 +188,7 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id) });
       if (result !== false) onClose();
     } finally {
       setSaving(false);
@@ -197,10 +207,15 @@ export function HuecoPanel({
               <div className="flex items-start justify-between gap-4 pr-8">
                 <DialogTitle className="flex min-w-0 items-center gap-2 text-base">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
-                  <span className="truncate">{servicioNombre}</span>
+                  {servicios.length > 0 ? (
+                    <Select value={servicioSlug} onValueChange={setServicioSlug}>
+                      <SelectTrigger className="h-8 min-w-0 border-0 bg-transparent px-0 text-base font-semibold text-primary-foreground shadow-none"><SelectValue /></SelectTrigger>
+                      <SelectContent>{servicios.map((service) => <SelectItem key={service.slug} value={service.slug}>{service.nombre}</SelectItem>)}</SelectContent>
+                    </Select>
+                  ) : <span className="truncate">{servicioNombre}</span>}
                 </DialogTitle>
                 <div className="shrink-0 text-right text-xs font-medium opacity-90">
-                  <div>{reservas.length} ocupadas</div>
+                  <div>{reservas.length + selectedNewCount} ocupadas</div>
                   <div>{libres} disponibles</div>
                 </div>
               </div>
@@ -277,7 +292,7 @@ export function HuecoPanel({
                       autoFocus={row === 0}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
-                        if (clientId) anadir.mutate({ clientId, row });
+                        if (clientId && !isNew) anadir.mutate({ clientId, row });
                       }}
                     />
                   </div>
