@@ -20,6 +20,8 @@ export const Route = createFileRoute("/invitacion/$codigo")({
       { name: "description", content: "Crea tu cuenta de cliente en Tracli y reserva tus clases grupales." },
       { property: "og:title", content: "Invitación · Tracli" },
       { property: "og:description", content: "Crea tu cuenta de cliente en Tracli y reserva tus clases grupales." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: InvitacionPage,

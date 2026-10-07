@@ -26,7 +26,9 @@ import { cn, formatDateShort } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
-export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
+export const Route = createFileRoute("/_shell/estadisticas")({
+  head: () => ({ meta: [{ title: "Estadísticas · Tracli" }, { name: "description", content: "Actividad y resultados del centro de entrenamiento." }, { property: "og:title", content: "Estadísticas · Tracli" }, { property: "og:description", content: "Actividad y resultados del centro de entrenamiento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+ component: StatsPage });
 
 // ============================================================
 // Constants

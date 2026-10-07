@@ -16,6 +16,8 @@ import { resendVerificationEmail } from "@/lib/client-portal.functions";
 import { isEmailRegistered } from "@/lib/reset-password.functions";
 
 export const Route = createFileRoute("/auth")({
+  head: () => ({ meta: [{ title: "Iniciar sesión · Tracli" }, { name: "description", content: "Acceso seguro a Tracli." }, { property: "og:title", content: "Iniciar sesión · Tracli" }, { property: "og:description", content: "Acceso seguro a Tracli." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+
   ssr: false,
   component: AuthPage,
 });

@@ -159,6 +159,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   const [editing, setEditing] = useState<(SlotInstance & { cap: string }) | null>(null);
   const [pending, setPending] = useState<{ fecha: string; inicio: string; fin: string; slug: string } | null>(null);
   /** Hueco con reservas abierto en el diálogo de clientes. */
+  const [panelEstado, setPanelEstado] = useState("reservada");
   const [reservasDe, setReservasDe] = useState<SlotInstance | null>(null);
 
   const nombreServicio = (slug: string) => servicios.find((s) => s.slug === slug)?.nombre ?? slug;
@@ -268,7 +269,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const { error } = await supabase.from("service_slot_instances").update(patch).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => { invalidate(); setEditing(null); },
+    onSuccess: () => { invalidate(); setEditing(null); setReservasDe(null); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -428,6 +429,8 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           onSelect={(s) => {
             const inst = instById.get(s.id);
             if (!inst) return;
+            setPanelEstado("reservada");
+            setEditing({ ...inst, cap: String(inst.capacidad) });
             setReservasDe(inst);
           }}
         />
@@ -486,112 +489,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         </DialogContent>
       </Dialog>
 
-      {/* Detalle del hueco propagado */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(() => !editingLocked && saveEditing())}>
-          <DialogHeader>
-            <DialogTitle>
-              Hueco propagado ·{" "}
-              {editing ? (
-                <span className="whitespace-nowrap">
-                   {DIA_NOMBRE[dowOf(editing.fecha)]} {formatDateShort(editing.fecha)}
-                </span>
-              ) : (
-                ""
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {editing && lockedSet.has(editing.id) && (
-            <p className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Este hueco tiene reservas de clientes hechas desde la app.
-            </p>
-          )}
-          {editing && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Tipo de sesión</Label>
-                <Select
-                  value={editing.servicio_slug}
-                  disabled={editingLocked}
-                  onValueChange={(v) => setEditing({ ...editing, servicio_slug: v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {servicios.map((s) => (
-                      <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Hora de inicio</Label>
-                  <Input
-                    type="time"
-                    disabled={editingLocked}
-                    value={hhmm(editing.hora_inicio)}
-                    onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Hora de fin</Label>
-                  <Input
-                    type="time"
-                    disabled={editingLocked}
-                    value={hhmm(editing.hora_fin)}
-                    onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Plazas</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  disabled={editingLocked}
-                  value={editing.cap}
-                  onChange={(e) => setEditing({ ...editing, cap: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Entrenador (opcional)</Label>
-                <Select
-                  value={editing.trainer_id ?? NONE}
-                  disabled={editingLocked}
-                  onValueChange={(v) => setEditing({ ...editing, trainer_id: v === NONE ? null : v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sin asignar</SelectItem>
-                    {trainers.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button
-              variant="destructive"
-              disabled={editingLocked}
-              onClick={async () => {
-                if (!editing) return;
-                const orig = instById.get(editing.id);
-                if (orig && lockedSet.has(orig.id) && !(await confirmarEdicionReservadas([orig]))) return;
-                remove.mutate(editing.id);
-              }}
-            >
-              Eliminar
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setEditing(null)}>Cerrar</Button>
-              <Button disabled={editingLocked} onClick={saveEditing}>Guardar</Button>
-            </div>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       {/* Panel del hueco */}
       <HuecoPanel
         inst={reservasDe}
@@ -600,11 +497,27 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
         reservas={reservasDe ? reservasDeHueco(reservasDe) : []}
         onClose={() => setReservasDe(null)}
-        onEdit={() => {
-          if (!reservasDe) return;
-          setEditing({ ...reservasDe, cap: String(reservasDe.capacidad) });
-          setReservasDe(null);
-        }}
+        headerFields={editing && <>
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span>{formatDateShort(editing.fecha)}</span>
+            <Input aria-label="Hora inicio" type="time" value={hhmm(editing.hora_inicio)} onChange={e => setEditing({ ...editing, hora_inicio: e.target.value })} className="h-8 w-[105px] border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
+            <span>—</span>
+            <Input aria-label="Hora fin" type="time" value={hhmm(editing.hora_fin)} onChange={e => setEditing({ ...editing, hora_fin: e.target.value })} className="h-8 w-[105px] border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px]">{(trainers.find(t => t.id === editing.trainer_id)?.nombre ?? "?").charAt(0)}</span>
+            <Select value={editing.trainer_id ?? NONE} onValueChange={v => setEditing({ ...editing, trainer_id: v === NONE ? null : v })}>
+              <SelectTrigger aria-label="Entrenador" className="h-8 min-w-0 flex-1 border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value={NONE}>Sin entrenador</SelectItem>{trainers.map(t => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+            <Select value={panelEstado} onValueChange={setPanelEstado}>
+              <SelectTrigger aria-label="Estado" className="h-8 w-32 border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="reservada">Reservada</SelectItem><SelectItem value="realizada">Realizada</SelectItem><SelectItem value="cancelada">Cancelada</SelectItem></SelectContent>
+            </Select>
+          </div>
+        </>}
+        extraFields={editing && <details><summary className="cursor-pointer text-sm text-muted-foreground">Más opciones</summary><div className="grid grid-cols-2 gap-3 pt-2"><div><Label>Servicio</Label><Select value={editing.servicio_slug} onValueChange={v => setEditing({ ...editing, servicio_slug: v })}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{servicios.map(s => <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>)}</SelectContent></Select></div><div><Label>Plazas</Label><Input type="number" min={1} value={editing.cap} onChange={e => setEditing({ ...editing, cap: e.target.value })} /></div></div></details>}
+        footer={<DialogFooter className="gap-2 border-t px-5 py-3"><Button variant="destructive" onClick={async () => { if (!reservasDe) return; if (!(await confirmarEdicionReservadas([reservasDe]))) return; await remove.mutateAsync(reservasDe.id); setReservasDe(null); }}>Eliminar</Button><Button variant="outline" onClick={() => { setReservasDe(null); setEditing(null); }}>Cancelar</Button><Button onClick={async () => { if (!editing || !reservasDe) return; if (hhmm(editing.hora_fin) <= hhmm(editing.hora_inicio)) return toast.error("Revisa las horas de la sesión"); const ids = reservasDeHueco(reservasDe).map(r => r.id); if (panelEstado !== "reservada" && ids.length) { const { error } = await supabase.from("sessions").update({ estado: panelEstado as "cancelada" | "realizada" }).in("id", ids); if (error) return toast.error(error.message); invalidate(); } await saveEditing(); }}>Guardar</Button></DialogFooter>}
         onCancelarReserva={async (r) => {
           const ok = await confirm({
             title: "Cancelar la reserva",

@@ -28,6 +28,8 @@ import {
 import { formatDateShort } from "@/lib/utils";
 
 export const Route = createFileRoute("/superadmin/")({
+  head: () => ({ meta: [{ title: "Centros · Tracli" }, { name: "description", content: "Administración de centros de entrenamiento." }, { property: "og:title", content: "Centros · Tracli" }, { property: "og:description", content: "Administración de centros de entrenamiento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+
   ssr: false,
   component: SuperadminHome,
 });

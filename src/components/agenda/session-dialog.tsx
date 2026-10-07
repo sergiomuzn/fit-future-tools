@@ -26,6 +26,10 @@ import {
 } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
+import { HuecoPanel } from "./hueco-panel";
+import { servicioColorOf } from "@/lib/colors";
+import { ESTADO_BG } from "@/lib/db";
+import type { SlotInstance } from "@/lib/slot-propagation";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -816,63 +820,37 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent onKeyDown={enterToSave(requestSave)} className="max-w-2xl gap-3 p-5">
-        <DialogHeader>
-          <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
-        </DialogHeader>
-        <div className="grid gap-2.5">
-           <div className="-mt-1 text-xs text-muted-foreground">{formatDateShort(session.fecha)}</div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Hora inicio</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
-            </div>
-          </div>
-          {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
-            <FueraHorarioAviso show />
-          )}
-
-
-          <div className="space-y-1.5">
-            <Label>Servicio</Label>
-            <Select value={servicioSlug} onValueChange={cambiarServicio}>
-              <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
-              <SelectContent>
-                {servicios.map((s) => (
-                  <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label>Entrenador</Label>
-              <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
-                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
-                <SelectContent>
-                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
-                    <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
+    <HuecoPanel
+      inst={open ? ({ id: session.slot_instance_id ?? session.id ?? "new", fecha: session.fecha, hora_inicio: horaInicio, hora_fin: horaFin, servicio_slug: servicioSlug, trainer_id: trainerId, capacidad: plazas } as SlotInstance) : null}
+      servicioNombre={servicioActual?.nombre ?? (isNew ? "Nueva sesión" : "Sesión")}
+      color={servicioColorOf(colores, servicioSlug) ?? "var(--primary)"}
+      trainerNombre={trainers.find(t => t.id === trainerId)?.nombre ?? null}
+      reservas={(grupo ? groupClientIds : [clientId]).filter((id): id is string => !!id).map(id => ({ id, client_id: id, titulo: null, clients: null }))}
+      estadoFijo={{ label: ESTADO_LABEL[estado], cls: ESTADO_BG[estado] }}
+      onClose={onClose}
+      onSave={requestSave}
+      onCancelarReserva={() => {}}
+      headerFields={<>
+<div className="flex flex-wrap items-center gap-2 text-sm">
+ <span className="opacity-80">{formatDateShort(session.fecha)}</span>
+ <Input aria-label="Hora inicio" type="time" value={horaInicio} onChange={e => setHoraInicio(e.target.value)} step={300} className="h-8 w-[105px] border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
+ <span>—</span>
+ <Input aria-label="Hora fin" type="time" value={horaFin} onChange={e => setHoraFin(e.target.value)} step={300} className="h-8 w-[105px] border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground" />
+</div>
+<div className="flex flex-wrap items-center gap-2">
+ <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px] font-semibold">{(trainers.find(t => t.id === trainerId)?.nombre ?? "?").charAt(0)}</span>
+ <Select value={trainerId ?? "__none"} onValueChange={v => setTrainerId(v === "__none" ? null : v)}>
+ <SelectTrigger aria-label="Entrenador" className="h-8 min-w-0 flex-1 border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"><SelectValue placeholder="Sin entrenador" /></SelectTrigger>
+ <SelectContent><SelectItem value="__none">Sin entrenador</SelectItem>{trainers.map(t => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}</SelectContent>
+ </Select>
+ <Select value={estado} onValueChange={v => setEstado(v as SesionEstado)}>
+ <SelectTrigger aria-label="Estado" className="h-8 w-32 border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"><SelectValue /></SelectTrigger>
+ <SelectContent>{(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter(e => e !== "prueba").map(e => <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>)}</SelectContent>
+ </Select>
+</div>
+{isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && <FueraHorarioAviso show />}
+</>}
+      clientFields={<>          <div className="space-y-1.5">
             <Label>
               {plazas > 1
                 ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
@@ -934,7 +912,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
 
-          <div className="grid grid-cols-2 gap-3">
+</>}
+      extraFields={<details className="space-y-2"><summary className="cursor-pointer text-sm text-muted-foreground">Más opciones</summary><div className="grid gap-2.5 pt-2"><div className="space-y-1.5"><Label>Servicio</Label><Select value={servicioSlug} onValueChange={cambiarServicio}><SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger><SelectContent>{servicios.map(s => <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>)}</SelectContent></Select></div>          <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
@@ -966,15 +945,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               rows={1}
               className="min-h-[36px] resize-none overflow-hidden"
             />
-          </div>
-        </div>
-        <DialogFooter className="gap-2">
+          </div></div></details>}
+      footer={        <DialogFooter className="gap-2 border-t px-5 py-3">
           {!isNew && <Button variant="destructive" onClick={requestDelete}>Eliminar</Button>}
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
           <Button onClick={requestSave}>{isNew ? "Crear" : "Guardar"}</Button>
-        </DialogFooter>
-      </DialogContent>
-      <AlertDialog open={scopeAsk} onOpenChange={setScopeAsk}>
+        </DialogFooter>}
+    />
+<AlertDialog open={scopeAsk} onOpenChange={setScopeAsk}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Editar sesión en serie</AlertDialogTitle>
@@ -1004,7 +982,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </Dialog>
     {confirmDialog}
     <ClientDetailsDialog
       client={perfilCliente}
