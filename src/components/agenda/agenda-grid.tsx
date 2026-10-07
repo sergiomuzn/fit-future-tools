@@ -800,6 +800,36 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const rows = sessions.filter((row) => idSet.has(row.id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     const portalIds = rows.filter(isPortalRow).map((row) => row.id);
+    const changesBookedSlot =
+      hhmm(ps.hora_inicio) !== draft.horaInicio ||
+      hhmm(ps.hora_fin) !== draft.horaFin ||
+      (ps.trainer_id ?? null) !== draft.trainerId;
+    if (changesBookedSlot && portalIds.length) {
+      const proceed = await confirmPanel({
+        title: "Esta sesión tiene reservas de clientes",
+        description: portalIds.length > 1
+          ? `Hay ${portalIds.length} clientes que reservaron esta sesión desde la app. Si editas la sesión, sus reservas se cancelarán y se les avisará.`
+          : "Un cliente reservó esta sesión desde la app. Si editas la sesión, su reserva se cancelará y se le avisará.",
+        confirmText: "Continuar",
+        cancelText: "Cancelar",
+        destructive: false,
+      });
+      if (!proceed) return false;
+      await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+      const portalSet = new Set(portalIds);
+      const retainedId = rows.length === portalIds.length ? portalIds[0] : null;
+      const toDelete = portalIds.filter((id) => id !== retainedId);
+      if (retainedId) {
+        const { error } = await supabase.from("sessions").update({ client_id: null, booked_by_user_id: null, booking_tipo: null, por_confirmar: false }).eq("id", retainedId);
+        if (error) return toast.error(error.message), false;
+      }
+      if (toDelete.length) {
+        const { error } = await supabase.from("sessions").delete().in("id", toDelete);
+        if (error) return toast.error(error.message), false;
+      }
+      for (const id of portalSet) idSet.delete(id);
+      if (retainedId) idSet.add(retainedId);
+    }
     if (pendingPortalIds.length && !draft.porConfirmar && draft.estado === "reservada") {
       await Promise.all(pendingPortalIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {})));
     } else if (!pendingPortalIds.length && draft.porConfirmar && draft.estado === "reservada") {
@@ -818,7 +848,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
     } as Session) : row));
-    const { error } = await supabase.from("sessions").update({
+    const updateIds = Array.from(idSet);
+    const { error } = updateIds.length ? await supabase.from("sessions").update({
       hora_inicio: `${draft.horaInicio}:00`,
       hora_fin: `${draft.horaFin}:00`,
       trainer_id: draft.trainerId,
@@ -826,7 +857,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       tipo: draft.esPrueba ? "prueba" : null,
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
-    }).in("id", ids);
+    }).in("id", updateIds) : { error: null };
     if (error) {
       qc.setQueryData(["sessions", isoDate], previous);
       toast.error(error.message);

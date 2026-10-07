@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ChevronDown, MoreVertical } from "lucide-react";
+import { MoreVertical } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -231,7 +231,6 @@ export function HuecoPanel({
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px] font-semibold">{(trainers.find((t) => t.id === trainerId)?.nombre ?? trainerNombre ?? "?").charAt(0).toUpperCase()}</span>
                       <span className="truncate">{trainers.find((t) => t.id === trainerId)?.nombre ?? trainerNombre ?? "Sin entrenador"}</span>
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE}>Sin entrenador</SelectItem>
@@ -245,7 +244,6 @@ export function HuecoPanel({
                       <span className={cn("h-2.5 w-2.5 rounded-full", ESTADO_BG[estadoVisual].split(" ")[0])} />
                       <span>{ESTADO_LABEL[estadoVisual]}</span>
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 opacity-70" />
                   </SelectTrigger>
                   <SelectContent>{EDITABLE_STATES.map((item) => <SelectItem key={item} value={item}>{ESTADO_LABEL[item]}</SelectItem>)}</SelectContent>
                 </Select>
