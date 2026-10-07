@@ -34,6 +34,10 @@ interface Props {
   onClose: () => void;
   onEdit: () => void;
   onCancelarReserva: (r: PanelReserva) => void;
+  /** Estado a mostrar en la etiqueta (si no, se calcula). */
+  estadoFijo?: { label: string; cls: string };
+  /** Acción propia del botón "+" (si no, buscador para añadir reserva). */
+  onAdd?: () => void;
 }
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
@@ -44,7 +48,7 @@ function fechaLarga(fecha: string) {
   return `${DIAS[d.getDay()]} ${d.getDate()} ${MESES[d.getMonth()]}`;
 }
 
-export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onEdit, onCancelarReserva }: Props) {
+export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onEdit, onCancelarReserva, estadoFijo, onAdd }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Pestana>("reservados");
   const [adding, setAdding] = useState(false);
@@ -115,13 +119,14 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
   });
 
   const completa = !!inst && reservas.length >= inst.capacidad;
-  const estado = useMemo(() => {
+  const estadoCalc = useMemo(() => {
     if (!inst) return { label: "", cls: "" };
     const fin = new Date(`${inst.fecha}T${hhmm(inst.hora_fin)}:00`);
     if (fin < new Date()) return { label: "Realizada", cls: "bg-state-asistida text-state-asistida-fg" };
     if (reservas.length > 0) return { label: "Reservada", cls: "bg-state-reservada text-state-reservada-fg" };
     return { label: "Disponible", cls: "bg-secondary text-secondary-foreground" };
   }, [inst, reservas.length]);
+  const estado = estadoFijo ?? estadoCalc;
 
   const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva }[]> = {
     reservados: reservas.map((r) => ({ id: r.id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
@@ -187,8 +192,8 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                   variant="outline"
                   className="h-10 w-10 shrink-0"
                   title={completa ? "Sesión completa" : "Añadir reserva"}
-                  disabled={completa}
-                  onClick={() => { setTab("reservados"); setAdding((a) => !a); }}
+                  disabled={completa && !onAdd}
+                  onClick={() => { if (onAdd) return onAdd(); setTab("reservados"); setAdding((a) => !a); }}
                 >
                   <Plus className="h-4 w-4" />
                 </Button>
