@@ -513,6 +513,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         color={reservasDe ? (servicioColor(reservasDe.servicio_slug) ?? "#888888") : "#888888"}
         trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
         trainers={trainers}
+        servicios={servicios}
         reservas={reservasDe ? reservasDeHueco(reservasDe) : []}
         estadoInicial={(reservasDe && reservasDeHueco(reservasDe)[0]?.estado as any) ?? "reservada"}
         esPruebaInicial={false}

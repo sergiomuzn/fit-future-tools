@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
-import { SessionDialog } from "./session-dialog";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
@@ -751,7 +750,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId]);
+  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId, servicios]);
 
   // Dialog
   const [panelSession, setPanelSession] = useState<Session | null>(null);
