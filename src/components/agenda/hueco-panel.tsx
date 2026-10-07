@@ -187,6 +187,16 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
                     </button>
                   ))}
                 </div>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-10 w-10 shrink-0"
+                  title={completa ? "Sesión completa" : "Añadir reserva"}
+                  disabled={completa && !onAdd}
+                  onClick={() => { if (onAdd) return onAdd(); setTab("reservados"); setAdding((a) => !a); }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
               </div>
 
               <div className="flex gap-1 border-b">

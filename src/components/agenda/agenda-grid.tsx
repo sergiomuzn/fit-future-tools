@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { SessionDialog } from "./session-dialog";
+import { HuecoPanel } from "./hueco-panel";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -754,6 +755,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Dialog
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [panelSession, setPanelSession] = useState<Session | null>(null);
+  const { confirm: confirmPanel, dialog: confirmPanelDialog } = useConfirm();
 
   // Click on a session — if paintMode, just assign trainer
   async function handleSessionClick(s: Session, e: React.MouseEvent) {
@@ -788,8 +791,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
       return;
     }
-    setDialogSession(s);
-    setDialogOpen(true);
+    setPanelSession(s);
   }
 
   // Auto-paso a "realizada" para las sesiones individuales pasadas
@@ -1132,6 +1134,34 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         </div>
       </div>
 
+      {(() => {
+        const ps = panelSession;
+        const block = ps ? sessions.filter((x) => blockIds(ps.id).includes(x.id)) : [];
+        const activos = block.filter((x) => x.client_id && x.estado !== "cancelada");
+        const est = (ps?.estado ?? "reservada") as SesionEstado;
+        return (
+          <HuecoPanel
+            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, block.length) } as any) : null}
+            servicioNombre={ps ? (servicios.find((x) => x.slug === ps.servicio_slug)?.nombre ?? ps.titulo ?? "Sesión") : ""}
+            color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
+            trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}
+            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null }))}
+            estadoFijo={{ label: ESTADO_LABEL[est] ?? est, cls: est === "reservada" && activos.length === 0 ? "bg-secondary text-secondary-foreground" : (ESTADO_BG[est] ?? "") }}
+            onClose={() => setPanelSession(null)}
+            onEdit={() => { if (!ps) return; setDialogSession(ps); setPanelSession(null); setDialogOpen(true); }}
+            onAdd={() => { if (!ps) return; setDialogSession(ps); setPanelSession(null); setDialogOpen(true); }}
+            onCancelarReserva={async (r) => {
+              const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión de ${r.clients?.nombre ?? "este cliente"}.`, confirmText: "Cancelar reserva" });
+              if (!ok) return;
+              const { error } = await supabase.from("sessions").update({ estado: "cancelada" }).eq("id", r.id);
+              if (error) return toast.error(error.message);
+              void qc.invalidateQueries({ queryKey: ["sessions"] });
+              toast.success("Reserva cancelada");
+            }}
+          />
+        );
+      })()}
+      {confirmPanelDialog}
       <SessionDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}

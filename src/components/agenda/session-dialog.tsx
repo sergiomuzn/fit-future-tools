@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,8 +25,7 @@ import {
   marcarReservaPorConfirmar,
 } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
-import { formatDateShort, cn } from "@/lib/utils";
-import { servicioColorOf } from "@/lib/colors";
+import { formatDateShort } from "@/lib/utils";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -119,32 +118,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     refetchOnMount: "always",
   });
 
-  const [tab, setTab] = useState<"reservados" | "cola" | "cancelados">("reservados");
-  const { data: extra } = useQuery({
-    queryKey: ["session-dialog-extra", session?.id, session?.fecha, session?.hora_inicio, (session as any)?.servicio_slug],
-    enabled: open && !isNew && !!session?.fecha,
-    queryFn: async () => {
-      const hi = (session?.hora_inicio ?? "").slice(0, 5);
-      const slug = (session as any)?.servicio_slug as string | null;
-      const [cola, canc] = await Promise.all([
-        (supabase as any).from("reserva_cola").select("id,client_id,hora_inicio,servicio_slug").eq("fecha", session!.fecha).in("estado", ["en_cola", "ofrecida"]).order("created_at"),
-        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,clients(nombre)").eq("fecha", session!.fecha!).eq("estado", "cancelada"),
-      ]);
-      const colaRows = ((cola.data ?? []) as any[]).filter((c) => String(c.hora_inicio).slice(0, 5) === hi && (!c.servicio_slug || c.servicio_slug === slug));
-      const nombres = new Map<string, string>();
-      if (colaRows.length) {
-        const { data } = await supabase.from("clients").select("id,nombre").in("id", colaRows.map((c) => c.client_id));
-        for (const c of data ?? []) nombres.set(c.id, c.nombre);
-      }
-      return {
-        cola: colaRows.map((c) => ({ id: c.id as string, nombre: nombres.get(c.client_id) ?? "Cliente" })),
-        cancelados: ((canc.data ?? []) as any[])
-          .filter((r) => String(r.hora_inicio).slice(0, 5) === hi && r.servicio_slug === slug)
-          .map((r) => ({ id: r.id as string, nombre: (r.clients?.nombre ?? r.titulo ?? "Cliente") as string })),
-      };
-    },
-  });
-
   // Configuración de funcionamiento del centro (para valores por defecto al crear).
   const behaviorCfg = useBehaviorConfig();
   const cfgBehaviorRef = useRef(behaviorCfg);
@@ -193,7 +166,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const servicioActual = servicios.find((s) => s.slug === servicioSlug);
   // Plazas del servicio (definidas en Servicios). 1 plaza = sesión individual.
   const plazas = Math.max(1, servicioActual?.capacidad_default ?? 1);
-  const ocupadas = plazas > 1 ? groupClientIds.filter(Boolean).length : clientId ? 1 : 0;
 
   function cambiarServicio(slug: string) {
     setServicioSlug(slug);
@@ -844,106 +816,101 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { setTab("reservados"); onClose(); } }}>
-      <DialogContent onKeyDown={enterToSave(requestSave)} className="max-w-xl gap-0 overflow-hidden p-0">
-        <div className="space-y-2 bg-primary px-5 pb-4 pt-5 text-primary-foreground">
-          <div className="flex items-center gap-2 pr-8">
-            <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: servicioColorOf(colores, servicioSlug) ?? "#888888" }} />
-            <DialogTitle className="sr-only">{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent onKeyDown={enterToSave(requestSave)} className="max-w-2xl gap-3 p-5">
+        <DialogHeader>
+          <DialogTitle>{isNew ? "Nueva sesión" : "Editar sesión"}</DialogTitle>
+        </DialogHeader>
+        <div className="grid gap-2.5">
+           <div className="-mt-1 text-xs text-muted-foreground">{formatDateShort(session.fecha)}</div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Hora inicio</Label>
+              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Hora fin</Label>
+              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300} />
+            </div>
+          </div>
+          {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
+            <FueraHorarioAviso show />
+          )}
+
+
+          <div className="space-y-1.5">
+            <Label>Servicio</Label>
             <Select value={servicioSlug} onValueChange={cambiarServicio}>
-              <SelectTrigger className="h-8 w-auto min-w-0 gap-1 border-0 bg-transparent px-1 text-base font-semibold shadow-none hover:bg-primary-foreground/10 focus:ring-0">
-                <SelectValue placeholder="Selecciona un servicio" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecciona un servicio" /></SelectTrigger>
               <SelectContent>
                 {servicios.map((s) => (
                   <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            <span className="ml-auto shrink-0 rounded-full bg-primary-foreground/15 px-2.5 py-0.5 text-[11px] font-semibold">
-              {ocupadas}/{plazas} ocupadas · {Math.max(0, plazas - ocupadas)} libres
-            </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1 text-sm">
-            <span className="opacity-80">{formatDateShort(session.fecha)} ·</span>
-            <input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} step={300}
-              className="rounded bg-transparent px-1 hover:bg-primary-foreground/10 focus:bg-primary-foreground/10 focus:outline-none [color-scheme:dark]" aria-label="Hora inicio" />
-            <span className="opacity-80">—</span>
-            <input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} step={300}
-              className="rounded bg-transparent px-1 hover:bg-primary-foreground/10 focus:bg-primary-foreground/10 focus:outline-none [color-scheme:dark]" aria-label="Hora fin" />
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 text-[11px] font-semibold">
-              {(trainers.find((t) => t.id === trainerId)?.nombre ?? "?").charAt(0).toUpperCase()}
-            </span>
-            <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
-              <SelectTrigger className="h-7 w-auto gap-1 border-0 bg-transparent px-1 text-sm shadow-none hover:bg-primary-foreground/10 focus:ring-0">
-                <SelectValue placeholder="Sin entrenador" />
-              </SelectTrigger>
-              <SelectContent>
-                {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
-              </SelectContent>
-            </Select>
-            <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
-              <SelectTrigger className="ml-auto h-7 w-auto gap-1 rounded-full border-0 bg-primary-foreground/15 px-2.5 text-xs font-semibold shadow-none focus:ring-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
-                  <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          {isOutsideOpening(session.fecha ?? "", horaInicio, horaFin, horario, specialsMap) && (
-            <div className="rounded bg-background p-1 text-foreground"><FueraHorarioAviso show /></div>
-          )}
-        </div>
-
-        <div className="space-y-3 p-5">
-          <h3 className="text-sm font-semibold">Clientes</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {([
-              ["reservados", "Reservados", ocupadas, "text-state-prueba"],
-              ["cola", "En cola", extra?.cola.length ?? 0, "text-foreground"],
-              ["cancelados", "Cancelados", extra?.cancelados.length ?? 0, "text-foreground"],
-            ] as const).map(([k, label, n, cls]) => (
-              <button key={k} type="button" onClick={() => setTab(k)}
-                className={cn("rounded-lg border px-2 py-1.5 text-left transition-colors hover:bg-muted", tab === k && "bg-muted")}>
-                <div className={cn("text-lg font-semibold leading-tight", cls)}>{n}</div>
-                <div className="text-[11px] text-muted-foreground">{label}</div>
-              </button>
-            ))}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Entrenador</Label>
+              <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
+                <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
+                <SelectContent>
+                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Estado</Label>
+              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
+                    <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {tab === "reservados" ? (
-            plazas > 1 ? (
+          <div className="space-y-1.5">
+            <Label>
+              {plazas > 1
+                ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
+                : "Cliente"}
+            </Label>
+            {plazas > 1 ? (
               <div className="flex flex-col gap-2">
               {groupClientIds.map((cid, i) => (
-                <ClientPicker
-                  key={i}
-                  value={cid}
-                  autoFocus={isNew && i === 0}
-                  initialText={i === 0 ? nombreLibre : undefined}
-                  onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
-                  onChange={async (id) => {
-                    if (cid && id !== cid) {
-                      const reserva = (groupMembersData ?? []).find(
-                        (m) => m.client_id === cid && !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
-                      );
-                      if (reserva) {
-                        const ok = await confirm({
-                          title: "¿Quitar a este cliente?",
-                          description: "Este cliente reservó esta sesión desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
-                          confirmText: "Quitar",
-                        });
-                        if (!ok) return;
-                      }
-                    }
-                    setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
-                  }}
-                  onNameClick={(c) => setPerfilCliente(c)}
-                />
+                <div key={i} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <ClientPicker
+                      value={cid}
+                      autoFocus={isNew && i === 0}
+                      initialText={i === 0 ? nombreLibre : undefined}
+                      onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
+                      onChange={async (id) => {
+                        if (cid && id !== cid) {
+                          const reserva = (groupMembersData ?? []).find(
+                            (m) =>
+                              m.client_id === cid &&
+                              !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
+                          );
+                          if (reserva) {
+                            const ok = await confirm({
+                              title: "¿Quitar a este cliente?",
+                              description:
+                                "Este cliente reservó esta sesión desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
+                              confirmText: "Quitar",
+                            });
+                            if (!ok) return;
+                          }
+                        }
+                        setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
+                      }}
+                      onNameClick={(c) => setPerfilCliente(c)}
+                    />
+                  </div>
+                </div>
               ))}
               </div>
             ) : (
@@ -958,24 +925,16 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 />
                 {clientId && !isGympassBono && (
                   <div className="text-[11px] text-muted-foreground">
-                    Sesiones restantes: <span className="font-semibold">{restantes ?? "Sin bono"}</span>
+                    Sesiones restantes:{" "}
+                    <span className="font-semibold">{restantes ?? "Sin bono"}</span>
                   </div>
                 )}
               </>
-            )
-          ) : (
-            <div className="max-h-40 space-y-1 overflow-y-auto">
-              {(tab === "cola" ? extra?.cola ?? [] : extra?.cancelados ?? []).length === 0 ? (
-                <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>
-              ) : (
-                (tab === "cola" ? extra?.cola ?? [] : extra?.cancelados ?? []).map((r) => (
-                  <div key={r.id} className="rounded-md border px-3 py-1.5 text-sm">{r.nombre}</div>
-                ))
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-1">
+
+          <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
@@ -985,31 +944,35 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
             </div>
           </div>
-          {estado === "cancelada" && (
-            <div className="flex items-start gap-2 rounded-md border border-dashed p-2">
-              <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
-              <div className="space-y-0.5">
-                <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
-                <p className="text-[11px] leading-tight text-muted-foreground">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
+            {estado === "cancelada" && (
+              <div className="flex flex-1 items-start gap-2 rounded-md border border-dashed p-2">
+                <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
+                <div className="space-y-0.5">
+                  <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
+                </div>
               </div>
-            </div>
-          )}
-          <div className="grid grid-cols-[110px_1fr] gap-3">
-            <div className="space-y-1.5">
-              <Label>Repetir semanas</Label>
-              <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
-            </div>
-            <div className="space-y-1.5">
-              <Label>Notas</Label>
-              <Textarea ref={notasRef} value={incidencia} onChange={(e) => setIncidencia(e.target.value)} rows={1} className="min-h-[36px] resize-none overflow-hidden" />
-            </div>
+            )}
+          <div className="space-y-1.5">
+            <Label>Repetir semanas</Label>
+            <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />
           </div>
-          <DialogFooter className="gap-2 pt-1">
-            {!isNew && <Button variant="destructive" onClick={requestDelete}>Eliminar</Button>}
-            <Button variant="outline" onClick={onClose}>Cancelar</Button>
-            <Button onClick={requestSave}>{isNew ? "Crear" : "Guardar"}</Button>
-          </DialogFooter>
+          <div className="space-y-1.5">
+            <Label>Notas</Label>
+            <Textarea
+              ref={notasRef}
+              value={incidencia}
+              onChange={(e) => setIncidencia(e.target.value)}
+              rows={1}
+              className="min-h-[36px] resize-none overflow-hidden"
+            />
+          </div>
         </div>
+        <DialogFooter className="gap-2">
+          {!isNew && <Button variant="destructive" onClick={requestDelete}>Eliminar</Button>}
+          <Button variant="outline" onClick={onClose}>Cancelar</Button>
+          <Button onClick={requestSave}>{isNew ? "Crear" : "Guardar"}</Button>
+        </DialogFooter>
       </DialogContent>
       <AlertDialog open={scopeAsk} onOpenChange={setScopeAsk}>
         <AlertDialogContent>
