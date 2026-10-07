@@ -14,6 +14,7 @@ import {
 import { ClientPicker } from "@/components/clients/client-picker";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
+import { enterToSave } from "@/lib/enter-to-save";
 import { cn, formatDateShort } from "@/lib/utils";
 
 type Pestana = "reservados" | "cola" | "cancelados";
@@ -36,13 +37,14 @@ interface Props {
   clientFields?: ReactNode;
   extraFields?: ReactNode;
   footer?: ReactNode;
+  onSave?: () => void;
   onCancelarReserva: (r: PanelReserva) => void;
   /** Estado a mostrar en la etiqueta (si no, se calcula). */
   estadoFijo?: { label: string; cls: string };
 }
 
 const DIAS = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
-export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onCancelarReserva, estadoFijo, headerFields, clientFields, extraFields, footer }: Props) {
+export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reservas, onClose, onCancelarReserva, estadoFijo, headerFields, clientFields, extraFields, footer, onSave }: Props) {
   const qc = useQueryClient();
   const [tab, setTab] = useState<Pestana>("reservados");
   const [nuevoCliente, setNuevoCliente] = useState<string | null>(null);
@@ -135,7 +137,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
 
   return (
     <Dialog open={!!inst} onOpenChange={(o) => { if (!o) { setTab("reservados"); onClose(); } }}>
-      <DialogContent aria-describedby={undefined} className="gap-0 p-0 sm:max-w-xl">
+      <DialogContent onKeyDown={onSave ? enterToSave(onSave) : undefined} aria-describedby={undefined} className="gap-0 p-0 sm:max-w-xl">
         {inst && (
           <>
             <div className="relative space-y-1.5 bg-primary px-5 pb-4 pt-5 text-primary-foreground">

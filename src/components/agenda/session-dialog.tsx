@@ -828,6 +828,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       reservas={(grupo ? groupClientIds : [clientId]).filter((id): id is string => !!id).map(id => ({ id, client_id: id, titulo: null, clients: null }))}
       estadoFijo={{ label: ESTADO_LABEL[estado], cls: ESTADO_BG[estado] }}
       onClose={onClose}
+      onSave={requestSave}
       onCancelarReserva={() => {}}
       headerFields={<>
 <div className="flex flex-wrap items-center gap-2 text-sm">
