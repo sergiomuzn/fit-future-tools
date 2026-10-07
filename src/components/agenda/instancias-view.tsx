@@ -22,8 +22,6 @@ import { formatDateShort } from "@/lib/utils";
 import { useColores } from "@/lib/colors";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 
-const NONE = "__none";
-
 /** Sesión reservada asociada a un hueco propagado. */
 interface Reserva {
   id: string;
@@ -156,7 +154,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   );
   const lockedSet = useMemo(() => new Set(lockedIds), [lockedIds]);
 
-  const [editing, setEditing] = useState<(SlotInstance & { cap: string }) | null>(null);
   const [pending, setPending] = useState<{ fecha: string; inicio: string; fin: string; slug: string } | null>(null);
   /** Hueco con reservas abierto en el diálogo de clientes. */
   const [reservasDe, setReservasDe] = useState<SlotInstance | null>(null);
@@ -330,24 +327,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const update = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: Partial<SlotInstance> }) => {
-      const { error } = await supabase.from("service_slot_instances").update(patch).eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); setEditing(null); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("service_slot_instances").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => { invalidate(); setEditing(null); toast.success("Hueco eliminado"); },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
   const moveMany = useMutation({
     onMutate: (updates: { id: string; fecha: string; hora_inicio: string; hora_fin: string }[]) => {
       const byId = new Map(updates.map((u) => [u.id, u]));
@@ -403,32 +382,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     moveMany.mutate([{ id: i.id, fecha: i.fecha, hora_inicio: i.hora_inicio, hora_fin: toTime(toMin(i.hora_fin) + deltaMin) }]);
     return true;
   }
-
-  async function saveEditing() {
-    if (!editing) return;
-    const orig = instById.get(editing.id);
-    if (orig && lockedSet.has(orig.id)) {
-      const cambia =
-        orig.servicio_slug !== editing.servicio_slug ||
-        hhmm(orig.hora_inicio) !== hhmm(editing.hora_inicio) ||
-        hhmm(orig.hora_fin) !== hhmm(editing.hora_fin) ||
-        orig.capacidad !== Math.max(1, Number(editing.cap) || 1) ||
-        (orig.trainer_id ?? null) !== (editing.trainer_id ?? null);
-      if (cambia && !(await confirmarEdicionReservadas([orig]))) return;
-    }
-    update.mutate({
-      id: editing.id,
-      patch: {
-        servicio_slug: editing.servicio_slug,
-        hora_inicio: toTime(toMin(editing.hora_inicio)),
-        hora_fin: toTime(Math.max(toMin(editing.hora_inicio) + 5, toMin(editing.hora_fin))),
-        capacidad: Math.max(1, Number(editing.cap) || 1),
-        trainer_id: editing.trainer_id,
-      },
-    });
-  }
-
-  const editingLocked = false;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -549,112 +502,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setPending(null)}>Cancelar</Button>
             <Button disabled={!pending?.slug} onClick={() => pending && create.mutate(pending)}>Crear</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Detalle del hueco propagado */}
-      <Dialog open={!!editing} onOpenChange={(o) => !o && setEditing(null)}>
-        <DialogContent className="sm:max-w-sm" onKeyDown={enterToSave(() => !editingLocked && saveEditing())}>
-          <DialogHeader>
-            <DialogTitle>
-              Hueco propagado ·{" "}
-              {editing ? (
-                <span className="whitespace-nowrap">
-                   {DIA_NOMBRE[dowOf(editing.fecha)]} {formatDateShort(editing.fecha)}
-                </span>
-              ) : (
-                ""
-              )}
-            </DialogTitle>
-          </DialogHeader>
-          {editing && lockedSet.has(editing.id) && (
-            <p className="rounded border border-border bg-muted px-3 py-2 text-xs text-muted-foreground">
-              Este hueco tiene reservas de clientes hechas desde la app.
-            </p>
-          )}
-          {editing && (
-            <div className="space-y-3">
-              <div className="space-y-1.5">
-                <Label>Tipo de sesión</Label>
-                <Select
-                  value={editing.servicio_slug}
-                  disabled={editingLocked}
-                  onValueChange={(v) => setEditing({ ...editing, servicio_slug: v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {servicios.map((s) => (
-                      <SelectItem key={s.id} value={s.slug}>{s.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Hora de inicio</Label>
-                  <Input
-                    type="time"
-                    disabled={editingLocked}
-                    value={hhmm(editing.hora_inicio)}
-                    onChange={(e) => setEditing({ ...editing, hora_inicio: e.target.value })}
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Hora de fin</Label>
-                  <Input
-                    type="time"
-                    disabled={editingLocked}
-                    value={hhmm(editing.hora_fin)}
-                    onChange={(e) => setEditing({ ...editing, hora_fin: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Plazas</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  disabled={editingLocked}
-                  value={editing.cap}
-                  onChange={(e) => setEditing({ ...editing, cap: e.target.value })}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Entrenador (opcional)</Label>
-                <Select
-                  value={editing.trainer_id ?? NONE}
-                  disabled={editingLocked}
-                  onValueChange={(v) => setEditing({ ...editing, trainer_id: v === NONE ? null : v })}
-                >
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sin asignar</SelectItem>
-                    {trainers.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
-          <DialogFooter className="gap-2 sm:justify-between">
-            <Button
-              variant="destructive"
-              disabled={editingLocked}
-              onClick={async () => {
-                if (!editing) return;
-                const orig = instById.get(editing.id);
-                if (orig && lockedSet.has(orig.id) && !(await confirmarEdicionReservadas([orig]))) return;
-                remove.mutate(editing.id);
-              }}
-            >
-              Eliminar
-            </Button>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setEditing(null)}>Cerrar</Button>
-              <Button disabled={editingLocked} onClick={saveEditing}>Guardar</Button>
-            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
