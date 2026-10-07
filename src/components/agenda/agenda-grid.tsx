@@ -2,12 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
-import { SessionDialog } from "./session-dialog";
-import { HuecoPanel } from "./hueco-panel";
+import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
-import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { marcarReservaPorConfirmar, notificarReservasCanceladas, resolverReservaPendiente } from "@/lib/notificaciones.functions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -610,15 +609,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       stopAutoScroll();
       if (dragStartRef.current !== null && draftRef.current) {
         const d = draftRef.current;
-        setDialogSession({
+        setPanelSession({
+          id: "",
           fecha: isoDate,
           hora_inicio: minToTime(d.startMin),
           hora_fin: minToTime(d.endMin),
           trainer_id: paintTrainerId,
           estado: "reservada",
           ocupacion: 1,
-        });
-        setDialogOpen(true);
+          servicio_slug: servicios[0]?.slug ?? "",
+        } as Session);
         dragStartRef.current = null;
         draftRef.current = null;
         setDraft(null);
@@ -750,11 +750,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       window.removeEventListener("mousemove", move);
       window.removeEventListener("mouseup", up);
     };
-  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId]);
+  }, [moving, movePreview, resizing, resizePreview, qc, isoDate, sessions, paintTrainerId, servicios]);
 
   // Dialog
-  const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
   const [panelSession, setPanelSession] = useState<Session | null>(null);
   const { confirm: confirmPanel, dialog: confirmPanelDialog } = useConfirm();
 
@@ -792,6 +790,163 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return;
     }
     setPanelSession(s);
+  }
+
+  async function savePanelSession(ps: Session, draft: HuecoPanelDraft): Promise<boolean> {
+    if (!ps.id) {
+      const capacity = Math.max(1, servicioCapMap.get(draft.servicioSlug) ?? 1);
+      const selected = draft.clientIds.slice(0, capacity);
+      const clientIds: (string | null)[] = selected.length ? selected : [null];
+      const recurrenciaId = draft.repeatWeeks > 0 || capacity > 1 ? crypto.randomUUID() : null;
+      const inserts = Array.from({ length: draft.repeatWeeks + 1 }, (_, week) => clientIds.map((clientId) => {
+        const fecha = new Date(`${ps.fecha}T00:00:00`);
+        fecha.setDate(fecha.getDate() + week * 7);
+        return {
+          fecha: formatDateISO(fecha),
+          hora_inicio: `${draft.horaInicio}:00`,
+          hora_fin: `${draft.horaFin}:00`,
+          trainer_id: week === 0 ? draft.trainerId : null,
+          servicio_slug: draft.servicioSlug,
+          client_id: clientId,
+          estado: draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado,
+          tipo: draft.esPrueba ? "prueba" : null,
+          por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+          incidencia: draft.notas || null,
+          ocupacion: capacity > 1 ? 2 : 1,
+          recurrencia_id: recurrenciaId,
+        };
+      })).flat();
+      const { error } = await supabase.from("sessions").insert(inserts as any);
+      if (error) return toast.error(error.message), false;
+      const assigned = inserts.filter((row) => !!row.client_id).map((row) => ({ clientId: row.client_id as string, fecha: row.fecha, hora: row.hora_inicio }));
+      if (assigned.length) void import("@/lib/notificaciones.functions").then(({ notificarSesionesAsignadas }) => notificarSesionesAsignadas({ data: { sesiones: assigned.slice(0, 100) } })).catch(() => {});
+      void qc.invalidateQueries({ queryKey: ["sessions"] });
+      toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
+      return true;
+    }
+    const ids = blockIds(ps.id);
+    const idSet = new Set(ids);
+    const rows = sessions.filter((row) => idSet.has(row.id));
+    const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
+    const portalIds = rows.filter(isPortalRow).map((row) => row.id);
+    const changesBookedSlot =
+      ps.hora_inicio.slice(0, 5) !== draft.horaInicio ||
+      ps.hora_fin.slice(0, 5) !== draft.horaFin ||
+      (ps.trainer_id ?? null) !== draft.trainerId;
+    if (changesBookedSlot && portalIds.length) {
+      const proceed = await confirmPanel({
+        title: "Esta sesión tiene reservas de clientes",
+        description: portalIds.length > 1
+          ? `Hay ${portalIds.length} clientes que reservaron esta sesión desde la app. Si editas la sesión, sus reservas se cancelarán y se les avisará.`
+          : "Un cliente reservó esta sesión desde la app. Si editas la sesión, su reserva se cancelará y se le avisará.",
+        confirmText: "Continuar",
+        cancelText: "Cancelar",
+        destructive: false,
+      });
+      if (!proceed) return false;
+      await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+      const portalSet = new Set(portalIds);
+      const retainedId = rows.length === portalIds.length ? portalIds[0] : null;
+      const toDelete = portalIds.filter((id) => id !== retainedId);
+      if (retainedId) {
+        const { error } = await supabase.from("sessions").update({ client_id: null, booked_by_user_id: null, booking_tipo: null, por_confirmar: false }).eq("id", retainedId);
+        if (error) return toast.error(error.message), false;
+      }
+      if (toDelete.length) {
+        const { error } = await supabase.from("sessions").delete().in("id", toDelete);
+        if (error) return toast.error(error.message), false;
+      }
+      for (const id of portalSet) idSet.delete(id);
+      if (retainedId) idSet.add(retainedId);
+    }
+    if (pendingPortalIds.length && !draft.porConfirmar && draft.estado === "reservada") {
+      await Promise.all(pendingPortalIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {})));
+    } else if (!pendingPortalIds.length && draft.porConfirmar && draft.estado === "reservada") {
+      await Promise.all(portalIds.map((id) => marcarReservaPorConfirmar({ data: { sessionId: id } }).catch(() => {})));
+    }
+    const nextEstado = draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado;
+    await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
+    const previous = qc.getQueryData<Session[]>(["sessions", isoDate]);
+    qc.setQueryData<Session[]>(["sessions", isoDate], (old) => (old ?? []).map((row) => idSet.has(row.id) ? ({
+      ...row,
+      servicio_slug: draft.servicioSlug,
+      hora_inicio: `${draft.horaInicio}:00`,
+      hora_fin: `${draft.horaFin}:00`,
+      trainer_id: draft.trainerId,
+      estado: nextEstado,
+      tipo: draft.esPrueba ? "prueba" : null,
+      por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+      incidencia: draft.notas || null,
+    } as Session) : row));
+    const updateIds = Array.from(idSet);
+    const { error } = updateIds.length ? await supabase.from("sessions").update({
+      hora_inicio: `${draft.horaInicio}:00`,
+      hora_fin: `${draft.horaFin}:00`,
+      servicio_slug: draft.servicioSlug,
+      trainer_id: draft.trainerId,
+      estado: nextEstado,
+      tipo: draft.esPrueba ? "prueba" : null,
+      por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+      incidencia: draft.notas || null,
+    }).in("id", updateIds) : { error: null };
+    if (error) {
+      qc.setQueryData(["sessions", isoDate], previous);
+      toast.error(error.message);
+      return false;
+    }
+    if (draft.repeatWeeks > 0) {
+      const originals = sessions.filter((row) => idSet.has(row.id));
+      const inserts = Array.from({ length: draft.repeatWeeks }, (_, index) => index + 1).flatMap((week) => originals.map((row) => {
+        const fecha = new Date(`${row.fecha}T00:00:00`);
+        fecha.setDate(fecha.getDate() + week * 7);
+        return {
+          ...row,
+          id: undefined,
+          fecha: formatDateISO(fecha),
+          hora_inicio: `${draft.horaInicio}:00`,
+          hora_fin: `${draft.horaFin}:00`,
+          trainer_id: null,
+          estado: nextEstado,
+          tipo: draft.esPrueba ? "prueba" : null,
+          por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+          incidencia: draft.notas || null,
+          clients: undefined,
+        };
+      }));
+      if (inserts.length) {
+        const { error: repeatError } = await supabase.from("sessions").insert(inserts as any);
+        if (repeatError) toast.error(repeatError.message);
+      }
+    }
+    void qc.invalidateQueries({ queryKey: ["sessions"] });
+    void qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
+    return true;
+  }
+
+  async function deletePanelSession(ps: Session) {
+    const ids = blockIds(ps.id);
+    const portalIds = sessions.filter((row) => ids.includes(row.id) && isPortalRow(row)).map((row) => row.id);
+    const ok = await confirmPanel({
+      title: ps.por_confirmar ? "¿Eliminar una sesión pendiente de confirmar?" : "¿Eliminar sesión?",
+      description: ps.por_confirmar
+        ? "Si eliminas esta sesión, se denegará la reserva pendiente y el cliente recibirá un aviso."
+        : "La sesión se eliminará de la agenda.",
+      confirmText: "Eliminar",
+    });
+    if (!ok) return;
+    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isPortalRow(row)).map((row) => row.id);
+    if (pendingIds.length) {
+      await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
+    } else if (portalIds.length) {
+      await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+    }
+    const { error } = await supabase.from("sessions").delete().in("id", ids);
+    if (error) return toast.error(error.message);
+    setPanelSession(null);
+    void qc.invalidateQueries({ queryKey: ["sessions"] });
+    void qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
+    toast.success("Sesión eliminada");
   }
 
   // Auto-paso a "realizada" para las sesiones individuales pasadas
@@ -1136,20 +1291,27 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
       {(() => {
         const ps = panelSession;
+        const isNewPanel = ps?.id === "";
         const block = ps ? sessions.filter((x) => blockIds(ps.id).includes(x.id)) : [];
         const activos = block.filter((x) => x.client_id && x.estado !== "cancelada");
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
-            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, block.length) } as any) : null}
+            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, huecoCapMap.get(`${ps.servicio_slug ?? ""}|${ps.hora_inicio}`) ?? servicioCapMap.get(ps.servicio_slug ?? "") ?? block.length) } as any) : null}
             servicioNombre={ps ? (servicios.find((x) => x.slug === ps.servicio_slug)?.nombre ?? ps.titulo ?? "Sesión") : ""}
             color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
             trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}
+            trainers={trainers}
+            servicios={servicios}
+            isNew={isNewPanel}
             reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null }))}
-            estadoFijo={{ label: ESTADO_LABEL[est] ?? est, cls: est === "reservada" && activos.length === 0 ? "bg-secondary text-secondary-foreground" : (ESTADO_BG[est] ?? "") }}
+            estadoInicial={est}
+            esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
+            porConfirmarInicial={!!ps?.por_confirmar}
+            notasIniciales={ps?.incidencia}
             onClose={() => setPanelSession(null)}
-            onEdit={() => { if (!ps) return; setDialogSession(ps); setPanelSession(null); setDialogOpen(true); }}
-            onAdd={() => { if (!ps) return; setDialogSession(ps); setPanelSession(null); setDialogOpen(true); }}
+            onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
+            onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r) => {
               const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión de ${r.clients?.nombre ?? "este cliente"}.`, confirmText: "Cancelar reserva" });
               if (!ok) return;
@@ -1162,12 +1324,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         );
       })()}
       {confirmPanelDialog}
-      <SessionDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-        session={dialogSession}
-        trainers={trainers}
-      />
       <AlertDialog open={!!pendingPortalEdit} onOpenChange={(o) => { if (!o && !confirmingPortalRef.current) { setPendingPortalEdit(null); qc.invalidateQueries({ queryKey: ["sessions"] }); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
