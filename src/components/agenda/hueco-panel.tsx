@@ -185,7 +185,7 @@ export function HuecoPanel({ inst, servicioNombre, color, trainerNombre, reserva
 
               <div className="flex gap-1 border-b">
                 {contadores.map((c) => (
-                  <button
+                  <Button variant="ghost"
                     key={c.key}
                     type="button"
                     onClick={() => setTab(c.key)}
