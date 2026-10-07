@@ -21,8 +21,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 
 export const Route = createFileRoute("/_shell/")({
-  head: () => ({ meta: [{ title: "Agenda · Tracli" }, { name: "description", content: "Calendario y gestión de sesiones de entrenamiento." }, { property: "og:title", content: "Agenda · Tracli" }, { property: "og:description", content: "Calendario y gestión de sesiones de entrenamiento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
-
   validateSearch: (search: { tab?: string; servicio?: string }): { tab?: string; servicio?: string } => ({
     tab: typeof search.tab === "string" ? search.tab : undefined,
     servicio: typeof search.servicio === "string" ? search.servicio : undefined,

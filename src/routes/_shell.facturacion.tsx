@@ -34,9 +34,7 @@ import { useServicios } from "@/lib/servicios";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useCenterConfig } from "@/lib/center-schedule";
 
-export const Route = createFileRoute("/_shell/facturacion")({
-  head: () => ({ meta: [{ title: "Facturación · Tracli" }, { name: "description", content: "Facturas y pagos del centro de entrenamiento." }, { property: "og:title", content: "Facturación · Tracli" }, { property: "og:description", content: "Facturas y pagos del centro de entrenamiento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
- component: FacturacionPage });
+export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 

@@ -16,9 +16,7 @@ import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
-export const Route = createFileRoute("/_shell/configuracion")({
-  head: () => ({ meta: [{ title: "Configuración · Tracli" }, { name: "description", content: "Horarios y preferencias del centro de entrenamiento." }, { property: "og:title", content: "Configuración · Tracli" }, { property: "og:description", content: "Horarios y preferencias del centro de entrenamiento." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
- component: ConfigPage });
+export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
 
 function ConfigPage() {
   const [tab, setTab] = useState("calendario");
