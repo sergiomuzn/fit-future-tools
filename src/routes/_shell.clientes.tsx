@@ -49,6 +49,8 @@ const CLIENT_COLUMNS = [
 const SEXO_LABEL: Record<string, string> = { hombre: "Hombre", mujer: "Mujer" };
 
 export const Route = createFileRoute("/_shell/clientes")({
+  head: () => ({ meta: [{ title: "Clientes · Tracli" }, { name: "description", content: "Perfiles, bonos y reservas de clientes." }, { property: "og:title", content: "Clientes · Tracli" }, { property: "og:description", content: "Perfiles, bonos y reservas de clientes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+
   component: ClientesPage,
 });
 
