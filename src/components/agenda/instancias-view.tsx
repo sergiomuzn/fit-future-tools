@@ -303,11 +303,11 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const ordenDias = useMemo(() => [...fechaPorDia.keys()], [fechaPorDia]);
 
-  async function moveSelection(deltaDias: number, deltaMin: number, ids: string[]) {
-    if (!deltaDias && !deltaMin) return;
+  async function moveSelection(deltaDias: number, deltaMin: number, ids: string[]): Promise<boolean> {
+    if (!deltaDias && !deltaMin) return true;
     const orden = view === "dia" ? ordenDias : [1, 2, 3, 4, 5, 6, 0];
     const conReserva = ids.filter((id) => lockedSet.has(id)).map((id) => instById.get(id)).filter((i): i is SlotInstance => !!i);
-    if (conReserva.length && !(await confirmarEdicionReservadas(conReserva))) return;
+    if (conReserva.length && !(await confirmarEdicionReservadas(conReserva))) return false;
     const updates = ids
       .map((id) => instById.get(id))
       .filter((i): i is SlotInstance => !!i)
@@ -323,13 +323,15 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         };
       });
     if (updates.length) moveMany.mutate(updates);
+    return true;
   }
 
-  async function resizeInstance(id: string, deltaMin: number) {
+  async function resizeInstance(id: string, deltaMin: number): Promise<boolean> {
     const i = instById.get(id);
-    if (!i || !deltaMin) return;
-    if (lockedSet.has(id) && !(await confirmarEdicionReservadas([i]))) return;
+    if (!i || !deltaMin) return true;
+    if (lockedSet.has(id) && !(await confirmarEdicionReservadas([i]))) return false;
     moveMany.mutate([{ id: i.id, fecha: i.fecha, hora_inicio: i.hora_inicio, hora_fin: toTime(toMin(i.hora_fin) + deltaMin) }]);
+    return true;
   }
 
   async function saveEditing() {

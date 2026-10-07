@@ -117,10 +117,10 @@ interface Props {
   /** Ids seleccionados (modo selección). */
   selectedIds?: string[];
   onSelectedChange?: (ids: string[]) => void;
-  /** Mueve los huecos indicados (días y minutos de desplazamiento). */
-  onMoveSelection?: (deltaDias: number, deltaMin: number, ids: string[]) => void;
-  /** Cambia la duración de un hueco arrastrando su borde inferior. */
-  onResize?: (id: string, deltaMin: number) => void;
+  /** Mueve los huecos indicados (días y minutos de desplazamiento). Devuelve false si se canceló la edición. */
+  onMoveSelection?: (deltaDias: number, deltaMin: number, ids: string[]) => boolean | Promise<boolean> | void;
+  /** Cambia la duración de un hueco arrastrando su borde inferior. Devuelve false si se canceló la edición. */
+  onResize?: (id: string, deltaMin: number) => boolean | Promise<boolean> | void;
   onCopyDay?: (dia: number) => void;
   onPasteDay?: (dia: number) => void;
   onClearDay?: (dia: number) => void;
@@ -258,8 +258,13 @@ export function SlotsWeekGrid({
       if (resizeRef.current) {
         const r = resizeRef.current;
         resizeRef.current = null;
-        if (r.min !== 0) onResize?.(r.id, r.min);
-        else setResizeDelta(null);
+        if (r.min !== 0) {
+          const keep = onResize?.(r.id, r.min);
+          // Si la edición se cancela (confirmación rechazada), retiramos la vista previa del arrastre.
+          void Promise.resolve(keep).then((ok) => {
+            if (ok === false) setResizeDelta(null);
+          });
+        } else setResizeDelta(null);
         return;
       }
       if (marqueeRef.current) {
@@ -272,7 +277,10 @@ export function SlotsWeekGrid({
         deltaRef.current = null;
         if (d && (d.dias !== 0 || d.min !== 0)) {
           // Mantenemos la posición arrastrada hasta que llegan los datos nuevos.
-          onMoveSelection?.(d.dias, d.min, d.ids);
+          const keep = onMoveSelection?.(d.dias, d.min, d.ids);
+          void Promise.resolve(keep).then((ok) => {
+            if (ok === false) setMoveDelta(null);
+          });
         } else {
           setMoveDelta(null);
         }
