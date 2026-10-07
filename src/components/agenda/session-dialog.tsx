@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { MoreHorizontal, Pencil, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -66,6 +70,54 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const notasRef = useRef<HTMLTextAreaElement>(null);
+  const [modo, setModo] = useState<"detalle" | "editar">("editar");
+  const [tabClientes, setTabClientes] = useState("reservados");
+  useEffect(() => {
+    if (!open) return;
+    setModo(session?.id ? "detalle" : "editar");
+    setTabClientes("reservados");
+  }, [open, session?.id]);
+  const detalle = open && modo === "detalle" && !!session?.id;
+  const { data: clientesAll = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => ((await supabase.from("clients").select("*").order("nombre")).data ?? []) as Client[],
+    enabled: open,
+  });
+  const clientePorId = useMemo(() => new Map(clientesAll.map((c) => [c.id, c])), [clientesAll]);
+  const slugSesion = ((session as any)?.servicio_slug as string | null | undefined) ?? null;
+  const { data: colaSesion = [] } = useQuery({
+    queryKey: ["reserva_cola", "sesion", session?.fecha, session?.hora_inicio, slugSesion],
+    enabled: detalle && !!session?.fecha && !!session?.hora_inicio,
+    queryFn: async () => {
+      let q = supabase
+        .from("reserva_cola")
+        .select("id,client_id,estado,created_at")
+        .eq("fecha", session!.fecha!)
+        .eq("hora_inicio", session!.hora_inicio!)
+        .in("estado", ["en_cola", "ofrecida"])
+        .order("created_at");
+      if (slugSesion) q = q.eq("servicio_slug", slugSesion);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { id: string; client_id: string; estado: string }[];
+    },
+  });
+  const { data: canceladasSesion = [] } = useQuery({
+    queryKey: ["sessions", "canceladas-de", session?.fecha, session?.hora_inicio, slugSesion],
+    enabled: detalle && !!session?.fecha && !!session?.hora_inicio,
+    queryFn: async () => {
+      let q = supabase
+        .from("sessions")
+        .select("id,client_id,titulo,no_contabilizar")
+        .eq("fecha", session!.fecha!)
+        .eq("hora_inicio", session!.hora_inicio!)
+        .eq("estado", "cancelada");
+      if (slugSesion) q = q.eq("servicio_slug", slugSesion);
+      const { data, error } = await q;
+      if (error) throw error;
+      return (data ?? []) as { id: string; client_id: string | null; titulo: string | null; no_contabilizar: boolean | null }[];
+    },
+  });
 
   function ajustarAlturaNotas() {
     const el = notasRef.current;
