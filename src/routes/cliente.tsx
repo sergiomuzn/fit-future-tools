@@ -52,6 +52,8 @@ export const Route = createFileRoute("/cliente")({
       { name: "description", content: "Reserva y gestiona tus clases grupales en Tracli." },
       { property: "og:title", content: "Mis clases · Tracli" },
       { property: "og:description", content: "Reserva y gestiona tus clases grupales en Tracli." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   beforeLoad: async () => {
