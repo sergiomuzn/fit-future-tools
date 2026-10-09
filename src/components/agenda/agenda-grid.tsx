@@ -1309,6 +1309,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar}
             notasIniciales={ps?.incidencia}
+            slotInstanceId={(ps as any)?.slot_instance_id ?? null}
+            fillSessionId={ps && !isNewPanel && !ps.client_id ? ps.id : null}
             onClose={() => setPanelSession(null)}
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
             onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}

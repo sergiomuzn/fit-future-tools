@@ -227,15 +227,19 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   });
 
   async function savePanelHueco(inst: SlotInstance, draft: HuecoPanelDraft): Promise<boolean> {
+    const serviceChanged = draft.servicioSlug !== inst.servicio_slug;
     const timeOrTrainerChanged =
       hhmm(inst.hora_inicio) !== draft.horaInicio ||
       hhmm(inst.hora_fin) !== draft.horaFin ||
-      (inst.trainer_id ?? null) !== draft.trainerId;
+      (inst.trainer_id ?? null) !== draft.trainerId ||
+      serviceChanged;
     if (timeOrTrainerChanged && !(await confirmarEdicionReservadas([inst]))) return false;
     const { error } = await supabase.from("service_slot_instances").update({
       hora_inicio: `${draft.horaInicio}:00`,
       hora_fin: `${draft.horaFin}:00`,
       trainer_id: draft.trainerId,
+      servicio_slug: draft.servicioSlug,
+      capacidad: capacidadDeServicio(servicios, draft.servicioSlug),
     }).eq("id", inst.id);
     if (error) {
       toast.error(error.message);
@@ -251,6 +255,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         hora_inicio: `${draft.horaInicio}:00`,
         hora_fin: `${draft.horaFin}:00`,
         trainer_id: draft.trainerId,
+        servicio_slug: draft.servicioSlug,
         incidencia: draft.notas || null,
       }).in("id", activeReservations.map((reservation) => reservation.id));
       if (sessionError) {
@@ -264,11 +269,11 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         fecha.setDate(fecha.getDate() + (index + 1) * 7);
         return {
           service_slot_id: inst.service_slot_id,
-          servicio_slug: inst.servicio_slug,
+          servicio_slug: draft.servicioSlug,
           fecha: ymdLocal(fecha),
           hora_inicio: `${draft.horaInicio}:00`,
           hora_fin: `${draft.horaFin}:00`,
-          capacidad: inst.capacidad,
+          capacidad: capacidadDeServicio(servicios, draft.servicioSlug),
           trainer_id: null,
           activo: true,
           origen: "vista",

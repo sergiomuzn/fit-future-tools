@@ -55,6 +55,10 @@ interface Props {
   esPruebaInicial?: boolean;
   porConfirmarInicial?: boolean;
   notasIniciales?: string | null;
+  /** Id real del hueco propagado; null cuando la sesión es manual de Agenda. */
+  slotInstanceId?: string | null;
+  /** Fila de sesión vacía existente que se rellena con el primer cliente. */
+  fillSessionId?: string | null;
   onClose: () => void;
   onSave?: (draft: HuecoPanelDraft) => Promise<boolean | void> | boolean | void;
   onDelete?: () => void;
@@ -84,6 +88,8 @@ export function HuecoPanel({
   esPruebaInicial = false,
   porConfirmarInicial = false,
   notasIniciales,
+  slotInstanceId,
+  fillSessionId,
   onClose,
   onSave,
   onDelete,
@@ -155,7 +161,7 @@ export function HuecoPanel({
   const anadir = useMutation({
     mutationFn: async ({ clientId, row }: { clientId: string; row: number }) => {
       if (!inst || isNew) return;
-      const { data, error } = await supabase.from("sessions").insert({
+      const valores = {
         fecha: inst.fecha,
         hora_inicio: `${horaInicio}:00`,
         hora_fin: `${horaFin}:00`,
@@ -165,9 +171,16 @@ export function HuecoPanel({
         estado: esPrueba ? "prueba" : estado,
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
-        booking_tipo: "centro",
-        slot_instance_id: inst.id,
-      } as any).select("id").single();
+      };
+      // Sesión manual de Agenda sin cliente: se rellena la fila existente en
+      // vez de insertar una nueva (evita duplicados y la FK de slot_instance_id).
+      const { data, error } = fillSessionId
+        ? await supabase.from("sessions").update(valores as any).eq("id", fillSessionId).select("id").single()
+        : await supabase.from("sessions").insert({
+            ...valores,
+            booking_tipo: "centro",
+            slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
+          } as any).select("id").single();
       if (error) throw error;
       setPickerValues((old) => old.map((value, index) => index === row ? null : value));
       void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: inst.fecha, hora: `${horaInicio}:00` }] } }).catch(() => {});
