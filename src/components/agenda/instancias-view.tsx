@@ -269,11 +269,11 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         fecha.setDate(fecha.getDate() + (index + 1) * 7);
         return {
           service_slot_id: inst.service_slot_id,
-          servicio_slug: inst.servicio_slug,
+          servicio_slug: draft.servicioSlug,
           fecha: ymdLocal(fecha),
           hora_inicio: `${draft.horaInicio}:00`,
           hora_fin: `${draft.horaFin}:00`,
-          capacidad: inst.capacidad,
+          capacidad: capacidadDeServicio(servicios, draft.servicioSlug),
           trainer_id: null,
           activo: true,
           origen: "vista",
