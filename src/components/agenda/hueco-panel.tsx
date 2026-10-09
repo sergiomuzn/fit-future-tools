@@ -55,6 +55,10 @@ interface Props {
   esPruebaInicial?: boolean;
   porConfirmarInicial?: boolean;
   notasIniciales?: string | null;
+  /** Id real del hueco propagado; null cuando la sesión es manual de Agenda. */
+  slotInstanceId?: string | null;
+  /** Fila de sesión vacía existente que se rellena con el primer cliente. */
+  fillSessionId?: string | null;
   onClose: () => void;
   onSave?: (draft: HuecoPanelDraft) => Promise<boolean | void> | boolean | void;
   onDelete?: () => void;
@@ -84,6 +88,8 @@ export function HuecoPanel({
   esPruebaInicial = false,
   porConfirmarInicial = false,
   notasIniciales,
+  slotInstanceId,
+  fillSessionId,
   onClose,
   onSave,
   onDelete,
