@@ -227,15 +227,19 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   });
 
   async function savePanelHueco(inst: SlotInstance, draft: HuecoPanelDraft): Promise<boolean> {
+    const serviceChanged = draft.servicioSlug !== inst.servicio_slug;
     const timeOrTrainerChanged =
       hhmm(inst.hora_inicio) !== draft.horaInicio ||
       hhmm(inst.hora_fin) !== draft.horaFin ||
-      (inst.trainer_id ?? null) !== draft.trainerId;
+      (inst.trainer_id ?? null) !== draft.trainerId ||
+      serviceChanged;
     if (timeOrTrainerChanged && !(await confirmarEdicionReservadas([inst]))) return false;
     const { error } = await supabase.from("service_slot_instances").update({
       hora_inicio: `${draft.horaInicio}:00`,
       hora_fin: `${draft.horaFin}:00`,
       trainer_id: draft.trainerId,
+      servicio_slug: draft.servicioSlug,
+      capacidad: capacidadDeServicio(servicios, draft.servicioSlug),
     }).eq("id", inst.id);
     if (error) {
       toast.error(error.message);
@@ -251,6 +255,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         hora_inicio: `${draft.horaInicio}:00`,
         hora_fin: `${draft.horaFin}:00`,
         trainer_id: draft.trainerId,
+        servicio_slug: draft.servicioSlug,
         incidencia: draft.notas || null,
       }).in("id", activeReservations.map((reservation) => reservation.id));
       if (sessionError) {
