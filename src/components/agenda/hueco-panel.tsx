@@ -238,7 +238,7 @@ export function HuecoPanel({
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                   {servicios.length > 0 ? (
                     <Select value={servicioSlug} onValueChange={setServicioSlug}>
-                      <SelectTrigger className="h-8 min-w-0 max-w-72 border-0 bg-transparent px-0 text-lg font-semibold text-primary-foreground shadow-none focus:ring-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 w-auto min-w-0 max-w-72 justify-start gap-1.5 border-0 bg-transparent px-0 text-lg font-semibold text-primary-foreground shadow-none focus:ring-0 [&>span]:line-clamp-1"><SelectValue /></SelectTrigger>
                       <SelectContent>{servicios.map((service) => <SelectItem key={service.slug} value={service.slug}>{service.nombre}</SelectItem>)}</SelectContent>
                     </Select>
                   ) : <span className="truncate">{servicioNombre}</span>}
@@ -250,9 +250,7 @@ export function HuecoPanel({
 
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
-                  <span className="capitalize text-primary-foreground/85">{fechaDia}</span>
-                  <span className="text-primary-foreground/40">·</span>
-                  <span className="whitespace-nowrap text-primary-foreground/85">{formatDateShort(inst.fecha)}</span>
+                  <span className="whitespace-nowrap text-primary-foreground/85">{fechaDia.charAt(0).toUpperCase() + fechaDia.slice(1)}. {inst.fecha.split("-").reverse().join("/")}</span>
                   <span className="mx-0.5 text-primary-foreground/40">·</span>
                   <div className="flex items-center gap-1">
                     <Input
