@@ -68,11 +68,11 @@ interface Props {
 const NONE = "__none";
 const EDITABLE_STATES: SesionEstado[] = ["reservada", "realizada", "cancelada"];
 const ESTADO_PILL: Record<SesionEstado, string> = {
-  reservada: "border-state-reservada/50 bg-state-reservada/15 text-state-reservada",
-  realizada: "border-state-realizada/50 bg-state-realizada/15 text-state-realizada",
-  cancelada: "border-state-cancelada/50 bg-state-cancelada/15 text-state-cancelada",
-  prueba: "border-state-prueba/50 bg-state-prueba/15 text-state-prueba",
-  renovacion: "border-state-renovacion/50 bg-state-renovacion/15 text-state-renovacion",
+  reservada: "border-state-reservada bg-state-reservada text-primary-foreground",
+  realizada: "border-state-realizada bg-state-realizada text-primary-foreground",
+  cancelada: "border-state-cancelada bg-state-cancelada text-primary-foreground",
+  prueba: "border-state-prueba bg-state-prueba text-primary-foreground",
+  renovacion: "border-state-renovacion bg-state-renovacion text-primary-foreground",
 };
 
 export function HuecoPanel({
@@ -238,7 +238,7 @@ export function HuecoPanel({
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
                   {servicios.length > 0 ? (
                     <Select value={servicioSlug} onValueChange={setServicioSlug}>
-                      <SelectTrigger className="h-8 min-w-0 max-w-72 border-0 bg-transparent px-0 text-lg font-semibold text-primary-foreground shadow-none focus:ring-0"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="h-8 w-auto min-w-0 max-w-72 justify-start gap-1.5 border-0 bg-transparent px-0 text-lg font-semibold text-primary-foreground shadow-none focus:ring-0 [&>span]:line-clamp-1"><SelectValue /></SelectTrigger>
                       <SelectContent>{servicios.map((service) => <SelectItem key={service.slug} value={service.slug}>{service.nombre}</SelectItem>)}</SelectContent>
                     </Select>
                   ) : <span className="truncate">{servicioNombre}</span>}
@@ -250,9 +250,7 @@ export function HuecoPanel({
 
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
-                  <span className="capitalize text-primary-foreground/85">{fechaDia}</span>
-                  <span className="text-primary-foreground/40">·</span>
-                  <span className="whitespace-nowrap text-primary-foreground/85">{formatDateShort(inst.fecha)}</span>
+                  <span className="whitespace-nowrap text-primary-foreground/85">{fechaDia.charAt(0).toUpperCase() + fechaDia.slice(1)}. {inst.fecha.split("-").reverse().join("/")}</span>
                   <span className="mx-0.5 text-primary-foreground/40">·</span>
                   <div className="flex items-center gap-1">
                     <Input
@@ -260,7 +258,7 @@ export function HuecoPanel({
                       type="time"
                       value={horaInicio}
                       onChange={(e) => setHoraInicio(e.target.value)}
-                      className="h-7 w-[4.9rem] border-0 bg-transparent px-1 text-center text-sm font-semibold text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
+                      className="h-7 w-[3.6rem] border-0 bg-transparent px-1 [&::-webkit-calendar-picker-indicator]:hidden text-center text-sm font-semibold text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
                     />
                     <span className="text-primary-foreground/45">—</span>
                     <Input
@@ -268,7 +266,7 @@ export function HuecoPanel({
                       type="time"
                       value={horaFin}
                       onChange={(e) => setHoraFin(e.target.value)}
-                      className="h-7 w-[4.9rem] border-0 bg-transparent px-1 text-center text-sm font-semibold text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
+                      className="h-7 w-[3.6rem] border-0 bg-transparent px-1 [&::-webkit-calendar-picker-indicator]:hidden text-center text-sm font-semibold text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
                     />
                   </div>
                 </div>
@@ -293,8 +291,10 @@ export function HuecoPanel({
                   </SelectContent>
                 </Select>
 
+                <div className="flex items-center gap-1.5">
                 <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
                 <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold uppercase text-primary-foreground/75">Sesión de prueba</Label>
+                </div>
               </div>
             </div>
 
