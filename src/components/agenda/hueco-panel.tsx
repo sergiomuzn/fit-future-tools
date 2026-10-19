@@ -130,7 +130,7 @@ export function HuecoPanel({
       if (!inst) return { cola: [], cancelados: [] };
       const [cola, canc] = await Promise.all([
         (supabase as any).from("reserva_cola").select("id,client_id,hora_inicio,servicio_slug,estado,created_at").eq("fecha", inst.fecha).in("estado", ["en_cola", "ofrecida"]).order("created_at"),
-        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
+        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,no_contabilizar,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
       ]);
       const colaRows = ((cola.data ?? []) as { id: string; client_id: string; hora_inicio: string; servicio_slug: string | null }[])
         .filter((c) => hhmm(c.hora_inicio) === hhmm(inst.hora_inicio) && (!c.servicio_slug || c.servicio_slug === inst.servicio_slug));
@@ -144,7 +144,7 @@ export function HuecoPanel({
       );
       return {
         cola: colaRows.map((c) => ({ id: c.id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
-        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string })),
+        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
       };
     },
   });
