@@ -345,18 +345,19 @@ export function HuecoPanel({
                 {listas[tab].length === 0 && (tab !== "reservados" || libres === 0) && <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>}
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
-                <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
-              </div>
-
-              <div className="space-y-3 pt-1">
-                <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
-                <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
-                <div className="flex items-center gap-2">
-                  <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
-                  <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
+              <div className="flex items-start gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
+                  <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
                 </div>
+                <div className="flex-1 space-y-1.5">
+                  <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
+                  <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
+                <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
               </div>
             </div>
 
