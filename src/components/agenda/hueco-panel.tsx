@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ClientPicker } from "@/components/clients/client-picker";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
+import { servicioColorOf } from "@/lib/colors";
 import { ESTADO_BG, ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
@@ -94,7 +95,7 @@ export function HuecoPanel({
   onCancelarReserva,
 }: Props) {
   const qc = useQueryClient();
-  const { horario, specialsMap } = useCenterConfig();
+  const { horario, specialsMap, colores } = useCenterConfig();
   const [tab, setTab] = useState<Pestana>("reservados");
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
