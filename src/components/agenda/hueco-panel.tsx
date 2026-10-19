@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
