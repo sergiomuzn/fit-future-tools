@@ -221,6 +221,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     onSuccess: () => {
       invalidate();
       qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["hueco-panel"] });
       toast.success("Reserva cancelada");
     },
     onError: (e: Error) => toast.error(e.message),

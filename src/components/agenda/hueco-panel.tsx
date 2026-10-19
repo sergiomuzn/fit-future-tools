@@ -130,7 +130,7 @@ export function HuecoPanel({
       if (!inst) return { cola: [], cancelados: [] };
       const [cola, canc] = await Promise.all([
         (supabase as any).from("reserva_cola").select("id,client_id,hora_inicio,servicio_slug,estado,created_at").eq("fecha", inst.fecha).in("estado", ["en_cola", "ofrecida"]).order("created_at"),
-        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
+        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,no_contabilizar,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
       ]);
       const colaRows = ((cola.data ?? []) as { id: string; client_id: string; hora_inicio: string; servicio_slug: string | null }[])
         .filter((c) => hhmm(c.hora_inicio) === hhmm(inst.hora_inicio) && (!c.servicio_slug || c.servicio_slug === inst.servicio_slug));
@@ -144,7 +144,7 @@ export function HuecoPanel({
       );
       return {
         cola: colaRows.map((c) => ({ id: c.id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
-        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string })),
+        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
       };
     },
   });
@@ -166,7 +166,7 @@ export function HuecoPanel({
         servicio_slug: inst.servicio_slug,
         trainer_id: trainerId,
         client_id: clientId,
-        estado: esPrueba ? "prueba" : estado,
+        estado: esPrueba ? "prueba" : estado === "cancelada" ? "reservada" : estado,
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
       };
@@ -192,7 +192,29 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva }[]> = useMemo(() => ({
+  // Cancelación contabilizada por defecto; "No contabilizar" la excluye del
+  // bono y de las realizadas (lo resuelven los triggers de sesiones).
+  const toggleNoContabilizar = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: ({ id, value }) => {
+      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio], (old: any) => old ? {
+        ...old,
+        cancelados: old.cancelados.map((c: any) => c.id === id ? { ...c, noContabilizar: value } : c),
+      } : old);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["hueco-panel"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["client-bonos"] });
+      qc.invalidateQueries({ queryKey: ["bonos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
     reservados: reservas.map((r) => ({ id: r.id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
     cancelados: extra?.cancelados ?? [],
@@ -335,6 +357,15 @@ export function HuecoPanel({
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
                     <span className="truncate text-sm font-medium">{item.nombre}</span>
+                    {tab === "cancelados" && (
+                      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                        <Checkbox
+                          checked={!!item.noContabilizar}
+                          onCheckedChange={(value) => toggleNoContabilizar.mutate({ id: item.id, value: !!value })}
+                        />
+                        No contabilizar
+                      </label>
+                    )}
                     {item.reserva && (
                       <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => onCancelarReserva(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
@@ -345,20 +376,24 @@ export function HuecoPanel({
                 {listas[tab].length === 0 && (tab !== "reservados" || libres === 0) && <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>}
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
-                  <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
-                  <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
-                <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
-              </div>
+              {tab === "reservados" && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
+                      <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
+                      <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
+                    <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
+                  </div>
+                </>
+              )}
             </div>
 
             <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4 sm:justify-between">

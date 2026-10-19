@@ -399,13 +399,27 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
     }
     for (const arr of groups.values()) {
-      // Si alguna sesión del grupo no tiene servicio guardado, usamos como
-      // representante una que sí lo tenga (color y plazas correctos).
-      const primary = arr.find((s) => (s as { servicio_slug?: string | null }).servicio_slug) ?? arr[0];
+      // Representante: una sesión activa (no cancelada) con servicio, para que
+      // el bloque vuelva a "reservada" en cuanto entra una nueva reserva.
+      const conServicio = (s: Session) => !!(s as { servicio_slug?: string | null }).servicio_slug;
+      const primary =
+        arr.find((s) => s.estado !== "cancelada" && conServicio(s)) ??
+        arr.find((s) => s.estado !== "cancelada") ??
+        arr.find(conServicio) ?? arr[0];
       display.push(primary);
       members.set(primary.id, arr);
     }
-    return { displaySessions: display, groupMembers: members };
+    // Una cancelación no ocupa bloque propio si la misma sesión ya tiene otra
+    // reserva activa: el cliente cancelado se ve en la pestaña Cancelados.
+    const mismaSesion = (a: Session, b: Session) => {
+      const ai = (a as any).slot_instance_id, bi = (b as any).slot_instance_id;
+      if (ai && bi) return ai === bi;
+      return a.fecha === b.fecha && a.hora_inicio === b.hora_inicio &&
+        ((a as any).servicio_slug ?? null) === ((b as any).servicio_slug ?? null);
+    };
+    const activos = display.filter((s) => s.estado !== "cancelada");
+    const visibles = display.filter((s) => s.estado !== "cancelada" || !activos.some((a) => mismaSesion(a, s)));
+    return { displaySessions: visibles, groupMembers: members };
   }, [sessions]);
 
   // Drag-to-create
@@ -824,7 +838,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
       return true;
     }
-    const ids = blockIds(ps.id);
+    const allIds = blockIds(ps.id);
+    const allRows = sessions.filter((row) => allIds.includes(row.id));
+    // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando)
+    // cuando la sesión tiene otras reservas activas.
+    const hayActivas = allRows.some((row) => row.estado !== "cancelada");
+    const ids = hayActivas ? allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id) : allIds;
     const idSet = new Set(ids);
     const rows = sessions.filter((row) => idSet.has(row.id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
@@ -1320,6 +1339,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const { error } = await supabase.from("sessions").update({ estado: "cancelada" }).eq("id", r.id);
               if (error) return toast.error(error.message);
               void qc.invalidateQueries({ queryKey: ["sessions"] });
+              void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
               toast.success("Reserva cancelada");
             }}
           />
