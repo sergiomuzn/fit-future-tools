@@ -236,6 +236,9 @@ export function HuecoPanel({
     }
   }
 
+  // El punto de la cabecera siempre sigue el color del servicio elegido,
+  // sea cual sea el estado de la sesión.
+  const dotColor = servicioColorOf(colores, servicioSlug || null) ?? color;
   const estadoVisual = esPrueba ? "prueba" : estado;
   const fechaDia = inst
     ? new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(new Date(`${inst.fecha}T12:00:00`))
