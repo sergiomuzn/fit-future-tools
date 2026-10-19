@@ -1334,6 +1334,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const { error } = await supabase.from("sessions").update({ estado: "cancelada" }).eq("id", r.id);
               if (error) return toast.error(error.message);
               void qc.invalidateQueries({ queryKey: ["sessions"] });
+              void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
               toast.success("Reserva cancelada");
             }}
           />
