@@ -357,6 +357,15 @@ export function HuecoPanel({
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
                     <span className="truncate text-sm font-medium">{item.nombre}</span>
+                    {tab === "cancelados" && (
+                      <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+                        <Checkbox
+                          checked={!!item.noContabilizar}
+                          onCheckedChange={(value) => toggleNoContabilizar.mutate({ id: item.id, value: !!value })}
+                        />
+                        No contabilizar
+                      </label>
+                    )}
                     {item.reserva && (
                       <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => onCancelarReserva(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
@@ -367,20 +376,24 @@ export function HuecoPanel({
                 {listas[tab].length === 0 && (tab !== "reservados" || libres === 0) && <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>}
               </div>
 
-              <div className="flex items-start gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
-                  <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
-                </div>
-                <div className="flex-1 space-y-1.5">
-                  <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
-                  <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
-                <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
-              </div>
+              {tab === "reservados" && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
+                      <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
+                    </div>
+                    <div className="flex-1 space-y-1.5">
+                      <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
+                      <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
+                    <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
+                  </div>
+                </>
+              )}
             </div>
 
             <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4 sm:justify-between">
