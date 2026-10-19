@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreVertical } from "lucide-react";
+import { X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -325,17 +324,22 @@ export function HuecoPanel({
                     />
                   </div>
                 ))}
-                {listas[tab].map((item) => (
-                  <div key={item.id} className="flex h-11 items-center justify-between gap-3 rounded-lg border bg-muted/35 px-3">
-                    <div className="flex min-w-0 items-center gap-3">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">{iniciales(item.nombre)}</span>
-                      <span className="truncate text-sm font-medium">{item.nombre}</span>
-                    </div>
+                {listas[tab].map((item) => item.reserva && item.reserva.client_id ? (
+                  <div key={item.id} className="min-w-0">
+                    <ClientPicker
+                      value={item.reserva.client_id}
+                      onChange={(clientId) => {
+                        if (!clientId) onCancelarReserva(item.reserva as PanelReserva);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
+                    <span className="truncate text-sm font-medium">{item.nombre}</span>
                     {item.reserva && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild><Button size="icon" variant="ghost" className="h-7 w-7" aria-label={`Opciones de ${item.nombre}`}><MoreVertical className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                        <DropdownMenuContent align="end"><DropdownMenuItem className="text-destructive" onClick={() => onCancelarReserva(item.reserva as PanelReserva)}>Cancelar reserva</DropdownMenuItem></DropdownMenuContent>
-                      </DropdownMenu>
+                      <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => onCancelarReserva(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
+                        <X className="h-4 w-4" />
+                      </button>
                     )}
                   </div>
                 ))}
@@ -343,7 +347,7 @@ export function HuecoPanel({
               </div>
 
               <div className="space-y-3 pt-1">
-                <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas internas</Label>
+                <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
                 <Textarea id="panel-notas" rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Añade recordatorios sobre esta sesión..." className="min-h-16 resize-none rounded-lg" />
                 <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2">
