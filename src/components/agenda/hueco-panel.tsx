@@ -166,7 +166,7 @@ export function HuecoPanel({
         servicio_slug: inst.servicio_slug,
         trainer_id: trainerId,
         client_id: clientId,
-        estado: esPrueba ? "prueba" : estado,
+        estado: esPrueba ? "prueba" : estado === "cancelada" ? "reservada" : estado,
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
       };
