@@ -259,7 +259,7 @@ export function HuecoPanel({
             <div className="relative shrink-0 bg-primary px-6 pb-5 pt-5 text-primary-foreground">
               <div className="mb-4 flex min-w-0 items-center justify-between gap-3 pr-7">
                 <DialogTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-lg">
-                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color }} />
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
                   {servicios.length > 0 ? (
                     <Select value={servicioSlug} onValueChange={setServicioSlug}>
                       <SelectTrigger className="h-8 w-auto min-w-0 max-w-72 justify-start gap-1.5 border-0 bg-transparent px-0 text-lg font-semibold text-primary-foreground shadow-none focus:ring-0 [&>span]:line-clamp-1"><SelectValue /></SelectTrigger>
