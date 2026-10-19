@@ -192,7 +192,29 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva }[]> = useMemo(() => ({
+  // Cancelación contabilizada por defecto; "No contabilizar" la excluye del
+  // bono y de las realizadas (lo resuelven los triggers de sesiones).
+  const toggleNoContabilizar = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", id);
+      if (error) throw error;
+    },
+    onMutate: ({ id, value }) => {
+      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio], (old: any) => old ? {
+        ...old,
+        cancelados: old.cancelados.map((c: any) => c.id === id ? { ...c, noContabilizar: value } : c),
+      } : old);
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ["hueco-panel"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["client-bonos"] });
+      qc.invalidateQueries({ queryKey: ["bonos"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
     reservados: reservas.map((r) => ({ id: r.id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
     cancelados: extra?.cancelados ?? [],
