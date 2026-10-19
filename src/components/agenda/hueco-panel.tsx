@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
@@ -346,19 +345,17 @@ export function HuecoPanel({
                 {listas[tab].length === 0 && (tab !== "reservados" || libres === 0) && <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>}
               </div>
 
+              <div className="space-y-1.5">
+                <Label htmlFor="panel-repeat" className="text-[10px] font-bold uppercase text-muted-foreground">Repetir semanas</Label>
+                <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-9 w-24" />
+              </div>
+
               <div className="space-y-3 pt-1">
                 <Label htmlFor="panel-notas" className="text-[10px] font-bold uppercase text-muted-foreground">Notas</Label>
-                <Textarea id="panel-notas" rows={2} value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Añade recordatorios sobre esta sesión..." className="min-h-16 resize-none rounded-lg" />
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
-                    <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
-                  </div>
-                  <div className="flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-1.5">
-                    <Label htmlFor="panel-repeat" className="whitespace-nowrap text-[10px] font-bold uppercase text-muted-foreground">Repetir</Label>
-                    <Input id="panel-repeat" type="number" min={0} max={52} value={repeatWeeks || ""} placeholder="0" onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} className="h-6 w-10 border-0 bg-transparent px-1 text-center text-sm font-bold shadow-none focus-visible:ring-0" />
-                    <span className="text-xs text-muted-foreground">sem.</span>
-                  </div>
+                <Input id="panel-notas" value={notas} onChange={(e) => setNotas(e.target.value)} className="h-9 rounded-lg" />
+                <div className="flex items-center gap-2">
+                  <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
+                  <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
                 </div>
               </div>
             </div>
