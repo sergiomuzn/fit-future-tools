@@ -252,7 +252,7 @@ export function HuecoPanel({
 
   return (
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[calc(100vh-1.5rem)] gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
