@@ -252,11 +252,12 @@ export function HuecoPanel({
 
   return (
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] gap-0 p-0 sm:max-w-lg">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
-            <div className="relative shrink-0 bg-primary px-6 pb-5 pt-5 text-primary-foreground">
+            <div className="flex flex-col">
+            <div className="relative bg-primary px-6 pb-5 pt-5 text-primary-foreground">
               <div className="mb-4 flex min-w-0 items-center justify-between gap-3 pr-7">
                 <DialogTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-lg">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
@@ -322,7 +323,7 @@ export function HuecoPanel({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            <div className="space-y-4 px-6 py-5">
               <h3 className="text-[11px] font-bold uppercase text-muted-foreground">Clientes</h3>
               <div className="grid grid-cols-3 border-b">
                 {(["reservados", "cola", "cancelados"] as Pestana[]).map((key) => {
@@ -399,8 +400,9 @@ export function HuecoPanel({
                 </>
               )}
             </div>
+            </div>
 
-            <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4 sm:justify-between">
+            <DialogFooter className="border-t bg-muted px-6 py-4 sm:justify-between">
               {onDelete ? <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button> : <span />}
               <div className="flex gap-2">
                 <Button variant="ghost" className="text-muted-foreground" onClick={onClose}>Cerrar</Button>
