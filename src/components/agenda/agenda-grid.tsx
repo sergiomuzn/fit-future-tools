@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { visibleAgendaSessions } from "./session-visibility";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -411,14 +412,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     // Una cancelación no ocupa bloque propio si la misma sesión ya tiene otra
     // reserva activa: el cliente cancelado se ve en la pestaña Cancelados.
-    const mismaSesion = (a: Session, b: Session) => {
-      const ai = (a as any).slot_instance_id, bi = (b as any).slot_instance_id;
-      if (ai && bi) return ai === bi;
-      return a.fecha === b.fecha && a.hora_inicio === b.hora_inicio &&
-        ((a as any).servicio_slug ?? null) === ((b as any).servicio_slug ?? null);
-    };
-    const activos = display.filter((s) => s.estado !== "cancelada");
-    const visibles = display.filter((s) => s.estado !== "cancelada" || !activos.some((a) => mismaSesion(a, s)));
+    const visibles = visibleAgendaSessions(display);
     return { displaySessions: visibles, groupMembers: members };
   }, [sessions]);
 
