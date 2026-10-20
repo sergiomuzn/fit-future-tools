@@ -402,7 +402,7 @@ export function HuecoPanel({
             </div>
             </div>
 
-            <DialogFooter className="sticky bottom-0 z-10 border-t bg-muted/30 px-6 py-4 sm:justify-between">
+            <DialogFooter className="border-t bg-muted px-6 py-4 sm:justify-between">
               {onDelete ? <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button> : <span />}
               <div className="flex gap-2">
                 <Button variant="ghost" className="text-muted-foreground" onClick={onClose}>Cerrar</Button>
