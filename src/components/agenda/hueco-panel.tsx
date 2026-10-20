@@ -323,7 +323,7 @@ export function HuecoPanel({
               </div>
             </div>
 
-            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+            <div className="space-y-4 px-6 py-5">
               <h3 className="text-[11px] font-bold uppercase text-muted-foreground">Clientes</h3>
               <div className="grid grid-cols-3 border-b">
                 {(["reservados", "cola", "cancelados"] as Pestana[]).map((key) => {
