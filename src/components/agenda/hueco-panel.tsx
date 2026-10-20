@@ -252,11 +252,12 @@ export function HuecoPanel({
 
   return (
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent className="max-h-[calc(100dvh-1.5rem)] overflow-hidden p-0 sm:max-w-lg">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
-            <div className="relative shrink-0 bg-primary px-6 pb-5 pt-5 text-primary-foreground">
+            <div className="flex flex-col">
+            <div className="relative bg-primary px-6 pb-5 pt-5 text-primary-foreground">
               <div className="mb-4 flex min-w-0 items-center justify-between gap-3 pr-7">
                 <DialogTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-lg">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
