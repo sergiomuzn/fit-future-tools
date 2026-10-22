@@ -1324,6 +1324,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             notasIniciales={ps?.incidencia}
             slotInstanceId={(ps as any)?.slot_instance_id ?? null}
             fillSessionId={ps && !isNewPanel && !ps.client_id ? ps.id : null}
+            canceladasIds={ps && !(ps as any).slot_instance_id ? (() => {
+              const ids = new Set(block.filter((x) => x.estado === "cancelada").map((x) => x.id));
+              for (const x of block) if ((x as any).reemplaza_session_id) ids.add((x as any).reemplaza_session_id);
+              return [...ids];
+            })() : undefined}
             onClose={() => setPanelSession(null)}
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
             onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}

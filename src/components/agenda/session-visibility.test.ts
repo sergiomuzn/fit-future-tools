@@ -37,3 +37,11 @@ describe("cancelled agenda session visibility", () => {
     strictEqual(visibleAgendaSessions([{ ...cancelled, slot_instance_id: "slot-a" }]).length, 1);
   });
 });
+describe("manual rebooking link", () => {
+  test("a linked replacement hides its cancelled manual session", () => {
+    deepStrictEqual(visibleAgendaSessions([cancelled, { ...active, reemplaza_session_id: "cancelled" }]).map((s) => s.id), ["active"]);
+  });
+  test("an unlinked same-time booking does not hide it", () => {
+    strictEqual(visibleAgendaSessions([cancelled, { ...active, reemplaza_session_id: "other" }]).length, 2);
+  });
+});
