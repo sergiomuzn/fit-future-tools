@@ -1086,6 +1086,7 @@ export type Database = {
           ocupacion: number
           por_confirmar: boolean
           recurrencia_id: string | null
+          reemplaza_session_id: string | null
           servicio_slug: string | null
           slot_instance_id: string | null
           tipo: string | null
@@ -1111,6 +1112,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
+          reemplaza_session_id?: string | null
           servicio_slug?: string | null
           slot_instance_id?: string | null
           tipo?: string | null
@@ -1136,6 +1138,7 @@ export type Database = {
           ocupacion?: number
           por_confirmar?: boolean
           recurrencia_id?: string | null
+          reemplaza_session_id?: string | null
           servicio_slug?: string | null
           slot_instance_id?: string | null
           tipo?: string | null
@@ -1163,6 +1166,13 @@ export type Database = {
             columns: ["group_id"]
             isOneToOne: false
             referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sessions_reemplaza_session_id_fkey"
+            columns: ["reemplaza_session_id"]
+            isOneToOne: false
+            referencedRelation: "sessions"
             referencedColumns: ["id"]
           },
           {

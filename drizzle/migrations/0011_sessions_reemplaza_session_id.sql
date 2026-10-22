@@ -1,0 +1,2 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS reemplaza_session_id uuid REFERENCES public.sessions(id) ON DELETE SET NULL;
+CREATE INDEX IF NOT EXISTS sessions_reemplaza_session_id_idx ON public.sessions(reemplaza_session_id);
