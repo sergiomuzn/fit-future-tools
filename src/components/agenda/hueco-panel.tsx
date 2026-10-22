@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ClientPicker } from "@/components/clients/client-picker";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
-import { servicioColorOf } from "@/lib/colors";
+import { estadoColorOf, servicioColorOf } from "@/lib/colors";
 import { ESTADO_BG, ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
@@ -333,10 +333,22 @@ export function HuecoPanel({
               <div className="grid grid-cols-3 border-b">
                 {(["reservados", "cola", "cancelados"] as Pestana[]).map((key) => {
                   const label = key === "reservados" ? "Reservados" : key === "cola" ? "En cola" : "Cancelados";
+                  const count = listas[key].length;
+                  // El contador se rellena de color solo cuando hay clientes: en cola
+                  // (ámbar) y cancelados (el color configurado para cancelaciones).
+                  // Reservados mantiene siempre su apariencia neutra.
+                  const relleno =
+                    count > 0
+                      ? key === "cola"
+                        ? "#F5A524"
+                        : key === "cancelados"
+                          ? estadoColorOf(colores, "cancelada")
+                          : null
+                      : null;
                   return (
                     <Button key={key} type="button" variant="ghost" onClick={() => setTab(key)} className={cn("h-9 rounded-none border-b-2 px-1 text-xs sm:px-3", tab === key ? "border-primary text-primary" : "border-transparent text-muted-foreground")}>
                       <span className="truncate">{label}</span>
-                      <span className={cn("ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px]", tab === key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>{listas[key].length}</span>
+                      <span style={relleno ? { backgroundColor: relleno } : undefined} className={cn("ml-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[10px]", relleno ? "text-primary-foreground" : tab === key ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>{count}</span>
                     </Button>
                   );
                 })}
