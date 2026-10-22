@@ -58,6 +58,8 @@ interface Props {
   slotInstanceId?: string | null;
   /** Fila de sesión vacía existente que se rellena con el primer cliente. */
   fillSessionId?: string | null;
+  /** Sesiones manuales canceladas que pertenecen a este bloque (enlace explícito). */
+  canceladasIds?: string[];
   onClose: () => void;
   onSave?: (draft: HuecoPanelDraft) => Promise<boolean | void> | boolean | void;
   onDelete?: () => void;
@@ -89,6 +91,7 @@ export function HuecoPanel({
   notasIniciales,
   slotInstanceId,
   fillSessionId,
+  canceladasIds,
   onClose,
   onSave,
   onDelete,
@@ -125,7 +128,7 @@ export function HuecoPanel({
   }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
 
   const { data: extra } = useQuery({
-    queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio],
+    queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")],
     enabled: !!inst,
     queryFn: async () => {
       if (!inst) return { cola: [], cancelados: [] };
@@ -141,7 +144,9 @@ export function HuecoPanel({
         for (const c of data ?? []) nombres.set(c.id, c.nombre);
       }
       const cancelados = ((canc.data ?? []) as any[]).filter((s) =>
-        s.slot_instance_id ? s.slot_instance_id === inst.id : hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && s.servicio_slug === inst.servicio_slug,
+        canceladasIds !== undefined && slotInstanceId === null
+          ? canceladasIds.includes(s.id)
+          : s.slot_instance_id ? s.slot_instance_id === inst.id : hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && s.servicio_slug === inst.servicio_slug,
       );
       return {
         cola: colaRows.map((c) => ({ id: c.id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
@@ -179,6 +184,7 @@ export function HuecoPanel({
             ...valores,
             booking_tipo: "centro",
             slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
+            reemplaza_session_id: slotInstanceId === null && canceladasIds?.length ? canceladasIds[0] : null,
           } as any).select("id").single();
       if (error) throw error;
       setPickerValues((old) => old.map((value, index) => index === row ? null : value));
@@ -201,7 +207,7 @@ export function HuecoPanel({
       if (error) throw error;
     },
     onMutate: ({ id, value }) => {
-      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio], (old: any) => old ? {
+      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => old ? {
         ...old,
         cancelados: old.cancelados.map((c: any) => c.id === id ? { ...c, noContabilizar: value } : c),
       } : old);
