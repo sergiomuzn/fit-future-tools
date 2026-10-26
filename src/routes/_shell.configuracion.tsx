@@ -16,7 +16,17 @@ import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
-export const Route = createFileRoute("/_shell/configuracion")({ component: ConfigPage });
+export const Route = createFileRoute("/_shell/configuracion")({
+  head: () => ({ meta: [
+    { title: "Configuración del centro · Tracli" },
+    { name: "description", content: "Ajustes del centro, calendario y reservas en Tracli." },
+    { property: "og:title", content: "Configuración del centro · Tracli" },
+    { property: "og:description", content: "Ajustes del centro, calendario y reservas en Tracli." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: ConfigPage,
+});
 
 function ConfigPage() {
   const [tab, setTab] = useState("calendario");

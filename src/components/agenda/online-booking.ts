@@ -24,5 +24,10 @@ export function sessionQueueKey(session: {
   hora_inicio: string;
 }): string | null {
   if (session.slot_instance_id) return `hueco|${session.slot_instance_id}`;
-  return session.group_id ? `${session.group_id}|${session.fecha}|${session.hora_inicio.slice(0, 5)}` : null;
+  return session.group_id ? `${session.group_id}|${session.fecha}|${session.hora_inicio.slice(0, 5)}:00` : null;
+}
+
+export function normalizeQueueKey(key: string): string {
+  const parts = key.split("|");
+  return parts.length === 3 ? `${parts[0]}|${parts[1]}|${parts[2].slice(0, 5)}:00` : key;
 }

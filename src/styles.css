@@ -314,16 +314,14 @@ body {
 
 /* A pale layer tucked behind the booked session, without changing its layout. */
 .agenda-online-booking {
-  border-left-width: 5px;
-  border-left-color: transparent;
-  background-clip: padding-box;
+  padding-left: 9px;
 }
 
 .agenda-online-booking::before {
   content: "";
   position: absolute;
-  inset: 0 auto 0 -5px;
-  width: 5px;
+  inset: 0 auto 0 0;
+  width: 4px;
   background-color: inherit;
   background-image: linear-gradient(var(--online-booking-light), var(--online-booking-light));
   pointer-events: none;

@@ -4,7 +4,8 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
-import { hasOnlineBookingDistinction, hideCancelledSelfBooking, sessionQueueKey } from "./online-booking";
+import { hasOnlineBookingDistinction } from "./online-booking";
+import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -359,17 +360,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     return m;
   }, [huecosDia]);
-  const { data: agendaQueue } = useQuery({
-    queryKey: ["agenda-queue", isoDate],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("reserva_cola")
-        .select("clave").eq("fecha", isoDate).in("estado", ["en_cola", "ofrecida"]);
-      if (error) throw error;
-      return data ?? [];
-    },
-    refetchInterval: 1000,
-  });
-  const queueKeys = useMemo(() => new Set((agendaQueue ?? []).map((entry) => entry.clave)), [agendaQueue]);
   /** Reservas ocupadas por franja de hueco (clientes con plaza, sin canceladas). */
   const huecoOcupadosMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -398,6 +388,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }, [bonos]);
 
   // Agrupar sesiones de grupo (mismo recurrencia_id + misma franja) en un solo bloque visual.
+  const onlineVisible = useOnlineAgendaVisibility(sessions, isoDate, isoDate, servicioCapMap);
   const { displaySessions, groupMembers } = useMemo(() => {
     const groups = new Map<string, Session[]>();
     const display: Session[] = [];
@@ -424,17 +415,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     // Una cancelación no ocupa bloque propio si la misma sesión ya tiene otra
     // reserva activa: el cliente cancelado se ve en la pestaña Cancelados.
-    const visibles = visibleAgendaSessions(display).filter((session) => {
-      // Only hide the block, never delete the cancellation or change its accounting.
-      if (agendaQueue === undefined) return true;
-      const capacity = huecosDia.find((slot) => slot.id === session.slot_instance_id)?.capacidad
-        ?? servicioCapMap.get(session.servicio_slug ?? "")
-        ?? (session.ocupacion === 2 ? 2 : 1);
-      const key = sessionQueueKey(session);
-      return !hideCancelledSelfBooking(session, capacity, key !== null && queueKeys.has(key));
-    });
+    const visibleIds = new Set(onlineVisible.map((session) => session.id));
+    const visibles = visibleAgendaSessions(display).filter((session) => visibleIds.has(session.id) ||
+      (members.get(session.id)?.some((member) => visibleIds.has(member.id)) ?? false));
     return { displaySessions: visibles, groupMembers: members };
-  }, [sessions, agendaQueue, queueKeys, huecosDia, servicioCapMap]);
+  }, [sessions, onlineVisible]);
 
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
