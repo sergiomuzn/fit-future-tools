@@ -4,6 +4,8 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
+import { hasOnlineBookingDistinction } from "./online-booking";
+import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -345,10 +347,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_slot_instances")
-        .select("servicio_slug,hora_inicio,capacidad,activo")
+        .select("id,servicio_slug,hora_inicio,capacidad,activo")
         .eq("fecha", isoDate)
         .eq("activo", true);
-      return (data ?? []) as { servicio_slug: string; hora_inicio: string; capacidad: number }[];
+      return (data ?? []) as { id: string; servicio_slug: string; hora_inicio: string; capacidad: number }[];
     },
   });
   const huecoCapMap = useMemo(() => {
@@ -386,6 +388,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }, [bonos]);
 
   // Agrupar sesiones de grupo (mismo recurrencia_id + misma franja) en un solo bloque visual.
+  const onlineVisible = useOnlineAgendaVisibility(sessions, isoDate, isoDate, servicioCapMap);
   const { displaySessions, groupMembers } = useMemo(() => {
     const groups = new Map<string, Session[]>();
     const display: Session[] = [];
@@ -412,9 +415,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     // Una cancelación no ocupa bloque propio si la misma sesión ya tiene otra
     // reserva activa: el cliente cancelado se ve en la pestaña Cancelados.
-    const visibles = visibleAgendaSessions(display);
+    const visibleIds = new Set(onlineVisible.map((session) => session.id));
+    const visibles = visibleAgendaSessions(display).filter((session) => visibleIds.has(session.id) ||
+      (members.get(session.id)?.some((member) => visibleIds.has(member.id)) ?? false));
     return { displaySessions: visibles, groupMembers: members };
-  }, [sessions]);
+  }, [sessions, onlineVisible]);
 
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
@@ -1174,10 +1179,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
               const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
+              const blockBookings = session.slot_instance_id
+                ? sessions.filter((row) => row.slot_instance_id === session.slot_instance_id)
+                : members ?? [session];
+              const onlineDistinction = hasOnlineBookingDistinction(behavior.distinguirReservasOnline, blockBookings);
               return (
                 <div
                   key={session.id}
                   data-session
+                  data-online-booking={onlineDistinction || undefined}
                   className={cn(
                     "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
@@ -1188,6 +1198,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
                     isPorConfirmar && "ring-1 ring-inset ring-white/40",
+                    onlineDistinction && "agenda-online-booking",
                   )}
                   style={{
                     top,

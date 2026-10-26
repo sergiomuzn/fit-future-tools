@@ -9,6 +9,8 @@ import { useCenterConfig, getDayScheduleFor } from "@/lib/center-schedule";
 import { useServicios } from "@/lib/servicios";
 import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
 import { useBehaviorConfig } from "@/lib/behavior-config";
+import { hasOnlineBookingDistinction } from "./online-booking";
+import { agendaBlockMembers, useOnlineAgendaVisibility } from "./use-online-bookings";
 
 interface Props {
   date: Date;
@@ -20,7 +22,8 @@ const DOW = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
 export function MonthView({ date, trainers, onSelectDay }: Props) {
   const { colores, horario, specialsMap } = useCenterConfig();
-  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
+  const behavior = useBehaviorConfig();
+  const mostrarAbrev = behavior.mostrarAbreviaturaServicio;
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogSession, setDialogSession] = useState<Partial<Session> | null>(null);
 
@@ -51,6 +54,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
       const { data } = await supabase.from("sessions").select("*").gte("fecha", from).lte("fecha", to).order("hora_inicio");
       return (data ?? []) as Session[];
     },
+    refetchInterval: 1000,
   });
 
   const { data: clients = [] } = useQuery({
@@ -112,10 +116,11 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
   }, [sessions, clientMap]);
 
 
+  const visibleSessions = useOnlineAgendaVisibility(sessions, from, to, servicioCapMap);
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
     const seen = new Set<string>();
-    for (const s of sessions) {
+    for (const s of visibleSessions) {
       if (s.recurrencia_id && s.ocupacion === 2) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
         if (seen.has(key)) continue;
@@ -125,7 +130,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
       if (arr) arr.push(s); else m.set(s.fecha, [s]);
     }
     return m;
-  }, [sessions]);
+  }, [visibleSessions]);
 
   const todayKey = formatDateISO(new Date());
 
@@ -180,10 +185,12 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     return (
                       <button
                         key={s.id}
+                        data-online-booking={hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) || undefined}
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
-                          "truncate rounded px-1 text-left text-[10px] leading-tight",
+                          "relative overflow-hidden truncate rounded px-1 text-left text-[10px] leading-tight",
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
+                          hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) && "agenda-online-booking",
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
                         title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}

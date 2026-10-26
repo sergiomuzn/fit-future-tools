@@ -9,6 +9,8 @@ import { sessionFillColor } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
 import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
 import { useBehaviorConfig } from "@/lib/behavior-config";
+import { hasOnlineBookingDistinction } from "./online-booking";
+import { agendaBlockMembers, useOnlineAgendaVisibility } from "./use-online-bookings";
 
 interface Props {
   date: Date;
@@ -65,7 +67,8 @@ function layoutDay(sessions: Session[]) {
 
 export function WeekView({ date, trainers, onSelectDay }: Props) {
   const { colores } = useCenterConfig();
-  const mostrarAbrev = useBehaviorConfig().mostrarAbreviaturaServicio;
+  const behavior = useBehaviorConfig();
+  const mostrarAbrev = behavior.mostrarAbreviaturaServicio;
   const weekStart = useMemo(() => startOfWeek(date), [date]);
   const days = useMemo(
     () => Array.from({ length: 7 }, (_, i) => {
@@ -87,6 +90,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
       const { data } = await supabase.from("sessions").select("*").gte("fecha", from).lte("fecha", to).order("hora_inicio");
       return (data ?? []) as Session[];
     },
+    refetchInterval: 1000,
   });
 
   const { data: clients = [] } = useQuery({
@@ -150,9 +154,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
   }, [sessions, clientMap]);
 
 
+  const visibleSessions = useOnlineAgendaVisibility(sessions, from, to, servicioCapMap);
   const byDay = useMemo(() => {
     const m = new Map<string, Session[]>();
-    for (const s of sessions) {
+    for (const s of visibleSessions) {
       // Colapsa sesiones de grupo (mismo recurrencia_id + franja) en una tarjeta
       const arr = m.get(s.fecha);
       if (arr) arr.push(s); else m.set(s.fecha, [s]);
@@ -172,7 +177,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
       );
     }
     return m;
-  }, [sessions]);
+  }, [visibleSessions]);
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const todayKey = formatDateISO(new Date());
@@ -247,10 +252,12 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     return (
                       <button
                         key={session.id}
+                        data-online-booking={hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) || undefined}
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
                           fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
+                          hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) && "agenda-online-booking",
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
                         title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
