@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import { strictEqual } from "node:assert";
-import { hasOnlineBookingDistinction, hideCancelledSelfBooking, sessionQueueKey } from "./online-booking";
+import { hasOnlineBookingDistinction, hideCancelledSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { DEFAULT_BEHAVIOR_CONFIG, parseBehaviorConfig } from "@/lib/behavior-config";
 
 const online = { client_id: "client", booked_by_user_id: "user", booking_tipo: "individual", estado: "reservada" };
@@ -47,5 +47,10 @@ describe("single-place cancellation visibility", () => {
     const session = { fecha: "2026-10-26", hora_inicio: "16:00:00" };
     strictEqual(sessionQueueKey({ ...session, slot_instance_id: "a" }), "hueco|a");
     strictEqual(sessionQueueKey({ ...session, slot_instance_id: "b" }), "hueco|b");
+  });
+  test("group queue matches times with and without seconds", () => {
+    const session = { group_id: "group", fecha: "2026-10-26", hora_inicio: "16:00:00" };
+    strictEqual(sessionQueueKey(session), normalizeQueueKey("group|2026-10-26|16:00"));
+    strictEqual(sessionQueueKey(session), normalizeQueueKey("group|2026-10-26|16:00:00"));
   });
 });
