@@ -4,6 +4,7 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
+import { hasOnlineBookingDistinction, hideCancelledSelfBooking, sessionQueueKey } from "./online-booking";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -345,10 +346,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     queryFn: async () => {
       const { data } = await supabase
         .from("service_slot_instances")
-        .select("servicio_slug,hora_inicio,capacidad,activo")
+        .select("id,servicio_slug,hora_inicio,capacidad,activo")
         .eq("fecha", isoDate)
         .eq("activo", true);
-      return (data ?? []) as { servicio_slug: string; hora_inicio: string; capacidad: number }[];
+      return (data ?? []) as { id: string; servicio_slug: string; hora_inicio: string; capacidad: number }[];
     },
   });
   const huecoCapMap = useMemo(() => {
@@ -358,6 +359,17 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     return m;
   }, [huecosDia]);
+  const { data: agendaQueue } = useQuery({
+    queryKey: ["agenda-queue", isoDate],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("reserva_cola")
+        .select("clave").eq("fecha", isoDate).in("estado", ["en_cola", "ofrecida"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+    refetchInterval: 1000,
+  });
+  const queueKeys = useMemo(() => new Set((agendaQueue ?? []).map((entry) => entry.clave)), [agendaQueue]);
   /** Reservas ocupadas por franja de hueco (clientes con plaza, sin canceladas). */
   const huecoOcupadosMap = useMemo(() => {
     const m = new Map<string, number>();
@@ -412,9 +424,17 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     // Una cancelación no ocupa bloque propio si la misma sesión ya tiene otra
     // reserva activa: el cliente cancelado se ve en la pestaña Cancelados.
-    const visibles = visibleAgendaSessions(display);
+    const visibles = visibleAgendaSessions(display).filter((session) => {
+      // Only hide the block, never delete the cancellation or change its accounting.
+      if (agendaQueue === undefined) return true;
+      const capacity = huecosDia.find((slot) => slot.id === session.slot_instance_id)?.capacidad
+        ?? servicioCapMap.get(session.servicio_slug ?? "")
+        ?? (session.ocupacion === 2 ? 2 : 1);
+      const key = sessionQueueKey(session);
+      return !hideCancelledSelfBooking(session, capacity, key !== null && queueKeys.has(key));
+    });
     return { displaySessions: visibles, groupMembers: members };
-  }, [sessions]);
+  }, [sessions, agendaQueue, queueKeys, huecosDia, servicioCapMap]);
 
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
@@ -1174,10 +1194,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
               const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
+              const blockBookings = session.slot_instance_id
+                ? sessions.filter((row) => row.slot_instance_id === session.slot_instance_id)
+                : members ?? [session];
+              const onlineDistinction = hasOnlineBookingDistinction(behavior.distinguirReservasOnline, blockBookings);
               return (
                 <div
                   key={session.id}
                   data-session
+                  data-online-booking={onlineDistinction || undefined}
                   className={cn(
                     "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
@@ -1188,6 +1213,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
                     isPorConfirmar && "ring-1 ring-inset ring-white/40",
+                    onlineDistinction && "agenda-online-booking",
                   )}
                   style={{
                     top,

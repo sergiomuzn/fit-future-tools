@@ -381,6 +381,16 @@ export function BehaviorForm() {
         </CardHeader>
         <CardContent>
           <Row
+            title="Distinguir reservas online en la agenda"
+            description="Reservas hechas por el cliente."
+          >
+            <Switch
+              aria-label="Distinguir reservas online en la agenda"
+              checked={cfg.distinguirReservasOnline}
+              onCheckedChange={(v) => update("distinguirReservasOnline", v)}
+            />
+          </Row>
+          <Row
             title="Mostrar abreviatura del servicio en sesiones"
             description="Añade delante del nombre del cliente (o del número de personas) una abreviatura de dos letras del servicio, por ejemplo “EP · Álvaro González”. La abreviatura se puede personalizar en cada servicio."
           >

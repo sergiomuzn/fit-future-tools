@@ -28,6 +28,7 @@ export type BehaviorConfig = {
   ocultarBonosInactivosAgotados: boolean;
   /** Mostrar la abreviatura del servicio delante del nombre en los bloques de la agenda */
   mostrarAbreviaturaServicio: boolean;
+  distinguirReservasOnline: boolean;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
@@ -43,6 +44,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   canceladasNCSumanTotal: false,
   ocultarBonosInactivosAgotados: true,
   mostrarAbreviaturaServicio: false,
+  distinguirReservasOnline: false,
 };
 
 /**
@@ -84,6 +86,7 @@ export function parseBehaviorConfig(value: unknown): BehaviorConfig {
       d.ocultarBonosInactivosAgotados,
     ),
     mostrarAbreviaturaServicio: bool(o.mostrarAbreviaturaServicio, d.mostrarAbreviaturaServicio),
+    distinguirReservasOnline: bool(o.distinguirReservasOnline, d.distinguirReservasOnline),
   };
 }
 

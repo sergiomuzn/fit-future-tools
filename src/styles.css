@@ -311,3 +311,24 @@ body {
   }
   -moz-appearance: textfield;
 }
+
+/* A pale layer tucked behind the booked session, without changing its layout. */
+.agenda-online-booking {
+  border-left-width: 5px;
+  border-left-color: transparent;
+  background-clip: padding-box;
+}
+
+.agenda-online-booking::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -5px;
+  width: 5px;
+  background-color: inherit;
+  background-image: linear-gradient(var(--online-booking-light), var(--online-booking-light));
+  pointer-events: none;
+}
+
+:root {
+  --online-booking-light: oklch(1 0 0 / 38%);
+}

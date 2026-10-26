@@ -13,3 +13,4 @@
 - Propagated slot instances are unique per (service_slot_id, fecha), never merged by service+time; bookings are distributed across same-time instances via asignarReservasAHuecos (trainer match first) — two template slots at the same hour are distinct sessions.
 - Agenda cancellation visibility uses explicit slot-instance identity after recurrence grouping; manual sessions never merge by time, service or trainer, so independent cancellations remain accessible.
 - A rebooking into a cancelled manual Agenda session stores reemplaza_session_id pointing at the cancelled row; only that explicit link (or an equal slot_instance_id) hides a cancellation, so same-time independent sessions never merge.
+- Self-booking styling and single-place cancellation visibility use booking origin and exact slot/group queue identity; visibility never deletes cancellation rows, preserving accounting.
