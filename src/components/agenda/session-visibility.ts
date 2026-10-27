@@ -18,3 +18,14 @@ export function visibleAgendaSessions<T extends SessionIdentity>(sessions: T[]):
       (!session.slot_instance_id || !activeSlots.has(session.slot_instance_id))),
   );
 }
+
+/** Expand visible blocks without restoring cancellations replaced by active rows. */
+export function expandVisibleAgendaBlocks<T extends SessionIdentity>(sessions: T[], blocks: T[][]): T[] {
+  const eligible = new Set(visibleAgendaSessions(sessions).map((session) => session.id));
+  const seen = new Set<string>();
+  return blocks.flat().filter((session) => {
+    if (!eligible.has(session.id) || seen.has(session.id)) return false;
+    seen.add(session.id);
+    return true;
+  });
+}
