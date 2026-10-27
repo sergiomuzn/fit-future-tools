@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session } from "@/lib/db";
-import { visibleAgendaSessions } from "./session-visibility";
+import { expandVisibleAgendaBlocks, visibleAgendaSessions } from "./session-visibility";
 import { hideCancelledSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 
 export function agendaBlockMembers(session: Session, sessions: Session[]): Session[] {
@@ -34,14 +34,17 @@ export function useOnlineAgendaVisibility(sessions: Session[], from: string, to:
   });
   return useMemo(() => {
     const grouped: Session[] = [];
+    const blocks = new Map<string, Session[]>();
     const seen = new Set<string>();
     for (const session of sessions) {
       if (seen.has(session.id)) continue;
       const members = agendaBlockMembers(session, sessions);
       for (const member of members) seen.add(member.id);
-      grouped.push(members.find((row) => row.estado !== "cancelada") ?? session);
+      const representative = members.find((row) => row.estado !== "cancelada") ?? session;
+      grouped.push(representative);
+      blocks.set(representative.id, [representative, ...members.filter((row) => row.id !== representative.id)]);
     }
-    return visibleAgendaSessions(grouped).filter((session) => {
+    const visible = visibleAgendaSessions(grouped).filter((session) => {
       if (!details) return true;
       const capacity = (session.slot_instance_id ? details.slots.get(session.slot_instance_id) : undefined)
         ?? (session.group_id ? details.groups.get(session.group_id) : undefined)
@@ -49,5 +52,6 @@ export function useOnlineAgendaVisibility(sessions: Session[], from: string, to:
       const key = sessionQueueKey(session);
       return !hideCancelledSelfBooking(session, capacity, key !== null && details.queue.has(key));
     });
+    return expandVisibleAgendaBlocks(sessions, visible.map((session) => blocks.get(session.id) ?? [session]));
   }, [sessions, details, capacities]);
 }

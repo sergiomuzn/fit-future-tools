@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Corregir y verificar que todas las reservas de una clase compartida aparecen en Agenda diaria y semanal.
+
 - [x] Añadir distinción opcional de reservas online en Agenda, desactivada por defecto.
 - [x] Ocultar cancelaciones online de una plaza sin cola, conservando su contabilización.
 - [x] Verificar configuración y distinción en una reserva real; cancelaciones con pruebas sin modificar reservas de clientes.

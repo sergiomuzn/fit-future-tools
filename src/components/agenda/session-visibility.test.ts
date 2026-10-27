@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { visibleAgendaSessions } from "./session-visibility";
+import { expandVisibleAgendaBlocks, visibleAgendaSessions } from "./session-visibility";
 
 const cancelled = {
   id: "cancelled", estado: "cancelada" as const, slot_instance_id: null,
@@ -43,5 +43,30 @@ describe("manual rebooking link", () => {
   });
   test("an unlinked same-time booking does not hide it", () => {
     strictEqual(visibleAgendaSessions([cancelled, { ...active, reemplaza_session_id: "other" }]).length, 2);
+  });
+});
+
+describe("shared class block visibility", () => {
+  const bookings = [1, 2, 3].map((n) => ({ ...active, id: `client-${n}`, slot_instance_id: "four-place-slot" }));
+  test("three active bookings in a four-place class all remain visible", () => {
+    deepStrictEqual(expandVisibleAgendaBlocks(bookings, [bookings]).map((s) => s.id), ["client-1", "client-2", "client-3"]);
+  });
+  test("expansion does not restore a cancellation in the same slot", () => {
+    const old = { ...cancelled, slot_instance_id: "four-place-slot" };
+    deepStrictEqual(expandVisibleAgendaBlocks([old, ...bookings], [[...bookings, old]]).map((s) => s.id), ["client-1", "client-2", "client-3"]);
+  });
+  test("legacy blocks keep the active representative first", () => {
+    deepStrictEqual(expandVisibleAgendaBlocks([cancelled, active], [[active, cancelled]]).map((s) => s.id), ["active", "cancelled"]);
+  });
+  test("independent same-time slots retain every active booking", () => {
+    const other = { ...active, id: "other-slot", slot_instance_id: "other-slot" };
+    strictEqual(expandVisibleAgendaBlocks([...bookings, other], [bookings, [other]]).length, 4);
+  });
+  test("a block hidden by queue-aware cancellation filtering stays hidden", () => {
+    deepStrictEqual(expandVisibleAgendaBlocks([cancelled], []), []);
+  });
+  test("an explicitly replaced manual cancellation is not restored", () => {
+    const replacement = { ...active, reemplaza_session_id: cancelled.id };
+    deepStrictEqual(expandVisibleAgendaBlocks([cancelled, replacement], [[replacement], [cancelled]]).map((s) => s.id), ["active"]);
   });
 });
