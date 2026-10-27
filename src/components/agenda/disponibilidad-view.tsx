@@ -21,7 +21,6 @@ import {
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { PropagarDialog } from "./propagar-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
 import { useCenterConfig, isOutsideOpeningDow } from "@/lib/center-schedule";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
