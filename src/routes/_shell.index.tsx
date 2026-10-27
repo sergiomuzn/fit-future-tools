@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { AgendaGrid } from "@/components/agenda/agenda-grid";
@@ -18,6 +18,7 @@ import { useCenterConfig, getDayScheduleFor, ymd } from "@/lib/center-schedule";
 import { servicioColorOf } from "@/lib/colors";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 
 export const Route = createFileRoute("/_shell/")({
@@ -237,31 +238,57 @@ function AgendaPage() {
           </Tabs>
 
           {view === "disponibilidad" && (
-            <div className="flex items-center self-center rounded-md border bg-background p-0.5 h-9 my-1">
-              <button
-                type="button"
-                onClick={() => setReservasModo("vista")}
-                className={cn(
-                  "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
-                  reservasModo === "vista"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Modo vista
-              </button>
-              <button
-                type="button"
-                onClick={() => setReservasModo("edicion")}
-                className={cn(
-                  "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
-                  reservasModo === "edicion"
-                    ? "bg-primary text-primary-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                Modo edición
-              </button>
+            <div className="flex items-center gap-0.5 my-1">
+              <div className="flex items-center self-center rounded-md border bg-background p-0.5 h-9">
+                <button
+                  type="button"
+                  onClick={() => setReservasModo("vista")}
+                  className={cn(
+                    "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
+                    reservasModo === "vista"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Modo vista
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReservasModo("edicion")}
+                  className={cn(
+                    "h-full whitespace-nowrap rounded px-2.5 text-xs font-medium transition-colors",
+                    reservasModo === "edicion"
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                >
+                  Modo edición
+                </button>
+              </div>
+              <TooltipProvider delayDuration={100}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de reservas">
+                      <Info className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent align="start" className="w-80 text-xs leading-relaxed">
+                    <p className="mb-2 text-sm font-medium">Cómo propagar sesiones para reserva online</p>
+                    <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
+                      <li>
+                        <b>Modo edición:</b> crea los huecos del servicio y usa «Propagar» o
+                        «Estructuras» para replicarlos en las fechas futuras que quieras abrir a
+                        reserva. También puedes copiar un día y pegarlo en otro.
+                      </li>
+                      <li>
+                        <b>Modo vista:</b> previsualiza el calendario tal y como lo ve el cliente;
+                        ahí puede reservar los huecos ya propagados y tú puedes revisar las plazas
+                        libres y ocupadas.
+                      </li>
+                    </ul>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           )}
 
