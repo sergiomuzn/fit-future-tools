@@ -20,7 +20,6 @@ import {
 } from "@/lib/service-slots";
 import { SlotsWeekGrid, type GridMode } from "./slots-week-grid";
 import { PropagarDialog } from "./propagar-dialog";
-import { bookingModeInfo, useBookingMode } from "@/lib/booking-mode";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -59,8 +58,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
   const qc = useQueryClient();
   const { data: servicios = [] } = useServicios();
   const { data: slots = [] } = useServiceSlots();
-  const { data: modoReservas } = useBookingMode();
-  const modoInfo = bookingModeInfo(modoReservas);
   const { data: structures = [] } = useSlotStructures();
   const { data: trainers = [] } = useQuery({
     queryKey: ["trainers"],
@@ -527,28 +524,6 @@ export function DisponibilidadView({ servicioSlug, view = "semana", date, paintS
 
         <div className="ml-auto flex items-center gap-2">
           {copiedDay && <span className="text-muted-foreground">Día copiado ({copiedDay.length})</span>}
-          <TooltipProvider delayDuration={100}>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button size="icon" variant="ghost" className="h-8 w-8" aria-label="Ayuda de la agenda">
-                  <Info className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent align="end" className="w-80 text-xs leading-relaxed">
-                <p className="mb-2 text-sm font-medium">Modo de reservas: {modoInfo.label}</p>
-                <p className="mb-2 text-muted-foreground">{modoInfo.description}</p>
-                <p className="mb-2 text-sm font-medium">Cómo usar la agenda</p>
-                <ul className="list-disc space-y-1 pl-4 text-muted-foreground">
-                  <li>Arrastra sobre un día para crear un hueco.</li>
-                  <li>Arrastra un hueco para moverlo.</li>
-                  <li>Clic derecho: copiar y pegar día o selección.</li>
-                  <li>Atajos: Ctrl/Cmd + C, Ctrl/Cmd + V y Ctrl/Cmd + Z para deshacer.</li>
-                  <li>Creación rápida: arrastra una franja y genera varias sesiones de golpe.</li>
-                  <li>Seleccionar: dibuja un rectángulo o Ctrl/Cmd + clic y mueve en bloque.</li>
-                </ul>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
           <Button
             size="sm"
             variant="outline"
