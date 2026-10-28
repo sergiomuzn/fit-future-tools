@@ -228,8 +228,8 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
-    reservados: reservas.map((r) => ({ id: r.id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
+  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
+    reservados: reservas.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
     cancelados: extra?.cancelados ?? [],
   }), [reservas, extra]);
@@ -381,11 +381,12 @@ export function HuecoPanel({
                       onChange={(clientId) => {
                         if (!clientId) onCancelarReserva(item.reserva as PanelReserva);
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
-                    <span className="truncate text-sm font-medium">{item.nombre}</span>
+                    <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
