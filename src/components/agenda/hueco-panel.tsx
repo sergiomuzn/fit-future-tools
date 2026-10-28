@@ -264,6 +264,7 @@ export function HuecoPanel({
     .join("");
 
   return (
+    <>
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         {inst && (
