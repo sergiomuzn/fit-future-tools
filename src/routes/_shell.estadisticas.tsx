@@ -25,8 +25,19 @@ import { servicioColorOf } from "@/lib/colors";
 import { cn, formatDateShort } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
+import { countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
 
-export const Route = createFileRoute("/_shell/estadisticas")({ component: StatsPage });
+export const Route = createFileRoute("/_shell/estadisticas")({
+  head: () => ({ meta: [
+    { title: "Estadísticas · Tracli" },
+    { name: "description", content: "Sesiones mensuales y estadísticas del centro en Tracli." },
+    { property: "og:title", content: "Estadísticas · Tracli" },
+    { property: "og:description", content: "Sesiones mensuales y estadísticas del centro en Tracli." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: StatsPage,
+});
 
 // ============================================================
 // Constants
@@ -87,8 +98,12 @@ function daysInMonth(y: number, m: number): number { return monthEnd(y, m).getDa
 function StatsPage() {
   const { horario, specialsMap, precios } = useCenterConfig();
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-all"],
-    queryFn: async () => (await supabase.from("sessions").select("*")).data as Session[] ?? [],
+    queryKey: ["sessions", "statistics-all"],
+    queryFn: () => fetchAllSessionPages<Session>(async (from, to) => {
+      const { data, error } = await supabase.from("sessions").select("*").order("id").range(from, to);
+      if (error) throw error;
+      return data ?? [];
+    }),
   });
   const { data: trainers = [] } = useQuery({
     queryKey: ["trainers"],
@@ -211,9 +226,9 @@ function StatsPage() {
         <h1 className="text-2xl font-display font-semibold">Estadísticas</h1>
       </div>
 
-      <KpiPanel ym={selectedMonth} onYmChange={handleSelectedMonth} sessions={filteredSessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
+      <KpiPanel ym={selectedMonth} onYmChange={handleSelectedMonth} sessions={filteredSessions} totalSessions={sessions} clients={clients} events={events} horario={horario} specialsMap={specialsMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} />
 
-      <ComparisonModule month={selectedMonth} sessions={filteredSessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} clientNacMap={clientNacMap} clientNombreMap={clientNombreMap} />
+      <ComparisonModule month={selectedMonth} sessions={filteredSessions} totalSessions={sessions} trainers={trainers} events={events} horario={horario} specialsMap={specialsMap} clientTipoMap={clientTipoMap} clientPricePerSessionMap={clientPricePerSessionMap} groupClientsMap={groupClientsMap} clientSexoMap={clientSexoMap} clientNacMap={clientNacMap} clientNombreMap={clientNombreMap} />
     </div>
   );
 }
@@ -229,9 +244,9 @@ type ClientEvent = {
 // ============================================================
 // KPI Panel
 // ============================================================
-function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
+function KpiPanel({ ym, onYmChange, sessions, totalSessions, clients, events, horario, specialsMap, clientPricePerSessionMap, groupClientsMap }: {
   ym: string; onYmChange: (v: string) => void;
-  sessions: Session[]; clients: Client[]; events: ClientEvent[];
+  sessions: Session[]; totalSessions: Session[]; clients: Client[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientPricePerSessionMap: Map<string, number>;
   groupClientsMap: Map<string, string[]>;
@@ -248,17 +263,18 @@ function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specials
   const activityMonths = useMemo(() => {
     const set = new Set<string>();
     set.add(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`);
-    for (const s of sessions) if (s.fecha && countsAsTraining(s)) set.add(s.fecha.slice(0, 7));
+    for (const s of totalSessions) if (s.fecha && countsInSessionTotal(s)) set.add(s.fecha.slice(0, 7));
     for (const e of events) if (e.fecha) set.add(e.fecha.slice(0, 7));
     return set;
-  }, [sessions, events, now]);
+  }, [totalSessions, events, now]);
 
   const monthSessions = sessions.filter((s) => s.fecha >= start && s.fecha <= end);
   // Se lee la config para re-renderizar cuando cambia el criterio de canceladas.
   useBehaviorConfig();
   const realizadas = monthSessions.filter(countsAsTraining);
-  const mananas = realizadas.filter((s) => hourOf(s.hora_inicio) < 14).length;
-  const tardes = realizadas.length - mananas;
+  const totalMes = sessionsInMonthTotal(totalSessions, ym, now);
+  const mananas = totalMes.filter((s) => hourOf(s.hora_inicio) < 14).length;
+  const tardes = totalMes.length - mananas;
 
   // Ocupación media: sólo cuenta hasta hoy si el mes seleccionado es el actual
   // (ocupación real acumulada vs. capacidad disponible transcurrida).
@@ -300,9 +316,9 @@ function KpiPanel({ ym, onYmChange, sessions, clients, events, horario, specials
     {
       id: "entrenamientos",
       label: "Entrenamientos totales",
-      value: String(realizadas.length),
+      value: String(totalMes.length),
       hint: `${mananas} mañana · ${tardes} tarde`,
-      info: "Suma de sesiones que cuentan como entrenamiento (realizadas + canceladas contabilizadas) dentro del mes seleccionado. Las canceladas marcadas como 'No contabilizar' (NC) quedan excluidas. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
+      info: "Suma de las sesiones realizadas y canceladas contabilizadas del mes, de todos los servicios y también sin clientes. Incluye pruebas y renovaciones realizadas; si conservan ese estado, cuentan al terminar. Excluye las pendientes de confirmar y las marcadas como 'No contabilizar'. Se separan en mañana (inicio < 14:00) y tarde (inicio ≥ 14:00).",
     },
     {
       id: "ocupacion",
@@ -546,7 +562,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "• Minutos ocupados: duración de cada sesión que cuenta como entrenamiento (realizada o cancelada contabilizada; NC excluida) × espacios que usa (individual/pareja/prueba = 1, grupal = 2).\n" +
       "• Minutos disponibles: minutos que el centro está abierto × 3 espacios simultáneos, sumando los días del periodo.",
     sesiones:
-      "Nº de sesiones: total de entrenamientos dentro del periodo. Cuenta las realizadas y las canceladas contabilizadas (las canceladas marcadas como 'No contabilizar' quedan excluidas). No incluye reservadas ni renovaciones.",
+      "Nº de sesiones: suma de realizadas y canceladas contabilizadas de todos los servicios, también sin clientes. Incluye pruebas y renovaciones realizadas; si conservan ese estado, cuentan al terminar. Excluye reservadas, pendientes de confirmar y sesiones marcadas como 'No contabilizar'.",
     cancelaciones:
       "Cancelaciones: total de sesiones en estado 'cancelada' dentro del periodo, incluyendo las marcadas como 'No contabilizar' (NC).",
     porEntrenador:
@@ -589,9 +605,9 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     .join("\n\n");
 }
 
-function ComparisonModule({ month, sessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap }: {
+function ComparisonModule({ month, sessions: filteredSessions, totalSessions, trainers, events, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap }: {
   month: string;
-  sessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
+  sessions: Session[]; totalSessions: Session[]; trainers: Trainer[]; events: ClientEvent[];
   horario: HorarioBase; specialsMap: Map<string, SpecialDay>;
   clientTipoMap: Map<string, BonoTipo>;
   clientPricePerSessionMap: Map<string, number>;
@@ -626,6 +642,7 @@ function ComparisonModule({ month, sessions, trainers, events, horario, specials
     [serviciosList],
   );
   const [metric, setMetric] = useState<Metric>("sesiones");
+  const sessions = metric === "sesiones" ? totalSessions : filteredSessions;
   const [desglose, setDesglose] = useState<Desglose>("total");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
@@ -1892,7 +1909,7 @@ function buildSeries(args: {
       }
 
       if (metric === "sesiones") {
-        if (!countsAsTraining(s)) continue;
+        if (!countsInSessionTotal(s)) continue;
         addTo(b, p.key, 1);
       } else if (metric === "cancelaciones") {
         if (s.estado !== "cancelada") continue;
