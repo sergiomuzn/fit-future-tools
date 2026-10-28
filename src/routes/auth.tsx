@@ -1,3 +1,4 @@
+import tracliWordmark from "@/assets/tracli-wordmark.png.asset.json";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -68,7 +69,9 @@ function AuthPage() {
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="font-display text-2xl">TRACLI</CardTitle>
+          <CardTitle>
+            <img src={tracliWordmark.url} alt="Tracli" className="h-9 w-auto dark:brightness-0 dark:invert" />
+          </CardTitle>
         </CardHeader>
         <CardContent>
           {checking ? (

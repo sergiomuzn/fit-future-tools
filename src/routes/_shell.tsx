@@ -1,3 +1,5 @@
+import tracliLogo from "@/assets/tracli-logo.png.asset.json";
+import tracliWordmark from "@/assets/tracli-wordmark.png.asset.json";
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Calendar, Users, Layers, Dumbbell, Receipt, BarChart3, Settings, LogOut } from "lucide-react";
@@ -147,12 +149,16 @@ function ShellInner() {
       <Sidebar collapsible="icon">
         <SidebarHeader className="border-b h-12 px-2 py-0">
           <div className="flex h-full items-center justify-between gap-2 group-data-[collapsible=icon]:justify-center">
-            <div className="font-display font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
-              Tracli
-            </div>
-            <span className="hidden font-display text-lg font-bold group-data-[collapsible=icon]:block">
-              T
-            </span>
+            <img
+              src={tracliWordmark.url}
+              alt="Tracli"
+              className="h-6 w-auto object-contain group-data-[collapsible=icon]:hidden dark:brightness-0 dark:invert"
+            />
+            <img
+              src={tracliLogo.url}
+              alt="Tracli"
+              className="hidden h-7 w-7 object-contain group-data-[collapsible=icon]:block"
+            />
             <div className="group-data-[collapsible=icon]:hidden">
               <ThemeToggle />
             </div>
