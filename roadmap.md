@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Corregir Sesiones Totales según estados y contabilización, con pruebas y comprobación del resultado mensual.
+
 - [x] Corregir y verificar que todas las reservas de una clase compartida aparecen en Agenda diaria y semanal.
 
 - [x] Añadir distinción opcional de reservas online en Agenda, desactivada por defecto.
