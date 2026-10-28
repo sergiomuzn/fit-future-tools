@@ -438,7 +438,8 @@ export function HuecoPanel({
           </>
         )}
       </DialogContent>
-      <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </Dialog>
+    <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
+    </>
   );
 }
