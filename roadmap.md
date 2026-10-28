@@ -1,8 +1,8 @@
 # Tareas
 
-- [ ] Excluir entrenadores inactivos de selectores de sesiones y facturas.
-- [ ] Registrar actividad histórica y filtrar entrenadores en comparaciones por periodo.
-- [ ] Probar selectores y reglas históricas.
+- [x] Excluir entrenadores inactivos de selectores de sesiones y facturas.
+- [x] Registrar actividad histórica desde ahora y filtrar entrenadores en comparaciones por periodo; los periodos previos sin historial se conservan según sesiones registradas.
+- [x] Probar selectores en navegador autenticado y reglas históricas (21 pruebas correctas).
 
 - [x] Corregir Sesiones Totales según estados y contabilización, con 42 pruebas correctas y total de octubre verificado: 796 realizadas + 22 canceladas contabilizadas = 818.
 
