@@ -72,7 +72,7 @@ function AgendaPage() {
   const special = specialsMap.get(ymd(date));
 
   const { data: trainers = [] } = useQuery({
-    queryKey: ["trainers"],
+    queryKey: ["trainers", "active"],
     queryFn: async () => {
       const { data } = await supabase.from("trainers").select("*").eq("activo", true).order("nombre");
       return (data ?? []) as Trainer[];

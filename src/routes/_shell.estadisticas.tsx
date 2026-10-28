@@ -107,7 +107,7 @@ function StatsPage() {
     }),
   });
   const { data: trainers = [] } = useQuery({
-    queryKey: ["trainers"],
+    queryKey: ["trainers", "all"],
     queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [],
   });
   const { data: clients = [] } = useQuery({
@@ -685,19 +685,6 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
       return [...cur, id];
     });
   }
-  const selectedTrainers = useMemo(
-    () => selectedTrainerIds
-      .map((id) => availableTrainers.find((t) => t.id === id))
-      .filter((t): t is Trainer => !!t),
-    [selectedTrainerIds, availableTrainers],
-  );
-  // Iniciales del entrenador seleccionado → color fijo. Se pasa al chart.
-  const trainerColorByInitials = useMemo(() => {
-    const m = new Map<string, string>();
-    for (const t of selectedTrainers) m.set(t.iniciales, trainerColor(t.id));
-    return m;
-  }, [selectedTrainers]);
-
   // Al cambiar métrica, corregir desglose/periodo si la combinación deja de ser válida.
   useEffect(() => {
     if (!isValidCombo(metric, desglose, period)) {
@@ -762,6 +749,8 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
       trainerAvailableInMonth(trainer, selectedMonth, trainerHistory, sourceSessions)));
   }, [period, monthA, compareMonths, activityMonthsCmp, trainers, trainerHistory, sourceSessions]);
   const trainerMap = useMemo(() => new Map(availableTrainers.map((t) => [t.id, t])), [availableTrainers]);
+  const selectedTrainers = useMemo(() => availableTrainers.filter((t) => selectedTrainerIds.includes(t.id)), [availableTrainers, selectedTrainerIds]);
+  const trainerColorByInitials = useMemo(() => new Map(selectedTrainers.map((t) => [t.iniciales, trainerColor(t.id)])), [selectedTrainers]);
   useEffect(() => {
     setSelectedTrainerIds((ids) => {
       const next = ids.filter((id) => availableTrainers.some((t) => t.id === id));
@@ -1036,12 +1025,12 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
               Selecciona hasta 3 entrenadores para comparar. Sin selección se muestra el total global.
             </div>
             <div className="flex flex-wrap gap-2">
-              {trainers.map((t) => {
+              {availableTrainers.map((t) => {
                 const active = selectedTrainerIds.includes(t.id);
                 const disabled = !active && selectedTrainerIds.length >= 3;
                 const color = trainerColor(t.id);
                 return (
-                  <button
+                  <Button
                     key={t.id}
                     type="button"
                     onClick={() => toggleTrainer(t.id)}
@@ -1062,7 +1051,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                     />
                     {t.iniciales}
                     <span className="opacity-80 font-normal">· {t.nombre}</span>
-                  </button>
+                  </Button>
                 );
               })}
             </div>

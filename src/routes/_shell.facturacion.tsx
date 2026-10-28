@@ -64,7 +64,7 @@ function FacturacionPage() {
   const [clientText, setClientText] = useState("");
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*").order("nombre")).data as Client[] ?? [] });
-  const { data: trainers = [] } = useQuery({ queryKey: ["trainers"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
+  const { data: trainers = [] } = useQuery({ queryKey: ["trainers", "all"], queryFn: async () => (await supabase.from("trainers").select("*")).data as Trainer[] ?? [] });
   const { data: catalogo = [] } = useQuery({ queryKey: ["bonos_catalogo"], queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [] });
   const { data: servicios = [] } = useServicios();
   const { colores: tipoColores } = useCenterConfig();
