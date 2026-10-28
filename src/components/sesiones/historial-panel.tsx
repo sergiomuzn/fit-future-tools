@@ -234,7 +234,9 @@ export function HistorialPanel() {
               <TableRow key={s.id}>
                  <TableCell className="whitespace-nowrap">{formatDateShort(s.fecha)}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
-                <TableCell>{nameForSession(s)}</TableCell>
+                <TableCell>{s.client_id && clientMap.get(s.client_id) ? (
+                  <button type="button" className="hover:underline text-left" onClick={() => setPerfilCliente(clientMap.get(s.client_id!) ?? null)}>{nameForSession(s)}</button>
+                ) : nameForSession(s)}</TableCell>
                 <TableCell>
                   {(() => {
                     const sl = servicioForSession(s);
@@ -268,6 +270,7 @@ export function HistorialPanel() {
           </TableBody>
         </Table>
       </div>
+      <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </div>
   );
 }
