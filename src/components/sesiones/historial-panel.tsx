@@ -12,6 +12,7 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import { ESTADO_BG } from "@/lib/db";
 import { normalizeText, formatDateShort, formatNameTitle } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { useServicios } from "@/lib/servicios";
 
 
@@ -24,6 +25,7 @@ export function HistorialPanel() {
   const [servicioFilter, setServicioFilter] = useState<string>("todos");
   const [desde, setDesde] = useState<string>("");
   const [hasta, setHasta] = useState<string>("");
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
 
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions-past"],
