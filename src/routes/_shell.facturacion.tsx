@@ -427,7 +427,7 @@ function FacturacionPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <ClientDetailsDialog client={viewingClient} defaultTab="historial" onOpenChange={(o) => !o && setViewingClient(null)} />
+      <ClientDetailsDialog client={viewingClient} defaultTab="calendario" onOpenChange={(o) => !o && setViewingClient(null)} />
       <AlertDialog open={confirmNoClient} onOpenChange={setConfirmNoClient}>
         <AlertDialogContent>
           <AlertDialogHeader>

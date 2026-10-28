@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 
 const EMPTY_SESSIONS: Session[] = [];
 
@@ -331,6 +332,7 @@ function GroupHistory({
   capacidad: number;
   clientMap: Map<string, Client>;
 }) {
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   if (blocks.length === 0) {
     return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
   }
@@ -358,7 +360,9 @@ function GroupHistory({
               <ul className="space-y-0.5 text-xs">
                 {b.clientIds.map((cid, i) => (
                   <li key={`${cid}-${i}`} className="truncate">
-                    {formatNameTitle(clientMap.get(cid)?.nombre) ?? "—"}
+                    <button type="button" className="w-full truncate text-left hover:underline" onClick={() => { const c = clientMap.get(cid); if (c) setPerfilCliente(c); }}>
+                      {formatNameTitle(clientMap.get(cid)?.nombre) ?? "—"}
+                    </button>
                   </li>
                 ))}
                 {b.clientIds.length === 0 && <li className="text-muted-foreground italic">Sin integrantes</li>}
@@ -367,6 +371,7 @@ function GroupHistory({
           );
         })}
       </div>
+      <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </div>
   );
 }

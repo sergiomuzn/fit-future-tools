@@ -10,10 +10,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ClientPicker } from "@/components/clients/client-picker";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { estadoColorOf, servicioColorOf } from "@/lib/colors";
-import { ESTADO_BG, ESTADO_LABEL, type SesionEstado } from "@/lib/db";
+import { ESTADO_BG, ESTADO_LABEL, type Client, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
@@ -111,6 +112,12 @@ export function HuecoPanel({
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
   const [saving, setSaving] = useState(false);
   const [servicioSlug, setServicioSlug] = useState("");
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
+  const { data: allClients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
+  const abrirPerfil = (clientId: string | null | undefined) => {
+    const c = allClients.find((x) => x.id === clientId);
+    if (c) setPerfilCliente(c);
+  };
 
   useEffect(() => {
     if (!inst) return;
@@ -149,8 +156,8 @@ export function HuecoPanel({
           : s.slot_instance_id ? s.slot_instance_id === inst.id : hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && s.servicio_slug === inst.servicio_slug,
       );
       return {
-        cola: colaRows.map((c) => ({ id: c.id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
-        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
+        cola: colaRows.map((c) => ({ id: c.id, clientId: c.client_id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
+        cancelados: cancelados.map((s) => ({ id: s.id as string, clientId: s.client_id as string | null, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
       };
     },
   });
@@ -221,8 +228,8 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const listas: Record<Pestana, { id: string; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
-    reservados: reservas.map((r) => ({ id: r.id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
+  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
+    reservados: reservas.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
     cancelados: extra?.cancelados ?? [],
   }), [reservas, extra]);
@@ -257,6 +264,7 @@ export function HuecoPanel({
     .join("");
 
   return (
+    <>
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         {inst && (
@@ -364,6 +372,7 @@ export function HuecoPanel({
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
                         if (clientId && !isNew) anadir.mutate({ clientId, row });
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
                 ))}
@@ -374,11 +383,12 @@ export function HuecoPanel({
                       onChange={(clientId) => {
                         if (!clientId) onCancelarReserva(item.reserva as PanelReserva);
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
-                    <span className="truncate text-sm font-medium">{item.nombre}</span>
+                    <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
@@ -429,5 +439,7 @@ export function HuecoPanel({
         )}
       </DialogContent>
     </Dialog>
+    <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
+    </>
   );
 }
