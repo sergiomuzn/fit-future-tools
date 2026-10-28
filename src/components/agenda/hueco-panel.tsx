@@ -371,6 +371,7 @@ export function HuecoPanel({
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
                         if (clientId && !isNew) anadir.mutate({ clientId, row });
                       }}
+                      onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
                 ))}
@@ -436,6 +437,7 @@ export function HuecoPanel({
           </>
         )}
       </DialogContent>
+      <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </Dialog>
   );
 }
