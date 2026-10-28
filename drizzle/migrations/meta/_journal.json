@@ -85,6 +85,13 @@
       "when": 1792676941728,
       "tag": "0011_sessions_reemplaza_session_id",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793202352298,
+      "tag": "0012_trainer_activity_history",
+      "breakpoints": true
     }
   ]
 }
