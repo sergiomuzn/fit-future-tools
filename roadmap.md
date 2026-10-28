@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Corregir Sesiones Totales según estados y contabilización, con pruebas y comprobación del resultado mensual.
+- [x] Corregir Sesiones Totales según estados y contabilización, con 42 pruebas correctas y total de octubre verificado: 796 realizadas + 22 canceladas contabilizadas = 818.
 
 - [x] Corregir y verificar que todas las reservas de una clase compartida aparecen en Agenda diaria y semanal.
 
