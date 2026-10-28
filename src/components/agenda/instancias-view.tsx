@@ -89,9 +89,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const { data: instancias = [] } = useSlotInstances(from, to);
   const { data: trainers = [] } = useQuery({
-    queryKey: ["trainers"],
+    queryKey: ["trainers", "active"],
     queryFn: async () => {
-      const { data } = await supabase.from("trainers").select("id,nombre").eq("activo", true).order("nombre");
+      const { data } = await supabase.from("trainers").select("*").eq("activo", true).order("nombre");
       return (data ?? []) as { id: string; nombre: string }[];
     },
   });

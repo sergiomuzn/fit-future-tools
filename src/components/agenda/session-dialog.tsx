@@ -26,6 +26,7 @@ import {
 } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
+import { activeTrainerOptions } from "@/lib/trainer-availability";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -855,7 +856,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Select value={trainerId ?? ""} onValueChange={(v) => setTrainerId(v || null)}>
                 <SelectTrigger><SelectValue placeholder="—" /></SelectTrigger>
                 <SelectContent>
-                  {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
+                  {activeTrainerOptions(trainers).map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre} ({t.iniciales})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>

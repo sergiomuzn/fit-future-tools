@@ -1308,6 +1308,45 @@ export type Database = {
         }
         Relationships: []
       }
+      trainer_activity_history: {
+        Row: {
+          activo: boolean
+          centro_id: string
+          effective_at: string
+          id: string
+          trainer_id: string
+        }
+        Insert: {
+          activo: boolean
+          centro_id: string
+          effective_at?: string
+          id?: string
+          trainer_id: string
+        }
+        Update: {
+          activo?: boolean
+          centro_id?: string
+          effective_at?: string
+          id?: string
+          trainer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainer_activity_history_centro_id_fkey"
+            columns: ["centro_id"]
+            isOneToOne: false
+            referencedRelation: "centros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainer_activity_history_trainer_id_fkey"
+            columns: ["trainer_id"]
+            isOneToOne: false
+            referencedRelation: "trainers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trainers: {
         Row: {
           activo: boolean
