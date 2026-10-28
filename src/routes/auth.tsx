@@ -68,9 +68,9 @@ function AuthPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>
-            <img src={tracliWordmark.url} alt="Tracli" className="h-9 w-auto dark:brightness-0 dark:invert" />
+        <CardHeader className="flex flex-col items-center">
+          <CardTitle className="flex justify-center w-full">
+            <img src={tracliWordmark.url} alt="Tracli" className="h-14 w-auto dark:brightness-0 dark:invert" />
           </CardTitle>
         </CardHeader>
         <CardContent>
