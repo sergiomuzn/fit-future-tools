@@ -1,3 +1,5 @@
+import tracliLogo from "@/assets/tracli-logo.png.asset.json";
+import tracliWordmark from "@/assets/tracli-wordmark.png.asset.json";
 import { createFileRoute, Outlet, Link, useRouterState, useNavigate, redirect } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Calendar, Users, Layers, Dumbbell, Receipt, BarChart3, Settings, LogOut } from "lucide-react";

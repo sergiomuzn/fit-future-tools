@@ -1,3 +1,4 @@
+import tracliWordmark from "@/assets/tracli-wordmark.png.asset.json";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
