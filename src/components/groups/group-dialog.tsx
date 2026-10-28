@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { formatNameTitle } from "@/lib/utils";
 import { useConfirm } from "@/components/confirm-dialog";
+import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 
 const EMPTY_SESSIONS: Session[] = [];
 
@@ -331,6 +332,7 @@ function GroupHistory({
   capacidad: number;
   clientMap: Map<string, Client>;
 }) {
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   if (blocks.length === 0) {
     return <div className="text-center text-sm text-muted-foreground py-8">Sin entrenamientos pasados.</div>;
   }
