@@ -112,6 +112,12 @@ export function HuecoPanel({
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
   const [saving, setSaving] = useState(false);
   const [servicioSlug, setServicioSlug] = useState("");
+  const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
+  const { data: allClients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
+  const abrirPerfil = (clientId: string | null | undefined) => {
+    const c = allClients.find((x) => x.id === clientId);
+    if (c) setPerfilCliente(c);
+  };
 
   useEffect(() => {
     if (!inst) return;
@@ -150,8 +156,8 @@ export function HuecoPanel({
           : s.slot_instance_id ? s.slot_instance_id === inst.id : hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && s.servicio_slug === inst.servicio_slug,
       );
       return {
-        cola: colaRows.map((c) => ({ id: c.id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
-        cancelados: cancelados.map((s) => ({ id: s.id as string, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
+        cola: colaRows.map((c) => ({ id: c.id, clientId: c.client_id, nombre: nombres.get(c.client_id) ?? "Cliente" })),
+        cancelados: cancelados.map((s) => ({ id: s.id as string, clientId: s.client_id as string | null, nombre: (s.clients?.nombre ?? s.titulo ?? "Cliente") as string, noContabilizar: !!s.no_contabilizar })),
       };
     },
   });
