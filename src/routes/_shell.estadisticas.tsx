@@ -26,6 +26,7 @@ import { cn, formatDateShort } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 import { countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
+import { trainerActiveOnDate, trainerAvailableInMonth } from "@/lib/trainer-availability";
 
 export const Route = createFileRoute("/_shell/estadisticas")({
   head: () => ({ meta: [
@@ -617,6 +618,14 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   clientNombreMap: Map<string, string>;
 }) {
   const { colores: tipoColores } = useCenterConfig();
+  const { data: trainerHistory = [] } = useQuery({
+    queryKey: ["trainers", "activity-history"],
+    queryFn: () => fetchAllSessionPages(async (from, to) => {
+      const { data, error } = await supabase.from("trainer_activity_history").select("*").order("effective_at").order("id").range(from, to);
+      if (error) throw error;
+      return data ?? [];
+    }),
+  });
   const { data: serviciosList = [] } = useServicios();
   const { data: modalidadesList = [] } = useModalidades();
   const modalidadKeys = useMemo(
@@ -642,7 +651,10 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
     [serviciosList],
   );
   const [metric, setMetric] = useState<Metric>("sesiones");
-  const sessions = metric === "sesiones" ? totalSessions : filteredSessions;
+  const sourceSessions = metric === "sesiones" ? totalSessions : filteredSessions;
+  const sessions = useMemo(() => metric === "porEntrenador"
+    ? sourceSessions.filter((s) => !s.trainer_id || trainerActiveOnDate(s.trainer_id, s.fecha, trainerHistory))
+    : sourceSessions, [metric, sourceSessions, trainerHistory]);
   const [desglose, setDesglose] = useState<Desglose>("total");
   const [period, setPeriod] = useState<PeriodMode>("mesUnico");
   const [selectedTrainerIds, setSelectedTrainerIds] = useState<string[]>([]);
@@ -675,9 +687,9 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   }
   const selectedTrainers = useMemo(
     () => selectedTrainerIds
-      .map((id) => trainers.find((t) => t.id === id))
+      .map((id) => availableTrainers.find((t) => t.id === id))
       .filter((t): t is Trainer => !!t),
-    [selectedTrainerIds, trainers],
+    [selectedTrainerIds, availableTrainers],
   );
   // Iniciales del entrenador seleccionado → color fijo. Se pasa al chart.
   const trainerColorByInitials = useMemo(() => {
@@ -719,8 +731,6 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
     return out;
   });
 
-  const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
-
   // Meses con actividad real (sesiones realizadas o eventos) + mes en curso.
   // No se ofrecen meses futuros.
   const activityMonthsCmp = useMemo(() => {
@@ -744,6 +754,20 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
     }
     return out;
   };
+
+  const availableTrainers = useMemo(() => {
+    const months = period === "mesUnico" ? [monthA]
+      : period === "comparar" ? compareMonths : [...activityMonthsCmp];
+    return trainers.filter((trainer) => months.some((selectedMonth) =>
+      trainerAvailableInMonth(trainer, selectedMonth, trainerHistory, sourceSessions)));
+  }, [period, monthA, compareMonths, activityMonthsCmp, trainers, trainerHistory, sourceSessions]);
+  const trainerMap = useMemo(() => new Map(availableTrainers.map((t) => [t.id, t])), [availableTrainers]);
+  useEffect(() => {
+    setSelectedTrainerIds((ids) => {
+      const next = ids.filter((id) => availableTrainers.some((t) => t.id === id));
+      return next.length === ids.length ? ids : next;
+    });
+  }, [availableTrainers]);
 
   // ¿Se puede desglosar el servicio en modalidades?
   const puedeSplitModalidad = desglose === "tipoSesion" && hayModalidades;

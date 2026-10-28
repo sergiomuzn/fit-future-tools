@@ -19,6 +19,7 @@ import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
 import { cn, formatDateShort } from "@/lib/utils";
+import { activeTrainerOptions } from "@/lib/trainer-availability";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -47,7 +48,7 @@ interface Props {
   servicioNombre: string;
   color: string;
   trainerNombre: string | null;
-  trainers?: { id: string; nombre: string }[];
+  trainers?: { id: string; nombre: string; activo?: boolean }[];
   servicios?: { slug: string; nombre: string; capacidad_default: number | null }[];
   isNew?: boolean;
   reservas: PanelReserva[];
@@ -325,7 +326,7 @@ export function HuecoPanel({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={NONE}>Sin entrenador</SelectItem>
-                    {trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}
+                    {activeTrainerOptions(trainers).map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}
                   </SelectContent>
                 </Select>
 

@@ -33,8 +33,19 @@ import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
 import { servicioColorOf, chipStyle } from "@/lib/colors";
 import { useCenterConfig } from "@/lib/center-schedule";
+import { activeTrainerOptions } from "@/lib/trainer-availability";
 
-export const Route = createFileRoute("/_shell/facturacion")({ component: FacturacionPage });
+export const Route = createFileRoute("/_shell/facturacion")({
+  head: () => ({ meta: [
+    { title: "Facturación · Tracli" },
+    { name: "description", content: "Facturas y cobros del centro en Tracli." },
+    { property: "og:title", content: "Facturación · Tracli" },
+    { property: "og:description", content: "Facturas y cobros del centro en Tracli." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: FacturacionPage,
+});
 
 const MONTHS = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
 
@@ -362,7 +373,7 @@ function FacturacionPage() {
                 <Label>Cobrador</Label>
                 <Select value={form.cobrador_trainer_id ?? ""} onValueChange={(v) => setForm({ ...form, cobrador_trainer_id: v })}>
                 <SelectTrigger onKeyDown={closedSelectEnterToSave(save)}><SelectValue placeholder="—" /></SelectTrigger>
-                  <SelectContent>{trainers.map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
+                  <SelectContent>{activeTrainerOptions(trainers).map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
             </div>
