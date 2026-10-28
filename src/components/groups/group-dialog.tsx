@@ -360,7 +360,9 @@ function GroupHistory({
               <ul className="space-y-0.5 text-xs">
                 {b.clientIds.map((cid, i) => (
                   <li key={`${cid}-${i}`} className="truncate">
-                    {formatNameTitle(clientMap.get(cid)?.nombre) ?? "—"}
+                    <button type="button" className="w-full truncate text-left hover:underline" onClick={() => { const c = clientMap.get(cid); if (c) setPerfilCliente(c); }}>
+                      {formatNameTitle(clientMap.get(cid)?.nombre) ?? "—"}
+                    </button>
                   </li>
                 ))}
                 {b.clientIds.length === 0 && <li className="text-muted-foreground italic">Sin integrantes</li>}
@@ -369,6 +371,7 @@ function GroupHistory({
           );
         })}
       </div>
+      <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </div>
   );
 }
