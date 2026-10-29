@@ -91,3 +91,61 @@ export function fuzzyMatch(text: string | null | undefined, query: string): bool
   }
   return false;
 }
+
+/**
+ * Puntuación de parecido para ordenar resultados de búsqueda (menor = más parecido).
+ * Prioriza lo escrito: coincidencia exacta > palabra que empieza por el texto >
+ * texto al principio del nombre > palabra que lo contiene > aparición en cualquier
+ * sitio > coincidencia aproximada. Las menciones entre paréntesis van detrás de
+ * cualquier coincidencia equivalente fuera de ellas. Devuelve null si no hay
+ * ninguna coincidencia.
+ */
+export function matchScore(text: string | null | undefined, query: string): number | null {
+  const q = normalizeText(query).trim();
+  const t = normalizeText(text ?? "").trim();
+  if (!q || !t) return null;
+  if (t === q) return 0;
+
+  // Tramos entre paréntesis: las coincidencias dentro de ellos son menos relevantes.
+  const parenSpans: [number, number][] = [];
+  const stack: number[] = [];
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === "(") stack.push(i);
+    else if (t[i] === ")" && stack.length > 0) parenSpans.push([stack.pop()!, i]);
+  }
+  const inParens = (pos: number) => parenSpans.some(([a, b]) => pos >= a && pos < b);
+
+  const PAREN_PENALTY = 100000;
+  const FUZZY_SCORE = 1000000;
+
+  let wordEq = Infinity;
+  let wordPrefix = Infinity;
+  let wordContains = Infinity;
+  const wordRe = /\S+/g;
+  let m: RegExpExecArray | null;
+  while ((m = wordRe.exec(t))) {
+    const pos = m.index;
+    const adjusted = inParens(pos) ? pos + PAREN_PENALTY : pos;
+    if (m[0] === q) wordEq = Math.min(wordEq, adjusted);
+    else if (m[0].startsWith(q)) wordPrefix = Math.min(wordPrefix, adjusted);
+    else if (m[0].includes(q)) wordContains = Math.min(wordContains, adjusted);
+  }
+
+  // Cada nivel pesa más que cualquier posición dentro del mismo nivel.
+  const tiers: number[] = [wordEq, wordPrefix, wordContains].map((p) =>
+    p === Infinity ? Infinity : p % PAREN_PENALTY + Math.floor(p / PAREN_PENALTY) * 100000,
+  );
+
+  const containsPos = t.indexOf(q);
+  if (containsPos !== -1 && !inParens(containsPos)) {
+    return 300000 + containsPos;
+  }
+  if (containsPos !== -1) {
+    return 300000 + PAREN_PENALTY + containsPos;
+  }
+
+  const best = Math.min(...tiers);
+  if (best !== Infinity) return best * 10;
+
+  return fuzzyMatch(t, q) ? FUZZY_SCORE : null;
+}
