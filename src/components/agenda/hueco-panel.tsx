@@ -41,6 +41,8 @@ export interface HuecoPanelDraft {
   repeatWeeks: number;
   notas: string;
   clientIds: string[];
+  /** Valores de "No contabilizar" marcados antes de guardar (id de sesión → valor). */
+  noContabilizar: Record<string, boolean>;
 }
 
 interface Props {
@@ -111,6 +113,7 @@ export function HuecoPanel({
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [notas, setNotas] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
+  const [noContLocal, setNoContLocal] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [servicioSlug, setServicioSlug] = useState("");
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
@@ -133,6 +136,7 @@ export function HuecoPanel({
     setNotas(notasIniciales ?? "");
     setServicioSlug(inst.servicio_slug);
     setPickerValues([]);
+    setNoContLocal({});
   }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
 
   const { data: extra } = useQuery({
@@ -249,7 +253,7 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id) });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), noContabilizar: noContLocal });
       if (result !== false) onClose();
     } finally {
       setSaving(false);
@@ -399,8 +403,13 @@ export function HuecoPanel({
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
-                          checked={!!item.noContabilizar}
-                          onCheckedChange={(value) => toggleNoContabilizar.mutate({ id: item.id, value: !!value })}
+                          checked={cancelando && item.reserva ? !!noContLocal[item.id] : !!item.noContabilizar}
+                          onCheckedChange={(value) => {
+                            // Si la cancelación aún no se ha guardado, la marca se
+                            // guarda localmente y se aplica al pulsar Guardar.
+                            if (cancelando && item.reserva) setNoContLocal((old) => ({ ...old, [item.id]: !!value }));
+                            else toggleNoContabilizar.mutate({ id: item.id, value: !!value });
+                          }}
                         />
                         No contabilizar
                       </label>
