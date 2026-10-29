@@ -264,6 +264,10 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         return false;
       }
     }
+    // Marcas de "No contabilizar" hechas en el panel antes de guardar.
+    for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
+      await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
+    }
     if (draft.repeatWeeks > 0) {
       const inserts = Array.from({ length: draft.repeatWeeks }, (_, index) => {
         const fecha = new Date(`${inst.fecha}T00:00:00`);

@@ -912,6 +912,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       toast.error(error.message);
       return false;
     }
+    // Marcas de "No contabilizar" hechas en el panel antes de guardar.
+    for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
+      await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
+    }
     if (draft.repeatWeeks > 0) {
       const originals = sessions.filter((row) => idSet.has(row.id));
       const inserts = Array.from({ length: draft.repeatWeeks }, (_, index) => index + 1).flatMap((week) => originals.map((row) => {
