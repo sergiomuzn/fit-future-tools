@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExpandableSearch } from "@/components/expandable-search";
 import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
-import { normalizeText, formatDateShort, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { normalizeText, formatDateShort, formatNameTitle, rankByMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
@@ -144,11 +144,7 @@ function ClientesPage() {
 
   const { colores } = useCenterConfig();
 
-  const matchesExact = clients.filter((c) => normalizeText(c.nombre).includes(normalizeText(q)));
-  const searched = (matchesExact.length > 0 || !q.trim()
-    ? matchesExact
-    : clients.filter((c) => fuzzyMatch(c.nombre, q))
-  );
+  const searched = rankByMatch(clients, (c) => c.nombre, q);
   const filtered = searched
     .filter((c) => {
       if (fEstado === "activo" && !c.activo) return false;
