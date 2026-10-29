@@ -383,7 +383,7 @@ export function HuecoPanel({
                     />
                   </div>
                 ))}
-                {listas[tab].map((item) => item.reserva && item.reserva.client_id ? (
+                {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
                   <div key={item.id} className="min-w-0">
                     <ClientPicker
                       value={item.reserva.client_id}
