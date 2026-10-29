@@ -229,11 +229,17 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => ({
-    reservados: reservas.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
-    cola: extra?.cola ?? [],
-    cancelados: extra?.cancelados ?? [],
-  }), [reservas, extra]);
+  // Al cambiar el estado a "cancelada", los clientes reservados pasan al
+  // instante a la pestaña Cancelados (y vuelven si se revierte el estado).
+  const cancelando = estado === "cancelada" && estadoInicial !== "cancelada";
+  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => {
+    const filas = reservas.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
+    return {
+      reservados: cancelando ? [] : filas,
+      cola: extra?.cola ?? [],
+      cancelados: [...(extra?.cancelados ?? []), ...(cancelando ? filas : [])],
+    };
+  }, [reservas, extra, cancelando]);
 
   async function guardar() {
     if (!inst || !onSave) return;
@@ -309,7 +315,7 @@ export function HuecoPanel({
                     />
                   </div>
                 </div>
-                <Select value={estado} onValueChange={(value) => setEstado(value as SesionEstado)}>
+                <Select value={estado} onValueChange={(value) => { const next = value as SesionEstado; setEstado(next); if (next === "cancelada" && reservas.length > 0) setTab("cancelados"); }}>
                   <SelectTrigger className={cn("h-8 w-auto min-w-28 rounded-full px-3 text-xs font-semibold shadow-none focus:ring-0", ESTADO_PILL[estadoVisual])}>
                     <SelectValue />
                   </SelectTrigger>
