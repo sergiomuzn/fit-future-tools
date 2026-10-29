@@ -140,3 +140,22 @@ export function matchScore(text: string | null | undefined, query: string): numb
   if (best !== null) return best;
   return fuzzyMatch(t, q) ? FUZZY_SCORE : null;
 }
+
+/** Ordena una lista por parecido con el texto buscado (los más parecidos primero). */
+export function rankByMatch<T>(
+  items: T[],
+  getText: (item: T) => string | null | undefined,
+  query: string,
+): T[] {
+  const q = query.trim();
+  if (!q) return items;
+  return items
+    .map((item) => ({ item, score: matchScore(getText(item), q) }))
+    .filter((x): x is { item: T; score: number } => x.score !== null)
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        normalizeText(getText(a.item) ?? "").localeCompare(normalizeText(getText(b.item) ?? "")),
+    )
+    .map((x) => x.item);
+}
