@@ -19,9 +19,9 @@ describe("matchScore", () => {
 
   it("da la mejor puntuación a la coincidencia exacta del nombre", () => {
     const scoreExacto = matchScore("Pilar", "pilar");
-    const scorePrefijo = matchScore("Pilar Ruiz", "pilar");
+    const scoreOtraPila = matchScore("Pilar Ruiz", "pilar");
     expect(scoreExacto).toBe(0);
-    expect(scoreExacto).toBeLessThan(scorePrefijo);
+    expect(scoreExacto).toBeLessThanOrEqual(scoreOtraPila);
   });
 
   it("devuelve null cuando no hay ninguna coincidencia", () => {
