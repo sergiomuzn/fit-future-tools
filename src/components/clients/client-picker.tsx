@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
-import { normalizeText, formatNameTitle, fuzzyMatch } from "@/lib/utils";
+import { normalizeText, formatNameTitle, rankByMatch } from "@/lib/utils";
 
 interface Props {
   value: string | null;
@@ -55,9 +55,8 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
       const q = normalizeText(search).trim();
       // Texto vacío o solo espacios → lista completa.
       if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
-      const exact = clients.filter((c) => normalizeText(c.nombre).includes(q));
-      if (exact.length > 0) return exact;
-      return clients.filter((c) => fuzzyMatch(c.nombre, q));
+      // Ordenados por parecido: primero lo que más se parece a lo escrito.
+      return rankByMatch(clients, (c) => c.nombre, q);
     },
     [clients, search, selected],
   );

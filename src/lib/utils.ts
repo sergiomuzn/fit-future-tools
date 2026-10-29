@@ -91,3 +91,71 @@ export function fuzzyMatch(text: string | null | undefined, query: string): bool
   }
   return false;
 }
+
+/**
+ * Puntuación de parecido para ordenar resultados de búsqueda (menor = más parecido).
+ * Prioriza lo escrito: coincidencia exacta > palabra que empieza por el texto >
+ * texto al principio del nombre > palabra que lo contiene > aparición en cualquier
+ * sitio > coincidencia aproximada. Las menciones entre paréntesis van detrás de
+ * cualquier coincidencia equivalente fuera de ellas. Devuelve null si no hay
+ * ninguna coincidencia.
+ */
+export function matchScore(text: string | null | undefined, query: string): number | null {
+  const q = normalizeText(query).trim();
+  const t = normalizeText(text ?? "").trim();
+  if (!q || !t) return null;
+  if (t === q) return 0;
+
+  // Tramos entre paréntesis: las coincidencias dentro de ellos son menos relevantes.
+  const parenSpans: [number, number][] = [];
+  const stack: number[] = [];
+  for (let i = 0; i < t.length; i++) {
+    if (t[i] === "(") stack.push(i);
+    else if (t[i] === ")" && stack.length > 0) parenSpans.push([stack.pop()!, i]);
+  }
+  const inParens = (pos: number) => parenSpans.some(([a, b]) => pos >= a && pos < b);
+
+  const TIER_WEIGHT = 100000;
+  const PAREN_PENALTY = 50000;
+  const FUZZY_SCORE = 1000000;
+
+  let best: number | null = null;
+  const consider = (pos: number, tier: number) => {
+    const score = tier * TIER_WEIGHT + pos + (inParens(pos) ? PAREN_PENALTY : 0);
+    if (best === null || score < best) best = score;
+  };
+
+  const wordRe = /\S+/g;
+  let m: RegExpExecArray | null;
+  while ((m = wordRe.exec(t))) {
+    const pos = m.index;
+    if (m[0] === q) consider(pos, 0);
+    else if (m[0].startsWith(q)) consider(pos, 1);
+    else if (m[0].includes(q)) consider(pos, 2);
+  }
+
+  const containsPos = t.indexOf(q);
+  if (containsPos !== -1) consider(containsPos, 3);
+
+  if (best !== null) return best;
+  return fuzzyMatch(t, q) ? FUZZY_SCORE : null;
+}
+
+/** Ordena una lista por parecido con el texto buscado (los más parecidos primero). */
+export function rankByMatch<T>(
+  items: T[],
+  getText: (item: T) => string | null | undefined,
+  query: string,
+): T[] {
+  const q = query.trim();
+  if (!q) return items;
+  return items
+    .map((item) => ({ item, score: matchScore(getText(item), q) }))
+    .filter((x): x is { item: T; score: number } => x.score !== null)
+    .sort(
+      (a, b) =>
+        a.score - b.score ||
+        normalizeText(getText(a.item) ?? "").localeCompare(normalizeText(getText(b.item) ?? "")),
+    )
+    .map((x) => x.item);
+}

@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
-import { fuzzyMatch } from "@/lib/utils";
+import { fuzzyMatch, matchScore, normalizeText } from "@/lib/utils";
 
 type ClienteSinAcceso = {
   id: string;
@@ -106,7 +106,16 @@ export function InvitarClientesInline() {
 
     if (!busqueda.trim()) return filtrados;
     const q = busqueda.trim();
-    return filtrados.filter((c) => fuzzyMatch(c.nombre, q) || fuzzyMatch(c.email, q) || fuzzyMatch(c.telefono, q));
+    const matched = filtrados.filter((c) => fuzzyMatch(c.nombre, q) || fuzzyMatch(c.email, q) || fuzzyMatch(c.telefono, q));
+    // Ordenados por parecido con lo escrito (nombre, correo o teléfono).
+    const bestScore = (c: (typeof filtrados)[number]) => {
+      const scores = [matchScore(c.nombre, q), matchScore(c.email, q), matchScore(c.telefono, q)]
+        .filter((s): s is number => s !== null);
+      return scores.length > 0 ? Math.min(...scores) : Number.MAX_SAFE_INTEGER;
+    };
+    return matched.sort(
+      (a, b) => bestScore(a) - bestScore(b) || normalizeText(a.nombre).localeCompare(normalizeText(b.nombre)),
+    );
   }, [clientes, fServicio, serviciosPorCliente, busqueda]);
 
   const accesoValue = useMemo(() => {

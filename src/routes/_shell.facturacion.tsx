@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { closedSelectEnterToSave, enterToSave } from "@/lib/enter-to-save";
-import { normalizeText, fuzzyMatch, formatDateShort } from "@/lib/utils";
+import { rankByMatch, formatDateShort } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -173,12 +173,11 @@ function FacturacionPage() {
 
   const searchNorm = search.trim().toLowerCase();
   const invName = (i: Invoice & { cliente_nombre?: string | null }) => (i.client_id ? clientMap.get(i.client_id)?.nombre ?? "" : i.cliente_nombre ?? "");
-  const exactInvoices = searchNorm
-    ? invoices.filter((i) => normalizeText(invName(i as Invoice & { cliente_nombre?: string | null })).includes(normalizeText(searchNorm)))
-    : invoices;
-  const filteredInvoices = !searchNorm || exactInvoices.length > 0
-    ? exactInvoices
-    : invoices.filter((i) => fuzzyMatch(invName(i as Invoice & { cliente_nombre?: string | null }), searchNorm));
+  const filteredInvoices = rankByMatch(
+    invoices,
+    (i) => invName(i as Invoice & { cliente_nombre?: string | null }),
+    searchNorm,
+  );
   const filteredTotal = filteredInvoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
   function openNew() {
