@@ -8,7 +8,7 @@ import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
-import { normalizeText, formatDateShort, formatNameTitle, rankByMatch } from "@/lib/utils";
+import { formatDateShort, formatNameTitle, rankByMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
