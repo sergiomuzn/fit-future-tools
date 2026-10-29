@@ -1,38 +1,40 @@
-import { describe, expect, it } from "vitest";
+import { describe, test } from "node:test";
+import { strictEqual, deepStrictEqual } from "node:assert";
 import { matchScore, rankByMatch } from "./utils";
 
 describe("matchScore", () => {
-  it("prioriza la coincidencia exacta de la palabra sobre una mención entre paréntesis", () => {
+  test("prioriza la coincidencia exacta de la palabra sobre una mención entre paréntesis", () => {
     // «Pilar» como nombre propio debe ganar a «Manuela (Pilar)».
     const scorePilar = matchScore("Pilar García", "pilar");
     const scoreMencion = matchScore("Manuela (Pilar)", "pilar");
-    expect(scorePilar).not.toBeNull();
-    expect(scoreMencion).not.toBeNull();
-    expect(scorePilar).toBeLessThan(scoreMencion);
+    strictEqual(scorePilar !== null, true);
+    strictEqual(scoreMencion !== null, true);
+    strictEqual((scorePilar as number) < (scoreMencion as number), true);
   });
 
-  it("ordena por parecido: palabra que empieza por el texto antes que aparición a media palabra", () => {
+  test("ordena por parecido: palabra que empieza por el texto antes que aparición a media palabra", () => {
     const scoreEmpieza = matchScore("Pilar Sánchez", "pilar");
     const scoreContiene = matchScore("Manuela Pilarides", "pilar");
-    expect(scoreEmpieza).toBeLessThan(scoreContiene);
+    strictEqual((scoreEmpieza as number) < (scoreContiene as number), true);
   });
 
-  it("da la mejor puntuación a la coincidencia exacta del nombre", () => {
-    const scoreExacto = matchScore("Pilar", "pilar");
-    const scoreOtraPila = matchScore("Pilar Ruiz", "pilar");
-    expect(scoreExacto).toBe(0);
-    expect(scoreExacto).toBeLessThanOrEqual(scoreOtraPila);
+  test("da la mejor puntuación a la coincidencia exacta del nombre", () => {
+    strictEqual(matchScore("Pilar", "pilar"), 0);
   });
 
-  it("devuelve null cuando no hay ninguna coincidencia", () => {
-    expect(matchScore("Ana López", "pilar")).toBeNull();
+  test("devuelve null cuando no hay ninguna coincidencia", () => {
+    strictEqual(matchScore("Ana López", "pilar"), null);
   });
 
-  it("encuentra coincidencias aproximadas con erratas por detrás de las exactas", () => {
+  test("encuentra coincidencias aproximadas con erratas por detrás de las exactas", () => {
     const scoreErrata = matchScore("Pilra Gómez", "pilar");
-    expect(scoreErrata).not.toBeNull();
     const scoreExacta = matchScore("Pilar Gómez", "pilar");
-    expect(scoreExacta).toBeLessThan(scoreErrata);
+    strictEqual(scoreErrata !== null, true);
+    strictEqual((scoreExacta as number) < (scoreErrata as number), true);
+  });
+
+  test("ignora acentos y mayúsculas", () => {
+    strictEqual(matchScore("PILAR GARCÍA", "Pílar") !== null, true);
   });
 });
 
@@ -43,13 +45,12 @@ describe("rankByMatch", () => {
     { id: "3", nombre: "Ana López" },
   ];
 
-  it("pone primero el cliente cuyo nombre más se parece y sugiere el resto detrás", () => {
+  test("pone primero el cliente cuyo nombre más se parece y sugiere el resto detrás", () => {
     const orden = rankByMatch(clientes, (c) => c.nombre, "pilar");
-    expect(orden[0].id).toBe("2");
-    expect(orden.map((c) => c.id)).toEqual(["2", "1"]);
+    deepStrictEqual(orden.map((c) => c.id), ["2", "1"]);
   });
 
-  it("devuelve la lista sin cambios si la búsqueda está vacía", () => {
-    expect(rankByMatch(clientes, (c) => c.nombre, "   ")).toBe(clientes);
+  test("devuelve la lista sin cambios si la búsqueda está vacía", () => {
+    strictEqual(rankByMatch(clientes, (c) => c.nombre, "   "), clientes);
   });
 });
