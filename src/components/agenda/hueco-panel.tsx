@@ -405,7 +405,7 @@ export function HuecoPanel({
                         No contabilizar
                       </label>
                     )}
-                    {item.reserva && (
+                    {item.reserva && tab !== "cancelados" && (
                       <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => onCancelarReserva(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
                       </button>
