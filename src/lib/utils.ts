@@ -115,37 +115,28 @@ export function matchScore(text: string | null | undefined, query: string): numb
   }
   const inParens = (pos: number) => parenSpans.some(([a, b]) => pos >= a && pos < b);
 
-  const PAREN_PENALTY = 100000;
+  const TIER_WEIGHT = 100000;
+  const PAREN_PENALTY = 50000;
   const FUZZY_SCORE = 1000000;
 
-  let wordEq = Infinity;
-  let wordPrefix = Infinity;
-  let wordContains = Infinity;
+  let best: number | null = null;
+  const consider = (pos: number, tier: number) => {
+    const score = tier * TIER_WEIGHT + pos + (inParens(pos) ? PAREN_PENALTY : 0);
+    if (best === null || score < best) best = score;
+  };
+
   const wordRe = /\S+/g;
   let m: RegExpExecArray | null;
   while ((m = wordRe.exec(t))) {
     const pos = m.index;
-    const adjusted = inParens(pos) ? pos + PAREN_PENALTY : pos;
-    if (m[0] === q) wordEq = Math.min(wordEq, adjusted);
-    else if (m[0].startsWith(q)) wordPrefix = Math.min(wordPrefix, adjusted);
-    else if (m[0].includes(q)) wordContains = Math.min(wordContains, adjusted);
+    if (m[0] === q) consider(pos, 0);
+    else if (m[0].startsWith(q)) consider(pos, 1);
+    else if (m[0].includes(q)) consider(pos, 2);
   }
-
-  // Cada nivel pesa más que cualquier posición dentro del mismo nivel.
-  const tiers: number[] = [wordEq, wordPrefix, wordContains].map((p) =>
-    p === Infinity ? Infinity : p % PAREN_PENALTY + Math.floor(p / PAREN_PENALTY) * 100000,
-  );
 
   const containsPos = t.indexOf(q);
-  if (containsPos !== -1 && !inParens(containsPos)) {
-    return 300000 + containsPos;
-  }
-  if (containsPos !== -1) {
-    return 300000 + PAREN_PENALTY + containsPos;
-  }
+  if (containsPos !== -1) consider(containsPos, 3);
 
-  const best = Math.min(...tiers);
-  if (best !== Infinity) return best * 10;
-
+  if (best !== null) return best;
   return fuzzyMatch(t, q) ? FUZZY_SCORE : null;
 }
