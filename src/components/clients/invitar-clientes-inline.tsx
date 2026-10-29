@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { useServicios } from "@/lib/servicios";
-import { fuzzyMatch } from "@/lib/utils";
+import { fuzzyMatch, matchScore, normalizeText } from "@/lib/utils";
 
 type ClienteSinAcceso = {
   id: string;
