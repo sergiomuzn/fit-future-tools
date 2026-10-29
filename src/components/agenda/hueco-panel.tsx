@@ -142,6 +142,8 @@ export function HuecoPanel({
   const { data: extra } = useQuery({
     queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")],
     enabled: !!inst,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       if (!inst) return { cola: [], cancelados: [] };
       const [cola, canc] = await Promise.all([
