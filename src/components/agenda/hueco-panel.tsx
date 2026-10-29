@@ -142,6 +142,8 @@ export function HuecoPanel({
   const { data: extra } = useQuery({
     queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")],
     enabled: !!inst,
+    staleTime: 0,
+    refetchOnMount: "always",
     queryFn: async () => {
       if (!inst) return { cola: [], cancelados: [] };
       const [cola, canc] = await Promise.all([
@@ -254,7 +256,12 @@ export function HuecoPanel({
     setSaving(true);
     try {
       const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), noContabilizar: noContLocal });
-      if (result !== false) onClose();
+      if (result !== false) {
+        // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
+        // para que, al reabrir, los clientes recién cancelados aparezcan ya.
+        await qc.invalidateQueries({ queryKey: ["hueco-panel"], refetchType: "all" });
+        onClose();
+      }
     } finally {
       setSaving(false);
     }
