@@ -156,7 +156,9 @@ function ClientesPage() {
       return true;
     })
     .slice()
+    // Con búsqueda activa se respeta el orden por parecido; sin búsqueda, alfabético.
     .sort((a, b) => {
+      if (q.trim()) return 0;
       const aa = a.activo ? 0 : 1;
       const bb = b.activo ? 0 : 1;
       if (aa !== bb) return aa - bb;
