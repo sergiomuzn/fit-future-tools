@@ -206,22 +206,20 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,576px)_1fr] gap-4 items-start">
-              <Card className="overflow-hidden">
-                <CardContent className="p-4">
-                  <ServicioBonosPanel servicioSlug={s.slug} />
-                </CardContent>
-              </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Reservas</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ServicioReservasPanel servicioSlug={s.slug} />
+              </CardContent>
+            </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Reservas</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <ServicioReservasPanel servicioSlug={s.slug} />
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="w-full max-w-[576px] overflow-hidden">
+              <CardContent className="p-4">
+                <ServicioBonosPanel servicioSlug={s.slug} />
+              </CardContent>
+            </Card>
           </TabsContent>
         ))}
 
