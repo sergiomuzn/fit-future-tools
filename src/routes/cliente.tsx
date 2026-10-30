@@ -3,7 +3,7 @@ import { useMemo, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { User } from "lucide-react";
+import { ChevronLeft, ChevronRight, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchMyRoles } from "@/lib/roles";
 import {
@@ -739,158 +739,88 @@ function CalendarioClases({
   }
 
   const hoyIso = ymd(new Date());
-  const primeraConClases = [...porDia.keys()].sort()[0] ?? hoyIso;
-  const [selected, setSelected] = useState<string>(primeraConClases);
-  // Vista bisemanal: 14 días desde el lunes de la semana del día seleccionado.
-  const baseSel = new Date(`${selected}T00:00:00`);
+  const [selected, setSelected] = useState<string>(hoyIso);
+  // Vista de 7 días: el día de hoy a la izquierda y los 6 siguientes.
   const [inicio, setInicio] = useState<Date>(() => {
-    const d = new Date(baseSel);
-    d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
     return d;
   });
 
   const cells: { d: Date }[] = [];
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 7; i++) {
     const d = new Date(inicio);
     d.setDate(inicio.getDate() + i);
     cells.push({ d });
   }
 
+  const hoyDate = new Date(`${hoyIso}T00:00:00`);
+  const puedeAtras = inicio.getTime() > hoyDate.getTime();
+
   function shift(days: number) {
     const d = new Date(inicio);
     d.setDate(d.getDate() + days);
+    if (d.getTime() < hoyDate.getTime()) d.setTime(hoyDate.getTime());
     setInicio(d);
+    setSelected(ymd(d));
   }
-
-  const lockRef = useRef(0);
-  const touchYRef = useRef<number | null>(null);
-
-  function handleWheel(e: React.WheelEvent) {
-    if (Math.abs(e.deltaY) < 8) return;
-    const now = Date.now();
-    if (now - lockRef.current < 350) return;
-    lockRef.current = now;
-    shift(e.deltaY > 0 ? 7 : -7);
-  }
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchYRef.current = e.touches[0]?.clientY ?? null;
-  }
-
-  function handleTouchEnd(e: React.TouchEvent) {
-    const start = touchYRef.current;
-    touchYRef.current = null;
-    if (start == null) return;
-    const end = e.changedTouches[0]?.clientY ?? start;
-    const diff = start - end;
-    if (Math.abs(diff) < 40) return;
-    shift(diff > 0 ? 7 : -7);
-  }
-
-  const rangoLabel = `${cells[0]!.d.getDate()} ${MESES[cells[0]!.d.getMonth()]} – ${cells[13]!.d.getDate()} ${MESES[cells[13]!.d.getMonth()]}`;
 
   const delDia = porDia.get(selected) ?? [];
-  const leyendaServicios = useMemo(() => {
-    const map = new Map<string, { slug: string; nombre: string; color: string }>();
-    for (const c of [...clases, ...personalesUnicas.map(personalToClase)]) {
-      if (!c.servicioSlug || !c.color) continue;
-      if (!map.has(c.servicioSlug)) {
-        map.set(c.servicioSlug, {
-          slug: c.servicioSlug,
-          nombre: c.servicioNombre ?? c.nombre,
-          color: c.color,
-        });
-      }
-    }
-    return Array.from(map.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
-  }, [clases, personales]);
 
   return (
     <div className="space-y-4">
       <Card>
-        <CardContent
-          className="touch-pan-x p-3 overscroll-contain"
-          onWheel={handleWheel}
-          onTouchStart={handleTouchStart}
-          onTouchEnd={handleTouchEnd}
-        >
-          <div className="mb-2 flex flex-col items-center">
-            <span className="text-sm font-medium capitalize">{rangoLabel}</span>
-            <span className="text-[11px] text-muted-foreground">
-              Desliza arriba o abajo para avanzar una semana
-            </span>
+        <CardContent className="flex items-center gap-2 p-3">
+          <div className="flex shrink-0 flex-col gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Días anteriores"
+              disabled={!puedeAtras}
+              onClick={() => shift(-7)}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              aria-label="Días siguientes"
+              onClick={() => shift(7)}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="grid grid-cols-7 gap-1 pb-1 text-center text-[11px] text-muted-foreground">
-            {DOW_SHORT.map((d) => (
-              <div key={d}>{d}</div>
-            ))}
-          </div>
-          <div className="grid grid-cols-7 gap-1">
+          <div className="grid flex-1 grid-cols-7 gap-1">
             {cells.map(({ d }) => {
               const key = ymd(d);
-              const list = porDia.get(key) ?? [];
+              const activo = key === selected;
+              const tiene = (porDia.get(key)?.length ?? 0) > 0;
               return (
                 <button
                   key={key}
                   onClick={() => setSelected(key)}
-                  className={cn(
-                    "flex min-h-24 flex-col items-stretch gap-0.5 rounded-md border p-1 text-left text-xs transition",
-                    list.length === 0 && "text-muted-foreground",
-                    list.length > 0 && "hover:border-primary/60",
-                    key === selected && "border-primary ring-1 ring-primary",
-                    key === hoyIso && "bg-accent/50",
-                  )}
+                  className="flex flex-col items-center gap-1 rounded-md py-1 text-xs"
                 >
-                  <span className="text-center font-medium">{d.getDate()}</span>
-                  {list.slice(0, 3).map((c) => {
-                    const base = claseColor(c);
-                    const reservada = c.reservada && !c.asistida;
-                    return (
-                      <span
-                        key={c.key}
-                        className={cn(
-                          "truncate rounded px-1 text-[10px] leading-4",
-                          !c.color && "bg-muted text-muted-foreground",
-                          c.color && reservada && "text-white",
-                          c.color && !reservada && "font-medium",
-                          !c.reservable && !c.reservada && !c.asistida && "opacity-50",
-                        )}
-                        style={
-                          c.color
-                            ? reservada
-                              ? { backgroundColor: base }
-                              : {
-                                  backgroundColor: "hsl(var(--muted))",
-                                  color: base,
-                                  boxShadow: `inset 0 0 0 1.5px ${base}`,
-                                }
-                            : undefined
-                        }
-                      >
-                        {c.horaInicio} {c.nombre}
-                      </span>
-                    );
-                  })}
-                  {list.length > 3 && (
-                    <span className="px-1 text-[10px] text-muted-foreground">+{list.length - 3} más</span>
-                  )}
+                  <span className={cn("font-medium", activo ? "text-foreground" : "text-muted-foreground")}>
+                    {key === hoyIso ? "Hoy" : DOW_SHORT[(d.getDay() + 6) % 7]}
+                  </span>
+                  <span
+                    className={cn(
+                      "flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition",
+                      activo
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground hover:bg-accent",
+                      !tiene && !activo && "text-muted-foreground",
+                    )}
+                  >
+                    {d.getDate()}
+                  </span>
                 </button>
               );
             })}
           </div>
-          {leyendaServicios.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-              {leyendaServicios.map((s) => (
-                <span key={s.slug} className="flex items-center gap-1">
-                  <span
-                    className="h-2.5 w-2.5 rounded-sm"
-                    style={{ backgroundColor: s.color }}
-                  />{" "}
-                  {s.nombre}
-                </span>
-              ))}
-            </div>
-          )}
         </CardContent>
       </Card>
 
@@ -943,7 +873,13 @@ function ClaseCardImpl({
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-stretch gap-3">
+          <span
+            aria-hidden
+            className="w-1.5 shrink-0 self-stretch rounded-full bg-muted"
+            style={clase.color ? { backgroundColor: claseColor(clase) } : undefined}
+          />
+          <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium">{clase.nombre}</span>
             {clase.asistida ? (
@@ -955,15 +891,16 @@ function ClaseCardImpl({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {formatFecha(clase.fecha)} · {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
+            {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
           </p>
           <p className="text-xs text-muted-foreground">
             {clase.entrenador ? `Entrenador: ${clase.entrenador}` : "Entrenador por asignar"}
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {clase.ocupadas} de {clase.capacidad}
+          <span className="rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-foreground">
+            {clase.ocupadas}/{clase.capacidad}
           </span>
           {puedeCola && ofrecida ? (
             <div className="flex items-center gap-2">
