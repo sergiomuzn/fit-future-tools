@@ -793,6 +793,50 @@ function CalendarioClases({
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="mb-1 text-center text-xs font-medium text-muted-foreground">{mesLabel}</p>
+            <div className="grid grid-cols-7 gap-1">
+              {cells.map(({ d }) => {
+                const key = ymd(d);
+                const activo = key === selected;
+                const tiene = (porDia.get(key)?.length ?? 0) > 0;
+                const puntitos = reservasPorDia.get(key) ?? [];
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setSelected(key)}
+                    className="flex flex-col items-center gap-1 rounded-md py-1 text-xs"
+                  >
+                    <span className={cn("font-medium", activo ? "text-foreground" : "text-muted-foreground")}>
+                      {key === hoyIso ? "Hoy" : DOW_SHORT[(d.getDay() + 6) % 7]}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition",
+                        activo
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted text-foreground hover:bg-accent",
+                        !tiene && !activo && "text-muted-foreground",
+                      )}
+                    >
+                      {d.getDate()}
+                    </span>
+                    <span aria-hidden className="flex h-1.5 items-center justify-center gap-0.5">
+                      {puntitos.map((col, i) => (
+                        <span
+                          key={i}
+                          className="h-1.5 w-1.5 rounded-full"
+                          style={{ backgroundColor: col }}
+                        />
+                      ))}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-col gap-1">
             <Button
               variant="ghost"
               size="icon"
@@ -802,35 +846,6 @@ function CalendarioClases({
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
-          </div>
-          <div className="grid flex-1 grid-cols-7 gap-1">
-            {cells.map(({ d }) => {
-              const key = ymd(d);
-              const activo = key === selected;
-              const tiene = (porDia.get(key)?.length ?? 0) > 0;
-              return (
-                <button
-                  key={key}
-                  onClick={() => setSelected(key)}
-                  className="flex flex-col items-center gap-1 rounded-md py-1 text-xs"
-                >
-                  <span className={cn("font-medium", activo ? "text-foreground" : "text-muted-foreground")}>
-                    {key === hoyIso ? "Hoy" : DOW_SHORT[(d.getDay() + 6) % 7]}
-                  </span>
-                  <span
-                    className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-full text-sm font-semibold tabular-nums transition",
-                      activo
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-foreground hover:bg-accent",
-                      !tiene && !activo && "text-muted-foreground",
-                    )}
-                  >
-                    {d.getDate()}
-                  </span>
-                </button>
-              );
-            })}
           </div>
         </CardContent>
       </Card>
