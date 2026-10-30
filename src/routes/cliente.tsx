@@ -873,7 +873,13 @@ function ClaseCardImpl({
   return (
     <Card>
       <CardContent className="flex flex-wrap items-center justify-between gap-3 p-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-stretch gap-3">
+          <span
+            aria-hidden
+            className="w-1.5 shrink-0 self-stretch rounded-full bg-muted"
+            style={clase.color ? { backgroundColor: claseColor(clase) } : undefined}
+          />
+          <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium">{clase.nombre}</span>
             {clase.asistida ? (
@@ -885,15 +891,16 @@ function ClaseCardImpl({
             )}
           </div>
           <p className="text-sm text-muted-foreground">
-            {formatFecha(clase.fecha)} · {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
+            {clase.horaInicio}–{clase.horaFin} ({clase.duracionMin} min)
           </p>
           <p className="text-xs text-muted-foreground">
             {clase.entrenador ? `Entrenador: ${clase.entrenador}` : "Entrenador por asignar"}
           </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm tabular-nums text-muted-foreground">
-            {clase.ocupadas} de {clase.capacidad}
+          <span className="rounded-full border bg-muted px-2.5 py-0.5 text-xs font-medium tabular-nums text-foreground">
+            {clase.ocupadas}/{clase.capacidad}
           </span>
           {puedeCola && ofrecida ? (
             <div className="flex items-center gap-2">
