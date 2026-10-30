@@ -737,6 +737,17 @@ function CalendarioClases({
     if (arr) arr.push(c);
     else porDia.set(c.fecha, [c]);
   }
+  // Días con reserva hecha por el cliente: un puntito por servicio distinto, del color del servicio.
+  const reservasPorDia = new Map<string, string[]>();
+  for (const [fecha, lista] of porDia) {
+    const colores: string[] = [];
+    for (const c of lista) {
+      if ((c.reservada || c.asistida || c.porConfirmar) && c.color && !colores.includes(c.color)) {
+        colores.push(c.color);
+      }
+    }
+    if (colores.length) reservasPorDia.set(fecha, colores);
+  }
 
   const hoyIso = ymd(new Date());
   const [selected, setSelected] = useState<string>(hoyIso);
