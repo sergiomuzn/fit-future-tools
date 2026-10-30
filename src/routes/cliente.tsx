@@ -779,6 +779,16 @@ function CalendarioClases({
 
   const delDia = porDia.get(selected) ?? [];
 
+  // Mes (o meses) que cubre la tira de días visible.
+  const mesLabel = (() => {
+    const a = cells[0].d;
+    const b = cells[6].d;
+    const fa = `${MESES[a.getMonth()]} ${a.getFullYear()}`;
+    const fb = `${MESES[b.getMonth()]} ${b.getFullYear()}`;
+    if (fa === fb) return fa;
+    return `${MESES[a.getMonth()]} – ${fb}`;
+  })();
+
   return (
     <div className="space-y-4">
       <Card>
