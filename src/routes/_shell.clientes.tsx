@@ -26,7 +26,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ExpandableSearch } from "@/components/expandable-search";
 import { BonosPanel } from "@/components/bonos/bonos-panel";
 import { AccesosPanel } from "@/components/clients/accesos-panel";
-import { normalizeText, formatDateShort, formatNameTitle, rankByMatch } from "@/lib/utils";
+import { normalizeText, formatDateShort, formatNameTitle, filterByMatch } from "@/lib/utils";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
@@ -49,6 +49,14 @@ const CLIENT_COLUMNS = [
 const SEXO_LABEL: Record<string, string> = { hombre: "Hombre", mujer: "Mujer" };
 
 export const Route = createFileRoute("/_shell/clientes")({
+  head: () => ({ meta: [
+    { title: "Clientes · Tracli" },
+    { name: "description", content: "Clientes, bonos y accesos del centro en Tracli." },
+    { property: "og:title", content: "Clientes · Tracli" },
+    { property: "og:description", content: "Clientes, bonos y accesos del centro en Tracli." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ClientesPage,
 });
 
@@ -144,7 +152,7 @@ function ClientesPage() {
 
   const { colores } = useCenterConfig();
 
-  const searched = rankByMatch(clients, (c) => c.nombre, q);
+  const searched = filterByMatch(clients, (c) => c.nombre, q);
   const filtered = searched
     .filter((c) => {
       if (fEstado === "activo" && !c.activo) return false;

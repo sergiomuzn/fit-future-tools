@@ -159,3 +159,20 @@ export function rankByMatch<T>(
     )
     .map((x) => x.item);
 }
+
+/** Table filters prefer literal matches; typo suggestions are a fallback only.
+ * Composite searches can restrict that fallback to the client's name.
+ */
+export function filterByMatch<T>(
+  items: T[],
+  getText: (item: T) => string | null | undefined,
+  query: string,
+  getFallbackText: (item: T) => string | null | undefined = getText,
+): T[] {
+  const q = normalizeText(query).trim();
+  if (!q) return items;
+  const literalMatches = items.filter((item) => normalizeText(getText(item)).includes(q));
+  return literalMatches.length > 0
+    ? rankByMatch(literalMatches, getText, q)
+    : rankByMatch(items, getFallbackText, q);
+}

@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import { strictEqual, deepStrictEqual } from "node:assert";
-import { matchScore, rankByMatch } from "./utils";
+import { filterByMatch, matchScore, rankByMatch } from "./utils";
 
 describe("matchScore", () => {
   test("prioriza la coincidencia exacta de la palabra sobre una mención entre paréntesis", () => {
@@ -52,5 +52,56 @@ describe("rankByMatch", () => {
 
   test("devuelve la lista sin cambios si la búsqueda está vacía", () => {
     strictEqual(rankByMatch(clientes, (c) => c.nombre, "   "), clientes);
+  });
+});
+
+describe("filterByMatch table searches", () => {
+  const invoices = [
+    { nombre: "Ana López", precio_cobrado: 50 },
+    { nombre: "Ana López", precio_cobrado: 75 },
+    { nombre: "Adriana García", precio_cobrado: 200 },
+    { nombre: "Anabel Ruiz", precio_cobrado: 25 },
+  ];
+
+  test("billing total excludes fuzzy-only names when literal matches exist", () => {
+    const result = filterByMatch(invoices, (i) => i.nombre, "ana");
+    deepStrictEqual(result.map((i) => i.nombre), ["Ana López", "Ana López", "Anabel Ruiz"]);
+    strictEqual(result.reduce((sum, i) => sum + i.precio_cobrado, 0), 150);
+  });
+
+  test("full client name includes every invoice for that client only", () => {
+    const result = filterByMatch(invoices, (i) => i.nombre, "ANA LÓPEZ");
+    strictEqual(result.length, 2);
+    strictEqual(result.reduce((sum, i) => sum + i.precio_cobrado, 0), 125);
+  });
+
+  test("literal results keep name priority ahead of parenthetical mentions", () => {
+    const names = ["Manuela (Pilar)", "Pilra Gómez", "Pilar García"];
+    deepStrictEqual(filterByMatch(names, (s) => s, "pilar"), ["Pilar García", "Manuela (Pilar)"]);
+  });
+
+  test("typos remain searchable when there are no literal matches", () => {
+    deepStrictEqual(filterByMatch(["Pilar García", "Ana López"], (s) => s, "pilra"), ["Pilar García"]);
+  });
+
+  test("bonos fuzzy fallback checks client name, not combined service and date text", () => {
+    const bonos = [
+      { nombre: "Luis Pérez", text: "Luis Pérez Entrenamiento personal 03/11/26" },
+      { nombre: "Adriana García", text: "Adriana García Entrenamiento personal 03/11/26" },
+    ];
+    deepStrictEqual(filterByMatch(bonos, (b) => b.text, "ana", (b) => b.nombre), [bonos[1]]);
+    deepStrictEqual(filterByMatch(bonos, (b) => b.text, "personal", (b) => b.nombre), bonos);
+  });
+
+  test("bonos literal client matches exclude unrelated composite subsequences", () => {
+    const bonos = [
+      { nombre: "Ana López", text: "Ana López Entrenamiento personal 03/11/26" },
+      { nombre: "Luis Pérez", text: "Luis Pérez Entrenamiento personal 03/11/26" },
+    ];
+    deepStrictEqual(filterByMatch(bonos, (b) => b.text, "ana", (b) => b.nombre), [bonos[0]]);
+  });
+
+  test("empty search preserves rows and existing order", () => {
+    strictEqual(filterByMatch(invoices, (i) => i.nombre, "  "), invoices);
   });
 });
