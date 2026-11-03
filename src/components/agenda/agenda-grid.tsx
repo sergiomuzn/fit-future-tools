@@ -1332,7 +1332,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             trainers={trainers}
             servicios={servicios}
             isNew={isNewPanel}
-            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null }))}
+            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, online: isPortalRow(x) }))}
             estadoInicial={est}
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar}
@@ -1348,8 +1348,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
             onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r) => {
-              const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión de ${r.clients?.nombre ?? "este cliente"}.`, confirmText: "Cancelar reserva" });
-              if (!ok) return;
+              // Solo se pide confirmación cuando la reserva la hizo el cliente
+              // desde su portal; las hechas por el centro se quitan directamente.
+              if (r.online) {
+                const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión que ${r.clients?.nombre ?? "este cliente"} reservó de forma online.`, confirmText: "Cancelar reserva" });
+                if (!ok) return;
+              }
               const { error } = await supabase.from("sessions").update({ estado: "cancelada" }).eq("id", r.id);
               if (error) return toast.error(error.message);
               void qc.invalidateQueries({ queryKey: ["sessions"] });

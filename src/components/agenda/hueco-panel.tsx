@@ -28,6 +28,8 @@ export interface PanelReserva {
   client_id: string | null;
   titulo: string | null;
   clients: { nombre: string } | null;
+  /** La reserva la hizo el propio cliente desde su portal. */
+  online?: boolean;
 }
 
 export interface HuecoPanelDraft {
