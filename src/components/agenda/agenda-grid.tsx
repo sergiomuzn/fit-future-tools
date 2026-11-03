@@ -372,6 +372,17 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     return m;
   }, [sessions, huecoCapMap]);
+  /** Capacidad y ocupación por instancia exacta: dos sesiones a la misma hora son independientes. */
+  const instCapMap = useMemo(() => new Map(huecosDia.map((h: any) => [h.id as string, Math.max(1, h.capacidad ?? 1)])), [huecosDia]);
+  const instOcupadosMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const s of sessions) {
+      const id = (s as any).slot_instance_id as string | null;
+      if (!id || !s.client_id || s.estado === "cancelada") continue;
+      m.set(id, (m.get(id) ?? 0) + 1);
+    }
+    return m;
+  }, [sessions]);
   const catTipoMap = useMemo(
     () => new Map<string, string>((catalogo as Array<{ id: string; tipo: string }>).map((c) => [c.id, c.tipo])),
     [catalogo],
@@ -1142,7 +1153,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const huecoKey = `${servicioSlug}|${session.hora_inicio}`;
               const esReservaOnline =
                 !!(session as any).booking_tipo || !!(session as any).booked_by_user_id;
-              const huecoCap = esReservaOnline ? huecoCapMap.get(huecoKey) : undefined;
+              const instId = (session as any).slot_instance_id as string | null;
+              const instCap = instId ? instCapMap.get(instId) : undefined;
+              const huecoCap = instCap ?? (esReservaOnline ? huecoCapMap.get(huecoKey) : undefined);
               const plazas =
                 huecoCap ??
                 servicioCapMap.get(servicioSlug) ??
@@ -1159,7 +1172,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // franja (huecos de Reservas), o 1/0 en individuales sueltas.
               const ocupados = isGroup
                 ? groupMemberCount
-                : huecoCap !== undefined
+                : instCap !== undefined
+                  ? (instOcupadosMap.get(instId!) ?? 0)
+                  : huecoCap !== undefined
                   ? (huecoOcupadosMap.get(huecoKey) ?? 0)
                   : (session.client_id ? 1 : 0);
               const groupCountLabel = `${ocupados}/${plazas}`;
@@ -1326,7 +1341,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
-            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, huecoCapMap.get(`${ps.servicio_slug ?? ""}|${ps.hora_inicio}`) ?? servicioCapMap.get(ps.servicio_slug ?? "") ?? block.length) } as any) : null}
+            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, ((ps as any).slot_instance_id ? instCapMap.get((ps as any).slot_instance_id) : undefined) ?? huecoCapMap.get(`${ps.servicio_slug ?? ""}|${ps.hora_inicio}`) ?? servicioCapMap.get(ps.servicio_slug ?? "") ?? block.length) } as any) : null}
             servicioNombre={ps ? (servicios.find((x) => x.slug === ps.servicio_slug)?.nombre ?? ps.titulo ?? "Sesión") : ""}
             color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
             trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}
