@@ -285,9 +285,34 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
-      const { data, error } = await supabase.from("sessions").select("*").eq("fecha", isoDate).order("hora_inicio");
+      const [{ data, error }, cola] = await Promise.all([
+        supabase.from("sessions").select("*").eq("fecha", isoDate).order("hora_inicio"),
+        (supabase as any).from("reserva_cola").select("id,client_id,user_id,clave,servicio_slug,group_id,hora_inicio,hora_fin").eq("fecha", isoDate).eq("estado", "ofrecida"),
+      ]);
       if (error) throw error;
-      return (data ?? []) as Session[];
+      const rows = (data ?? []) as Session[];
+      // Plaza ofrecida al primero de la cola: la sesión sigue visible como
+      // reservada "por confirmar" a su nombre mientras decide.
+      const ofertas = ((cola?.data ?? []) as any[]).filter((c) => String(c.clave).startsWith("hueco|"));
+      if (!ofertas.length) return rows;
+      const instIds = ofertas.map((c) => String(c.clave).slice(6));
+      const { data: insts } = await supabase.from("service_slot_instances").select("id,trainer_id,hora_inicio,hora_fin,servicio_slug,capacidad").in("id", instIds);
+      const instMap = new Map(((insts ?? []) as any[]).map((i) => [i.id, i]));
+      const extra: Session[] = [];
+      for (const c of ofertas) {
+        const inst = instMap.get(String(c.clave).slice(6));
+        if (!inst) continue;
+        const activos = rows.filter((r) => (r as any).slot_instance_id === inst.id && r.client_id && r.estado !== "cancelada").length;
+        if (activos >= Math.max(1, inst.capacidad ?? 1)) continue;
+        extra.push({
+          id: `cola-${c.id}`, client_id: c.client_id, trainer_id: inst.trainer_id, fecha: isoDate,
+          hora_inicio: inst.hora_inicio, hora_fin: inst.hora_fin, estado: "reservada", ocupacion: 1,
+          tipo: null, incidencia: null, recurrencia_id: null, created_at: "", updated_at: "", titulo: null,
+          no_contabilizar: false, por_confirmar: true, group_id: null, booked_by_user_id: c.user_id,
+          booking_tipo: "cola", servicio_slug: inst.servicio_slug, slot_instance_id: inst.id, __cola: true,
+        } as unknown as Session);
+      }
+      return [...rows, ...extra].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
     },
     refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 ? false : 1000),
   });
@@ -783,6 +808,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // Click on a session — if paintMode, just assign trainer
   async function handleSessionClick(s: Session, e: React.MouseEvent) {
+    if ((s as any).__cola) {
+      e.stopPropagation();
+      toast.info("Plaza ofrecida al primero en cola: pendiente de que confirme su asistencia.");
+      return;
+    }
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       e.stopPropagation();
@@ -1232,7 +1262,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       : undefined,
                   }}
                   onMouseDown={(e) => {
-                    if (paintTrainerId) return;
+                    if (paintTrainerId || (session as any).__cola) return;
                     e.stopPropagation();
                     const rect = gridRef.current!.getBoundingClientRect();
                     const offset = e.clientY - rect.top - top;
@@ -1246,7 +1276,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       isUltraCompact ? "top-0 h-[3px]" : "top-0 h-1.5"
                     )}
                     onMouseDown={(e) => {
-                      if (paintTrainerId) return;
+                      if (paintTrainerId || (session as any).__cola) return;
                       e.stopPropagation();
                       setResizing({ id: session.id, edge: "top", startMin, endMin });
                       setResizePreview({ startMin, endMin });
@@ -1259,7 +1289,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       isUltraCompact ? "bottom-0 h-[3px]" : "bottom-0 h-1.5"
                     )}
                     onMouseDown={(e) => {
-                      if (paintTrainerId) return;
+                      if (paintTrainerId || (session as any).__cola) return;
                       e.stopPropagation();
                       setResizing({ id: session.id, edge: "bottom", startMin, endMin });
                       setResizePreview({ startMin, endMin });
