@@ -444,7 +444,6 @@ export function HuecoPanel({
                     )}
                   </div>
                 ))}
-                {listas[tab].length === 0 && (tab !== "reservados" || libres === 0) && <p className="py-3 text-center text-xs text-muted-foreground">Esta sesión no tiene clientes en esta categoría</p>}
               </div>
 
               {tab === "reservados" && (
