@@ -207,22 +207,23 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const cancelarReserva = useMutation({
     mutationFn: async (sessionId: string) => {
-      const { error } = await supabase
-        .from("sessions")
-        .update({ estado: "cancelada" })
-        .eq("id", sessionId);
-      if (error) throw error;
       try {
         await notificarCanceladas({ data: { sessionIds: [sessionId] } });
       } catch {
         /* la cancelación es válida aunque falle el aviso */
       }
+      const { error } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("id", sessionId);
+      if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["hueco-panel"] });
-      toast.success("Reserva cancelada");
+      qc.invalidateQueries({ queryKey: ["client_bonos"] });
+      toast.success("Cliente retirado de la sesión");
     },
     onError: (e: Error) => toast.error(e.message),
   });
