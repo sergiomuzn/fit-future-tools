@@ -223,7 +223,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["hueco-panel"] });
       qc.invalidateQueries({ queryKey: ["client_bonos"] });
-      toast.success("Cliente retirado de la sesión");
     },
     onError: (e: Error) => toast.error(e.message),
   });

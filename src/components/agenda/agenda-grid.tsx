@@ -1370,7 +1370,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               void qc.invalidateQueries({ queryKey: ["sessions-range"] });
               void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
               void qc.invalidateQueries({ queryKey: ["client_bonos"] });
-              toast.success("Cliente retirado de la sesión");
             }}
           />
         );
