@@ -808,11 +808,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // Click on a session — if paintMode, just assign trainer
   async function handleSessionClick(s: Session, e: React.MouseEvent) {
-    if ((s as any).__cola) {
-      e.stopPropagation();
-      toast.info("Plaza ofrecida al primero en cola: pendiente de que confirme su asistencia.");
-      return;
-    }
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       e.stopPropagation();
@@ -848,6 +843,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   }
 
   async function savePanelSession(ps: Session, draft: HuecoPanelDraft): Promise<boolean> {
+    if ((ps as any).__cola) {
+      toast.info("La plaza está ofrecida al primero en cola; podrás editarla cuando confirme o rechace.");
+      return false;
+    }
     if (!ps.id) {
       const capacity = Math.max(1, servicioCapMap.get(draft.servicioSlug) ?? 1);
       const selected = draft.clientIds.slice(0, capacity);
