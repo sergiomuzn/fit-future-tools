@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Corregir coincidencias aproximadas que amplían búsquedas y totales; verificar Facturación, Clientes y Bonos.
+
 - [x] Excluir entrenadores inactivos de selectores de sesiones y facturas.
 - [x] Registrar actividad histórica desde ahora y filtrar entrenadores en comparaciones por periodo; los periodos previos sin historial se conservan según sesiones registradas.
 - [x] Probar selectores en navegador autenticado y reglas históricas (21 pruebas correctas).
