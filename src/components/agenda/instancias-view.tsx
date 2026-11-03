@@ -207,16 +207,16 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const cancelarReserva = useMutation({
     mutationFn: async (sessionId: string) => {
-      const { error } = await supabase
-        .from("sessions")
-        .delete()
-        .eq("id", sessionId);
-      if (error) throw error;
       try {
         await notificarCanceladas({ data: { sessionIds: [sessionId] } });
       } catch {
         /* la cancelación es válida aunque falle el aviso */
       }
+      const { error } = await supabase
+        .from("sessions")
+        .delete()
+        .eq("id", sessionId);
+      if (error) throw error;
     },
     onSuccess: () => {
       invalidate();
