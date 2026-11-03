@@ -1391,7 +1391,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             })() : undefined}
             onClose={() => setPanelSession(null)}
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
-            onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}
+            onDelete={isNewPanel || (ps as any)?.__cola ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r, onRemoving) => {
               // Solo se pide confirmación cuando la reserva la hizo el cliente
               // desde su portal; las hechas por el centro se quitan directamente.
