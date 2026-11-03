@@ -10,7 +10,7 @@ import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
 import { useConfirm } from "@/components/confirm-dialog";
-import { marcarReservaPorConfirmar, notificarReservasCanceladas, resolverReservaPendiente } from "@/lib/notificaciones.functions";
+import { marcarReservaPorConfirmar, notificarReservasCanceladas, ofrecerPlazasLiberadas, resolverReservaPendiente } from "@/lib/notificaciones.functions";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { useBehaviorConfig } from "@/lib/behavior-config";
@@ -1358,11 +1358,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const remaining = activos.filter((row) => row.id !== r.id);
               const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length);
               onRemoving();
-              if (r.online) await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => {});
+              const aviso = r.online ? await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => null) : null;
               const { error } = action === "clear"
                 ? await supabase.from("sessions").update(EMPTY_SESSION_CLIENT).eq("id", r.id)
                 : await supabase.from("sessions").delete().eq("id", r.id);
               if (error) { toast.error(error.message); return false; }
+              // La plaza liberada se ofrece al primero de la cola.
+              if (aviso?.claves?.length) void ofrecerPlazasLiberadas({ data: { claves: aviso.claves } }).catch(() => {});
               if (ps?.id === r.id) {
                 setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? null);
               }
