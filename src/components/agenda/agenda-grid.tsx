@@ -1366,7 +1366,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const ps = panelSession;
         const isNewPanel = ps?.id === "";
         const block = ps ? sessions.filter((x) => blockIds(ps.id).includes(x.id)) : [];
-        const activos = block.filter((x) => x.client_id && x.estado !== "cancelada");
+        const activos = block.filter((x) => x.client_id && x.estado !== "cancelada" && !(x as any).__cola);
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
@@ -1380,10 +1380,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, online: isPortalRow(x) }))}
             estadoInicial={est}
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
-            porConfirmarInicial={!!ps?.por_confirmar}
+            porConfirmarInicial={!!ps?.por_confirmar && !(ps as any)?.__cola}
             notasIniciales={ps?.incidencia}
             slotInstanceId={(ps as any)?.slot_instance_id ?? null}
-            fillSessionId={ps && !isNewPanel && !ps.client_id ? ps.id : null}
+            fillSessionId={ps && !isNewPanel && !ps.client_id && !(ps as any).__cola ? ps.id : null}
             canceladasIds={ps && !(ps as any).slot_instance_id ? (() => {
               const ids = new Set(block.filter((x) => x.estado === "cancelada").map((x) => x.id));
               for (const x of block) if ((x as any).reemplaza_session_id) ids.add((x as any).reemplaza_session_id);
