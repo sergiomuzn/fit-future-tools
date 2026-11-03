@@ -81,19 +81,30 @@ function AgendaPage() {
 
   const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10);
   const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0).toISOString().slice(0, 10);
+  // Orden de "Pintar entrenador": entrenamientos realizados en los últimos 30 días.
   const { data: monthCounts = {} } = useQuery({
-    queryKey: ["trainer-month-counts", monthStart],
+    queryKey: ["trainer-30d-counts", ymd(new Date())],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data } = await supabase
-        .from("sessions")
-        .select("trainer_id")
-        .gte("fecha", monthStart)
-        .lte("fecha", monthEnd)
-        .not("trainer_id", "is", null);
+      const hoy = new Date();
+      const desde = new Date(hoy);
+      desde.setDate(desde.getDate() - 30);
       const counts: Record<string, number> = {};
-      for (const r of (data ?? []) as { trainer_id: string | null }[]) {
-        if (!r.trainer_id) continue;
-        counts[r.trainer_id] = (counts[r.trainer_id] ?? 0) + 1;
+      for (let from = 0; ; from += 1000) {
+        const { data } = await supabase
+          .from("sessions")
+          .select("trainer_id")
+          .gte("fecha", ymd(desde))
+          .lte("fecha", ymd(hoy))
+          .eq("estado", "realizada")
+          .not("trainer_id", "is", null)
+          .range(from, from + 999);
+        const rows = (data ?? []) as { trainer_id: string | null }[];
+        for (const r of rows) {
+          if (!r.trainer_id) continue;
+          counts[r.trainer_id] = (counts[r.trainer_id] ?? 0) + 1;
+        }
+        if (rows.length < 1000) break;
       }
       return counts;
     },
