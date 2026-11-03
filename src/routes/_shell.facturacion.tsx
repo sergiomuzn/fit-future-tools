@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { closedSelectEnterToSave, enterToSave } from "@/lib/enter-to-save";
-import { rankByMatch, formatDateShort } from "@/lib/utils";
+import { filterByMatch, formatDateShort } from "@/lib/utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
@@ -173,7 +173,7 @@ function FacturacionPage() {
 
   const searchNorm = search.trim().toLowerCase();
   const invName = (i: Invoice & { cliente_nombre?: string | null }) => (i.client_id ? clientMap.get(i.client_id)?.nombre ?? "" : i.cliente_nombre ?? "");
-  const filteredInvoices = rankByMatch(
+  const filteredInvoices = filterByMatch(
     invoices,
     (i) => invName(i as Invoice & { cliente_nombre?: string | null }),
     searchNorm,

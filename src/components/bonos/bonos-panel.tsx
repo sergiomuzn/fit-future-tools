@@ -8,7 +8,7 @@ import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
-import { formatDateShort, formatNameTitle, rankByMatch } from "@/lib/utils";
+import { formatDateShort, formatNameTitle, filterByMatch } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -183,7 +183,7 @@ export function BonosPanel() {
       b.ultimo_bono_fecha ?? "",
     ].join(" ");
   };
-  const filtered = rankByMatch(visible, textForBono, q);
+  const filtered = filterByMatch(visible, textForBono, q, (b) => clientMap.get(b.client_id)?.nombre);
 
   // Agrupa los bonos por cliente: una sola fila por cliente con una sub-fila por bono.
   const grouped: { clientId: string; bonos: ClientBono[] }[] = [];

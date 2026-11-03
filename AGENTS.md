@@ -17,3 +17,4 @@
 - Agenda visibility returns all eligible members of visible booking blocks, active representative first; presentation grouping must not discard individual active slot bookings.
 - Monthly session totals use a pure accounting predicate and paginated raw session rows, separate from Agenda visibility and attendance filters, so hidden cancellations and empty performed sessions remain countable without altering other metrics.
 - Trainer assignment queries use the active cache key, full lookup queries use the all cache key, and database-triggered activity history drives period eligibility; this prevents cache contamination and preserves historical statistics without inventing pre-history.
+- Table searches use `filterByMatch` (literal matches first, fuzzy fallback only when none exist); composite bono searches restrict fuzzy fallback to client names so totals and filters are not broadened by unrelated fields. Selection pickers retain `rankByMatch` suggestions.
