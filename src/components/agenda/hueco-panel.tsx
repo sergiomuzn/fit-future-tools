@@ -14,6 +14,7 @@ import { ClientDetailsDialog } from "@/components/clients/client-details-dialog"
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { estadoColorOf, servicioColorOf } from "@/lib/colors";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 import { ESTADO_BG, ESTADO_LABEL, type Client, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
@@ -105,6 +106,10 @@ export function HuecoPanel({
 }: Props) {
   const qc = useQueryClient();
   const { horario, specialsMap, colores } = useCenterConfig();
+  const behavior = useBehaviorConfig();
+  const graceMs = Math.max(0, behavior.graciaAutoRealizadaMin) * 60 * 1000;
+  const fechaInst = inst?.fecha;
+  const finInst = inst ? hhmm(inst.hora_fin) : "";
   const [tab, setTab] = useState<Pestana>("reservados");
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
@@ -146,7 +151,12 @@ export function HuecoPanel({
     setHoraInicio(hhmm(inst.hora_inicio));
     setHoraFin(hhmm(inst.hora_fin));
     setTrainerId(inst.trainer_id);
-    setEstado(estadoInicial ?? (new Date(`${inst.fecha}T${hhmm(inst.hora_fin)}:00`) < new Date() ? "realizada" : "reservada"));
+    {
+      const pasada = new Date(`${inst.fecha}T${hhmm(inst.hora_fin)}:00`).getTime() + graceMs < Date.now();
+      const base = estadoInicial ?? (pasada ? "realizada" : "reservada");
+      // Solo se ofrece reservada (futura) o realizada (pasado el margen).
+      setEstado(base === "realizada" && !pasada ? "reservada" : base === "reservada" && pasada ? "realizada" : base);
+    }
     setEsPrueba(esPruebaInicial);
     setPorConfirmar(porConfirmarInicial);
     setRepeatWeeks(0);
@@ -270,6 +280,9 @@ export function HuecoPanel({
     };
   }, [reservasAll, extra, cancelando, removedIds]);
 
+  const sesionPasada = !!fechaInst && !!(horaFin || finInst) && new Date(`${fechaInst}T${horaFin || finInst}:00`).getTime() + graceMs < Date.now();
+  const estadosDisponibles = EDITABLE_STATES.filter((s) => s === "cancelada" || s === (sesionPasada ? "realizada" : "reservada") || s === estado);
+
   async function guardar() {
     if (!inst || !onSave) return;
     if (!horaInicio || !horaFin || horaFin <= horaInicio) {
@@ -353,7 +366,7 @@ export function HuecoPanel({
                   <SelectTrigger className={cn("h-8 w-auto min-w-28 rounded-full px-3 text-xs font-semibold shadow-none focus:ring-0", ESTADO_PILL[estadoVisual])}>
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>{EDITABLE_STATES.map((item) => <SelectItem key={item} value={item}>{ESTADO_LABEL[item]}</SelectItem>)}</SelectContent>
+                  <SelectContent>{estadosDisponibles.map((item) => <SelectItem key={item} value={item}>{ESTADO_LABEL[item]}</SelectItem>)}</SelectContent>
                 </Select>
               </div>
 
