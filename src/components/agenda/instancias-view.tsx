@@ -209,7 +209,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     mutationFn: async (sessionId: string) => {
       const { error } = await supabase
         .from("sessions")
-        .update({ estado: "cancelada" })
+        .delete()
         .eq("id", sessionId);
       if (error) throw error;
       try {
@@ -222,7 +222,8 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       invalidate();
       qc.invalidateQueries({ queryKey: ["sessions"] });
       qc.invalidateQueries({ queryKey: ["hueco-panel"] });
-      toast.success("Reserva cancelada");
+      qc.invalidateQueries({ queryKey: ["client_bonos"] });
+      toast.success("Cliente retirado de la sesión");
     },
     onError: (e: Error) => toast.error(e.message),
   });

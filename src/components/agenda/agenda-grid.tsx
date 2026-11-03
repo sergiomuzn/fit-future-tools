@@ -5,6 +5,7 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction } from "./online-booking";
+import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
@@ -1354,11 +1355,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión que ${r.clients?.nombre ?? "este cliente"} reservó de forma online.`, confirmText: "Cancelar reserva" });
                 if (!ok) return;
               }
-              const { error } = await supabase.from("sessions").update({ estado: "cancelada" }).eq("id", r.id);
+              const remaining = activos.filter((row) => row.id !== r.id);
+              const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length);
+              if (r.online) await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => {});
+              const { error } = action === "clear"
+                ? await supabase.from("sessions").update(EMPTY_SESSION_CLIENT).eq("id", r.id)
+                : await supabase.from("sessions").delete().eq("id", r.id);
               if (error) return toast.error(error.message);
+              if (ps?.id === r.id) {
+                setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? null);
+              }
               void qc.invalidateQueries({ queryKey: ["sessions"] });
+              void qc.invalidateQueries({ queryKey: ["sessions-range"] });
               void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
-              toast.success("Reserva cancelada");
+              void qc.invalidateQueries({ queryKey: ["client_bonos"] });
+              toast.success("Cliente retirado de la sesión");
             }}
           />
         );
