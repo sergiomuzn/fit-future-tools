@@ -1348,20 +1348,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             onClose={() => setPanelSession(null)}
             onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
             onDelete={isNewPanel ? undefined : () => { if (ps) void deletePanelSession(ps); }}
-            onCancelarReserva={async (r) => {
+            onCancelarReserva={async (r, onRemoving) => {
               // Solo se pide confirmación cuando la reserva la hizo el cliente
               // desde su portal; las hechas por el centro se quitan directamente.
               if (r.online) {
                 const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión que ${r.clients?.nombre ?? "este cliente"} reservó de forma online.`, confirmText: "Cancelar reserva" });
-                if (!ok) return;
+                if (!ok) return false;
               }
               const remaining = activos.filter((row) => row.id !== r.id);
               const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length);
+              onRemoving();
               if (r.online) await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => {});
               const { error } = action === "clear"
                 ? await supabase.from("sessions").update(EMPTY_SESSION_CLIENT).eq("id", r.id)
                 : await supabase.from("sessions").delete().eq("id", r.id);
-              if (error) return toast.error(error.message);
+              if (error) { toast.error(error.message); return false; }
               if (ps?.id === r.id) {
                 setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? null);
               }

@@ -69,7 +69,7 @@ interface Props {
   onClose: () => void;
   onSave?: (draft: HuecoPanelDraft) => Promise<boolean | void> | boolean | void;
   onDelete?: () => void;
-  onCancelarReserva: (r: PanelReserva) => void;
+  onCancelarReserva: (r: PanelReserva, onRemoving: () => void) => Promise<boolean | void>;
 }
 
 const NONE = "__none";
@@ -119,6 +119,19 @@ export function HuecoPanel({
   const [saving, setSaving] = useState(false);
   const [servicioSlug, setServicioSlug] = useState("");
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
+  const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const reservasVisibles = reservas.filter((r) => !removedIds.includes(r.id));
+  async function quitarCliente(reserva: PanelReserva) {
+    const restore = () => setRemovedIds((old) => old.filter((id) => id !== reserva.id));
+    try {
+      const result = await onCancelarReserva(reserva, () => {
+        setRemovedIds((old) => [...old, reserva.id]);
+      });
+      if (result === false) restore();
+    } catch {
+      restore();
+    }
+  }
   const { data: allClients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
   const abrirPerfil = (clientId: string | null | undefined) => {
     const c = allClients.find((x) => x.id === clientId);
@@ -139,6 +152,7 @@ export function HuecoPanel({
     setServicioSlug(inst.servicio_slug);
     setPickerValues([]);
     setNoContLocal({});
+    setRemovedIds([]);
   }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
 
   const { data: extra } = useQuery({
@@ -173,10 +187,10 @@ export function HuecoPanel({
 
   const capacidad = Math.max(1, servicios.find((service) => service.slug === servicioSlug)?.capacidad_default ?? inst?.capacidad ?? 1);
   const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
-  const libres = Math.max(0, capacidad - reservas.length - selectedNewCount);
+  const libres = Math.max(0, capacidad - reservasVisibles.length - selectedNewCount);
   useEffect(() => {
-    setPickerValues((old) => Array.from({ length: Math.max(0, capacidad - reservas.length) }, (_, i) => old[i] ?? null));
-  }, [capacidad, reservas.length, inst?.id]);
+    setPickerValues((old) => Array.from({ length: Math.max(0, capacidad - reservasVisibles.length) }, (_, i) => old[i] ?? null));
+  }, [capacidad, reservasVisibles.length, inst?.id]);
 
   const anadir = useMutation({
     mutationFn: async ({ clientId, row }: { clientId: string; row: number }) => {
@@ -241,13 +255,13 @@ export function HuecoPanel({
   // instante a la pestaña Cancelados (y vuelven si se revierte el estado).
   const cancelando = estado === "cancelada" && estadoInicial !== "cancelada";
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => {
-    const filas = reservas.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
+    const filas = reservas.filter((r) => !removedIds.includes(r.id)).map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
     return {
       reservados: cancelando ? [] : filas,
       cola: extra?.cola ?? [],
       cancelados: [...(extra?.cancelados ?? []), ...(cancelando ? filas : [])],
     };
-  }, [reservas, extra, cancelando]);
+  }, [reservas, extra, cancelando, removedIds]);
 
   async function guardar() {
     if (!inst || !onSave) return;
@@ -302,7 +316,7 @@ export function HuecoPanel({
                   ) : <span className="truncate">{servicioNombre}</span>}
                 </DialogTitle>
                 <span className="shrink-0 text-sm font-normal text-primary-foreground/65">
-                  ({reservas.length + selectedNewCount}/{libres})
+                  ({reservasVisibles.length + selectedNewCount}/{libres})
                 </span>
               </div>
 
@@ -401,7 +415,7 @@ export function HuecoPanel({
                     <ClientPicker
                       value={item.reserva.client_id}
                       onChange={(clientId) => {
-                        if (!clientId) onCancelarReserva(item.reserva as PanelReserva);
+                        if (!clientId) void quitarCliente(item.reserva as PanelReserva);
                       }}
                       onNameClick={(c) => setPerfilCliente(c)}
                     />
@@ -424,7 +438,7 @@ export function HuecoPanel({
                       </label>
                     )}
                     {item.reserva && tab !== "cancelados" && (
-                      <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => onCancelarReserva(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
+                      <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => void quitarCliente(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
                         <X className="h-4 w-4" />
                       </button>
                     )}
