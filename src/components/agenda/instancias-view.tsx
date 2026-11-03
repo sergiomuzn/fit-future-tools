@@ -532,7 +532,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         onClose={() => setReservasDe(null)}
         onSave={(draft) => reservasDe ? savePanelHueco(reservasDe, draft) : false}
         onDelete={() => { if (reservasDe) void deletePanelHueco(reservasDe); }}
-        onCancelarReserva={async (r) => {
+        onCancelarReserva={async (r, onRemoving) => {
           // Solo se pide confirmación cuando la reserva la hizo el cliente desde
           // su portal; las hechas por el centro se quitan directamente.
           const esOnline = r.online ?? !!((r as unknown as { booked_by_user_id?: string | null }).booked_by_user_id || (r as unknown as { booking_tipo?: string | null }).booking_tipo);
@@ -542,9 +542,14 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
               description: `Se cancelará la sesión que ${r.clients?.nombre ?? "este cliente"} reservó de forma online.`,
               confirmText: "Cancelar reserva",
             });
-            if (!ok) return;
+            if (!ok) return false;
           }
-          cancelarReserva.mutate(r.id);
+          onRemoving();
+          try {
+            await cancelarReserva.mutateAsync(r.id);
+          } catch {
+            return false;
+          }
         }}
       />
       {confirmDialog}
