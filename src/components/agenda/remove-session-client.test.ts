@@ -14,7 +14,8 @@ describe("removing a client is not cancelling a session", () => {
   });
   test("clearing a client preserves session state including performed and trial sessions", () => {
     for (const estado of ["reservada", "realizada", "prueba", "renovacion"]) {
-      const result = { estado, client_id: "client", ...EMPTY_SESSION_CLIENT };
+      const original = { estado, client_id: "client" };
+      const result = { ...original, ...EMPTY_SESSION_CLIENT };
       strictEqual(result.estado, estado);
       strictEqual(result.client_id, null);
       strictEqual(result.booked_by_user_id, null);
