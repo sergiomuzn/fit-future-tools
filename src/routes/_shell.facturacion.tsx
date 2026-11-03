@@ -224,11 +224,11 @@ function FacturacionPage() {
         ? null
         : Number(overrideRaw);
     const payload = {
-      fecha: form.fecha!,
+      fecha: form.fecha || new Date().toISOString().slice(0, 10),
       cobrador_trainer_id: form.cobrador_trainer_id ?? null,
       client_id: clientId,
       bono_catalogo_id: bonoId,
-      precio_cobrado: form.precio_cobrado!,
+      precio_cobrado: Number(form.precio_cobrado) || 0,
       nota: form.nota ?? null,
       sesiones_override: bonoId && clientId ? sesionesOverride : null,
       cliente_nombre: clientId ? null : (clientText.trim() || null),
