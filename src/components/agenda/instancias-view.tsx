@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
-import { notificarReservasCanceladas } from "@/lib/notificaciones.functions";
+import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
 import { useConfirm } from "@/components/confirm-dialog";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -207,8 +207,9 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
 
   const cancelarReserva = useMutation({
     mutationFn: async (sessionId: string) => {
+      let claves: string[] = [];
       try {
-        await notificarCanceladas({ data: { sessionIds: [sessionId] } });
+        claves = (await notificarCanceladas({ data: { sessionIds: [sessionId] } }))?.claves ?? [];
       } catch {
         /* la cancelación es válida aunque falle el aviso */
       }
@@ -217,6 +218,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         .delete()
         .eq("id", sessionId);
       if (error) throw error;
+      if (claves.length) void ofrecerPlazasLiberadas({ data: { claves } }).catch(() => {});
     },
     onSuccess: () => {
       invalidate();

@@ -25,7 +25,7 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar")
+      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar,group_id,trainer_id,slot_instance_id")
       .in("id", data.sessionIds);
     const { data: cfgRow } = await supabaseAdmin
       .from("center_config")
@@ -71,7 +71,30 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
     for (const id of pendientesIds) await resolverAvisoCentro(centroId, id, "denegada");
 
     await crearNotificaciones(items, centroId);
-    return { notified: items.length };
+    // Claves de cola de las plazas que se liberan: el cliente llama a
+    // ofrecerPlazasLiberadas tras quitar la reserva para avisar al siguiente.
+    const { claveDeSesion } = await import("./cola-espera.server");
+    const claves: string[] = [];
+    for (const r of (rows ?? []) as any[]) {
+      if (!r.booked_by_user_id) continue;
+      const clave = await claveDeSesion(centroId, r);
+      if (clave && !claves.includes(clave)) claves.push(clave);
+    }
+    return { notified: items.length, claves };
+  });
+
+/** Ofrece al primero de la cola las plazas liberadas por el centro. */
+export const ofrecerPlazasLiberadas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ claves: z.array(z.string().min(1).max(200)).max(50) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Solo administradores");
+    const { getCentroIdForUser } = await import("./centro-scope.server");
+    const centroId = await getCentroIdForUser(context.userId);
+    const { ofrecerPlazaSiguiente } = await import("./cola-espera.server");
+    for (const clave of data.claves) await ofrecerPlazaSiguiente(centroId, clave);
+    return { ok: true };
   });
 
 /**
