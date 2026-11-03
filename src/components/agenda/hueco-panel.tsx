@@ -120,7 +120,9 @@ export function HuecoPanel({
   const [servicioSlug, setServicioSlug] = useState("");
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
-  const reservasVisibles = reservas.filter((r) => !removedIds.includes(r.id));
+  const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
+  const reservasAll = useMemo(() => [...reservas, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))], [reservas, pendientes]);
+  const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   async function quitarCliente(reserva: PanelReserva) {
     const restore = () => setRemovedIds((old) => old.filter((id) => id !== reserva.id));
     try {
@@ -153,6 +155,7 @@ export function HuecoPanel({
     setPickerValues([]);
     setNoContLocal({});
     setRemovedIds([]);
+    setPendientes([]);
   }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
 
   const { data: extra } = useQuery({
@@ -217,7 +220,11 @@ export function HuecoPanel({
             reemplaza_session_id: slotInstanceId === null && canceladasIds?.length ? canceladasIds[0] : null,
           } as any).select("id").single();
       if (error) throw error;
-      setPickerValues((old) => old.map((value, index) => index === row ? null : value));
+      // Muestra la reserva al instante mientras llega el refresco, para que el
+      // cliente no desaparezca del menú entre el guardado y la recarga.
+      const cli = allClients.find((c) => c.id === clientId);
+      setPendientes((old) => [...old.filter((p) => p.id !== data.id), { id: data.id, client_id: clientId, titulo: null, clients: { nombre: cli?.nombre ?? "Cliente" } } as unknown as PanelReserva]);
+      setPickerValues((old) => old.filter((_, index) => index !== row));
       void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: inst.fecha, hora: `${horaInicio}:00` }] } }).catch(() => {});
       return data;
     },
@@ -255,13 +262,13 @@ export function HuecoPanel({
   // instante a la pestaña Cancelados (y vuelven si se revierte el estado).
   const cancelando = estado === "cancelada" && estadoInicial !== "cancelada";
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => {
-    const filas = reservas.filter((r) => !removedIds.includes(r.id)).map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
+    const filas = reservasAll.filter((r) => !removedIds.includes(r.id)).map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
     return {
       reservados: cancelando ? [] : filas,
       cola: extra?.cola ?? [],
       cancelados: [...(extra?.cancelados ?? []), ...(cancelando ? filas : [])],
     };
-  }, [reservas, extra, cancelando, removedIds]);
+  }, [reservasAll, extra, cancelando, removedIds]);
 
   async function guardar() {
     if (!inst || !onSave) return;
