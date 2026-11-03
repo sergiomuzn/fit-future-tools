@@ -59,7 +59,7 @@ describe("filterByMatch table searches", () => {
   const invoices = [
     { nombre: "Ana López", precio_cobrado: 50 },
     { nombre: "Ana López", precio_cobrado: 75 },
-    { nombre: "Adriana García", precio_cobrado: 200 },
+    { nombre: "Andrea García", precio_cobrado: 200 },
     { nombre: "Anabel Ruiz", precio_cobrado: 25 },
   ];
 
@@ -87,7 +87,7 @@ describe("filterByMatch table searches", () => {
   test("bonos fuzzy fallback checks client name, not combined service and date text", () => {
     const bonos = [
       { nombre: "Luis Pérez", text: "Luis Pérez Entrenamiento personal 03/11/26" },
-      { nombre: "Adriana García", text: "Adriana García Entrenamiento personal 03/11/26" },
+      { nombre: "Andrea García", text: "Andrea García Entrenamiento personal 03/11/26" },
     ];
     deepStrictEqual(filterByMatch(bonos, (b) => b.text, "ana", (b) => b.nombre), [bonos[1]]);
     deepStrictEqual(filterByMatch(bonos, (b) => b.text, "personal", (b) => b.nombre), bonos);
