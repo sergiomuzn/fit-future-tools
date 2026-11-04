@@ -482,8 +482,24 @@ export function HuecoPanel({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="panel-confirmar" disabled={!puedeMarcarPorConfirmar} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => { if (puedeMarcarPorConfirmar) setPorConfirmar(!!value); }} />
-                    <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
+                    {puedeMarcarPorConfirmar ? (
+                      <>
+                        <Checkbox id="panel-confirmar" checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => { if (puedeMarcarPorConfirmar) setPorConfirmar(!!value); }} />
+                        <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
+                      </>
+                    ) : (
+                      <TooltipProvider delayDuration={150}>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span className="flex cursor-not-allowed items-center gap-2" aria-disabled="true">
+                              <Checkbox id="panel-confirmar" disabled checked={estado === "reservada" && porConfirmar} tabIndex={-1} />
+                              <span className="text-sm text-muted-foreground">Por confirmar</span>
+                            </span>
+                          </TooltipTrigger>
+                          <TooltipContent side="top" className="whitespace-nowrap">No se puede poner como pendiente una sesión ya confirmada</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
                   </div>
                 </>
               )}
