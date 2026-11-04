@@ -21,6 +21,7 @@ import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
 import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
+import { canMarkSessionPending } from "./online-booking";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -128,6 +129,7 @@ export function HuecoPanel({
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
   const reservasAll = useMemo(() => [...reservas, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))], [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
+  const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
   async function quitarCliente(reserva: PanelReserva) {
     const restore = () => setRemovedIds((old) => old.filter((id) => id !== reserva.id));
     try {
@@ -479,7 +481,7 @@ export function HuecoPanel({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada"} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => setPorConfirmar(!!value)} />
+                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada" || (!porConfirmar && !puedeMarcarPorConfirmar)} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => { if (!value || puedeMarcarPorConfirmar) setPorConfirmar(!!value); }} />
                     <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
                   </div>
                 </>

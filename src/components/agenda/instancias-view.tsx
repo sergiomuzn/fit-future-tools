@@ -21,6 +21,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { formatDateShort } from "@/lib/utils";
 import { useColores } from "@/lib/colors";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { isSelfBooking } from "./online-booking";
 
 /** Sesión reservada asociada a un hueco propagado. */
 interface Reserva {
@@ -526,7 +527,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
         trainers={trainers}
         servicios={servicios}
-        reservas={reservasDe ? reservasDeHueco(reservasDe) : []}
+        reservas={reservasDe ? reservasDeHueco(reservasDe).map((r) => ({ ...r, online: isSelfBooking(r) })) : []}
         estadoInicial={(reservasDe && reservasDeHueco(reservasDe)[0]?.estado as any) ?? "reservada"}
         esPruebaInicial={false}
         porConfirmarInicial={false}

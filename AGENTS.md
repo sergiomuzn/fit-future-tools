@@ -19,3 +19,4 @@
 - Trainer assignment queries use the active cache key, full lookup queries use the all cache key, and database-triggered activity history drives period eligibility; this prevents cache contamination and preserves historical statistics without inventing pre-history.
 - Table searches use `filterByMatch` (literal matches first, fuzzy fallback only when none exist); composite bono searches restrict fuzzy fallback to client names so totals and filters are not broadened by unrelated fields. Selection pickers retain `rankByMatch` suggestions.
 - Session-menu client removal clears the last manual assignment or deletes a booking row when its slot/group survives, without changing estado; use the shared removal policy to preserve empty manual sessions.
+- Session menus use the shared pending-confirmation policy and explicit self-booking origin, not confirmation status, to control marking a booking pending.

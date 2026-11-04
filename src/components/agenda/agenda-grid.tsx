@@ -1377,7 +1377,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             trainers={trainers}
             servicios={servicios}
             isNew={isNewPanel}
-            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, online: isPortalRow(x) }))}
+            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, online: !!(x as any).booked_by_user_id && (x as any).booking_tipo !== "centro" }))}
             estadoInicial={est}
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar && !(ps as any)?.__cola}
