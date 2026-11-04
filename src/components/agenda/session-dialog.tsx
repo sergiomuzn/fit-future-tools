@@ -942,7 +942,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox id="porconfirmar" disabled={estado !== "reservada" || (!porConfirmar && !canMarkSessionPending(estado, reservasPortalIds.length > 0))} checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (!v || canMarkSessionPending(estado, reservasPortalIds.length > 0)) setPorConfirmar(!!v); }} />
+              <Checkbox id="porconfirmar" disabled={!canMarkSessionPending(estado, reservasPortalIds.length > 0)} checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (canMarkSessionPending(estado, reservasPortalIds.length > 0)) setPorConfirmar(!!v); }} />
               <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
             </div>
           </div>
