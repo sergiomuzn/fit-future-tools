@@ -9,6 +9,11 @@ export function isSelfBooking(session: Booking): boolean {
   return !!session.client_id && !!session.booked_by_user_id && session.booking_tipo !== "centro";
 }
 
+/** Online reservations may be confirmed, but never marked pending again. */
+export function canMarkSessionPending(estado: string, hasOnlineBooking: boolean): boolean {
+  return estado === "reservada" && !hasOnlineBooking;
+}
+
 export function hasOnlineBookingDistinction(enabled: boolean, bookings: Booking[]): boolean {
   return enabled && bookings.some((session) => session.estado !== "cancelada" && isSelfBooking(session));
 }
