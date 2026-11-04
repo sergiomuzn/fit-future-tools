@@ -55,12 +55,14 @@ export function ExpandableSearch({
           onKeyDown={(e) => {
             if (e.key === "Escape") close();
           }}
+          onBlur={close}
           className={cn("h-9 w-64 pl-8 pr-8", inputClassName)}
         />
         {value && (
           <button
             type="button"
             aria-label="Limpiar búsqueda"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => onChange("")}
             className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground"
           >
@@ -68,9 +70,6 @@ export function ExpandableSearch({
           </button>
         )}
       </div>
-      <Button variant="ghost" size="icon" aria-label="Cerrar búsqueda" onClick={close}>
-        <X className="h-4 w-4" />
-      </Button>
     </div>
   );
 }
