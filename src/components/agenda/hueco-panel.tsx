@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";

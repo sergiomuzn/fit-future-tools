@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono, type Client } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
