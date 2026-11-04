@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono, type Client } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
@@ -942,8 +943,24 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
             </div>
             <div className="flex items-center gap-2">
-              <Checkbox id="porconfirmar" disabled={!canMarkSessionPending(estado, reservasPortalIds.length > 0)} checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (canMarkSessionPending(estado, reservasPortalIds.length > 0)) setPorConfirmar(!!v); }} />
-              <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
+              {canMarkSessionPending(estado, reservasPortalIds.length > 0) ? (
+                <>
+                  <Checkbox id="porconfirmar" checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (canMarkSessionPending(estado, reservasPortalIds.length > 0)) setPorConfirmar(!!v); }} />
+                  <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
+                </>
+              ) : (
+                <TooltipProvider delayDuration={150}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="flex cursor-not-allowed items-center gap-2" aria-disabled="true">
+                        <Checkbox id="porconfirmar" disabled checked={estado === "reservada" && porConfirmar} tabIndex={-1} />
+                        <span className="text-sm text-muted-foreground">Por confirmar</span>
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="whitespace-nowrap">No se puede poner como pendiente una sesión ya confirmada</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
           </div>
             {estado === "cancelada" && (
