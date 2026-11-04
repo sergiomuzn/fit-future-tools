@@ -481,7 +481,7 @@ export function HuecoPanel({
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="panel-confirmar" disabled={estado !== "reservada" || (!porConfirmar && !puedeMarcarPorConfirmar)} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => { if (!value || puedeMarcarPorConfirmar) setPorConfirmar(!!value); }} />
+                    <Checkbox id="panel-confirmar" disabled={!puedeMarcarPorConfirmar} checked={estado === "reservada" && porConfirmar} onCheckedChange={(value) => { if (puedeMarcarPorConfirmar) setPorConfirmar(!!value); }} />
                     <Label htmlFor="panel-confirmar" className="cursor-pointer text-sm">Por confirmar</Label>
                   </div>
                 </>
