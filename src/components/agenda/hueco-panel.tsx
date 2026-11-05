@@ -67,6 +67,8 @@ interface Props {
   slotInstanceId?: string | null;
   /** Fila de sesión vacía existente que se rellena con el primer cliente. */
   fillSessionId?: string | null;
+  /** Sesión manual de varias plazas: ids del bloque y su recurrencia_id/ocupación actuales. */
+  grupoManual?: { recurrenciaId: string | null; ocupacion: number; ids: string[] };
   /** Sesiones manuales canceladas que pertenecen a este bloque (enlace explícito). */
   canceladasIds?: string[];
   onClose: () => void;
@@ -100,6 +102,7 @@ export function HuecoPanel({
   notasIniciales,
   slotInstanceId,
   fillSessionId,
+  grupoManual,
   canceladasIds,
   onClose,
   onSave,
@@ -224,6 +227,20 @@ export function HuecoPanel({
       };
       // Sesión manual de Agenda sin cliente: se rellena la fila existente en
       // vez de insertar una nueva (evita duplicados y la FK de slot_instance_id).
+      // Sesión manual de varias plazas: todas las filas comparten recurrencia_id
+      // y ocupacion=2 para que la Agenda las muestre como un único bloque.
+      let grupo: { recurrencia_id: string; ocupacion: number } | null = null;
+      if (!fillSessionId && slotInstanceId === null && grupoManual && capacidad > 1) {
+        let rec = grupoManual.recurrenciaId;
+        if (!rec || grupoManual.ocupacion !== 2) {
+          rec = crypto.randomUUID();
+          if (grupoManual.ids.length) {
+            const { error: e2 } = await supabase.from("sessions").update({ recurrencia_id: rec, ocupacion: 2 } as any).in("id", grupoManual.ids);
+            if (e2) throw e2;
+          }
+        }
+        grupo = { recurrencia_id: rec, ocupacion: 2 };
+      }
       const { data, error } = fillSessionId
         ? await supabase.from("sessions").update(valores as any).eq("id", fillSessionId).select("id").single()
         : await supabase.from("sessions").insert({
@@ -231,6 +248,7 @@ export function HuecoPanel({
             booking_tipo: "centro",
             slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
             reemplaza_session_id: slotInstanceId === null && canceladasIds?.length ? canceladasIds[0] : null,
+            ...(grupo ?? {}),
           } as any).select("id").single();
       if (error) throw error;
       // Muestra la reserva al instante mientras llega el refresco, para que el
@@ -420,19 +438,6 @@ export function HuecoPanel({
               </div>
 
               <div className="space-y-2">
-                {tab === "reservados" && pickerValues.map((value, row) => (
-                  <div key={`free-${row}`} className="min-w-0">
-                    <ClientPicker
-                      value={value}
-                      autoFocus={row === 0}
-                      onChange={(clientId) => {
-                        setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
-                        if (clientId && !isNew) anadir.mutate({ clientId, row });
-                      }}
-                      onNameClick={(c) => setPerfilCliente(c)}
-                    />
-                  </div>
-                ))}
                 {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
                   <div key={item.id} className="min-w-0">
                     <ClientPicker
@@ -465,6 +470,19 @@ export function HuecoPanel({
                         <X className="h-4 w-4" />
                       </button>
                     )}
+                  </div>
+                ))}
+                {tab === "reservados" && pickerValues.map((value, row) => (
+                  <div key={`free-${row}`} className="min-w-0">
+                    <ClientPicker
+                      value={value}
+                      autoFocus={row === 0}
+                      onChange={(clientId) => {
+                        setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
+                        if (clientId && !isNew) anadir.mutate({ clientId, row });
+                      }}
+                      onNameClick={(c) => setPerfilCliente(c)}
+                    />
                   </div>
                 ))}
               </div>

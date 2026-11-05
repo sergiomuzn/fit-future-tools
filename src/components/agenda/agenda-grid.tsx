@@ -1384,6 +1384,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             notasIniciales={ps?.incidencia}
             slotInstanceId={(ps as any)?.slot_instance_id ?? null}
             fillSessionId={ps && !isNewPanel && !ps.client_id && !(ps as any).__cola ? ps.id : null}
+            grupoManual={ps && !isNewPanel && !(ps as any).slot_instance_id && !(ps as any).__cola ? { recurrenciaId: ps.recurrencia_id ?? null, ocupacion: ps.ocupacion ?? 1, ids: block.filter((x) => !(x as any).__cola).map((x) => x.id) } : undefined}
             canceladasIds={ps && !(ps as any).slot_instance_id ? (() => {
               const ids = new Set(block.filter((x) => x.estado === "cancelada").map((x) => x.id));
               for (const x of block) if ((x as any).reemplaza_session_id) ids.add((x as any).reemplaza_session_id);
