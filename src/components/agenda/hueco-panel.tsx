@@ -141,6 +141,8 @@ export function HuecoPanel({
         setRemovedIds((old) => [...old, reserva.id]);
       });
       if (result === false) restore();
+      // Sesión manual sin más clientes: la fila queda vacía y la siguiente alta la rellena.
+      else if (slotInstanceId === null && !reservasVisibles.some((r) => r.id !== reserva.id)) grupoRef.current.fillTarget = reserva.id;
     } catch {
       restore();
     }
@@ -208,15 +210,20 @@ export function HuecoPanel({
   const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
   const libres = Math.max(0, capacidad - reservasVisibles.length - selectedNewCount);
   useEffect(() => {
-    setPickerValues((old) => Array.from({ length: Math.max(0, capacidad - reservasVisibles.length) }, (_, i) => old[i] ?? null));
+    // Conserva las selecciones en curso y recorta primero los buscadores vacíos.
+    setPickerValues((old) => {
+      const n = Math.max(0, capacidad - reservasVisibles.length);
+      const elegidos = old.filter(Boolean).slice(0, n);
+      return [...elegidos, ...Array.from({ length: n - elegidos.length }, () => null)];
+    });
   }, [capacidad, reservasVisibles.length, inst?.id]);
 
   // Estado del bloque manual mientras el menú está abierto: la fila vacía solo
   // se rellena una vez y todas las altas comparten recurrencia_id, aunque las
   // props (instantánea al abrir) aún no se hayan refrescado.
-  const grupoRef = useRef<{ instId: string | null; filled: boolean; rec: string | null; grouped: boolean; ids: Set<string> }>({ instId: null, filled: false, rec: null, grouped: false, ids: new Set() });
+  const grupoRef = useRef<{ instId: string | null; fillTarget: string | null; rec: string | null; grouped: boolean; ids: Set<string> }>({ instId: null, fillTarget: null, rec: null, grouped: false, ids: new Set() });
   if (grupoRef.current.instId !== (inst?.id ?? null)) {
-    grupoRef.current = { instId: inst?.id ?? null, filled: false, rec: grupoManual?.recurrenciaId ?? null, grouped: grupoManual?.ocupacion === 2 && !!grupoManual?.recurrenciaId, ids: new Set(grupoManual?.ids ?? []) };
+    grupoRef.current = { instId: inst?.id ?? null, fillTarget: fillSessionId ?? null, rec: grupoManual?.recurrenciaId ?? null, grouped: grupoManual?.ocupacion === 2 && !!grupoManual?.recurrenciaId, ids: new Set(grupoManual?.ids ?? []) };
   }
   for (const id of grupoManual?.ids ?? []) grupoRef.current.ids.add(id);
   // Las altas se encadenan: dos clientes añadidos seguidos nunca compiten.
@@ -238,7 +245,7 @@ export function HuecoPanel({
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
       };
-      const rellenar = !!fillSessionId && !g.filled;
+      const rellenar = g.fillTarget;
       // Sesión manual de varias plazas: todas las filas comparten recurrencia_id
       // y ocupacion=2 para que la Agenda las muestre como un único bloque.
       let grupo: { recurrencia_id: string; ocupacion: number } | null = null;
@@ -254,7 +261,7 @@ export function HuecoPanel({
         grupo = { recurrencia_id: g.rec, ocupacion: 2 };
       }
       const { data, error } = rellenar
-        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", fillSessionId!).select("id").single()
+        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", rellenar).select("id").single()
         : await supabase.from("sessions").insert({
             ...valores,
             booking_tipo: "centro",
@@ -267,7 +274,7 @@ export function HuecoPanel({
       // cliente no desaparezca del menú entre el guardado y la recarga.
       const cli = allClients.find((c) => c.id === clientId);
       setPendientes((old) => [...old.filter((p) => p.id !== data.id), { id: data.id, client_id: clientId, titulo: null, clients: { nombre: cli?.nombre ?? "Cliente" } } as unknown as PanelReserva]);
-      if (rellenar) g.filled = true;
+      if (rellenar) g.fillTarget = null;
       g.ids.add(data.id);
       // Quita el buscador por cliente (no por posición): otra alta en curso no
       // debe borrar la selección de otra fila.
