@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { X } from "lucide-react";
 import { toast } from "sonner";
@@ -141,6 +141,8 @@ export function HuecoPanel({
         setRemovedIds((old) => [...old, reserva.id]);
       });
       if (result === false) restore();
+      // Sesión manual sin más clientes: la fila queda vacía y la siguiente alta la rellena.
+      else if (slotInstanceId === null && !reservasVisibles.some((r) => r.id !== reserva.id)) grupoRef.current.fillTarget = reserva.id;
     } catch {
       restore();
     }
@@ -208,12 +210,30 @@ export function HuecoPanel({
   const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
   const libres = Math.max(0, capacidad - reservasVisibles.length - selectedNewCount);
   useEffect(() => {
-    setPickerValues((old) => Array.from({ length: Math.max(0, capacidad - reservasVisibles.length) }, (_, i) => old[i] ?? null));
+    // Conserva las selecciones en curso y recorta primero los buscadores vacíos.
+    setPickerValues((old) => {
+      const n = Math.max(0, capacidad - reservasVisibles.length);
+      const elegidos = old.filter(Boolean).slice(0, n);
+      return [...elegidos, ...Array.from({ length: n - elegidos.length }, () => null)];
+    });
   }, [capacidad, reservasVisibles.length, inst?.id]);
 
+  // Estado del bloque manual mientras el menú está abierto: la fila vacía solo
+  // se rellena una vez y todas las altas comparten recurrencia_id, aunque las
+  // props (instantánea al abrir) aún no se hayan refrescado.
+  const grupoRef = useRef<{ instId: string | null; fillTarget: string | null; rec: string | null; grouped: boolean; ids: Set<string> }>({ instId: null, fillTarget: null, rec: null, grouped: false, ids: new Set() });
+  if (grupoRef.current.instId !== (inst?.id ?? null)) {
+    grupoRef.current = { instId: inst?.id ?? null, fillTarget: fillSessionId ?? null, rec: grupoManual?.recurrenciaId ?? null, grouped: grupoManual?.ocupacion === 2 && !!grupoManual?.recurrenciaId, ids: new Set(grupoManual?.ids ?? []) };
+  }
+  for (const id of grupoManual?.ids ?? []) grupoRef.current.ids.add(id);
+  // Las altas se encadenan: dos clientes añadidos seguidos nunca compiten.
+  const colaAltas = useRef<Promise<unknown>>(Promise.resolve());
+
   const anadir = useMutation({
-    mutationFn: async ({ clientId, row }: { clientId: string; row: number }) => {
+    mutationFn: ({ clientId }: { clientId: string }) => {
+      const run = async () => {
       if (!inst || isNew) return;
+      const g = grupoRef.current;
       const valores = {
         fecha: inst.fecha,
         hora_inicio: `${horaInicio}:00`,
@@ -225,24 +245,23 @@ export function HuecoPanel({
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
       };
-      // Sesión manual de Agenda sin cliente: se rellena la fila existente en
-      // vez de insertar una nueva (evita duplicados y la FK de slot_instance_id).
+      const rellenar = g.fillTarget;
       // Sesión manual de varias plazas: todas las filas comparten recurrencia_id
       // y ocupacion=2 para que la Agenda las muestre como un único bloque.
       let grupo: { recurrencia_id: string; ocupacion: number } | null = null;
-      if (!fillSessionId && slotInstanceId === null && grupoManual && capacidad > 1) {
-        let rec = grupoManual.recurrenciaId;
-        if (!rec || grupoManual.ocupacion !== 2) {
-          rec = crypto.randomUUID();
-          if (grupoManual.ids.length) {
-            const { error: e2 } = await supabase.from("sessions").update({ recurrencia_id: rec, ocupacion: 2 } as any).in("id", grupoManual.ids);
+      if (slotInstanceId === null && grupoManual && capacidad > 1) {
+        if (!g.grouped || !g.rec) {
+          g.rec = crypto.randomUUID();
+          if (g.ids.size) {
+            const { error: e2 } = await supabase.from("sessions").update({ recurrencia_id: g.rec, ocupacion: 2 } as any).in("id", [...g.ids]);
             if (e2) throw e2;
           }
+          g.grouped = true;
         }
-        grupo = { recurrencia_id: rec, ocupacion: 2 };
+        grupo = { recurrencia_id: g.rec, ocupacion: 2 };
       }
-      const { data, error } = fillSessionId
-        ? await supabase.from("sessions").update(valores as any).eq("id", fillSessionId).select("id").single()
+      const { data, error } = rellenar
+        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", rellenar).select("id").single()
         : await supabase.from("sessions").insert({
             ...valores,
             booking_tipo: "centro",
@@ -255,16 +274,30 @@ export function HuecoPanel({
       // cliente no desaparezca del menú entre el guardado y la recarga.
       const cli = allClients.find((c) => c.id === clientId);
       setPendientes((old) => [...old.filter((p) => p.id !== data.id), { id: data.id, client_id: clientId, titulo: null, clients: { nombre: cli?.nombre ?? "Cliente" } } as unknown as PanelReserva]);
-      setPickerValues((old) => old.filter((_, index) => index !== row));
+      if (rellenar) g.fillTarget = null;
+      g.ids.add(data.id);
+      // Quita el buscador por cliente (no por posición): otra alta en curso no
+      // debe borrar la selección de otra fila.
+      setPickerValues((old) => {
+        const i = old.indexOf(clientId);
+        return i < 0 ? old : old.filter((_, index) => index !== i);
+      });
       void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: inst.fecha, hora: `${horaInicio}:00` }] } }).catch(() => {});
       return data;
+      };
+      const p = colaAltas.current.then(run, run);
+      colaAltas.current = p.catch(() => {});
+      return p;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sessions-range"] });
       qc.invalidateQueries({ queryKey: ["sessions"] });
       toast.success("Reserva añadida");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error, vars) => {
+      setPickerValues((old) => old.map((v) => (v === vars.clientId ? null : v)));
+      toast.error(e.message);
+    },
   });
 
   // Cancelación contabilizada por defecto; "No contabilizar" la excluye del
@@ -479,7 +512,7 @@ export function HuecoPanel({
                       autoFocus={row === 0}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
-                        if (clientId && !isNew) anadir.mutate({ clientId, row });
+                        if (clientId && !isNew) anadir.mutate({ clientId });
                       }}
                       onNameClick={(c) => setPerfilCliente(c)}
                     />

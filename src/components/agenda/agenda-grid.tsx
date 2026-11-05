@@ -432,7 +432,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const members = new Map<string, Session[]>(); // primary.id -> member sessions
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2) {
-        const key = `${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
+        const key = `${s.recurrencia_id}|${s.fecha}|${s.hora_inicio}|${s.hora_fin}`;
         const arr = groups.get(key);
         if (arr) arr.push(s); else groups.set(key, [s]);
       } else {
@@ -519,8 +519,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   // Un bloque de grupo son varias filas (una por cliente): mover/redimensionar
   // debe afectar a todas ellas, no solo a la representante.
   function blockIds(id: string) {
-    const members = groupMembers.get(id);
-    return members && members.length ? members.map((m) => m.id) : [id];
+    // Busca el bloque que contiene la fila, aunque ya no sea la representante
+    // (al añadir clientes la representante puede cambiar).
+    const direct = groupMembers.get(id);
+    if (direct && direct.length) return direct.map((m) => m.id);
+    for (const members of groupMembers.values()) {
+      if (members.some((m) => m.id === id)) return members.map((m) => m.id);
+    }
+    return [id];
   }
 
   async function applyTimeEdit(scope: "one" | "future") {
@@ -1181,13 +1187,14 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // editada del hueco de Reservas para esa franja.
               const huecoKey = `${servicioSlug}|${session.hora_inicio}`;
               const esReservaOnline =
-                !!(session as any).booking_tipo || !!(session as any).booked_by_user_id;
+                !!(session as any).booked_by_user_id && (session as any).booking_tipo !== "centro";
               const instId = (session as any).slot_instance_id as string | null;
               const instCap = instId ? instCapMap.get(instId) : undefined;
               const huecoCap = instCap ?? (esReservaOnline ? huecoCapMap.get(huecoKey) : undefined);
+              // Las plazas siempre son las del servicio.
               const plazas =
-                huecoCap ??
                 servicioCapMap.get(servicioSlug) ??
+                huecoCap ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
               // Con más de una plaza no se pinta la sesión en amarillo.
               const multiPlaza = plazas > 1;
@@ -1370,7 +1377,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
-            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, ((ps as any).slot_instance_id ? instCapMap.get((ps as any).slot_instance_id) : undefined) ?? huecoCapMap.get(`${ps.servicio_slug ?? ""}|${ps.hora_inicio}`) ?? servicioCapMap.get(ps.servicio_slug ?? "") ?? block.length) } as any) : null}
+            inst={ps ? ({ id: (ps as any).slot_instance_id ?? ps.id, fecha: ps.fecha, hora_inicio: ps.hora_inicio, hora_fin: ps.hora_fin, servicio_slug: ps.servicio_slug ?? "", trainer_id: ps.trainer_id, capacidad: Math.max(1, servicioCapMap.get(ps.servicio_slug ?? "") ?? ((ps as any).slot_instance_id ? instCapMap.get((ps as any).slot_instance_id) : undefined) ?? block.length) } as any) : null}
             servicioNombre={ps ? (servicios.find((x) => x.slug === ps.servicio_slug)?.nombre ?? ps.titulo ?? "Sesión") : ""}
             color={ps ? (servicioColorOf(colores, ps.servicio_slug) ?? "#888888") : "#888888"}
             trainerNombre={ps?.trainer_id ? (trainers.find((t) => t.id === ps.trainer_id)?.nombre ?? null) : null}
