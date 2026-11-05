@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -50,15 +50,16 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected?.id]);
 
+  const deferredSearch = useDeferredValue(search);
   const filtered = useMemo(
     () => {
-      const q = normalizeText(search).trim();
+      const q = normalizeText(deferredSearch).trim();
       // Texto vacío o solo espacios → lista completa.
       if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
       // Ordenados por parecido: primero lo que más se parece a lo escrito.
       return rankByMatch(clients, (c) => c.nombre, q);
     },
-    [clients, search, selected],
+    [clients, deferredSearch, selected],
   );
 
   useEffect(() => {

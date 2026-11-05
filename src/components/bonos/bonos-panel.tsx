@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil } from "lucide-react";
 import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCatalogo } from "@/lib/db";
@@ -47,6 +47,7 @@ export function BonosPanel() {
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "estado">("nombre");
   const [q, setQ] = useState("");
+  const deferredQ = useDeferredValue(q);
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
@@ -183,7 +184,7 @@ export function BonosPanel() {
       b.ultimo_bono_fecha ?? "",
     ].join(" ");
   };
-  const filtered = filterByMatch(visible, textForBono, q, (b) => clientMap.get(b.client_id)?.nombre);
+  const filtered = filterByMatch(visible, textForBono, deferredQ, (b) => clientMap.get(b.client_id)?.nombre);
 
   // Agrupa los bonos por cliente: una sola fila por cliente con una sub-fila por bono.
   const grouped: { clientId: string; bonos: ClientBono[] }[] = [];

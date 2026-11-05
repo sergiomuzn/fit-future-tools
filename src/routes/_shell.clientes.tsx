@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useRef } from "react";
+import { useState, useRef, useDeferredValue } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Download, Upload, X, Info, SlidersHorizontal, MoreHorizontal } from "lucide-react";
 import { supabase, type Client, type ClientBono, type BonoCatalogo } from "@/lib/db";
@@ -66,6 +66,7 @@ function ClientesPage() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<Partial<Client> | null>(null);
   const [q, setQ] = useState("");
+  const deferredQ = useDeferredValue(q);
   const [viewing, setViewing] = useState<Client | null>(null);
   const [tab, setTab] = useState<"clientes" | "accesos" | "bonos">("clientes");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -152,7 +153,7 @@ function ClientesPage() {
 
   const { colores } = useCenterConfig();
 
-  const searched = filterByMatch(clients, (c) => c.nombre, q);
+  const searched = filterByMatch(clients, (c) => c.nombre, deferredQ);
   const filtered = searched
     .filter((c) => {
       if (fEstado === "activo" && !c.activo) return false;
