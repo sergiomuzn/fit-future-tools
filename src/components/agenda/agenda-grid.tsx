@@ -314,7 +314,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
       return [...rows, ...extra].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
     },
-    refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 ? false : 1000),
+    // Sin sondeo mientras se guarda: el guardado no compite con lecturas y no hay parpadeos.
+    refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 || qc.isMutating() > 0 ? false : 1000),
   });
 
   const { data: clients = [] } = useQuery({
