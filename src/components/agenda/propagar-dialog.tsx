@@ -419,7 +419,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cerrar
             </Button>
-            <Button onClick={() => propagar.mutate()} disabled={total === 0 || propagar.isPending}>
+            <Button onClick={() => { propagar.mutate(); onOpenChange(false); }} disabled={total === 0 || propagar.isPending}>
               {propagar.isPending ? "Propagando…" : "Propagar"}
             </Button>
           </div>
