@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useDeferredValue, useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Plus, Pencil, Trash2, Search, X } from "lucide-react";
 import { supabase, prettyBonoNombre, type Invoice, type Client, type Trainer, type BonoCatalogo } from "@/lib/db";
@@ -171,7 +171,8 @@ function FacturacionPage() {
 
   const total = invoices.reduce((acc, i) => acc + Number(i.precio_cobrado), 0);
 
-  const searchNorm = search.trim().toLowerCase();
+  const deferredSearch = useDeferredValue(search);
+  const searchNorm = deferredSearch.trim().toLowerCase();
   const invName = (i: Invoice & { cliente_nombre?: string | null }) => (i.client_id ? clientMap.get(i.client_id)?.nombre ?? "" : i.cliente_nombre ?? "");
   const filteredInvoices = filterByMatch(
     invoices,
