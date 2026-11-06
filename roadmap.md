@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Guardar sesiones con Enter tras elegir cliente y unificar confirmación/selección de teclado en formularios.
+
 - [x] Corregir la selección antes de recoger las búsquedas con lupa; verificados perfil correcto, selección en invitaciones, borrado interior y clic exterior sin modificar datos.
 
 - [x] Corregir coincidencias aproximadas que amplían búsquedas y totales; verificar Facturación, Clientes y Bonos con datos reales y 15 pruebas.
