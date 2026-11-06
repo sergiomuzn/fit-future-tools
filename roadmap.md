@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Guardar sesiones con Enter tras elegir cliente y unificar confirmación/selección de teclado en formularios.
+- [x] Guardar sesiones con Enter tras elegir cliente; extenderlo a servicios y creación de clientes, conservar selección antes de guardado y aislar menús anidados; 6 pruebas y guardado real sin cambiar datos verificados.
 
 - [x] Corregir la selección antes de recoger las búsquedas con lupa; verificados perfil correcto, selección en invitaciones, borrado interior y clic exterior sin modificar datos.
 
