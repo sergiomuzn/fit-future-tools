@@ -8,10 +8,12 @@ import type { KeyboardEvent } from "react";
 export function enterToSave(save: () => void) {
   return (e: KeyboardEvent<HTMLElement>) => {
     if (e.key !== "Enter") return;
+    if (e.repeat || e.nativeEvent.isComposing) return;
     if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
     if (e.isDefaultPrevented()) return;
     const t = e.target as HTMLElement | null;
     if (!t) return;
+    if (t.closest('[role="dialog"]') !== e.currentTarget.closest('[role="dialog"]')) return;
     const tag = t.tagName;
     if (tag === "TEXTAREA" || tag === "BUTTON" || tag === "A") return;
     if (t.isContentEditable) return;
@@ -34,6 +36,7 @@ export function enterToSave(save: () => void) {
 export function closedSelectEnterToSave(save: () => void) {
   return (e: KeyboardEvent<HTMLElement>) => {
     if (e.key !== "Enter") return;
+    if (e.repeat || e.nativeEvent.isComposing || e.isDefaultPrevented()) return;
     if (e.shiftKey || e.altKey || e.ctrlKey || e.metaKey) return;
     const t = e.target as HTMLElement | null;
     if (!t) return;
