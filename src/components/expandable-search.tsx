@@ -25,6 +25,28 @@ export function ExpandableSearch({
   // un momento después, sin bloquear la escritura.
   const [text, setText] = React.useState(value);
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const container = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!open) return;
+    let closeTimer: ReturnType<typeof setTimeout> | null = null;
+    function onOutsideClick(event: MouseEvent) {
+      if (!(event.target instanceof Node) || container.current?.contains(event.target)) return;
+      // Keep filtered rows mounted until the target's click handler has run.
+      if (closeTimer) clearTimeout(closeTimer);
+      closeTimer = setTimeout(() => {
+        if (timer.current) clearTimeout(timer.current);
+        timer.current = null;
+        setText("");
+        onChange("");
+        setOpen(false);
+      }, 0);
+    }
+    document.addEventListener("click", onOutsideClick, true);
+    return () => {
+      document.removeEventListener("click", onOutsideClick, true);
+      if (closeTimer) clearTimeout(closeTimer);
+    };
+  }, [open, onChange]);
   React.useEffect(() => {
     if (timer.current == null) setText(value);
   }, [value]);
@@ -65,7 +87,7 @@ export function ExpandableSearch({
   }
 
   return (
-    <div className={cn("flex items-center gap-1", className)}>
+    <div ref={container} className={cn("flex items-center gap-1", className)}>
       <div className="relative">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
         <Input
@@ -77,7 +99,6 @@ export function ExpandableSearch({
           onKeyDown={(e) => {
             if (e.key === "Escape") close();
           }}
-          onBlur={close}
           className={cn("h-9 w-64 pl-8 pr-8", inputClassName)}
         />
         {text && (
