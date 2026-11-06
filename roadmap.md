@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Corregir y verificar la selección de resultados antes de recoger las búsquedas con lupa.
+
 - [x] Corregir coincidencias aproximadas que amplían búsquedas y totales; verificar Facturación, Clientes y Bonos con datos reales y 15 pruebas.
 
 - [x] Excluir entrenadores inactivos de selectores de sesiones y facturas.
