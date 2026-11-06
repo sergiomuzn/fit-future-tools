@@ -21,3 +21,4 @@
 - Session-menu client removal clears the last manual assignment or deletes a booking row when its slot/group survives, without changing estado; use the shared removal policy to preserve empty manual sessions.
 - Session menus use the shared pending-confirmation policy and explicit self-booking origin, not confirmation status, to control marking a booking pending.
 - Expandable searches reset after an outside click finishes, never on input blur, so filtered result actions keep their original target.
+- Use opt-in `enterToSave` for editable dialogs; pickers consume selection Enter first, nested dialogs own their events, and destructive actions remain explicit.

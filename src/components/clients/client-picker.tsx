@@ -144,10 +144,11 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
               e.preventDefault();
               setHighlight((h) => Math.max(h - 1, 0));
             } else if (e.key === "Enter") {
-              if (listOpen && filtered[highlight]) {
+              if (listOpen && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
                 e.preventDefault();
                 e.stopPropagation();
                 const c = filtered[highlight];
+                if (!c) return;
                 onChange(c.id, c);
                 setSearch(c.nombre);
                 onTextChange?.(c.nombre);
