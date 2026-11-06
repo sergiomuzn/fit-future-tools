@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
 import { normalizeText, formatNameTitle, rankByMatch } from "@/lib/utils";
+import { enterToSave } from "@/lib/enter-to-save";
 
 interface Props {
   value: string | null;
@@ -132,6 +133,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             if (selected && v !== selected.nombre) onChange(null, null);
           }}
           onKeyDown={(e) => {
+            if (e.nativeEvent.isComposing || e.repeat) return;
             if (e.key === "ArrowDown") {
               if (!search) return; // sin texto, no se abre el desplegable
               e.preventDefault();
@@ -205,7 +207,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent>
+        <DialogContent onKeyDown={enterToSave(saveNew)}>
           <DialogHeader><DialogTitle>Nuevo cliente</DialogTitle></DialogHeader>
           <div className="grid gap-3">
             <div className="space-y-1.5">

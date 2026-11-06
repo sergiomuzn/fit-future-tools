@@ -23,6 +23,7 @@ import type { SlotInstance } from "@/lib/slot-propagation";
 import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canMarkSessionPending } from "./online-booking";
+import { enterToSave } from "@/lib/enter-to-save";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -338,7 +339,7 @@ export function HuecoPanel({
   const estadosDisponibles = EDITABLE_STATES.filter((s) => s === "cancelada" || s === (sesionPasada ? "realizada" : "reservada") || s === estado);
 
   async function guardar() {
-    if (!inst || !onSave) return;
+    if (!inst || !onSave || saving || anadir.isPending) return;
     if (!horaInicio || !horaFin || horaFin <= horaInicio) {
       toast.error("Revisa las horas de la sesión");
       return;
@@ -374,7 +375,7 @@ export function HuecoPanel({
   return (
     <>
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent onKeyDown={enterToSave(guardar)} className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
@@ -560,7 +561,7 @@ export function HuecoPanel({
               {onDelete ? <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button> : <span />}
               <div className="flex gap-2">
                 <Button variant="ghost" className="text-muted-foreground" onClick={onClose}>Cerrar</Button>
-                <Button disabled={!onSave || saving} onClick={guardar}>Guardar cambios</Button>
+                <Button disabled={!onSave || saving || anadir.isPending} onClick={guardar}>Guardar cambios</Button>
               </div>
             </DialogFooter>
           </>

@@ -20,6 +20,7 @@ import { abreviaturaAutomatica } from "@/lib/session-label";
 import { CaducidadSelect, type CaducidadValue } from "@/components/caducidad-select";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { defaultServicioColor, servicioColorKey } from "@/lib/colors";
+import { enterToSave } from "@/lib/enter-to-save";
 
 interface Props {
   open: boolean;
@@ -230,6 +231,7 @@ export function ServicioDialog({ open, onClose, servicio, servicios, onCreated, 
       }}
     >
       <DialogContent
+        onKeyDown={enterToSave(save)}
         className="max-w-2xl max-h-[85vh] overflow-y-auto"
         onOpenAutoFocus={(event) => event.preventDefault()}
       >
