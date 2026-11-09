@@ -325,7 +325,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   function clientMenu(selectedId: string | null, row: Session | undefined, remove: () => void) {
     if (!selectedId) return null;
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
-    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={async () => {
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       const result = cancelDraftClient(grupo ? groupClientIds : [clientId], draftCancelled, selectedId, porConfirmar, behaviorCfg.cancelacionDefaultNoContabilizar);
       setDraftCancelled(result.cancelled);
