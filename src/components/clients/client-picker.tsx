@@ -23,9 +23,10 @@ interface Props {
   /** Si se pasa, el nombre del cliente seleccionado se muestra como enlace clicable. */
   onNameClick?: (client: Client) => void;
   showRemainingSessions?: boolean;
+  hideClearButton?: boolean;
 }
 
-export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick, showRemainingSessions = false }: Props) {
+export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick, showRemainingSessions = false, hideClearButton = false }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -168,7 +169,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
             blurTimer.current = window.setTimeout(() => setListOpen(false), 150);
           }}
         />
-        {(selected || search) && (
+        {!hideClearButton && (selected || search) && (
           <button
             type="button"
             aria-label="Limpiar cliente"
