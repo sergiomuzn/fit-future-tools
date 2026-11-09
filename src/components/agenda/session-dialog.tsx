@@ -495,7 +495,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           }).in("id", existing.map((m) => m.id));
         }
 
-        // Los miembros que se mantienen ya recibieron los campos compartidos arriba.
+        // Actualizar miembros existentes que se mantienen (campos compartidos).
+        const keepIds = existingWithClient.filter((m) => desiredSet.has(m.client_id as string)).map((m) => m.id);
+        if (keepIds.length) {
+          await supabase.from("sessions").update({
+            ...sharedGroupFields,
+            estado: estadoForDate(session.fecha!),
+            ocupacion: 2,
+          }).in("id", keepIds);
+        }
 
         // Añadir nuevos miembros.
         if (toAdd.length) {
