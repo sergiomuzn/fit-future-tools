@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type ClientBono, type Client } from "@/lib/db";
+import { supabase, type Trainer, type Session, type SesionEstado, ESTADO_LABEL, type Client } from "@/lib/db";
 import { useQueryClient } from "@tanstack/react-query";
 import { ClientPicker } from "@/components/clients/client-picker";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
@@ -145,24 +145,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     .filter((r) => r?.booked_by_user_id)
     .map((r) => r.id);
 
-  const { data: bonos = [] } = useQuery({
-    queryKey: ["client_bonos"],
-    queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
-    enabled: open,
-  });
-  const { data: catalogoAll = [] } = useQuery({
-    queryKey: ["bonos_catalogo"],
-    queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data ?? [],
-    enabled: open,
-  });
   const { colores, horario, specialsMap } = useCenterConfig();
-  const activeBono = clientId
-    ? bonos.filter((b) => b.client_id === clientId && b.activo).sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0]
-    : null;
-  const activeBonoTipo = (catalogoAll as Array<{ id: string; tipo: string }>).find(
-    (c) => c.id === activeBono?.bono_catalogo_id,
-  )?.tipo;
-  const isGympassBono = activeBonoTipo === "gympass";
   const { data: servicios = [] } = useServicios();
   // Servicio de grupos (grupos reducidos) y servicio individual por defecto.
   const servicioGrupo = servicios.find((s) => /grupo/i.test(s.slug));
@@ -191,9 +174,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   // Sin cliente seleccionado, el nombre de la sesión es el texto libre escrito
   // en el buscador; si se deja vacío se usa el nombre del servicio.
-
-  // Coincide con la columna "Restantes" del apartado Bonos.
-  const restantes = activeBono && !isGympassBono ? activeBono.sesiones_disponibles : null;
 
   useEffect(() => {
     if (!open) return;
@@ -890,6 +870,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   <div className="flex-1 min-w-0">
                     <ClientPicker
                       value={cid}
+                      showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                       autoFocus={isNew && i === 0}
                       initialText={i === 0 ? nombreLibre : undefined}
                       onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
@@ -922,18 +903,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <>
                 <ClientPicker
                   value={clientId}
+                  showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                   onChange={(id) => setClientId(id)}
                   autoFocus={isNew}
                   initialText={nombreLibre}
                   onTextChange={(t) => setNombreLibre(t)}
                   onNameClick={(c) => setPerfilCliente(c)}
                 />
-                {clientId && !isGympassBono && (
-                  <div className="text-[11px] text-muted-foreground">
-                    Sesiones restantes:{" "}
-                    <span className="font-semibold">{restantes ?? "Sin bono"}</span>
-                  </div>
-                )}
               </>
             )}
           </div>

@@ -476,6 +476,7 @@ export function HuecoPanel({
                   <div key={item.id} className="min-w-0">
                     <ClientPicker
                       value={item.reserva.client_id}
+                      showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       onChange={(clientId) => {
                         if (!clientId) void quitarCliente(item.reserva as PanelReserva);
                       }}
@@ -510,6 +511,7 @@ export function HuecoPanel({
                   <div key={`free-${row}`} className="min-w-0">
                     <ClientPicker
                       value={value}
+                      showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       autoFocus={row === 0}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));

@@ -391,6 +391,16 @@ export function BehaviorForm() {
             />
           </Row>
           <Row
+            title="Mostrar sesiones restantes al añadir o editar sesiones"
+            description="Saldo del bono debajo del cliente seleccionado."
+          >
+            <Switch
+              aria-label="Mostrar sesiones restantes al añadir o editar sesiones"
+              checked={cfg.mostrarSesionesRestantesEnSesion}
+              onCheckedChange={(v) => update("mostrarSesionesRestantesEnSesion", v)}
+            />
+          </Row>
+          <Row
             title="Mostrar abreviatura del servicio en sesiones"
             description="Añade delante del nombre del cliente (o del número de personas) una abreviatura de dos letras del servicio, por ejemplo “EP · Álvaro González”. La abreviatura se puede personalizar en cada servicio."
           >

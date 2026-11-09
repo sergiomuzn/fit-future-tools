@@ -22,3 +22,4 @@
 - Session menus use the shared pending-confirmation policy and explicit self-booking origin, not confirmation status, to control marking a booking pending.
 - Expandable searches reset after an outside click finishes, never on input blur, so filtered result actions keep their original target.
 - Use opt-in `enterToSave` for editable dialogs; pickers consume selection Enter first, nested dialogs own their events, and destructive actions remain explicit.
+- Session client balances use an opt-in ClientPicker display and the shared current-bono policy/cache keys; keep the centre behavior setting separate from booking and accounting mutations.
