@@ -28,7 +28,7 @@ import {
 import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
-import { canMarkSessionPending } from "./online-booking";
+import { canMarkSessionPending, isSelfBooking } from "./online-booking";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -135,9 +135,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     ? (groupMembersData as any[])
     : session?.id
       ? [session as any]
-      : []) as Array<{ id: string; por_confirmar?: boolean | null; booked_by_user_id?: string | null }>;
+      : []) as Array<{ id: string; client_id?: string | null; por_confirmar?: boolean | null; booked_by_user_id?: string | null; booking_tipo?: string | null; estado?: string }>;
+  // Solo las reservas online pendientes: si el centro marcó "por confirmar"
+  // a mano, eliminar no muestra el cuadro de denegación.
   const pendientesIds = filasReserva
-    .filter((r) => r?.por_confirmar && r?.booked_by_user_id)
+    .filter((r) => r?.por_confirmar && isSelfBooking(r as any))
     .map((r) => r.id);
   const reservasPortalIds = filasReserva
     .filter((r) => r?.booked_by_user_id)

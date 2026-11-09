@@ -4,7 +4,7 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
-import { hasOnlineBookingDistinction } from "./online-booking";
+import { hasOnlineBookingDistinction, isSelfBooking } from "./online-booking";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
@@ -997,15 +997,17 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   async function deletePanelSession(ps: Session) {
     const ids = blockIds(ps.id);
     const portalIds = sessions.filter((row) => ids.includes(row.id) && isPortalRow(row)).map((row) => row.id);
+    // El aviso de denegación solo aplica a reservas online pendientes; si el
+    // centro marcó la sesión como "por confirmar" se elimina sin ese cuadro.
+    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isSelfBooking(row)).map((row) => row.id);
     const ok = await confirmPanel({
-      title: ps.por_confirmar ? "¿Eliminar una sesión pendiente de confirmar?" : "¿Eliminar sesión?",
-      description: ps.por_confirmar
+      title: pendingIds.length ? "¿Eliminar una sesión pendiente de confirmar?" : "¿Eliminar sesión?",
+      description: pendingIds.length
         ? "Si eliminas esta sesión, se denegará la reserva pendiente y el cliente recibirá un aviso."
         : "La sesión se eliminará de la agenda.",
       confirmText: "Eliminar",
     });
     if (!ok) return;
-    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     if (pendingIds.length) {
       await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
     } else if (portalIds.length) {
