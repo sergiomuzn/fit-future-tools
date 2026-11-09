@@ -1,0 +1,15 @@
+import { test } from "node:test";
+import { strictEqual } from "node:assert";
+import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "./session-state";
+const now = new Date("2026-11-09T12:00:00").getTime();
+const row = { id: "one", client_id: "a", estado: "reservada" as const, fecha: "2026-11-09", hora_inicio: "10:00:00", hora_fin: "11:00:00", por_confirmar: false, slot_instance_id: null, recurrencia_id: null, ocupacion: 1 };
+test("future sessions are reserved", () => strictEqual(automaticSessionState(row.fecha, "13:00:00", 15, false, now), "reservada"));
+test("past sessions are performed after existing grace", () => strictEqual(automaticSessionState(row.fecha, row.hora_fin, 15, false, now), "realizada"));
+test("grace is respected", () => strictEqual(automaticSessionState(row.fecha, "11:50:00", 15, false, now), "reservada"));
+test("pending remains reserved", () => strictEqual(automaticSessionState(row.fecha, row.hora_fin, 15, true, now), "reservada"));
+test("one attended client keeps mixed block performed", () => strictEqual(sessionBlockSummary([{ ...row, estado: "cancelada" }, row], 15, now).estado, "realizada"));
+test("only cancellations makes block cancelled", () => strictEqual(sessionBlockSummary([{ ...row, estado: "cancelada" }], 15, now).estado, "cancelada"));
+test("mixed block counts cancellations independently", () => strictEqual(sessionBlockSummary([row, { ...row, client_id: "b", estado: "cancelada" }], 15, now).cancelled.length, 1));
+test("empty placeholder does not override cancellations", () => strictEqual(sessionBlockSummary([{ ...row, client_id: null }, { ...row, estado: "cancelada" }], 15, now).estado, "cancelada"));
+test("manual coincident sessions keep separate identities", () => strictEqual(sessionBlockKey(row) === sessionBlockKey({ ...row, id: "two" }), false));
+test("same slot clients share identity", () => strictEqual(sessionBlockKey({ ...row, slot_instance_id: "slot" }) === sessionBlockKey({ ...row, id: "two", slot_instance_id: "slot" }), true));
