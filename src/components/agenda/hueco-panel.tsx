@@ -31,6 +31,7 @@ import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notif
 import { sessionQueueKey } from "./online-booking";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { cancelDraftClient, type DraftCancellation } from "@/lib/session-draft-clients";
+import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -207,7 +208,7 @@ export function HuecoPanel({
 
   const capacidad = Math.max(1, servicios.find((service) => service.slug === servicioSlug)?.capacidad_default ?? inst?.capacidad ?? 1);
   const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
-  const libres = Math.max(0, capacidad - reservasVisibles.length - selectedNewCount);
+  const places = sessionPlaces(capacidad, reservedSessionPlaces(reservasVisibles) + selectedNewCount);
   useEffect(() => {
     // Conserva las selecciones en curso y recorta primero los buscadores vacíos.
     setPickerValues((old) => {
@@ -449,7 +450,7 @@ export function HuecoPanel({
                   ) : <span className="truncate">{servicioNombre}</span>}
                 </DialogTitle>
                 <span className="shrink-0 text-sm font-normal text-primary-foreground/65">
-                  ({reservasVisibles.length + selectedNewCount}/{libres})
+                  ({places.label})
                 </span>
               </div>
 

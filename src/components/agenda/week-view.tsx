@@ -1,4 +1,5 @@
 import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
+import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
@@ -238,8 +239,9 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
                       : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
                         (session.client_id ? [clientMap.get(session.client_id)?.nombre ?? "?"] : []));
-                    const ocupados = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin).active.length;
+                    const ocupados = reservedSessionPlaces(agendaBlockMembers(session, sessions));
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
+                    const places = sessionPlaces(plazas, ocupados);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
@@ -257,7 +259,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) && "agenda-online-booking",
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
-                        title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
+                        title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${places.label})`}
                       >
                         {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 rounded-sm bg-background px-1 font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
@@ -265,7 +267,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           <div className="flex items-center gap-1 min-w-0">
                             {abrev && <span className="shrink-0 font-semibold">{abrev}</span>}
                             {abrev && <span className="shrink-0">·</span>}
-                            <span className="truncate">{name.toUpperCase()} ({ocupados}/{plazas})</span>
+                            <span className="truncate">{name.toUpperCase()} ({places.label})</span>
                           </div>
                         )}
                         {trainer && height > 34 && <div className="truncate opacity-90">{trainer.iniciales}</div>}
