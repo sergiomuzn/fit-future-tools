@@ -1255,7 +1255,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
               const isUltraCompact = height <= 20;
               const isCompact = height <= 36;
-              const isCanceladaNC = session.estado === "cancelada" && (session as any).no_contabilizar;
+              const isCanceladaNC = summary.estado === "cancelada" && summary.cancelled.every((row) => row.no_contabilizar);
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
               const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
               const blockBookings = session.slot_instance_id
@@ -1272,7 +1272,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
                     fill
                       ? "text-white"
-                      : isGroup
+                      : isGroup && estadoForColor !== "cancelada"
                         ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                         : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",

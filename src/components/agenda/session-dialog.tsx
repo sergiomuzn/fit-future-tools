@@ -2,6 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
+import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { clientCancellationFields } from "@/lib/session-state";
+import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
 import { refreshAgenda } from "@/lib/agenda-session-cache";
 import { Button } from "@/components/ui/button";
@@ -68,6 +72,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [noContabilizar, setNoContabilizar] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
+  const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const notasRef = useRef<HTMLTextAreaElement>(null);
@@ -180,7 +185,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   useEffect(() => {
     if (!open) return;
-    setClientId(session?.client_id ?? null);
+    setCancelledIds([]);
+    setClientId(session?.estado === "cancelada" ? null : session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
     setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
     setIncidencia(session?.incidencia ?? "");
@@ -234,13 +240,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     if (!groupMembersData) return;
     const ids = groupMembersData
-      .filter((m) => m.estado !== "cancelada")
+      .filter((m) => m.estado !== "cancelada" && !cancelledIds.includes(m.id))
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
     const padded: (string | null)[] = [...ids];
     while (padded.length < plazas) padded.push(null);
     setGroupClientIds(padded.slice(0, Math.max(plazas, ids.length)));
-  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, plazas]);
+  }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData, plazas, cancelledIds]);
 
 
   /**
@@ -292,6 +298,30 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       (r) => sharedDiffers(r) || (r.client_id ?? null) !== (clientId ?? null),
     );
   }
+
+  async function cancelarCliente(row: Session) {
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cancelar reserva" }))) return;
+    if (row.por_confirmar) {
+      const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", row.id);
+      if (error) return toast.error(error.message);
+    }
+    const { data, error } = await supabase.from("sessions").update(clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar)).eq("id", row.id).select("*").single();
+    if (error) return toast.error(error.message);
+    commitAgendaRows(qc, [data]);
+    setCancelledIds((old) => [...old, row.id]);
+    if (row.client_id === clientId) setClientId(null);
+    void notificarReservasCanceladas({ data: { sessionIds: [row.id] } }).then((r) => {
+      if (r?.claves?.length) return import("@/lib/notificaciones.functions").then(({ ofrecerPlazasLiberadas }) => ofrecerPlazasLiberadas({ data: { claves: r.claves } }));
+    }).catch(() => {});
+    refreshAgenda(qc);
+    for (const key of ["group-members", "sessions-past", "client_bonos", "client-bonos", "bonos"]) void qc.invalidateQueries({ queryKey: [key] });
+  }
+  function clientMenu(row: Session | undefined, remove: () => void) {
+    if (!row || row.estado === "cancelada" || cancelledIds.includes(row.id)) return null;
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => void cancelarCliente(row)}><Ban />Cancelar reserva</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+  }
+  const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
+  const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
 
   function requestSave() {
     if (isSeries && futureWouldChange()) {
@@ -459,7 +489,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (grupo && recurrenciaId) {
         // ---- Sincronizar miembros del grupo para esta fecha ----
         const desiredIds = groupClientIds.filter((id): id is string => !!id);
-        const existing = (groupMembersData ?? []).filter((m) => m.estado !== "cancelada");
+        const existing = (groupMembersData ?? []).filter((m) => m.estado !== "cancelada" && !cancelledIds.includes(m.id));
         const existingWithClient = existing.filter((m) => !!m.client_id);
         const existingIds = new Set(existingWithClient.map((m) => m.client_id as string));
         const desiredSet = new Set(desiredIds);
@@ -632,7 +662,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       } else {
         // Sesión individual.
-        const payload = { ...base, estado: session.estado === "cancelada" ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: session.estado === "cancelada" ? !!session.no_contabilizar : false, client_id: clientId };
+        const payload = { ...base, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: session.estado === "cancelada" ? !!session.no_contabilizar : false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
         if (scope === "future" && recurrenciaId) {
           // Aplicar a todas las sesiones futuras de la serie (misma serie, fecha >= actual).
           // Excluimos "fecha" del payload para no colapsar todas al mismo día.
@@ -870,11 +900,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
+                  {clientMenu((groupMembersData ?? []).find((row) => row.client_id === cid), () => setGroupClientIds((old) => old.map((id, index) => index === i ? null : id)))}
                 </div>
               ))}
               </div>
             ) : (
-              <>
+              <div className="flex items-start gap-2"><div className="min-w-0 flex-1">
                 <ClientPicker
                   value={clientId}
                   showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
@@ -883,12 +914,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   initialText={nombreLibre}
                   onTextChange={(t) => setNombreLibre(t)}
                   onNameClick={(c) => setPerfilCliente(c)}
-                />
-              </>
+                /></div>{clientMenu(session?.id ? session as Session : undefined, () => setClientId(null))}
+              </div>
             )}
           </div>
 
 
+          {cancelledRows.length > 0 && <div className="space-y-2"><Label>Cancelados ({cancelledRows.length})</Label>{cancelledRows.map((row) => <div key={row.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={!!row.no_contabilizar} onCheckedChange={async (v) => { const { data, error } = await supabase.from("sessions").update({ no_contabilizar: !!v }).eq("id", row.id).select("*").single(); if (error) return toast.error(error.message); commitAgendaRows(qc, [data]); void qc.invalidateQueries({ queryKey: ["group-members"] }); void qc.invalidateQueries({ queryKey: ["client_bonos"] }); void qc.invalidateQueries({ queryKey: ["sessions-past"] }); }} />No contabilizar</label></div>)}</div>}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />

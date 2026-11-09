@@ -253,7 +253,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
-                          fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(session)],
+                          fill ? "text-white" : isGroup && blockColor !== "cancelada" ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[blockColor],
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) && "agenda-online-booking",
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
