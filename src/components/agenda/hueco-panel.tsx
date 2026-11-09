@@ -30,6 +30,7 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
 import { sessionQueueKey } from "./online-booking";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
+import { cancelDraftClient, type DraftCancellation } from "@/lib/session-draft-clients";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -53,6 +54,7 @@ export interface HuecoPanelDraft {
   repeatWeeks: number;
   notas: string;
   clientIds: string[];
+  cancelledClients: DraftCancellation[];
   /** Valores de "No contabilizar" marcados antes de guardar (id de sesión → valor). */
   noContabilizar: Record<string, boolean>;
 }
@@ -126,6 +128,7 @@ export function HuecoPanel({
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [notas, setNotas] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
+  const [draftCancelled, setDraftCancelled] = useState<DraftCancellation[]>([]);
   const [noContLocal, setNoContLocal] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [servicioSlug, setServicioSlug] = useState("");
@@ -166,6 +169,7 @@ export function HuecoPanel({
     setNotas(notasIniciales ?? "");
     setServicioSlug(inst.servicio_slug);
     setPickerValues([]);
+    setDraftCancelled([]);
     setNoContLocal({});
     setRemovedIds([]);
     setPendientes([]);
@@ -360,7 +364,7 @@ export function HuecoPanel({
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = {
     reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
-    cancelados: extra?.cancelados ?? [],
+    cancelados: [...(isNew ? [] : extra?.cancelados ?? []), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? "Cliente", noContabilizar: c.noContabilizar }))],
   };
 
   async function cancelarSeleccion(clientId: string, row: number) {
@@ -373,7 +377,24 @@ export function HuecoPanel({
       if (data) await pedirCancelacion(data as unknown as PanelReserva);
       return;
     }
-    setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
+    const result = cancelDraftClient(pickerValues, draftCancelled, clientId, porConfirmar, behavior.cancelacionDefaultNoContabilizar);
+    setPickerValues(result.selected);
+    setDraftCancelled(result.cancelled);
+    setTab("cancelados");
+  }
+
+  async function quitarSeleccion(clientId: string, row: number) {
+    if (isNew) {
+      setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
+      return;
+    }
+    // A click immediately after selection must also remove an in-flight add.
+    await colaAltas.current;
+    const ids = [...grupoRef.current.ids];
+    if (!ids.length) return;
+    const { data, error } = await supabase.from("sessions").select("*,clients(nombre)").in("id", ids).eq("client_id", clientId).neq("estado", "cancelada").limit(1).maybeSingle();
+    if (error) { toast.error(error.message); return; }
+    if (data) await quitarCliente(data as unknown as PanelReserva);
   }
 
   async function guardar() {
@@ -384,7 +405,7 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), noContabilizar: noContLocal });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, noContabilizar: noContLocal });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
@@ -482,7 +503,7 @@ export function HuecoPanel({
               <div className="grid grid-cols-3 border-b">
                 {(["reservados", "cola", "cancelados"] as Pestana[]).map((key) => {
                   const label = key === "reservados" ? "Reservados" : key === "cola" ? "En cola" : "Cancelados";
-                  const count = listas[key].length;
+                  const count = listas[key].length + (key === "reservados" ? selectedNewCount : 0);
                   // El contador se rellena de color solo cuando hay clientes: en cola
                   // (ámbar) y cancelados (el color configurado para cancelaciones).
                   // Reservados mantiene siempre su apariencia neutra.
@@ -530,7 +551,10 @@ export function HuecoPanel({
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
                           checked={!!item.noContabilizar}
-                          onCheckedChange={(value) => toggleNoContabilizar.mutate({ id: item.id, value: !!value })}
+                          onCheckedChange={(value) => {
+                            if (draftCancelled.some((c) => c.id === item.id)) setDraftCancelled((old) => old.map((c) => c.id === item.id ? { ...c, noContabilizar: !!value } : c));
+                            else toggleNoContabilizar.mutate({ id: item.id, value: !!value });
+                          }}
                         />
                         No contabilizar
                       </label>
@@ -553,7 +577,7 @@ export function HuecoPanel({
                     {value && <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setPickerValues((old) => old.map((id, index) => index === row ? null : id))}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => void quitarSeleccion(value, row)}><UserMinus />Quitar cliente</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onSelect={() => void cancelarSeleccion(value, row)}><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>}
