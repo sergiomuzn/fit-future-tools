@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { draftSessionMembers } from "@/lib/session-draft-clients";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
 import { visibleAgendaSessions } from "./session-visibility";
@@ -859,9 +860,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     if (!ps.id) {
       const capacity = Math.max(1, servicioCapMap.get(draft.servicioSlug) ?? 1);
       const selected = draft.clientIds.slice(0, capacity);
-      const clientIds: (string | null)[] = selected.length ? selected : [null];
-      const recurrenciaId = draft.repeatWeeks > 0 || capacity > 1 ? crypto.randomUUID() : null;
-      const inserts = Array.from({ length: draft.repeatWeeks + 1 }, (_, week) => clientIds.map((clientId) => {
+      const members = draftSessionMembers(selected, draft.cancelledClients);
+      const grouped = capacity > 1 || members.length > 1;
+      const recurrenciaId = draft.repeatWeeks > 0 || grouped ? crypto.randomUUID() : null;
+      const inserts = Array.from({ length: draft.repeatWeeks + 1 }, (_, week) => (week === 0 ? members : draftSessionMembers(selected, [])).map(({ clientId, cancellation }) => {
         const fecha = new Date(`${ps.fecha}T00:00:00`);
         fecha.setDate(fecha.getDate() + week * 7);
         return {
@@ -871,11 +873,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           trainer_id: week === 0 ? draft.trainerId : null,
           servicio_slug: draft.servicioSlug,
           client_id: clientId,
-          estado: automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
+          estado: cancellation ? "cancelada" : automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
           tipo: draft.esPrueba ? "prueba" : null,
-          por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+          por_confirmar: !cancellation && draft.estado === "reservada" && draft.porConfirmar,
+          no_contabilizar: cancellation?.noContabilizar ?? false,
           incidencia: draft.notas || null,
-          ocupacion: capacity > 1 ? 2 : 1,
+          ocupacion: grouped ? 2 : 1,
           recurrencia_id: recurrenciaId,
         };
       })).flat();
@@ -883,7 +886,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       const { data: created, error } = await supabase.from("sessions").insert(inserts as any).select("*");
       if (error) return toast.error(error.message), false;
       commitAgendaRows(qc, (created ?? []) as Session[]);
-      const assigned = inserts.filter((row) => !!row.client_id).map((row) => ({ clientId: row.client_id as string, fecha: row.fecha, hora: row.hora_inicio }));
+      const assigned = inserts.filter((row) => !!row.client_id && row.estado !== "cancelada").map((row) => ({ clientId: row.client_id as string, fecha: row.fecha, hora: row.hora_inicio }));
       if (assigned.length) void import("@/lib/notificaciones.functions").then(({ notificarSesionesAsignadas }) => notificarSesionesAsignadas({ data: { sesiones: assigned.slice(0, 100) } })).catch(() => {});
       refreshAgenda(qc);
       toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
