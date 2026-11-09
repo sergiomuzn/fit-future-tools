@@ -404,8 +404,8 @@ export function HuecoPanel({
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
             <div className="relative shrink-0 bg-primary px-6 pb-5 pt-5 text-primary-foreground">
-              <div className="mb-4 flex min-w-0 items-center justify-between gap-3 pr-7">
-                <DialogTitle className="flex min-w-0 flex-1 items-center gap-2.5 text-lg">
+              <div className="mb-4 flex min-w-0 items-center gap-3 pr-7">
+                <DialogTitle className="flex min-w-0 items-center gap-2.5 text-lg">
                   <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
                   {servicios.length > 0 ? (
                     <Select value={servicioSlug} onValueChange={setServicioSlug}>
@@ -419,10 +419,11 @@ export function HuecoPanel({
                 </span>
               </div>
 
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-1.5 text-sm font-medium">
                   <span className="whitespace-nowrap text-primary-foreground/85">{fechaDia.charAt(0).toUpperCase() + fechaDia.slice(1)}. {formatDateShort(inst.fecha)}</span>
                   <span className="mx-0.5 text-primary-foreground/40">·</span>
+                  <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center gap-1">
                     <Input
                       aria-label="Hora de inicio"
@@ -440,22 +441,22 @@ export function HuecoPanel({
                       className="h-7 w-[3.6rem] border-0 bg-transparent px-1 [&::-webkit-calendar-picker-indicator]:hidden text-center text-sm font-semibold text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
                     />
                   </div>
+                  <Select value={trainerId ?? NONE} onValueChange={(v) => setTrainerId(v === NONE ? null : v)}>
+                    <SelectTrigger className="h-8 w-auto max-w-36 rounded-full border-primary-foreground/20 bg-primary-foreground/10 px-2 text-xs text-primary-foreground shadow-none focus:ring-0">
+                      <SelectValue placeholder="Sin entrenador" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={NONE}>Sin entrenador</SelectItem>
+                      {activeTrainerOptions(trainers).map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                  </div>
                 </div>
               </div>
 
               <FueraHorarioAviso show={isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap)} />
 
               <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
-                <Select value={trainerId ?? NONE} onValueChange={(v) => setTrainerId(v === NONE ? null : v)}>
-                  <SelectTrigger className="h-8 w-auto max-w-56 rounded-full border-primary-foreground/20 bg-primary-foreground/10 px-3 text-xs text-primary-foreground shadow-none focus:ring-0">
-                    <SelectValue placeholder="Sin entrenador" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NONE}>Sin entrenador</SelectItem>
-                    {activeTrainerOptions(trainers).map((t) => <SelectItem key={t.id} value={t.id}>{t.nombre}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-
                 <div className="flex items-center gap-1.5">
                 <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
                 <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold uppercase text-primary-foreground/75">Sesión de prueba</Label>
