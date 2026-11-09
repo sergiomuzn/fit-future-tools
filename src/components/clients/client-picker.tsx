@@ -10,6 +10,7 @@ import { supabase, type Client } from "@/lib/db";
 import { toast } from "sonner";
 import { normalizeText, formatNameTitle, rankByMatch } from "@/lib/utils";
 import { enterToSave } from "@/lib/enter-to-save";
+import { SessionClientBalance } from "./session-client-balance";
 
 interface Props {
   value: string | null;
@@ -21,9 +22,10 @@ interface Props {
   initialText?: string;
   /** Si se pasa, el nombre del cliente seleccionado se muestra como enlace clicable. */
   onNameClick?: (client: Client) => void;
+  showRemainingSessions?: boolean;
 }
 
-export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick }: Props) {
+export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick, showRemainingSessions = false }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -206,6 +208,8 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
         </div>
         )}
       </div>
+
+      {showRemainingSessions && selected && <SessionClientBalance clientId={selected.id} />}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onKeyDown={enterToSave(saveNew)}>

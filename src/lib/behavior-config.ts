@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { DEFAULT_SHOW_SESSION_CLIENT_BALANCE } from "./session-client-balance";
 
 /**
  * Cómo cuentan las sesiones canceladas como entrenamiento realizado
@@ -29,6 +30,7 @@ export type BehaviorConfig = {
   /** Mostrar la abreviatura del servicio delante del nombre en los bloques de la agenda */
   mostrarAbreviaturaServicio: boolean;
   distinguirReservasOnline: boolean;
+  mostrarSesionesRestantesEnSesion: boolean;
 };
 
 export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
@@ -45,6 +47,7 @@ export const DEFAULT_BEHAVIOR_CONFIG: BehaviorConfig = {
   ocultarBonosInactivosAgotados: true,
   mostrarAbreviaturaServicio: false,
   distinguirReservasOnline: false,
+  mostrarSesionesRestantesEnSesion: DEFAULT_SHOW_SESSION_CLIENT_BALANCE,
 };
 
 /**
@@ -87,6 +90,7 @@ export function parseBehaviorConfig(value: unknown): BehaviorConfig {
     ),
     mostrarAbreviaturaServicio: bool(o.mostrarAbreviaturaServicio, d.mostrarAbreviaturaServicio),
     distinguirReservasOnline: bool(o.distinguirReservasOnline, d.distinguirReservasOnline),
+    mostrarSesionesRestantesEnSesion: bool(o.mostrarSesionesRestantesEnSesion, d.mostrarSesionesRestantesEnSesion),
   };
 }
 
