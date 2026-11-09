@@ -302,7 +302,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   }
 
   async function cancelarCliente(row: Session) {
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cancelar reserva" }))) return;
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela" }))) return;
     if (row.por_confirmar) {
       const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", row.id);
       if (error) return toast.error(error.message);
@@ -325,7 +325,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       remove();
-    }}><Ban />Cancelar reserva</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+    }}><Ban />Cliente Cancela</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
   }
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
   const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).map((row) => cancelledOverrides.find((r) => r.id === row.id) ?? row).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
