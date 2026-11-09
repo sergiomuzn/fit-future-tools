@@ -1,11 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type ClientBono } from "@/lib/db";
-import { sessionClientBalance } from "@/lib/session-client-balance";
+import { sessionClientBalance, showSessionBalanceForService } from "@/lib/session-client-balance";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 
 /** Mounted only for an opted-in session picker with a selected client. */
 export function SessionClientBalance({ clientId, servicioSlug }: { clientId: string; servicioSlug: string }) {
+  const behavior = useBehaviorConfig();
+  const enabled = showSessionBalanceForService(behavior.mostrarSesionesRestantesEnSesion, behavior.sesionesRestantesServicios, servicioSlug);
   const { data: bonos, isError: bonosError } = useQuery({
     queryKey: ["client_bonos"],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase.from("client_bonos").select("*");
       if (error) throw error;
@@ -14,13 +18,14 @@ export function SessionClientBalance({ clientId, servicioSlug }: { clientId: str
   });
   const { data: catalogo, isError: catalogoError } = useQuery({
     queryKey: ["bonos_catalogo"],
+    enabled,
     queryFn: async () => {
       const { data, error } = await supabase.from("bonos_catalogo").select("*").order("orden");
       if (error) throw error;
       return data ?? [];
     },
   });
-  if (bonosError || catalogoError || !bonos || !catalogo) return null;
+  if (!enabled || bonosError || catalogoError || !bonos || !catalogo) return null;
   const balance = sessionClientBalance(true, clientId, bonos, catalogo, servicioSlug);
   if (balance === null) return null;
   return (
