@@ -12,6 +12,14 @@ import { Badge } from "@/components/ui/badge";
 import { formatDateShort } from "@/lib/utils";
 
 export const Route = createFileRoute("/superadmin/centro/$centroId")({
+  head: () => ({ meta: [
+    { title: "Detalle del centro · TRACLI" },
+    { name: "description", content: "Consulta los usuarios y la actividad del centro en TRACLI." },
+    { property: "og:title", content: "Detalle del centro · TRACLI" },
+    { property: "og:description", content: "Consulta los usuarios y la actividad del centro en TRACLI." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   ssr: false,
   component: CentroDetalle,
 });

@@ -15,6 +15,14 @@ import { ServicioDialog } from "@/components/servicios/servicio-dialog";
 import { useUnsavedChanges } from "@/lib/unsaved-changes";
 
 export const Route = createFileRoute("/_shell/grupos")({
+  head: () => ({ meta: [
+    { title: "Servicios · TRACLI" },
+    { name: "description", content: "Gestiona servicios, bonos y horarios de reserva del centro." },
+    { property: "og:title", content: "Servicios · TRACLI" },
+    { property: "og:description", content: "Gestiona servicios, bonos y horarios de reserva del centro." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: ServiciosPage,
 });
 

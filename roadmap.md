@@ -1,9 +1,9 @@
 # Tareas
 
-- [ ] Eliminar selección manual de estado; calcular Reservada/Realizada por fecha y margen existente.
-- [ ] Añadir menú por cliente para quitar sin contabilizar o cancelar solo su reserva; conservar No contabilizar individual.
-- [ ] Mostrar estado agregado y número rojo de cancelaciones en Agenda e historial, preservando sesiones independientes.
-- [ ] Verificar reglas con pruebas y flujo real en pantalla.
+- [x] Eliminar selección manual de estado; calcular Reservada/Realizada por fecha y margen existente.
+- [x] Añadir menú por cliente para quitar sin contabilizar o cancelar solo su reserva; conservar No contabilizar individual.
+- [x] Mostrar estado agregado y número rojo de cancelaciones en Agenda e historial, preservando sesiones independientes.
+- [x] Verificar reglas: 57 pruebas correctas y cancelación real individual, cambio de No contabilizar y cancelación del último cliente verificados; datos temporales eliminados.
 
 - [x] Reducir el lapso al añadir, editar y eliminar sesiones: cierre sin esperar recargas de menús, actualización de Agenda por ID y refresco de vistas diaria/semanal; 13 pruebas correctas y creación, edición y borrado real de una sesión temporal vacía verificados (eliminada después), sin tocar reservas existentes.
 

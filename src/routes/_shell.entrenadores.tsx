@@ -16,6 +16,14 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { useBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
+  head: () => ({ meta: [
+    { title: "Entrenadores · TRACLI" },
+    { name: "description", content: "Gestiona el equipo y la actividad de entrenamiento de tu centro." },
+    { property: "og:title", content: "Entrenadores · TRACLI" },
+    { property: "og:description", content: "Gestiona el equipo y la actividad de entrenamiento de tu centro." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   component: EntrenadoresPage,
 });
 

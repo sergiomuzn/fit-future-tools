@@ -9,6 +9,14 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export const Route = createFileRoute("/reset-password")({
+  head: () => ({ meta: [
+    { title: "Nueva contraseña · TRACLI" },
+    { name: "description", content: "Restablece la contraseña de tu cuenta de TRACLI." },
+    { property: "og:title", content: "Nueva contraseña · TRACLI" },
+    { property: "og:description", content: "Restablece la contraseña de tu cuenta de TRACLI." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
   ssr: false,
   component: ResetPasswordPage,
 });
