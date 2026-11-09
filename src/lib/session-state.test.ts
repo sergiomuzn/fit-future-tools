@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { strictEqual } from "node:assert";
-import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "./session-state";
+import { automaticSessionState, sessionBlockSummary, sessionBlockKey, clientCancellationFields } from "./session-state";
 const now = new Date("2026-11-09T12:00:00").getTime();
 const row = { id: "one", client_id: "a", estado: "reservada" as const, fecha: "2026-11-09", hora_inicio: "10:00:00", hora_fin: "11:00:00", por_confirmar: false, slot_instance_id: null, recurrencia_id: null, ocupacion: 1 };
 test("future sessions are reserved", () => strictEqual(automaticSessionState(row.fecha, "13:00:00", 15, false, now), "reservada"));
@@ -13,3 +13,6 @@ test("mixed block counts cancellations independently", () => strictEqual(session
 test("empty placeholder does not override cancellations", () => strictEqual(sessionBlockSummary([{ ...row, client_id: null }, { ...row, estado: "cancelada" }], 15, now).estado, "cancelada"));
 test("manual coincident sessions keep separate identities", () => strictEqual(sessionBlockKey(row) === sessionBlockKey({ ...row, id: "two" }), false));
 test("same slot clients share identity", () => strictEqual(sessionBlockKey({ ...row, slot_instance_id: "slot" }) === sessionBlockKey({ ...row, id: "two", slot_instance_id: "slot" }), true));
+test("pending cancellations cannot charge a session", () => strictEqual(clientCancellationFields(true, false).no_contabilizar, true));
+test("normal cancellation follows centre accounting default", () => strictEqual(clientCancellationFields(false, false).no_contabilizar, false));
+test("no-count default is retained per client", () => strictEqual(clientCancellationFields(false, true).no_contabilizar, true));

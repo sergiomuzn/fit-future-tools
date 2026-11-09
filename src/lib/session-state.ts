@@ -5,6 +5,10 @@ export function automaticSessionState(fecha: string, horaFin: string, graceMin: 
   return !pending && new Date(`${fecha}T${horaFin}`).getTime() + Math.max(0, graceMin) * 60000 < now ? "realizada" : "reservada";
 }
 
+export function clientCancellationFields(pending: boolean, defaultNoCount: boolean) {
+  return { estado: "cancelada" as const, por_confirmar: false, no_contabilizar: pending || defaultNoCount };
+}
+
 export function sessionBlockSummary<T extends Pick<Session, "estado" | "client_id" | "fecha" | "hora_fin" | "por_confirmar">>(rows: T[], graceMin: number, now = Date.now()) {
   const active = rows.filter((r) => r.estado !== "cancelada" && !!r.client_id);
   const cancelled = rows.filter((r) => r.estado === "cancelada" && !!r.client_id);
