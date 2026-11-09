@@ -28,7 +28,7 @@ import {
 import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
-import { canMarkSessionPending } from "./online-booking";
+import { canMarkSessionPending, isSelfBooking } from "./online-booking";
 import {
   AlertDialog,
   AlertDialogContent,
