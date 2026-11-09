@@ -459,7 +459,7 @@ export function HuecoPanel({
               <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
                 <div className="flex items-center gap-1.5">
                 <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
-                <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">sesión de prueba</Label>
+                <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">Sesion de Prueba</Label>
                 </div>
               </div>
             </div>
