@@ -19,7 +19,8 @@ export function hasOnlineBookingDistinction(enabled: boolean, bookings: Booking[
 }
 
 export function hideCancelledSelfBooking(session: Booking, capacity: number, hasQueue: boolean): boolean {
-  return session.estado === "cancelada" && capacity === 1 && isSelfBooking(session) && !hasQueue;
+  // Client cancellations remain accessible, even if they were the last place.
+  return false;
 }
 
 export function sessionQueueKey(session: {

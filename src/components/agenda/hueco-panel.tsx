@@ -24,7 +24,7 @@ import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canMarkSessionPending } from "./online-booking";
 import { enterToSave } from "@/lib/enter-to-save";
-import { automaticSessionState } from "@/lib/session-state";
+import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
 import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
@@ -338,7 +338,7 @@ export function HuecoPanel({
         const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", reserva.id);
         if (error) throw error;
       }
-      const { data, error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: original.por_confirmar || behavior.cancelacionDefaultNoContabilizar }).eq("id", reserva.id).select("*").single();
+      const { data, error } = await supabase.from("sessions").update(clientCancellationFields(original.por_confirmar, behavior.cancelacionDefaultNoContabilizar)).eq("id", reserva.id).select("*").single();
       if (error) throw error;
       commitAgendaRows(qc, [data]);
       setRemovedIds((old) => [...old, reserva.id]);
