@@ -403,13 +403,6 @@ export function BehaviorForm() {
           {cfg.mostrarSesionesRestantesEnSesion && (
             <div className="space-y-3 border-b py-3">
               <Label className="text-sm font-medium">Servicios con sesiones restantes visibles</Label>
-              <label className="flex items-center gap-2 text-sm">
-                <Checkbox
-                  checked={cfg.sesionesRestantesServicios === null}
-                  onCheckedChange={(checked) => update("sesionesRestantesServicios", checked === true ? null : servicios.map((s) => s.slug))}
-                />
-                Todos los servicios
-              </label>
               {servicios.map((s) => (
                 <label key={s.slug} className="flex items-center gap-2 text-sm">
                   <Checkbox
