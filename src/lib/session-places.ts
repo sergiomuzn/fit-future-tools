@@ -6,5 +6,5 @@ export function reservedSessionPlaces(rows: readonly { client_id: string | null;
 export function sessionPlaces(capacity: number, reserved: number) {
   const total = Math.max(1, capacity);
   const available = Math.max(0, total - reserved);
-  return { reserved, available, total, label: `${reserved}/${available}` };
+  return { reserved, available, total, label: `${reserved}/${total}` };
 }
