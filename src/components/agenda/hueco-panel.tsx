@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X } from "lucide-react";
+import { X, MoreHorizontal, UserMinus, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,11 @@ import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canMarkSessionPending } from "./online-booking";
 import { enterToSave } from "@/lib/enter-to-save";
+import { automaticSessionState } from "@/lib/session-state";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { useConfirm } from "@/components/confirm-dialog";
+import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
+import { sessionQueueKey } from "./online-booking";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 
 type Pestana = "reservados" | "cola" | "cancelados";
@@ -80,7 +85,6 @@ interface Props {
 }
 
 const NONE = "__none";
-const EDITABLE_STATES: SesionEstado[] = ["reservada", "realizada", "cancelada"];
 const ESTADO_PILL: Record<SesionEstado, string> = {
   reservada: "border-state-reservada bg-state-reservada text-primary-foreground",
   realizada: "border-state-realizada bg-state-realizada text-primary-foreground",
@@ -121,9 +125,10 @@ export function HuecoPanel({
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [trainerId, setTrainerId] = useState<string | null>(null);
-  const [estado, setEstado] = useState<SesionEstado>("reservada");
   const [esPrueba, setEsPrueba] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
+  const estado = automaticSessionState(inst?.fecha ?? "", `${horaFin || finInst}:00`, behavior.graciaAutoRealizadaMin, porConfirmar);
+  const { confirm, dialog: cancelDialog } = useConfirm();
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [notas, setNotas] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
@@ -161,12 +166,6 @@ export function HuecoPanel({
     setHoraInicio(hhmm(inst.hora_inicio));
     setHoraFin(hhmm(inst.hora_fin));
     setTrainerId(inst.trainer_id);
-    {
-      const pasada = new Date(`${inst.fecha}T${hhmm(inst.hora_fin)}:00`).getTime() + graceMs < Date.now();
-      const base = estadoInicial ?? (pasada ? "realizada" : "reservada");
-      // Solo se ofrece reservada (futura) o realizada (pasado el margen).
-      setEstado(base === "realizada" && !pasada ? "reservada" : base === "reservada" && pasada ? "realizada" : base);
-    }
     setEsPrueba(esPruebaInicial);
     setPorConfirmar(porConfirmarInicial);
     setRepeatWeeks(0);
@@ -307,8 +306,9 @@ export function HuecoPanel({
   // bono y de las realizadas (lo resuelven los triggers de sesiones).
   const toggleNoContabilizar = useMutation({
     mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
-      const { error } = await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", id);
+      const { data, error } = await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", id).select("*").single();
       if (error) throw error;
+      commitAgendaRows(qc, [data]);
     },
     onMutate: ({ id, value }) => {
       qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => old ? {
@@ -319,26 +319,55 @@ export function HuecoPanel({
     onSettled: () => {
       qc.invalidateQueries({ queryKey: ["hueco-panel"] });
       qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["sessions-range"] });
+      qc.invalidateQueries({ queryKey: ["sessions-past"] });
+      qc.invalidateQueries({ queryKey: ["client_bonos"] });
       qc.invalidateQueries({ queryKey: ["client-bonos"] });
       qc.invalidateQueries({ queryKey: ["bonos"] });
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Al cambiar el estado a "cancelada", los clientes reservados pasan al
-  // instante a la pestaña Cancelados (y vuelven si se revierte el estado).
-  const cancelando = estado === "cancelada" && estadoInicial !== "cancelada";
-  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = useMemo(() => {
-    const filas = reservasAll.filter((r) => !removedIds.includes(r.id)).map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r }));
-    return {
-      reservados: cancelando ? [] : filas,
-      cola: extra?.cola ?? [],
-      cancelados: [...(extra?.cancelados ?? []), ...(cancelando ? filas : [])],
-    };
-  }, [reservasAll, extra, cancelando, removedIds]);
-
-  const sesionPasada = !!fechaInst && !!(horaFin || finInst) && new Date(`${fechaInst}T${horaFin || finInst}:00`).getTime() + graceMs < Date.now();
-  const estadosDisponibles = EDITABLE_STATES.filter((s) => s === "cancelada" || s === (sesionPasada ? "realizada" : "reservada") || s === estado);
+  const cancelarCliente = useMutation({
+    mutationFn: async (reserva: PanelReserva) => {
+      const { data: original, error: readError } = await supabase.from("sessions").select("*").eq("id", reserva.id).single();
+      if (readError) throw readError;
+      // Pending reservations never charge a session. Clear pending first to
+      // respect the existing database protection, retaining cancellation history.
+      if (original.por_confirmar) {
+        const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", reserva.id);
+        if (error) throw error;
+      }
+      const { data, error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: original.por_confirmar || behavior.cancelacionDefaultNoContabilizar }).eq("id", reserva.id).select("*").single();
+      if (error) throw error;
+      commitAgendaRows(qc, [data]);
+      setRemovedIds((old) => [...old, reserva.id]);
+      grupoRef.current.fillTarget = null;
+      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => ({
+        cola: old?.cola ?? [],
+        cancelados: [...(old?.cancelados ?? []).filter((r: any) => r.id !== reserva.id), { id: reserva.id, clientId: reserva.client_id, nombre: reserva.clients?.nombre ?? "Cliente", noContabilizar: data.no_contabilizar }],
+      }));
+      setTab("cancelados");
+      void notificarReservasCanceladas({ data: { sessionIds: [reserva.id] } }).then((result) => {
+        const clave = sessionQueueKey(original);
+        const claves = [...new Set([...(result?.claves ?? []), ...(clave ? [clave] : [])])];
+        if (claves.length) return ofrecerPlazasLiberadas({ data: { claves } });
+      }).catch(() => {});
+    },
+    onSuccess: () => {
+      for (const key of ["sessions", "sessions-range", "sessions-past", "client_bonos", "client-bonos", "bonos", "agenda-booking-details"]) void qc.invalidateQueries({ queryKey: [key] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  async function pedirCancelacion(reserva: PanelReserva) {
+    if (cancelarCliente.isPending) return;
+    if (await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cancelar reserva" })) cancelarCliente.mutate(reserva);
+  }
+  const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = {
+    reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
+    cola: extra?.cola ?? [],
+    cancelados: extra?.cancelados ?? [],
+  };
 
   async function guardar() {
     if (!inst || !onSave || saving || anadir.isPending) return;
@@ -363,7 +392,7 @@ export function HuecoPanel({
   // El punto de la cabecera siempre sigue el color del servicio elegido,
   // sea cual sea el estado de la sesión.
   const dotColor = servicioColorOf(colores, servicioSlug || null) ?? color;
-  const estadoVisual = esPrueba ? "prueba" : estado;
+  const estadoVisual = !reservasVisibles.length && !isNew && (extra?.cancelados.length ?? 0) > 0 && !(extra?.cola.length) ? "cancelada" : esPrueba ? "prueba" : estado;
   const fechaDia = inst
     ? new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(new Date(`${inst.fecha}T12:00:00`))
     : "";
@@ -399,7 +428,7 @@ export function HuecoPanel({
 
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-1.5 text-sm font-medium">
-                  <span className="whitespace-nowrap text-primary-foreground/85">{fechaDia.charAt(0).toUpperCase() + fechaDia.slice(1)}. {inst.fecha.split("-").reverse().join("/")}</span>
+                  <span className="whitespace-nowrap text-primary-foreground/85">{fechaDia.charAt(0).toUpperCase() + fechaDia.slice(1)}. {formatDateShort(inst.fecha)}</span>
                   <span className="mx-0.5 text-primary-foreground/40">·</span>
                   <div className="flex items-center gap-1">
                     <Input
@@ -419,12 +448,7 @@ export function HuecoPanel({
                     />
                   </div>
                 </div>
-                <Select value={estado} onValueChange={(value) => { const next = value as SesionEstado; setEstado(next); if (next === "cancelada" && reservas.length > 0) setTab("cancelados"); }}>
-                  <SelectTrigger className={cn("h-8 w-auto min-w-28 rounded-full px-3 text-xs font-semibold shadow-none focus:ring-0", ESTADO_PILL[estadoVisual])}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>{estadosDisponibles.map((item) => <SelectItem key={item} value={item}>{ESTADO_LABEL[item]}</SelectItem>)}</SelectContent>
-                </Select>
+                <span className={cn("inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold", ESTADO_PILL[estadoVisual])}>{ESTADO_LABEL[estadoVisual]}</span>
               </div>
 
               <FueraHorarioAviso show={isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap)} />
@@ -475,15 +499,22 @@ export function HuecoPanel({
 
               <div className="space-y-2">
                 {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
-                  <div key={item.id} className="min-w-0">
-                    <ClientPicker
+                  <div key={item.id} className="flex min-w-0 items-start gap-2">
+                    <div className="min-w-0 flex-1"><ClientPicker
                       value={item.reserva.client_id}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       onChange={(clientId) => {
                         if (!clientId) void quitarCliente(item.reserva as PanelReserva);
                       }}
                       onNameClick={(c) => setPerfilCliente(c)}
-                    />
+                    /></div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        <DropdownMenuItem disabled={cancelarCliente.isPending} onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive"><Ban />Cancelar reserva</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
@@ -491,13 +522,8 @@ export function HuecoPanel({
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
-                          checked={cancelando && item.reserva ? !!noContLocal[item.id] : !!item.noContabilizar}
-                          onCheckedChange={(value) => {
-                            // Si la cancelación aún no se ha guardado, la marca se
-                            // guarda localmente y se aplica al pulsar Guardar.
-                            if (cancelando && item.reserva) setNoContLocal((old) => ({ ...old, [item.id]: !!value }));
-                            else toggleNoContabilizar.mutate({ id: item.id, value: !!value });
-                          }}
+                          checked={!!item.noContabilizar}
+                          onCheckedChange={(value) => toggleNoContabilizar.mutate({ id: item.id, value: !!value })}
                         />
                         No contabilizar
                       </label>
@@ -572,6 +598,7 @@ export function HuecoPanel({
         )}
       </DialogContent>
     </Dialog>
+    {cancelDialog}
     <ClientDetailsDialog client={perfilCliente} defaultTab="calendario" onOpenChange={(o) => { if (!o) setPerfilCliente(null); }} />
     </>
   );
