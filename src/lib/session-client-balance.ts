@@ -1,5 +1,15 @@
 export const DEFAULT_SHOW_SESSION_CLIENT_BALANCE = false;
 
+/** null preserves unrestricted display for existing centre settings; [] selects none. */
+export function parseSessionBalanceServices(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+  return [...new Set(value.filter((slug): slug is string => typeof slug === "string" && slug.length > 0))];
+}
+
+export function showSessionBalanceForService(enabled: boolean, services: readonly string[] | null, servicioSlug: string): boolean {
+  return enabled && !!servicioSlug && (services === null || services.includes(servicioSlug));
+}
+
 type BonoBalance = {
   client_id: string;
   activo: boolean;

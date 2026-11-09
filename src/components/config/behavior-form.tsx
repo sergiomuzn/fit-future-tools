@@ -400,6 +400,32 @@ export function BehaviorForm() {
               onCheckedChange={(v) => update("mostrarSesionesRestantesEnSesion", v)}
             />
           </Row>
+          {cfg.mostrarSesionesRestantesEnSesion && (
+            <div className="space-y-3 border-b py-3">
+              <Label className="text-sm font-medium">Servicios con sesiones restantes visibles</Label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox
+                  checked={cfg.sesionesRestantesServicios === null}
+                  onCheckedChange={(checked) => update("sesionesRestantesServicios", checked === true ? null : servicios.map((s) => s.slug))}
+                />
+                Todos los servicios
+              </label>
+              {servicios.map((s) => (
+                <label key={s.slug} className="flex items-center gap-2 text-sm">
+                  <Checkbox
+                    checked={cfg.sesionesRestantesServicios === null || cfg.sesionesRestantesServicios.includes(s.slug)}
+                    onCheckedChange={(checked) => {
+                      const selected = cfg.sesionesRestantesServicios ?? servicios.map((service) => service.slug);
+                      update("sesionesRestantesServicios", checked === true
+                        ? [...new Set([...selected, s.slug])]
+                        : selected.filter((slug) => slug !== s.slug));
+                    }}
+                  />
+                  {s.nombre}
+                </label>
+              ))}
+            </div>
+          )}
           <Row
             title="Mostrar abreviatura del servicio en sesiones"
             description="Añade delante del nombre del cliente (o del número de personas) una abreviatura de dos letras del servicio, por ejemplo “EP · Álvaro González”. La abreviatura se puede personalizar en cada servicio."

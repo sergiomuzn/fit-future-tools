@@ -23,6 +23,7 @@
 - Expandable searches reset after an outside click finishes, never on input blur, so filtered result actions keep their original target.
 - Use opt-in `enterToSave` for editable dialogs; pickers consume selection Enter first, nested dialogs own their events, and destructive actions remain explicit.
 - Session client balances pass the editor's selected service through ClientPicker and select the latest active bono for that exact service using shared cache keys; keep this display separate from booking and accounting mutations.
+- Scope session balance visibility in the shared balance component using centre behavior settings; null service selection means all for backward compatibility, while an empty list means none.
 - Session writes commit returned rows to date/range Agenda caches by exact ID, refresh both cache families in the background, and pause daily polling during panel writes; this avoids a second-read delay without changing booking or accounting workflows.
 - Derive session presentation with the shared automatic-state/block-summary helpers and explicit slot/recurrence identities; cancellation persists only the affected client row so mixed blocks retain active state and independent accounting.
 - Keep unsaved client cancellations in a shared draft model until Save; serialize them as individual cancelled rows in the exact block so cancellation never becomes mere removal.

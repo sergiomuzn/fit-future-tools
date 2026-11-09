@@ -1,6 +1,6 @@
 import { test } from "node:test";
-import { strictEqual } from "node:assert";
-import { DEFAULT_SHOW_SESSION_CLIENT_BALANCE, sessionClientBalance } from "./session-client-balance";
+import { deepStrictEqual, strictEqual } from "node:assert";
+import { DEFAULT_SHOW_SESSION_CLIENT_BALANCE, sessionClientBalance, parseSessionBalanceServices, showSessionBalanceForService } from "./session-client-balance";
 
 const bonos = [{ client_id: "client", activo: true, fecha_inicio: "2026-11-01", bono_catalogo_id: "pack", sesiones_disponibles: 7, servicio_slug: "personal" }];
 const catalogo = [{ id: "pack", tipo: "individual" }];
@@ -43,4 +43,22 @@ test("a service without an active bono never falls back to another service", () 
 test("no balance is shown before a service is selected", () => {
   strictEqual(sessionClientBalance(true, "client", bonos, catalogo, null), null);
   strictEqual(sessionClientBalance(true, "client", bonos, catalogo, ""), null);
+});
+
+test("remaining sessions appear only in services selected by the centre", () => {
+  strictEqual(showSessionBalanceForService(true, ["personal"], "personal"), true);
+  strictEqual(showSessionBalanceForService(true, ["personal"], "grupal"), false);
+  strictEqual(showSessionBalanceForService(true, ["personal", "grupal"], "grupal"), true);
+});
+
+test("the main switch disables balances even in selected services", () => {
+  strictEqual(showSessionBalanceForService(false, ["personal"], "personal"), false);
+});
+
+test("all services preserves existing settings while selecting none hides all", () => {
+  strictEqual(parseSessionBalanceServices(undefined), null);
+  strictEqual(showSessionBalanceForService(true, null, "personal"), true);
+  strictEqual(showSessionBalanceForService(true, [], "personal"), false);
+  strictEqual(showSessionBalanceForService(true, null, ""), false);
+  deepStrictEqual(parseSessionBalanceServices(["personal", "personal", 2, ""]), ["personal"]);
 });
