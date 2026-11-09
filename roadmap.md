@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Hacer efectiva «Cliente Cancela» antes de guardar: mostrar Cancelados, conservar No contabilizar individual y guardar cada cancelación sin confundirla con Quitar cliente.
+- [x] Hacer efectiva «Cliente Cancela» antes de guardar: mostrar Cancelados, conservar No contabilizar individual y guardar cada cancelación sin confundirla con Quitar cliente; 38 pruebas y creación, guardado y reapertura reales verificados con datos temporales eliminados.
 
 - [x] Eliminar selección manual de estado; calcular Reservada/Realizada por fecha y margen existente.
 - [x] Añadir menú por cliente para quitar sin contabilizar o cancelar solo su reserva; conservar No contabilizar individual.

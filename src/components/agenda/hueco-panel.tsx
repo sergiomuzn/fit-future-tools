@@ -383,6 +383,20 @@ export function HuecoPanel({
     setTab("cancelados");
   }
 
+  async function quitarSeleccion(clientId: string, row: number) {
+    if (isNew) {
+      setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
+      return;
+    }
+    // A click immediately after selection must also remove an in-flight add.
+    await colaAltas.current;
+    const ids = [...grupoRef.current.ids];
+    if (!ids.length) return;
+    const { data, error } = await supabase.from("sessions").select("*,clients(nombre)").in("id", ids).eq("client_id", clientId).neq("estado", "cancelada").limit(1).maybeSingle();
+    if (error) { toast.error(error.message); return; }
+    if (data) await quitarCliente(data as unknown as PanelReserva);
+  }
+
   async function guardar() {
     if (!inst || !onSave || saving || anadir.isPending) return;
     if (!horaInicio || !horaFin || horaFin <= horaInicio) {
@@ -563,7 +577,7 @@ export function HuecoPanel({
                     {value && <DropdownMenu>
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setPickerValues((old) => old.map((id, index) => index === row ? null : id))}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => void quitarSeleccion(value, row)}><UserMinus />Quitar cliente</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive" onSelect={() => void cancelarSeleccion(value, row)}><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>}
