@@ -23,10 +23,11 @@ interface Props {
   /** Si se pasa, el nombre del cliente seleccionado se muestra como enlace clicable. */
   onNameClick?: (client: Client) => void;
   showRemainingSessions?: boolean;
+  servicioSlug?: string;
   hideClearButton?: boolean;
 }
 
-export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick, showRemainingSessions = false, hideClearButton = false }: Props) {
+export function ClientPicker({ value, onChange, autoFocus, onTextChange, initialText, onNameClick, showRemainingSessions = false, servicioSlug, hideClearButton = false }: Props) {
   const qc = useQueryClient();
   const [search, setSearch] = useState("");
   const [open, setOpen] = useState(false);
@@ -210,7 +211,7 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
         )}
       </div>
 
-      {showRemainingSessions && selected && <SessionClientBalance clientId={selected.id} />}
+      {showRemainingSessions && selected && servicioSlug && <SessionClientBalance clientId={selected.id} servicioSlug={servicioSlug} />}
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent onKeyDown={enterToSave(saveNew)}>

@@ -3,7 +3,7 @@ import { supabase, type ClientBono } from "@/lib/db";
 import { sessionClientBalance } from "@/lib/session-client-balance";
 
 /** Mounted only for an opted-in session picker with a selected client. */
-export function SessionClientBalance({ clientId }: { clientId: string }) {
+export function SessionClientBalance({ clientId, servicioSlug }: { clientId: string; servicioSlug: string }) {
   const { data: bonos, isError: bonosError } = useQuery({
     queryKey: ["client_bonos"],
     queryFn: async () => {
@@ -21,7 +21,7 @@ export function SessionClientBalance({ clientId }: { clientId: string }) {
     },
   });
   if (bonosError || catalogoError || !bonos || !catalogo) return null;
-  const balance = sessionClientBalance(true, clientId, bonos, catalogo);
+  const balance = sessionClientBalance(true, clientId, bonos, catalogo, servicioSlug);
   if (balance === null) return null;
   return (
     <div className="text-[11px] text-muted-foreground" role="status">

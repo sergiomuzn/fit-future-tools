@@ -899,6 +899,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       hideClearButton
                       value={cid}
                       showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
+                      servicioSlug={servicioSlug}
                       autoFocus={isNew && i === 0}
                       initialText={i === 0 ? nombreLibre : undefined}
                       onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
@@ -934,6 +935,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       hideClearButton
                   value={clientId}
                   showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
+                  servicioSlug={servicioSlug}
                   onChange={(id) => setClientId(id)}
                   autoFocus={isNew}
                   initialText={nombreLibre}

@@ -531,6 +531,7 @@ export function HuecoPanel({
                       hideClearButton
                       value={item.reserva.client_id}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
+                      servicioSlug={servicioSlug}
                       onChange={(clientId) => {
                         if (!clientId) void quitarCliente(item.reserva as PanelReserva);
                       }}
@@ -567,6 +568,7 @@ export function HuecoPanel({
                       hideClearButton
                       value={value}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
+                      servicioSlug={servicioSlug}
                       autoFocus={row === 0}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
