@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Reducir el lapso al añadir, editar y eliminar sesiones sin cambiar reservas, avisos ni contabilización; verificar guardado y borrado en Agenda.
+- [x] Reducir el lapso al añadir, editar y eliminar sesiones: cierre sin esperar recargas de menús, actualización de Agenda por ID y refresco de vistas diaria/semanal; 13 pruebas correctas y creación, edición y borrado real de una sesión temporal vacía verificados (eliminada después), sin tocar reservas existentes.
 
 - [x] Añadir opción desactivada por defecto en Funcionamiento para mostrar sesiones restantes debajo del cliente seleccionado al añadir o editar sesiones; 14 pruebas correctas y activación/desactivación verificadas con sesiones individuales y grupales reales, sin modificar reservas.
 
