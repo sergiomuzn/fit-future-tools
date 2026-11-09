@@ -540,7 +540,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
-                        <DropdownMenuItem disabled={cancelarCliente.isPending} onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
+                        <DropdownMenuItem disabled={cancelarCliente.isPending} onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -578,7 +578,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarSeleccion(value, row)}><UserMinus />Quitar cliente</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onSelect={() => void cancelarSeleccion(value, row)}><Ban />Cliente Cancela</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={() => void cancelarSeleccion(value, row)}><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>}
                   </div>
