@@ -350,7 +350,7 @@ export function HuecoPanel({
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
-        await qc.invalidateQueries({ queryKey: ["hueco-panel"], refetchType: "all" });
+        void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
         onClose();
       }
     } finally {

@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Reducir el lapso al añadir, editar y eliminar sesiones sin cambiar reservas, avisos ni contabilización; verificar guardado y borrado en Agenda.
+
 - [x] Añadir opción desactivada por defecto en Funcionamiento para mostrar sesiones restantes debajo del cliente seleccionado al añadir o editar sesiones; 14 pruebas correctas y activación/desactivación verificadas con sesiones individuales y grupales reales, sin modificar reservas.
 
 - [x] Guardar sesiones con Enter tras elegir cliente; extenderlo a servicios y creación de clientes, conservar selección antes de guardado y aislar menús anidados; 6 pruebas y guardado real sin cambiar datos verificados.
