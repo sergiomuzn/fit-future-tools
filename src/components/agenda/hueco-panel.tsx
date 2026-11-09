@@ -186,7 +186,7 @@ export function HuecoPanel({
       if (!inst) return { cola: [], cancelados: [] };
       const [cola, canc] = await Promise.all([
         (supabase as any).from("reserva_cola").select("id,client_id,hora_inicio,servicio_slug,estado,created_at").eq("fecha", inst.fecha).in("estado", ["en_cola", "ofrecida"]).order("created_at"),
-        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,no_contabilizar,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
+        supabase.from("sessions").select("id,client_id,titulo,hora_inicio,servicio_slug,slot_instance_id,recurrencia_id,hora_fin,no_contabilizar,clients(nombre)").eq("fecha", inst.fecha).eq("estado", "cancelada"),
       ]);
       const colaRows = ((cola.data ?? []) as { id: string; client_id: string; hora_inicio: string; servicio_slug: string | null }[])
         .filter((c) => hhmm(c.hora_inicio) === hhmm(inst.hora_inicio) && (!c.servicio_slug || c.servicio_slug === inst.servicio_slug));
@@ -197,7 +197,7 @@ export function HuecoPanel({
       }
       const cancelados = ((canc.data ?? []) as any[]).filter((s) =>
         canceladasIds !== undefined && slotInstanceId === null
-          ? canceladasIds.includes(s.id)
+          ? canceladasIds.includes(s.id) || (grupoManual?.recurrenciaId && s.recurrencia_id === grupoManual.recurrenciaId && hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && hhmm(s.hora_fin) === hhmm(inst.hora_fin))
           : s.slot_instance_id ? s.slot_instance_id === inst.id : hhmm(s.hora_inicio) === hhmm(inst.hora_inicio) && s.servicio_slug === inst.servicio_slug,
       );
       return {
@@ -242,7 +242,7 @@ export function HuecoPanel({
         servicio_slug: inst.servicio_slug,
         trainer_id: trainerId,
         client_id: clientId,
-        estado: esPrueba ? "prueba" : estado === "cancelada" ? "reservada" : estado,
+        estado,
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
       };

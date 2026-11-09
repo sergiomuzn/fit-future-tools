@@ -1,3 +1,4 @@
+import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
@@ -120,7 +121,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
   const groupNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const s of sessions) {
-      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
+      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id && s.estado !== "cancelada") {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
         const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
         const arr = m.get(key);
@@ -163,21 +164,15 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
       if (arr) arr.push(s); else m.set(s.fecha, [s]);
     }
     for (const [k, arr] of m) {
-      const seen = new Set<string>();
-      m.set(
-        k,
-        arr.filter((s) => {
-          if (s.recurrencia_id && s.ocupacion === 2) {
-            const key = `${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
-            if (seen.has(key)) return false;
-            seen.add(key);
-          }
-          return true;
-        }),
-      );
+      const blocks = new Map<string, Session[]>();
+      for (const row of arr) { const key = sessionBlockKey(row); blocks.set(key, [...(blocks.get(key) ?? []), row]); }
+      m.set(k, [...blocks.values()].flatMap((rows) => {
+        const summary = sessionBlockSummary(rows, behavior.graciaAutoRealizadaMin);
+        return summary.representative ? [{ ...summary.representative, estado: summary.estado }] : [];
+      }));
     }
     return m;
-  }, [visibleSessions]);
+  }, [visibleSessions, behavior.graciaAutoRealizadaMin]);
 
   const hours = Array.from({ length: HOUR_END - HOUR_START + 1 }, (_, i) => HOUR_START + i);
   const todayKey = formatDateISO(new Date());
@@ -248,7 +243,9 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, colorEstadoFor(session));
+                    const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
+                    const blockColor = summary.estado === "cancelada" ? "cancelada" : colorEstadoFor({ ...session, estado: summary.estado });
+                    const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, blockColor);
                     return (
                       <button
                         key={session.id}
@@ -262,6 +259,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
                         title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
                       >
+                        {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 rounded-sm bg-background px-1 font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">

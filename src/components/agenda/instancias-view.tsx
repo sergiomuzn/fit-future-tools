@@ -251,7 +251,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
     }
     const activeReservations = reservasDeHueco(inst);
     if (activeReservations.length && !timeOrTrainerChanged) {
-      const nextEstado = draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado;
+      const nextEstado = draft.estado;
       const { error: sessionError } = await supabase.from("sessions").update({
         estado: nextEstado,
         tipo: draft.esPrueba ? "prueba" : null,
