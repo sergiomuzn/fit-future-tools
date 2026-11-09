@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Añadir selección de servicios al ajuste de sesiones restantes, guardar la selección del centro y verificar que se aplica al añadir y editar sesiones.
+- [x] Añadir selección de servicios al ajuste de sesiones restantes del centro; 11 pruebas correctas y guardado, recarga y saldo visible/oculto al cambiar de servicio verificados, restaurando los ajustes originales sin guardar sesiones.
 
 - [x] Unificar las plazas reservadas/disponibles en Agenda y menú con el mismo bloque exacto, sin contar cola ni cancelaciones; 24 pruebas correctas y 35 sesiones reales comparadas al abrir, sin modificar datos.
 
