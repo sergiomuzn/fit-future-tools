@@ -8,6 +8,7 @@ import { clientCancellationFields } from "@/lib/session-state";
 import { cancelDraftClient, draftSessionMembers, type DraftCancellation } from "@/lib/session-draft-clients";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
+import { sessionPlaces } from "@/lib/session-places";
 import { refreshAgenda } from "@/lib/agenda-session-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -887,7 +888,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <div className="space-y-1.5">
             <Label>
               {plazas > 1
-                ? `Clientes (${groupClientIds.filter(Boolean).length}/${plazas})`
+                ? `Clientes (${sessionPlaces(plazas, groupClientIds.filter(Boolean).length).label})`
                 : "Cliente"}
             </Label>
             {plazas > 1 ? (

@@ -4,6 +4,7 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { draftSessionMembers } from "@/lib/session-draft-clients";
+import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
 import { visibleAgendaSessions } from "./session-visibility";
@@ -1230,16 +1231,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : needsRenewal && !multiPlaza
                   ? "renovacion"
                   : summary.estado;
-              // Clientes en la sesión: miembros del grupo, las reservas de la misma
-              // franja (huecos de Reservas), o 1/0 en individuales sueltas.
-              const ocupados = summary.estado === "cancelada" ? 0 : isGroup
-                ? groupMemberCount
-                : instCap !== undefined
-                  ? (instOcupadosMap.get(instId!) ?? 0)
-                  : huecoCap !== undefined
-                  ? (huecoOcupadosMap.get(huecoKey) ?? 0)
-                  : (session.client_id ? 1 : 0);
-              const groupCountLabel = `${ocupados}/${plazas}`;
+              // Same exact block and reserved/available rule as the session panel.
+              const groupCountLabel = sessionPlaces(plazas, reservedSessionPlaces(agendaBlockMembers(session, sessions))).label;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const clientIds: (string | null | undefined)[] = isGroup
                 ? (members ?? [session]).filter((m) => m.estado !== "cancelada").map((m) => m.client_id)
@@ -1399,7 +1392,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       {(() => {
         const ps = panelSession;
         const isNewPanel = ps?.id === "";
-        const block = ps ? sessions.filter((x) => blockIds(ps.id).includes(x.id)) : [];
+        const block = ps && !isNewPanel ? agendaBlockMembers(ps, sessions) : [];
         const activos = block.filter((x) => x.client_id && x.estado !== "cancelada" && !(x as any).__cola);
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
