@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Unificar y verificar las plazas reservadas/disponibles en Agenda y menú con el mismo bloque exacto, sin contar cola ni cancelaciones.
+- [x] Unificar las plazas reservadas/disponibles en Agenda y menú con el mismo bloque exacto, sin contar cola ni cancelaciones; 24 pruebas correctas y 35 sesiones reales comparadas al abrir, sin modificar datos.
 
 - [x] Hacer efectiva «Cliente Cancela» antes de guardar: mostrar Cancelados, conservar No contabilizar individual y guardar cada cancelación sin confundirla con Quitar cliente; 38 pruebas y creación, guardado y reapertura reales verificados con datos temporales eliminados.
 
