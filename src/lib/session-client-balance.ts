@@ -6,6 +6,7 @@ type BonoBalance = {
   fecha_inicio: string | null;
   bono_catalogo_id: string | null;
   sesiones_disponibles: number;
+  servicio_slug: string;
 };
 
 /** Read the current bono balance without changing reservation/accounting rules. */
@@ -14,10 +15,11 @@ export function sessionClientBalance(
   clientId: string | null,
   bonos: readonly BonoBalance[],
   catalogo: readonly { id: string; tipo: string }[],
+  servicioSlug: string | null,
 ): number | "Sin bono" | null {
-  if (!enabled || !clientId) return null;
+  if (!enabled || !clientId || !servicioSlug) return null;
   const bono = bonos
-    .filter((b) => b.client_id === clientId && b.activo)
+    .filter((b) => b.client_id === clientId && b.activo && b.servicio_slug === servicioSlug)
     .sort((a, b) => (b.fecha_inicio ?? "").localeCompare(a.fecha_inicio ?? ""))[0];
   if (!bono) return "Sin bono";
   if (catalogo.find((c) => c.id === bono.bono_catalogo_id)?.tipo === "gympass") return null;
