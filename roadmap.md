@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Hacer efectiva «Cliente Cancela» antes de guardar: mostrar Cancelados, conservar No contabilizar individual y guardar cada cancelación sin confundirla con Quitar cliente.
+
 - [x] Eliminar selección manual de estado; calcular Reservada/Realizada por fecha y margen existente.
 - [x] Añadir menú por cliente para quitar sin contabilizar o cancelar solo su reserva; conservar No contabilizar individual.
 - [x] Mostrar estado agregado y número rojo de cancelaciones en Agenda e historial, preservando sesiones independientes.
