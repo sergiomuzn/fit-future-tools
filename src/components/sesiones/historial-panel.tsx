@@ -1,4 +1,4 @@
-import { sessionBlockKey, sessionBlockSummary, automaticSessionState } from "@/lib/session-state";
+import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
 import { useBehaviorConfig } from "@/lib/behavior-config";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -110,7 +110,7 @@ export function HistorialPanel() {
   const filtered = collapsed.filter((s) => {
     if (q) {
       const name = normalizeText(nameForSession(s));
-      if (!name.includes(q) && !s.fecha.includes(q)) return false;
+      if (!name.includes(q) && !formatDateShort(s.fecha).includes(q)) return false;
     }
     if (desde && s.fecha < desde) return false;
     if (hasta && s.fecha > hasta) return false;
@@ -139,7 +139,7 @@ export function HistorialPanel() {
           <ExpandableSearch
             value={search}
             onChange={setSearch}
-            placeholder="Nombre o fecha (YYYY-MM-DD)…"
+            placeholder="Nombre o fecha…"
           />
           <Button
             variant={filtersOpen ? "default" : "outline"}

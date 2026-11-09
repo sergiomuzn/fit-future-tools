@@ -73,6 +73,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
+  const [cancelledOverrides, setCancelledOverrides] = useState<Session[]>([]);
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const notasRef = useRef<HTMLTextAreaElement>(null);
@@ -186,6 +187,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   useEffect(() => {
     if (!open) return;
     setCancelledIds([]);
+    setCancelledOverrides([]);
     setClientId(session?.estado === "cancelada" ? null : session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
     setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
@@ -309,6 +311,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (error) return toast.error(error.message);
     commitAgendaRows(qc, [data]);
     setCancelledIds((old) => [...old, row.id]);
+    setCancelledOverrides((old) => [...old.filter((r) => r.id !== data.id), data]);
     if (row.client_id === clientId) setClientId(null);
     void notificarReservasCanceladas({ data: { sessionIds: [row.id] } }).then((r) => {
       if (r?.claves?.length) return import("@/lib/notificaciones.functions").then(({ ofrecerPlazasLiberadas }) => ofrecerPlazasLiberadas({ data: { claves: r.claves } }));
@@ -321,7 +324,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => void cancelarCliente(row)}><Ban />Cancelar reserva</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
   }
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
-  const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
+  const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).map((row) => cancelledOverrides.find((r) => r.id === row.id) ?? row).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
 
   function requestSave() {
     if (isSeries && futureWouldChange()) {
@@ -384,9 +387,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       hora_inicio: `${horaInicio}:00`,
       hora_fin: `${horaFin}:00`,
       // La casilla "Sesión de prueba" marca el tipo; el estado sigue siendo
-      // editable (reservada / realizada / cancelada). Para conservar el color
-      // y evitar la auto-conversión, una prueba no cancelada se guarda como
-      // estado "prueba".
+      // automático por fecha y hora; el tipo conserva el color de prueba.
       estado: estado as SesionEstado,
       tipo: esPrueba ? "prueba" : null,
       ocupacion,
@@ -662,7 +663,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       } else {
         // Sesión individual.
-        const payload = { ...base, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: session.estado === "cancelada" ? !!session.no_contabilizar : false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
+        const payload = { ...base, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRows.find((r) => r.id === session.id)?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
         if (scope === "future" && recurrenciaId) {
           // Aplicar a todas las sesiones futuras de la serie (misma serie, fecha >= actual).
           // Excluimos "fecha" del payload para no colapsar todas al mismo día.
@@ -920,7 +921,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           </div>
 
 
-          {cancelledRows.length > 0 && <div className="space-y-2"><Label>Cancelados ({cancelledRows.length})</Label>{cancelledRows.map((row) => <div key={row.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={!!row.no_contabilizar} onCheckedChange={async (v) => { const { data, error } = await supabase.from("sessions").update({ no_contabilizar: !!v }).eq("id", row.id).select("*").single(); if (error) return toast.error(error.message); commitAgendaRows(qc, [data]); void qc.invalidateQueries({ queryKey: ["group-members"] }); void qc.invalidateQueries({ queryKey: ["client_bonos"] }); void qc.invalidateQueries({ queryKey: ["sessions-past"] }); }} />No contabilizar</label></div>)}</div>}
+          {cancelledRows.length > 0 && <div className="space-y-2"><Label>Cancelados ({cancelledRows.length})</Label>{cancelledRows.map((row) => <div key={row.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={!!row.no_contabilizar} onCheckedChange={async (v) => { const { data, error } = await supabase.from("sessions").update({ no_contabilizar: !!v }).eq("id", row.id).select("*").single(); if (error) return toast.error(error.message); commitAgendaRows(qc, [data]); setCancelledOverrides((old) => [...old.filter((r) => r.id !== data.id), data]); void qc.invalidateQueries({ queryKey: ["group-members"] }); void qc.invalidateQueries({ queryKey: ["client_bonos"] }); void qc.invalidateQueries({ queryKey: ["sessions-past"] }); }} />No contabilizar</label></div>)}</div>}
           <div className="grid grid-cols-2 gap-3">
             <div className="flex items-center gap-2">
               <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
