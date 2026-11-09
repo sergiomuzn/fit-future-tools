@@ -6,6 +6,7 @@ import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking } from "./online-booking";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
+import { commitAgendaRows, refreshAgenda, removeAgendaRows } from "@/lib/agenda-session-cache";
 import { useOnlineAgendaVisibility } from "./use-online-bookings";
 import { ESTADO_LABEL, type SesionEstado } from "@/lib/db";
 import { servicioColorOf } from "@/lib/colors";
@@ -282,6 +283,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   const confirmingPortalRef = useRef(false);
   const paintingTrainerCountRef = useRef(0);
+  const pendingPanelWrites = useRef(0);
   const { data: sessions = [] } = useQuery({
     queryKey: ["sessions", isoDate],
     queryFn: async () => {
@@ -315,7 +317,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return [...rows, ...extra].sort((a, b) => a.hora_inicio.localeCompare(b.hora_inicio));
     },
     // Sin sondeo mientras se guarda: el guardado no compite con lecturas y no hay parpadeos.
-    refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 || qc.isMutating() > 0 ? false : 1000),
+    refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 || pendingPanelWrites.current > 0 || qc.isMutating() > 0 ? false : 1000),
   });
 
   const { data: clients = [] } = useQuery({
@@ -877,11 +879,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           recurrencia_id: recurrenciaId,
         };
       })).flat();
-      const { error } = await supabase.from("sessions").insert(inserts as any);
+      await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
+      const { data: created, error } = await supabase.from("sessions").insert(inserts as any).select("*");
       if (error) return toast.error(error.message), false;
+      commitAgendaRows(qc, (created ?? []) as Session[]);
       const assigned = inserts.filter((row) => !!row.client_id).map((row) => ({ clientId: row.client_id as string, fecha: row.fecha, hora: row.hora_inicio }));
       if (assigned.length) void import("@/lib/notificaciones.functions").then(({ notificarSesionesAsignadas }) => notificarSesionesAsignadas({ data: { sesiones: assigned.slice(0, 100) } })).catch(() => {});
-      void qc.invalidateQueries({ queryKey: ["sessions"] });
+      refreshAgenda(qc);
       toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
       return true;
     }
@@ -988,7 +992,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         if (repeatError) toast.error(repeatError.message);
       }
     }
-    void qc.invalidateQueries({ queryKey: ["sessions"] });
+    refreshAgenda(qc);
     void qc.invalidateQueries({ queryKey: ["client_bonos"] });
     toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
     return true;
@@ -1008,17 +1012,32 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       confirmText: "Eliminar",
     });
     if (!ok) return;
+    pendingPanelWrites.current += 1;
+    await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
+    const removed = sessions.filter((row) => ids.includes(row.id));
+    removeAgendaRows(qc, ids);
+    setPanelSession(null);
+    try {
     if (pendingIds.length) {
       await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
     } else if (portalIds.length) {
       await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
     }
     const { error } = await supabase.from("sessions").delete().in("id", ids);
-    if (error) return toast.error(error.message);
-    setPanelSession(null);
-    void qc.invalidateQueries({ queryKey: ["sessions"] });
+    if (error) {
+      commitAgendaRows(qc, removed);
+      toast.error(error.message);
+      return;
+    }
     void qc.invalidateQueries({ queryKey: ["notificaciones-pendientes"] });
     toast.success("Sesión eliminada");
+    } catch (error) {
+      commitAgendaRows(qc, removed);
+      toast.error(error instanceof Error ? error.message : "No se pudo eliminar la sesión");
+    } finally {
+      pendingPanelWrites.current = Math.max(0, pendingPanelWrites.current - 1);
+      refreshAgenda(qc);
+    }
   }
 
   // Auto-paso a "realizada" para las sesiones individuales pasadas
@@ -1401,7 +1420,12 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               return [...ids];
             })() : undefined}
             onClose={() => setPanelSession(null)}
-            onSave={(draft) => ps ? savePanelSession(ps, draft) : false}
+            onSave={async (draft) => {
+              if (!ps) return false;
+              pendingPanelWrites.current += 1;
+              try { return await savePanelSession(ps, draft); }
+              finally { pendingPanelWrites.current = Math.max(0, pendingPanelWrites.current - 1); }
+            }}
             onDelete={isNewPanel || (ps as any)?.__cola ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r, onRemoving) => {
               // Solo se pide confirmación cuando la reserva la hizo el cliente
