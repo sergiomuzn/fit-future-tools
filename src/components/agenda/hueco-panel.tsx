@@ -373,7 +373,6 @@ export function HuecoPanel({
       if (data) await pedirCancelacion(data as unknown as PanelReserva);
       return;
     }
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "La sesión todavía no se ha guardado. Se retirará este cliente de la selección.", confirmText: "Cancelar reserva" }))) return;
     setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
   }
 
