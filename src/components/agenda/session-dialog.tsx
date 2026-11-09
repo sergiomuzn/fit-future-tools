@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
+import { refreshAgenda } from "@/lib/agenda-session-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -718,7 +719,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       }
     }
     // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
-    qc.invalidateQueries({ queryKey: ["sessions"] });
+    refreshAgenda(qc);
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     qc.removeQueries({ queryKey: ["group-members"] });
     qc.removeQueries({ queryKey: ["series-future-rows"] });
@@ -789,7 +790,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (error) toast.error(error.message);
       else toast.success("Sesión eliminada");
     }
-    qc.invalidateQueries({ queryKey: ["sessions"] });
+    refreshAgenda(qc);
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
     qc.removeQueries({ queryKey: ["group-members"] });
     qc.removeQueries({ queryKey: ["series-future-rows"] });

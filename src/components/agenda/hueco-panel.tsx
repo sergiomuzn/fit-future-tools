@@ -24,6 +24,7 @@ import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canMarkSessionPending } from "./online-booking";
 import { enterToSave } from "@/lib/enter-to-save";
+import { commitAgendaRows } from "@/lib/agenda-session-cache";
 
 type Pestana = "reservados" | "cola" | "cancelados";
 
@@ -262,15 +263,16 @@ export function HuecoPanel({
         grupo = { recurrencia_id: g.rec, ocupacion: 2 };
       }
       const { data, error } = rellenar
-        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", rellenar).select("id").single()
+        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", rellenar).select("*").single()
         : await supabase.from("sessions").insert({
             ...valores,
             booking_tipo: "centro",
             slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
             reemplaza_session_id: slotInstanceId === null && canceladasIds?.length ? canceladasIds[0] : null,
             ...(grupo ?? {}),
-          } as any).select("id").single();
+          } as any).select("*").single();
       if (error) throw error;
+      commitAgendaRows(qc, [data]);
       // Muestra la reserva al instante mientras llega el refresco, para que el
       // cliente no desaparezca del menú entre el guardado y la recarga.
       const cli = allClients.find((c) => c.id === clientId);
@@ -350,7 +352,7 @@ export function HuecoPanel({
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
-        await qc.invalidateQueries({ queryKey: ["hueco-panel"], refetchType: "all" });
+        void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
         onClose();
       }
     } finally {

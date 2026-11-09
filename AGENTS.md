@@ -23,3 +23,4 @@
 - Expandable searches reset after an outside click finishes, never on input blur, so filtered result actions keep their original target.
 - Use opt-in `enterToSave` for editable dialogs; pickers consume selection Enter first, nested dialogs own their events, and destructive actions remain explicit.
 - Session client balances use an opt-in ClientPicker display and the shared current-bono policy/cache keys; keep the centre behavior setting separate from booking and accounting mutations.
+- Session writes commit returned rows to date/range Agenda caches by exact ID, refresh both cache families in the background, and pause daily polling during panel writes; this avoids a second-read delay without changing booking or accounting workflows.
