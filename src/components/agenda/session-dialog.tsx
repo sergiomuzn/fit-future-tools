@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
+import { automaticSessionState } from "@/lib/session-state";
 import { refreshAgenda } from "@/lib/agenda-session-cache";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,7 +55,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const { confirm, dialog: confirmDialog } = useConfirm();
   const [clientId, setClientId] = useState<string | null>(null);
   const [trainerId, setTrainerId] = useState<string | null>(null);
-  const [estado, setEstado] = useState<SesionEstado>("reservada");
+
   const [esPrueba, setEsPrueba] = useState(false);
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
@@ -124,6 +125,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   // Configuración de funcionamiento del centro (para valores por defecto al crear).
   const behaviorCfg = useBehaviorConfig();
+  const estado = automaticSessionState(session?.fecha ?? "", `${horaFin}:00`, behaviorCfg.graciaAutoRealizadaMin, porConfirmar);
   const cfgBehaviorRef = useRef(behaviorCfg);
   useEffect(() => {
     cfgBehaviorRef.current = behaviorCfg;
@@ -181,9 +183,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setClientId(session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
     setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
-    setEstado(
-      session?.estado === "prueba" ? "reservada" : ((session?.estado as SesionEstado) ?? "reservada"),
-    );
     setIncidencia(session?.incidencia ?? "");
     setGrupo((session?.ocupacion ?? 1) === 2);
     setServicioSlug(
@@ -235,6 +234,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     if (!groupMembersData) return;
     const ids = groupMembersData
+      .filter((m) => m.estado !== "cancelada")
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
     const padded: (string | null)[] = [...ids];
@@ -357,7 +357,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       // editable (reservada / realizada / cancelada). Para conservar el color
       // y evitar la auto-conversión, una prueba no cancelada se guarda como
       // estado "prueba".
-      estado: (esPrueba && estado !== "cancelada" ? "prueba" : estado) as SesionEstado,
+      estado: estado as SesionEstado,
       tipo: esPrueba ? "prueba" : null,
       ocupacion,
       incidencia: incidencia || null,
@@ -366,7 +366,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       titulo: (grupo ? groupClientIds.every((id) => !id) : !clientId)
         ? (nombreLibreTrim || null)
         : null,
-      no_contabilizar: estado === "cancelada" ? noContabilizar : false,
+      no_contabilizar: false,
       por_confirmar: estado === "reservada" ? porConfirmar : false,
       group_id: null,
 
@@ -380,24 +380,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     // - "Por confirmar" nunca pasa automáticamente a realizada.
     // - Si el estado guardado era "realizada" pero la nueva hora está en el futuro,
     //   se revierte a "reservada".
-    const now = new Date();
-    const GRACE_MS = 15 * 60 * 1000;
-    const estadoForDate = (fecha: string): SesionEstado => {
-      const end = new Date(`${fecha}T${base.hora_fin}`);
-      const isPast = end.getTime() + GRACE_MS < now.getTime();
-      // "Por confirmar" nunca se auto-convierte.
-      if (base.por_confirmar) return "reservada";
-      // Canceladas se respetan tal cual. Prueba se auto-progresa a realizada
-      // cuando la sesión es pasada (el tipo de bono "prueba" se mantiene).
-      if (base.estado === "cancelada" || base.estado === "prueba") return base.estado;
-      // Futuro: si estaba marcada como realizada, revertir a reservada.
-      if (!isPast) {
-        if (base.estado === "realizada") return "reservada";
-        return base.estado;
-      }
-      // Pasado (>15 min tras el fin): reservada / renovacion / realizada → realizada.
-      return "realizada";
-    };
+    const estadoForDate = (fecha: string): SesionEstado => automaticSessionState(fecha, base.hora_fin, behaviorCfg.graciaAutoRealizadaMin, base.por_confirmar);
 
     if (isNew) {
       // Para grupo, insertar una sesión por cada hueco con cliente seleccionado.
@@ -476,7 +459,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (grupo && recurrenciaId) {
         // ---- Sincronizar miembros del grupo para esta fecha ----
         const desiredIds = groupClientIds.filter((id): id is string => !!id);
-        const existing = groupMembersData ?? [];
+        const existing = (groupMembersData ?? []).filter((m) => m.estado !== "cancelada");
         const existingWithClient = existing.filter((m) => !!m.client_id);
         const existingIds = new Set(existingWithClient.map((m) => m.client_id as string));
         const desiredSet = new Set(desiredIds);
@@ -572,7 +555,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           const desiredSet2 = new Set(desiredIds2);
           const futureDates = Array.from(new Set((futureRows ?? []).map((r) => r.fecha)));
           for (const fecha of futureDates) {
-            const rows = (futureRows ?? []).filter((r) => r.fecha === fecha);
+            const rows = (futureRows ?? []).filter((r) => r.fecha === fecha && r.estado !== "cancelada");
             const existingWithClient2 = rows.filter((r) => !!r.client_id);
             const existingIds2 = new Set(existingWithClient2.map((r) => r.client_id as string));
             const placeholder2 = rows.find((r) => !r.client_id);
@@ -649,7 +632,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       } else {
         // Sesión individual.
-        const payload = { ...base, estado: estadoForDate(session.fecha!), client_id: clientId };
+        const payload = { ...base, estado: session.estado === "cancelada" ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: session.estado === "cancelada" ? !!session.no_contabilizar : false, client_id: clientId };
         if (scope === "future" && recurrenciaId) {
           // Aplicar a todas las sesiones futuras de la serie (misma serie, fecha >= actual).
           // Excluimos "fecha" del payload para no colapsar todas al mismo día.
@@ -660,8 +643,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             ...rest,
             // Recalcular estado por fecha en el cliente sería ideal; para futuras dejamos "reservada"
             // salvo que el usuario haya elegido explícitamente otro estado distinto de reservada.
-            estado: base.estado === "reservada" ? "reservada" : base.estado,
-          }).eq("recurrencia_id", recurrenciaId).gt("fecha", session.fecha!);
+            estado: "reservada",
+          }).eq("recurrencia_id", recurrenciaId).gt("fecha", session.fecha!).neq("estado", "cancelada");
         } else {
           const { error } = await supabase.from("sessions").update(payload).eq("id", session.id!);
           if (error) updateErr = error;
@@ -845,17 +828,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Estado</Label>
-              <Select value={estado} onValueChange={(v) => setEstado(v as SesionEstado)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(Object.keys(ESTADO_LABEL) as SesionEstado[]).filter((e) => e !== "prueba").map((e) => (
-                    <SelectItem key={e} value={e}>{ESTADO_LABEL[e]}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
           </div>
 
           <div className="space-y-1.5">
@@ -942,15 +915,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               )}
             </div>
           </div>
-            {estado === "cancelada" && (
-              <div className="flex flex-1 items-start gap-2 rounded-md border border-dashed p-2">
-                <Checkbox id="nocount" checked={noContabilizar} onCheckedChange={(v) => setNoContabilizar(!!v)} />
-                <div className="space-y-0.5">
-                  <Label htmlFor="nocount" className="cursor-pointer">No contabilizar</Label>
-                  <p className="text-[11px] text-muted-foreground leading-tight">Si lo marcas, la cancelación no descuenta sesión del bono. Si lo dejas sin marcar, se descuenta como si se hubiese realizado.</p>
-                </div>
-              </div>
-            )}
           <div className="space-y-1.5">
             <Label>Repetir semanas</Label>
             <Input type="number" min={0} max={52} placeholder="0" value={repeatWeeks === 0 ? "" : repeatWeeks} onChange={(e) => setRepeatWeeks(Number(e.target.value) || 0)} />

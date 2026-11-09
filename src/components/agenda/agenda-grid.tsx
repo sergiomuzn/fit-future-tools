@@ -3,6 +3,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
+import { agendaBlockMembers } from "./use-online-bookings";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking } from "./online-booking";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
@@ -434,8 +436,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const display: Session[] = [];
     const members = new Map<string, Session[]>(); // primary.id -> member sessions
     for (const s of sessions) {
-      if (s.recurrencia_id && s.ocupacion === 2) {
-        const key = `${s.recurrencia_id}|${s.fecha}|${s.hora_inicio}|${s.hora_fin}`;
+      if (s.slot_instance_id || (s.recurrencia_id && s.ocupacion === 2)) {
+        const key = sessionBlockKey(s);
         const arr = groups.get(key);
         if (arr) arr.push(s); else groups.set(key, [s]);
       } else {
@@ -446,10 +448,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       // Representante: una sesión activa (no cancelada) con servicio, para que
       // el bloque vuelva a "reservada" en cuanto entra una nueva reserva.
       const conServicio = (s: Session) => !!(s as { servicio_slug?: string | null }).servicio_slug;
-      const primary =
-        arr.find((s) => s.estado !== "cancelada" && conServicio(s)) ??
-        arr.find((s) => s.estado !== "cancelada") ??
-        arr.find(conServicio) ?? arr[0];
+      const primary = sessionBlockSummary(arr, behavior.graciaAutoRealizadaMin).representative;
+      if (!primary) continue;
       display.push(primary);
       members.set(primary.id, arr);
     }
@@ -459,7 +459,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const visibles = visibleAgendaSessions(display).filter((session) => visibleIds.has(session.id) ||
       (members.get(session.id)?.some((member) => visibleIds.has(member.id)) ?? false));
     return { displaySessions: visibles, groupMembers: members };
-  }, [sessions, onlineVisible]);
+  }, [sessions, onlineVisible, behavior.graciaAutoRealizadaMin]);
 
   // Drag-to-create
   const [draft, setDraft] = useState<DraftSession | null>(null);
@@ -871,7 +871,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           trainer_id: week === 0 ? draft.trainerId : null,
           servicio_slug: draft.servicioSlug,
           client_id: clientId,
-          estado: draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado,
+          estado: automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
           tipo: draft.esPrueba ? "prueba" : null,
           por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
           incidencia: draft.notas || null,
@@ -894,7 +894,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando)
     // cuando la sesión tiene otras reservas activas.
     const hayActivas = allRows.some((row) => row.estado !== "cancelada");
-    const ids = hayActivas ? allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id) : allIds;
+    const ids = allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id);
     const idSet = new Set(ids);
     const rows = sessions.filter((row) => idSet.has(row.id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
@@ -934,7 +934,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     } else if (!pendingPortalIds.length && draft.porConfirmar && draft.estado === "reservada") {
       await Promise.all(portalIds.map((id) => marcarReservaPorConfirmar({ data: { sessionId: id } }).catch(() => {})));
     }
-    const nextEstado = draft.esPrueba && draft.estado !== "cancelada" ? "prueba" : draft.estado;
+    const nextEstado = automaticSessionState(ps.fecha, `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar);
     await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
     const previous = qc.getQueryData<Session[]>(["sessions", isoDate]);
     qc.setQueryData<Session[]>(["sessions", isoDate], (old) => (old ?? []).map((row) => idSet.has(row.id) ? ({
@@ -980,7 +980,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           hora_inicio: `${draft.horaInicio}:00`,
           hora_fin: `${draft.horaFin}:00`,
           trainer_id: null,
-          estado: nextEstado,
+          estado: automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
           tipo: draft.esPrueba ? "prueba" : null,
           por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
           incidencia: draft.notas || null,
@@ -1195,7 +1195,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isGroup = session.ocupacion === 2;
               const members = groupMembers.get(session.id);
               const groupMemberCount = isGroup
-                ? (members ?? [session]).filter((m) => !!m.client_id).length
+                ? (members ?? [session]).filter((m) => !!m.client_id && m.estado !== "cancelada").length
                 : 0;
               // Servicio efectivo: si el representante del grupo no lo tiene guardado,
               // se toma el de cualquier otra sesión del mismo grupo.
@@ -1221,14 +1221,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // Con más de una plaza no se pinta la sesión en amarillo.
               const multiPlaza = plazas > 1;
               const renovarSufijo = (_clientId: string | null | undefined) => "";
-              const estadoForColor = session.tipo === "prueba"
+              const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
+              const estadoForColor = summary.estado === "cancelada" ? "cancelada" : session.tipo === "prueba"
                 ? "prueba"
                 : needsRenewal && !multiPlaza
                   ? "renovacion"
-                  : session.estado;
+                  : summary.estado;
               // Clientes en la sesión: miembros del grupo, las reservas de la misma
               // franja (huecos de Reservas), o 1/0 en individuales sueltas.
-              const ocupados = isGroup
+              const ocupados = summary.estado === "cancelada" ? 0 : isGroup
                 ? groupMemberCount
                 : instCap !== undefined
                   ? (instOcupadosMap.get(instId!) ?? 0)
@@ -1238,7 +1239,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupCountLabel = `${ocupados}/${plazas}`;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const clientIds: (string | null | undefined)[] = isGroup
-                ? (members ?? [session]).map((m) => m.client_id)
+                ? (members ?? [session]).filter((m) => m.estado !== "cancelada").map((m) => m.client_id)
                 : multiPlaza
                   ? (slotClientsMap.get(huecoKey) ?? (session.client_id ? [session.client_id] : []))
                   : (session.client_id ? [session.client_id] : []);
@@ -1324,6 +1325,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     }}
                     onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
+                  {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 z-10 rounded-sm bg-background px-1 text-[10px] font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
                   {isCompact ? (
                     <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
                       <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
@@ -1448,6 +1450,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? null);
               }
               void qc.invalidateQueries({ queryKey: ["sessions"] });
+              void qc.invalidateQueries({ queryKey: ["sessions-past"] });
               void qc.invalidateQueries({ queryKey: ["sessions-range"] });
               void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
               void qc.invalidateQueries({ queryKey: ["client_bonos"] });
