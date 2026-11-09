@@ -324,7 +324,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
-      if (await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Esta selección todavía no se ha guardado. Se retirará este cliente de la selección.", confirmText: "Cancelar reserva" })) remove();
+      remove();
     }}><Ban />Cancelar reserva</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
   }
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
