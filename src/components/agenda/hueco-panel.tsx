@@ -442,7 +442,7 @@ export function HuecoPanel({
                     />
                   </div>
                   <Select value={trainerId ?? NONE} onValueChange={(v) => setTrainerId(v === NONE ? null : v)}>
-                    <SelectTrigger className="h-8 w-auto max-w-36 rounded-full border-primary-foreground/20 bg-primary-foreground/10 px-2 text-xs text-primary-foreground shadow-none focus:ring-0">
+                    <SelectTrigger className="ml-2 h-8 w-auto max-w-36 rounded-full border-primary-foreground/20 bg-primary-foreground/10 px-2 text-xs text-primary-foreground shadow-none focus:ring-0">
                       <SelectValue placeholder="Sin entrenador" />
                     </SelectTrigger>
                     <SelectContent>
@@ -459,7 +459,7 @@ export function HuecoPanel({
               <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
                 <div className="flex items-center gap-1.5">
                 <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
-                <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold uppercase text-primary-foreground/75">Sesión de prueba</Label>
+                <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">sesión de prueba</Label>
                 </div>
               </div>
             </div>
