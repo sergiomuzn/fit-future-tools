@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, MoreHorizontal, UserMinus, Ban } from "lucide-react";
+import { MoreHorizontal, UserMinus, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -520,11 +520,6 @@ export function HuecoPanel({
                         />
                         No contabilizar
                       </label>
-                    )}
-                    {item.reserva && tab !== "cancelados" && (
-                      <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => void quitarCliente(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
-                        <X className="h-4 w-4" />
-                      </button>
                     )}
                   </div>
                 ))}
