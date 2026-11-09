@@ -76,7 +76,6 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
     const { claveDeSesion } = await import("./cola-espera.server");
     const claves: string[] = [];
     for (const r of (rows ?? []) as any[]) {
-      if (!r.booked_by_user_id) continue;
       const clave = await claveDeSesion(centroId, r);
       if (clave && !claves.includes(clave)) claves.push(clave);
     }

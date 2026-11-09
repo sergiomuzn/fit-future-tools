@@ -28,8 +28,8 @@ describe("self-booking distinction", () => {
 });
 
 describe("single-place cancellation visibility", () => {
-  test("cancelled self-booking of one place without queue disappears", () => {
-    strictEqual(hideCancelledSelfBooking(cancelled, 1, false), true);
+  test("cancelled self-booking of one place without queue remains accessible", () => {
+    strictEqual(hideCancelledSelfBooking(cancelled, 1, false), false);
   });
   test("waiting client keeps the cancelled session visible", () => {
     strictEqual(hideCancelledSelfBooking(cancelled, 1, true), false);

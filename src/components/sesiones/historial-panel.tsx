@@ -1,3 +1,5 @@
+import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
+import { useBehaviorConfig } from "@/lib/behavior-config";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, type Group, ESTADO_LABEL } from "@/lib/db";
@@ -18,6 +20,7 @@ import { useServicios } from "@/lib/servicios";
 
 export function HistorialPanel() {
   const qc = useQueryClient();
+  const behavior = useBehaviorConfig();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -28,20 +31,19 @@ export function HistorialPanel() {
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
 
   const { data: sessions = [] } = useQuery({
-    queryKey: ["sessions-past"],
+    queryKey: ["sessions-past", behavior.graciaAutoRealizadaMin],
     queryFn: async () => {
       const { data } = await supabase
         .from("sessions")
         .select("*")
         .lte("fecha", today)
-        .in("estado", ["realizada", "cancelada", "prueba"])
         .order("fecha", { ascending: false })
         .order("hora_inicio", { ascending: false })
         .limit(500);
       const rows = (data ?? []) as Session[];
       // Excluir sesiones "por confirmar" y las de hoy cuyo fin + 15 min aún no ha pasado.
       const now = new Date();
-      const GRACE_MS = 15 * 60 * 1000;
+      const GRACE_MS = Math.max(0, behavior.graciaAutoRealizadaMin) * 60 * 1000;
       return rows.filter((s) => {
         if ((s as any).por_confirmar) return false;
         const end = new Date(`${s.fecha}T${s.hora_fin}`);
@@ -93,26 +95,22 @@ export function HistorialPanel() {
     return (s.client_id ? formatNameTitle(clientMap.get(s.client_id)?.nombre) : s.titulo) ?? "—";
   };
 
-  // Colapsar filas de una misma sesión de grupo (mismo recurrencia+fecha+hora) en una sola fila.
-  const collapsed: Session[] = (() => {
-    const seen = new Set<string>();
-    const out: Session[] = [];
-    for (const s of sessions) {
-      if (s.ocupacion === 2 && s.recurrencia_id) {
-        const key = `${s.recurrencia_id}|${s.fecha}|${s.hora_inicio}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-      }
-      out.push(s);
-    }
-    return out;
-  })();
+  const blocks = new Map<string, Session[]>();
+  for (const row of sessions) { const key = sessionBlockKey(row); blocks.set(key, [...(blocks.get(key) ?? []), row]); }
+  const summaries = new Map<string, ReturnType<typeof sessionBlockSummary<Session>>>();
+  const collapsed: Session[] = [...blocks.values()].flatMap((rows) => {
+    const summary = sessionBlockSummary(rows, behavior.graciaAutoRealizadaMin);
+    if (!summary.representative) return [];
+    const representative = { ...summary.representative, estado: summary.estado, no_contabilizar: summary.estado === "cancelada" && summary.cancelled.every((r) => r.no_contabilizar) };
+    summaries.set(representative.id, summary);
+    return [representative];
+  });
 
   const q = normalizeText(search.trim());
   const filtered = collapsed.filter((s) => {
     if (q) {
       const name = normalizeText(nameForSession(s));
-      if (!name.includes(q) && !s.fecha.includes(q)) return false;
+      if (!name.includes(q) && !formatDateShort(s.fecha).includes(q)) return false;
     }
     if (desde && s.fecha < desde) return false;
     if (hasta && s.fecha > hasta) return false;
@@ -141,7 +139,7 @@ export function HistorialPanel() {
           <ExpandableSearch
             value={search}
             onChange={setSearch}
-            placeholder="Nombre o fecha (YYYY-MM-DD)…"
+            placeholder="Nombre o fecha…"
           />
           <Button
             variant={filtersOpen ? "default" : "outline"}
@@ -157,7 +155,7 @@ export function HistorialPanel() {
             )}
           </Button>
           <Button variant="outline" onClick={() => exportToXlsx("sesiones", filtered.map((s) => ({
-          Fecha: s.fecha,
+          Fecha: formatDateShort(s.fecha),
           Hora: s.hora_inicio.slice(0, 5),
           Cliente: nameForSession(s),
           Servicio: (() => { const sl = servicioForSession(s); return sl ? servMap.get(sl) ?? sl : ""; })(),
@@ -258,6 +256,7 @@ export function HistorialPanel() {
                       ? "Cancelada NC"
                       : ESTADO_LABEL[s.estado]}
                   </span>
+                  {(summaries.get(s.id)?.cancelled.length ?? 0) > 0 && s.estado !== "cancelada" && <span className="ml-2 text-xs font-semibold text-state-cancelada" aria-label={`${summaries.get(s.id)?.cancelled.length} cancelaciones`}>{summaries.get(s.id)?.cancelled.length}</span>}
                 </TableCell>
                 <TableCell>
                   <Input defaultValue={s.incidencia ?? ""} onBlur={(e) => updateIncidencia(s.id, e.target.value)} placeholder="—" className="h-8" />
