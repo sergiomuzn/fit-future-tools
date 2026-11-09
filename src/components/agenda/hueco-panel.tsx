@@ -430,7 +430,7 @@ export function HuecoPanel({
                       type="time"
                       value={horaInicio}
                       onChange={(e) => setHoraInicio(e.target.value)}
-                      className="h-7 w-[3rem] shrink-0 border-0 bg-transparent p-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-datetime-edit-ampm-field]:hidden text-center text-sm font-semibold tabular-nums text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
+                      className="h-7 w-[5ch] shrink-0 border-0 bg-transparent p-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit]:flex [&::-webkit-datetime-edit]:justify-center [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-datetime-edit-ampm-field]:hidden text-center text-sm font-semibold tabular-nums text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
                     />
                     <span className="text-primary-foreground/45">—</span>
                     <Input
@@ -438,7 +438,7 @@ export function HuecoPanel({
                       type="time"
                       value={horaFin}
                       onChange={(e) => setHoraFin(e.target.value)}
-                      className="h-7 w-[3rem] shrink-0 border-0 bg-transparent p-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-datetime-edit-ampm-field]:hidden text-center text-sm font-semibold tabular-nums text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
+                      className="h-7 w-[5ch] shrink-0 border-0 bg-transparent p-0 [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-datetime-edit]:p-0 [&::-webkit-datetime-edit]:flex [&::-webkit-datetime-edit]:justify-center [&::-webkit-datetime-edit-fields-wrapper]:p-0 [&::-webkit-datetime-edit-ampm-field]:hidden text-center text-sm font-semibold tabular-nums text-primary-foreground shadow-none focus-visible:ring-1 focus-visible:ring-primary-foreground/40"
                     />
                   </div>
                   <Select value={trainerId ?? NONE} onValueChange={(v) => setTrainerId(v === NONE ? null : v)}>
