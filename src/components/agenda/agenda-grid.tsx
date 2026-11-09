@@ -997,15 +997,17 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   async function deletePanelSession(ps: Session) {
     const ids = blockIds(ps.id);
     const portalIds = sessions.filter((row) => ids.includes(row.id) && isPortalRow(row)).map((row) => row.id);
+    // El aviso de denegación solo aplica a reservas online pendientes; si el
+    // centro marcó la sesión como "por confirmar" se elimina sin ese cuadro.
+    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isSelfBooking(row)).map((row) => row.id);
     const ok = await confirmPanel({
-      title: ps.por_confirmar ? "¿Eliminar una sesión pendiente de confirmar?" : "¿Eliminar sesión?",
-      description: ps.por_confirmar
+      title: pendingIds.length ? "¿Eliminar una sesión pendiente de confirmar?" : "¿Eliminar sesión?",
+      description: pendingIds.length
         ? "Si eliminas esta sesión, se denegará la reserva pendiente y el cliente recibirá un aviso."
         : "La sesión se eliminará de la agenda.",
       confirmText: "Eliminar",
     });
     if (!ok) return;
-    const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     if (pendingIds.length) {
       await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
     } else if (portalIds.length) {
