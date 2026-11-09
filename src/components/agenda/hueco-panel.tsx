@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, MoreHorizontal, UserMinus, Ban } from "lucide-react";
+import { MoreHorizontal, UserMinus, Ban } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { FueraHorarioAviso } from "@/components/fuera-horario-aviso";
 import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { estadoColorOf, servicioColorOf } from "@/lib/colors";
 import { useBehaviorConfig } from "@/lib/behavior-config";
-import { ESTADO_BG, ESTADO_LABEL, type Client, type SesionEstado } from "@/lib/db";
+import { type Client, type SesionEstado } from "@/lib/db";
 import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
@@ -85,13 +85,7 @@ interface Props {
 }
 
 const NONE = "__none";
-const ESTADO_PILL: Record<SesionEstado, string> = {
-  reservada: "border-state-reservada bg-state-reservada text-primary-foreground",
-  realizada: "border-state-realizada bg-state-realizada text-primary-foreground",
-  cancelada: "border-state-cancelada bg-state-cancelada text-primary-foreground",
-  prueba: "border-state-prueba bg-state-prueba text-primary-foreground",
-  renovacion: "border-state-renovacion bg-state-renovacion text-primary-foreground",
-};
+
 
 export function HuecoPanel({
   inst,
@@ -392,7 +386,6 @@ export function HuecoPanel({
   // El punto de la cabecera siempre sigue el color del servicio elegido,
   // sea cual sea el estado de la sesión.
   const dotColor = servicioColorOf(colores, servicioSlug || null) ?? color;
-  const estadoVisual = !reservasVisibles.length && !isNew && (extra?.cancelados.length ?? 0) > 0 && !(extra?.cola.length) ? "cancelada" : esPrueba ? "prueba" : estado;
   const fechaDia = inst
     ? new Intl.DateTimeFormat("es-ES", { weekday: "long" }).format(new Date(`${inst.fecha}T12:00:00`))
     : "";
@@ -448,7 +441,6 @@ export function HuecoPanel({
                     />
                   </div>
                 </div>
-                <span className={cn("inline-flex h-8 items-center rounded-full border px-3 text-xs font-semibold", ESTADO_PILL[estadoVisual])}>{ESTADO_LABEL[estadoVisual]}</span>
               </div>
 
               <FueraHorarioAviso show={isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap)} />
@@ -501,6 +493,7 @@ export function HuecoPanel({
                 {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
                   <div key={item.id} className="flex min-w-0 items-start gap-2">
                     <div className="min-w-0 flex-1"><ClientPicker
+                      hideClearButton
                       value={item.reserva.client_id}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       onChange={(clientId) => {
@@ -528,16 +521,12 @@ export function HuecoPanel({
                         No contabilizar
                       </label>
                     )}
-                    {item.reserva && tab !== "cancelados" && (
-                      <button type="button" aria-label={`Quitar a ${item.nombre}`} onClick={() => void quitarCliente(item.reserva as PanelReserva)} className="text-muted-foreground hover:text-foreground">
-                        <X className="h-4 w-4" />
-                      </button>
-                    )}
                   </div>
                 ))}
                 {tab === "reservados" && pickerValues.map((value, row) => (
-                  <div key={`free-${row}`} className="min-w-0">
+                  <div key={`free-${row}`} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1">
                     <ClientPicker
+                      hideClearButton
                       value={value}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       autoFocus={row === 0}
@@ -546,7 +535,13 @@ export function HuecoPanel({
                         if (clientId && !isNew) anadir.mutate({ clientId });
                       }}
                       onNameClick={(c) => setPerfilCliente(c)}
-                    />
+                    /></div>
+                    {value && <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setPickerValues((old) => old.map((id, index) => index === row ? null : id))}><UserMinus />Quitar cliente</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>}
                   </div>
                 ))}
               </div>

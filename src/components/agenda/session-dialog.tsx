@@ -319,9 +319,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     refreshAgenda(qc);
     for (const key of ["group-members", "sessions-past", "client_bonos", "client-bonos", "bonos"]) void qc.invalidateQueries({ queryKey: [key] });
   }
-  function clientMenu(row: Session | undefined, remove: () => void) {
-    if (!row || row.estado === "cancelada" || cancelledIds.includes(row.id)) return null;
-    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive" onSelect={() => void cancelarCliente(row)}><Ban />Cancelar reserva</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+  function clientMenu(selectedId: string | null, row: Session | undefined, remove: () => void) {
+    if (!selectedId) return null;
+    const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem>{savedRow && <DropdownMenuItem className="text-destructive" onSelect={() => void cancelarCliente(savedRow)}><Ban />Cancelar reserva</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu>;
   }
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
   const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).map((row) => cancelledOverrides.find((r) => r.id === row.id) ?? row).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
@@ -874,6 +875,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
                     <ClientPicker
+                      hideClearButton
                       value={cid}
                       showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                       autoFocus={isNew && i === 0}
@@ -901,13 +903,14 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       onNameClick={(c) => setPerfilCliente(c)}
                     />
                   </div>
-                  {clientMenu((groupMembersData ?? []).find((row) => row.client_id === cid), () => setGroupClientIds((old) => old.map((id, index) => index === i ? null : id)))}
+                  {clientMenu(cid, (groupMembersData ?? []).find((row) => row.client_id === cid), () => setGroupClientIds((old) => old.map((id, index) => index === i ? null : id)))}
                 </div>
               ))}
               </div>
             ) : (
               <div className="flex items-start gap-2"><div className="min-w-0 flex-1">
                 <ClientPicker
+                      hideClearButton
                   value={clientId}
                   showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                   onChange={(id) => setClientId(id)}
@@ -915,7 +918,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   initialText={nombreLibre}
                   onTextChange={(t) => setNombreLibre(t)}
                   onNameClick={(c) => setPerfilCliente(c)}
-                /></div>{clientMenu(session?.id ? session as Session : undefined, () => setClientId(null))}
+                /></div>{clientMenu(clientId, session?.id ? session as Session : undefined, () => setClientId(null))}
               </div>
             )}
           </div>
