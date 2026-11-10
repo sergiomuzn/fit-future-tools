@@ -1024,7 +1024,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
     }
     if (draft.repeatWeeks > 0) {
-      const originals = allRows.filter((row) => (cancelledOnlyIds.length ? cancelledOnlyIds.includes(row.id) : idSet.has(row.id)) && !!row.client_id || (cancelledOnlyIds.length > 0 && cancelledOnlyIds.includes(row.id)));
+      const originals = cancelledOnlyIds.length ? allRows : allRows.filter((row) => idSet.has(row.id));
       // Las repeticiones comparten recurrencia_id con la sesión original para
       // poder eliminarlas después como "sesiones futuras".
       const serieId = originals.find((row) => row.recurrencia_id)?.recurrencia_id ?? crypto.randomUUID();
