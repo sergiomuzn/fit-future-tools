@@ -904,14 +904,24 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       toast.success(draft.repeatWeeks ? `Sesión creada (+${draft.repeatWeeks} repeticiones)` : "Sesión creada");
       return true;
     }
-    const allIds = blockIds(ps.id);
-    const allRows = sessions.filter((row) => allIds.includes(row.id));
-    // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando)
-    // cuando la sesión tiene otras reservas activas.
+    const blockIdList = blockIds(ps.id);
+    // Lee el estado actual: las cancelaciones hechas en el panel abierto y los
+    // clientes que sustituyen a una cancelación pertenecen a esta misma sesión.
+    const [{ data: freshBlock }, { data: replacements }] = await Promise.all([
+      supabase.from("sessions").select("*").in("id", blockIdList),
+      supabase.from("sessions").select("*").in("reemplaza_session_id", blockIdList).neq("estado", "cancelada"),
+    ]);
+    const freshRows = [...((freshBlock ?? []) as Session[]), ...((replacements ?? []) as Session[]).filter((r) => !blockIdList.includes(r.id))];
+    const allRows = freshRows.length ? freshRows : sessions.filter((row) => blockIdList.includes(row.id));
+    const allIds = allRows.map((row) => row.id);
+    // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando):
+    // nunca se reescribe su estado. Si solo quedan cancelaciones, se guardan
+    // en ellas los datos comunes de la sesión (hora, entrenador, servicio, notas).
     const hayActivas = allRows.some((row) => row.estado !== "cancelada");
-    const ids = hayActivas ? allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id) : allIds;
+    const ids = allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id);
     const idSet = new Set(ids);
-    const rows = sessions.filter((row) => idSet.has(row.id));
+    const cancelledOnlyIds = hayActivas ? [] : allIds;
+    const rows = allRows.filter((row) => idSet.has(row.id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     const portalIds = rows.filter(isPortalRow).map((row) => row.id);
     const changesBookedSlot =
@@ -982,8 +992,20 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return false;
     }
     // Las plazas son de toda la sesión: también se guardan en sus cancelaciones.
-    const restoIds = allIds.filter((id) => !idSet.has(id));
+    const restoIds = allIds.filter((id) => !idSet.has(id) && !cancelledOnlyIds.includes(id));
     if (restoIds.length) await supabase.from("sessions").update({ plazas: draft.plazas } as any).in("id", restoIds);
+    if (cancelledOnlyIds.length) {
+      const { error: cancelledError } = await supabase.from("sessions").update({
+        hora_inicio: `${draft.horaInicio}:00`,
+        hora_fin: `${draft.horaFin}:00`,
+        servicio_slug: draft.servicioSlug,
+        trainer_id: draft.trainerId,
+        tipo: draft.esPrueba ? "prueba" : null,
+        incidencia: draft.notas || null,
+        plazas: draft.plazas,
+      } as any).in("id", cancelledOnlyIds);
+      if (cancelledError) return toast.error(cancelledError.message), false;
+    }
     // Marcas de "No contabilizar" hechas en el panel antes de guardar.
     for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
       await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
@@ -1002,7 +1024,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       }
     }
     if (draft.repeatWeeks > 0) {
-      const originals = sessions.filter((row) => idSet.has(row.id));
+      const originals = allRows.filter((row) => (cancelledOnlyIds.length ? cancelledOnlyIds.includes(row.id) : idSet.has(row.id)) && !!row.client_id || (cancelledOnlyIds.length > 0 && cancelledOnlyIds.includes(row.id)));
       // Las repeticiones comparten recurrencia_id con la sesión original para
       // poder eliminarlas después como "sesiones futuras".
       const serieId = originals.find((row) => row.recurrencia_id)?.recurrencia_id ?? crypto.randomUUID();
