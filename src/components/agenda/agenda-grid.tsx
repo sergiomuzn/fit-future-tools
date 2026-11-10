@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateShort } from "@/lib/utils";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
@@ -815,6 +816,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // Dialog
   const [panelSession, setPanelSession] = useState<Session | null>(null);
+  // Solo se ofrece "Eliminar sesiones futuras" si la serie tiene repeticiones posteriores.
+  const { data: futureSeries = false } = useQuery({
+    queryKey: ["future-series", panelSession?.recurrencia_id ?? null, panelSession?.fecha ?? null],
+    enabled: !!panelSession?.recurrencia_id && !!panelSession?.id,
+    queryFn: async () => {
+      const { count } = await supabase.from("sessions").select("id", { count: "exact", head: true }).eq("recurrencia_id", panelSession!.recurrencia_id!).gt("fecha", panelSession!.fecha);
+      return (count ?? 0) > 0;
+    },
+  });
   const { confirm: confirmPanel, dialog: confirmPanelDialog } = useConfirm();
 
   // Click on a session — if paintMode, just assign trainer
