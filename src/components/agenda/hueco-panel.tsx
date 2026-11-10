@@ -149,7 +149,7 @@ export function HuecoPanel({
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
   // Una fila reutilizada para otro cliente se muestra con su cliente nuevo hasta que llega el refresco.
   const reservasAll = useMemo(() => {
-    const vigentes = reservas.map((r) => { const p = pendientes.find((x) => x.id === r.id); return p && p.client_id !== r.client_id && r.client_id ? r : p ?? r; });
+    const vigentes = reservas.map((r) => pendientes.find((x) => x.id === r.id) ?? r);
     return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
   }, [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
