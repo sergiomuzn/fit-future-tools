@@ -1142,7 +1142,9 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                       type="linear"
                       dataKey={mk}
                       name={(mediaKeys ?? []).length > 1 ? `Media ${mk.replace("__media__", "")}` : "Media"}
-                      stroke="#94a3b8"
+                      stroke={metric === "sesiones" && desglose === "turno" && period === "historico"
+                        ? colorForSeries(mk.replace("__media__", ""), seriesKeys.indexOf(mk.replace("__media__", "")))
+                        : "#94a3b8"}
                       strokeWidth={1.5}
                       strokeDasharray="5 5"
                       dot={false}
