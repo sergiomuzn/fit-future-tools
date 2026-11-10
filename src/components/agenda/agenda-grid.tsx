@@ -1074,18 +1074,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     for (const [dia, rows] of porFecha) {
       const base = rows[0];
       const presentes = new Set(rows.map((row) => row.client_id).filter(Boolean));
-      for (const row of rows) {
-        if (row.client_id && !clientesActuales.includes(row.client_id)) {
-          if (rows.length > 1) deletes.push(row.id); else vacias.push(row.id);
-        }
-      }
-      const huecoVacio = rows.find((row) => !row.client_id);
-      for (const clientId of clientesActuales) {
-        if (presentes.has(clientId)) continue;
-        if (huecoVacio && !inserts.some((x) => x.__fill === huecoVacio.id)) {
-          inserts.push({ __fill: huecoVacio.id, client_id: clientId });
-          continue;
-        }
+      // Filas reutilizables: vacías o de clientes que ya no están en la sesión.
+      const libres = rows.filter((row) => !row.client_id || !clientesActuales.includes(row.client_id));
+      const nuevos = clientesActuales.filter((id) => !presentes.has(id));
+      // Cambiar de cliente reutiliza la misma fila: la sesión nunca se duplica.
+      for (const clientId of nuevos) {
+        const fila = libres.shift();
+        if (fila) { inserts.push({ __fill: fila.id, client_id: clientId }); continue; }
         inserts.push({
           ...comunes,
           fecha: dia,
@@ -1097,9 +1092,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           booking_tipo: "centro",
         });
       }
+      // Sobrantes: se borran, salvo que la sesión se quede sin filas (queda vacía).
+      const ocupadas = rows.length - libres.length + nuevos.length;
+      for (const fila of libres) {
+        if (!fila.client_id) { if (ocupadas > 0 || libres.indexOf(fila) > 0) deletes.push(fila.id); continue; }
+        if (ocupadas > 0 || libres.indexOf(fila) > 0) deletes.push(fila.id); else vacias.push(fila.id);
+      }
     }
     for (const fill of inserts.filter((x) => x.__fill)) {
-      const { error } = await supabase.from("sessions").update({ client_id: fill.client_id } as any).eq("id", fill.__fill);
+      const { error } = await supabase.from("sessions").update({ client_id: fill.client_id, booked_by_user_id: null, booking_tipo: "centro" } as any).eq("id", fill.__fill);
       if (error) return { error: error.message };
     }
     const nuevas = inserts.filter((x) => !x.__fill);
