@@ -984,8 +984,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const fecha = new Date(`${row.fecha}T00:00:00`);
         fecha.setDate(fecha.getDate() + week * 7);
         return {
-          ...row,
-          id: undefined,
+          client_id: row.client_id,
+          servicio_slug: draft.servicioSlug,
+          group_id: (row as any).group_id ?? null,
+          modalidad: (row as any).modalidad ?? null,
+          titulo: row.titulo ?? null,
+          ocupacion: row.ocupacion ?? 1,
+          recurrencia_id: row.recurrencia_id ?? null,
+          slot_instance_id: null,
+          booking_tipo: "centro",
+          no_contabilizar: false,
           fecha: formatDateISO(fecha),
           hora_inicio: `${draft.horaInicio}:00`,
           hora_fin: `${draft.horaFin}:00`,
@@ -995,7 +1003,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
           incidencia: draft.notas || null,
           plazas: draft.plazas,
-          clients: undefined,
         };
       }));
       if (inserts.length) {
