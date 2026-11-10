@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Format every user-visible date through `formatDateShort` as `dd/mm/yy`; keep ISO only for storage, inputs, queries, and comparisons so presentation stays consistent without changing date semantics.
+- Render hourly month-comparison session labels in a final chart overlay with collision spacing and series colors; keep label presentation independent of statistical accounting.
 - Propagated slot instances are unique per (service_slot_id, fecha), never merged by service+time; bookings are distributed across same-time instances via asignarReservasAHuecos (trainer match first) — two template slots at the same hour are distinct sessions.
 - Agenda cancellation visibility uses explicit slot-instance identity after recurrence grouping; manual sessions never merge by time, service or trainer, so independent cancellations remain accessible.
 - A rebooking into a cancelled manual Agenda session stores reemplaza_session_id pointing at the cancelled row; only that explicit link (or an equal slot_instance_id) hides a cancellation, so same-time independent sessions never merge.

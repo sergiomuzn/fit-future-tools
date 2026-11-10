@@ -10,8 +10,9 @@ import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, Line, ComposedChart, LabelList, Cell,
+  Legend as RLegend, Line, ComposedChart, LabelList, Cell, Customized,
 } from "recharts";
+import { StatsComparisonLabels } from "@/components/stats-comparison-labels";
 import {
   useCenterConfig, openMinutesOfDay, openMinutesInHour, eachDate,
   type HorarioBase, type SpecialDay,
@@ -810,6 +811,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Ya no se dibuja línea de total superpuesta sobre las barras.
   const rowsWithTotal = rows;
+  const separateMonthLabels = metric === "sesiones" && desglose === "franja" && period === "comparar";
   // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
   const manyTicks = rows.length > 10;
   const xAxisProps = manyTicks
@@ -1109,7 +1111,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
                     >
-                      <LabelList
+                      {!separateMonthLabels && <LabelList
                         dataKey={k}
                         position="top"
                         style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
@@ -1131,7 +1133,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                               }
                             : undefined
                         }
-                      />
+                      />}
                     </Line>
                   ))}
                   {(mediaKeys ?? []).map((mk) => (
@@ -1148,6 +1150,11 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                       isAnimationActive={false}
                     />
                   ))}
+                  {separateMonthLabels && (
+                    <Customized component={
+                      <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} />
+                    } />
+                  )}
                 </ComposedChart>
               ) : (
                 <ComposedChart data={rowsWithTotal} margin={chartMargin}>
