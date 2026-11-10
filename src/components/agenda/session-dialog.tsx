@@ -376,7 +376,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       if (pendientesIds.length && !porConfirmar) {
         quitarAvisosPendientes(pendientesIds);
         await Promise.all(
-          pendientesIds.map((id) =>
+          pendientesIds.filter((id) => !cancelledIds.includes(id)).map((id) =>
             resolverReservaPendiente({ data: { sessionId: id, accion: "confirmar" } }).catch(() => {}),
           ),
         );
@@ -563,7 +563,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             const { error: e } = await supabase.from("sessions").insert(inserts);
             if (e) updateErr = e;
           }
-        } else if (desiredIds.length === 0 && !placeholder) {
+        } else if (desiredIds.length === 0 && !placeholder && cancelledRows.length === 0 && draftCancelled.length === 0) {
           // Grupo sin clientes: mantener un placeholder para que exista el bloque.
           const { error: e } = await supabase.from("sessions").insert([{
             ...sharedGroupFields,
