@@ -9,6 +9,9 @@ describe("removing a client is not cancelling a session", () => {
   test("manual group removes only the selected client row", () => {
     strictEqual(clientRemovalAction(false, 1), "delete");
   });
+  test("removing the replacement of a cancelled client leaves the cancelled session, not an empty one", () => {
+    strictEqual(clientRemovalAction(false, 0, true), "delete");
+  });
   test("propagated slot removes its booking without cancelling the slot", () => {
     strictEqual(clientRemovalAction(true, 0), "delete");
   });
