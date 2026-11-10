@@ -988,6 +988,19 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
       await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
     }
+    if (draft.repeatWeeks === 0 && ps.recurrencia_id && futureSeries) {
+      const aplicar = await confirmPanel({
+        title: "Esta sesión se repite en semanas futuras",
+        description: "¿Quieres aplicar los cambios también a las sesiones futuras o solo a esta sesión?",
+        confirmText: "Aplicar a sesiones futuras",
+        cancelText: "Solo esta sesión",
+        destructive: false,
+      });
+      if (aplicar) {
+        const { error: futureError } = await applyToFutureSessions(ps.recurrencia_id, ps.fecha, draft);
+        if (futureError) toast.error(futureError);
+      }
+    }
     if (draft.repeatWeeks > 0) {
       const originals = sessions.filter((row) => idSet.has(row.id));
       // Las repeticiones comparten recurrencia_id con la sesión original para
@@ -1029,6 +1042,80 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     void qc.invalidateQueries({ queryKey: ["client_bonos"] });
     toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
     return true;
+  }
+
+  /** Copia los datos y el conjunto de clientes de la sesión actual a sus repeticiones posteriores. */
+  async function applyToFutureSessions(serieId: string, fecha: string, draft: HuecoPanelDraft): Promise<{ error: string | null }> {
+    const [{ data: actuales, error: e1 }, { data: futuras, error: e2 }] = await Promise.all([
+      supabase.from("sessions").select("client_id").eq("recurrencia_id", serieId).eq("fecha", fecha).neq("estado", "cancelada"),
+      supabase.from("sessions").select("*").eq("recurrencia_id", serieId).gt("fecha", fecha).neq("estado", "realizada").neq("estado", "cancelada"),
+    ]);
+    if (e1 || e2) return { error: (e1 ?? e2)!.message };
+    const clientesActuales = [...new Set((actuales ?? []).map((row) => row.client_id).filter((id): id is string => !!id))];
+    const porFecha = new Map<string, any[]>();
+    for (const row of (futuras ?? []) as any[]) porFecha.set(row.fecha, [...(porFecha.get(row.fecha) ?? []), row]);
+    const comunes = {
+      hora_inicio: `${draft.horaInicio}:00`,
+      hora_fin: `${draft.horaFin}:00`,
+      servicio_slug: draft.servicioSlug,
+      trainer_id: draft.trainerId,
+      tipo: draft.esPrueba ? "prueba" : null,
+      incidencia: draft.notas || null,
+      plazas: draft.plazas,
+    };
+    const updIds = ((futuras ?? []) as any[]).map((row) => row.id as string);
+    if (updIds.length) {
+      const { error } = await supabase.from("sessions").update(comunes as any).in("id", updIds);
+      if (error) return { error: error.message };
+    }
+    const inserts: any[] = [];
+    const deletes: string[] = [];
+    const vacias: string[] = [];
+    for (const [dia, rows] of porFecha) {
+      const base = rows[0];
+      const presentes = new Set(rows.map((row) => row.client_id).filter(Boolean));
+      for (const row of rows) {
+        if (row.client_id && !clientesActuales.includes(row.client_id)) {
+          if (rows.length > 1) deletes.push(row.id); else vacias.push(row.id);
+        }
+      }
+      const huecoVacio = rows.find((row) => !row.client_id);
+      for (const clientId of clientesActuales) {
+        if (presentes.has(clientId)) continue;
+        if (huecoVacio && !inserts.some((x) => x.__fill === huecoVacio.id)) {
+          inserts.push({ __fill: huecoVacio.id, client_id: clientId });
+          continue;
+        }
+        inserts.push({
+          ...comunes,
+          fecha: dia,
+          client_id: clientId,
+          recurrencia_id: serieId,
+          ocupacion: base.ocupacion ?? 1,
+          estado: automaticSessionState(dia, `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
+          por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
+          booking_tipo: "centro",
+        });
+      }
+    }
+    for (const fill of inserts.filter((x) => x.__fill)) {
+      const { error } = await supabase.from("sessions").update({ client_id: fill.client_id } as any).eq("id", fill.__fill);
+      if (error) return { error: error.message };
+    }
+    const nuevas = inserts.filter((x) => !x.__fill);
+    if (nuevas.length) {
+      const { error } = await supabase.from("sessions").insert(nuevas as any);
+      if (error) return { error: error.message };
+    }
+    if (vacias.length) {
+      const { error } = await supabase.from("sessions").update(EMPTY_SESSION_CLIENT).in("id", vacias);
+      if (error) return { error: error.message };
+    }
+    if (deletes.length) {
+      const { error } = await supabase.from("sessions").delete().in("id", deletes);
+      if (error) return { error: error.message };
+    }
+    return { error: null };
   }
 
   async function deleteFutureSessions(ps: Session) {
