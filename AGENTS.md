@@ -22,7 +22,7 @@
 - Table searches use `filterByMatch` (literal matches first, fuzzy fallback only when none exist); composite bono searches restrict fuzzy fallback to client names so totals and filters are not broadened by unrelated fields. Selection pickers retain `rankByMatch` suggestions.
 - Session-menu client removal clears the last manual assignment or deletes a booking row when its slot/group survives, without changing estado; use the shared removal policy to preserve empty manual sessions.
 - Session menus use the shared pending-confirmation policy and explicit self-booking origin, not confirmation status, to control marking a booking pending.
-- Expandable searches reset after an outside click finishes, never on input blur, so filtered result actions keep their original target.
+- Expandable searches keep nonempty text and filtering after outside clicks or Escape; clear only explicitly or when leaving the section/tab, so filtered result actions keep their original target.
 - Use opt-in `enterToSave` for editable dialogs; pickers consume selection Enter first, nested dialogs own their events, and destructive actions remain explicit.
 - Session client balances pass the editor's selected service through ClientPicker and select the latest active bono for that exact service using shared cache keys; keep this display separate from booking and accounting mutations.
 - Scope session balance visibility in the shared balance component using centre behavior settings; null service selection means all for backward compatibility, while an empty list means none.

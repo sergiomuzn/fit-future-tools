@@ -31,13 +31,10 @@ export function ExpandableSearch({
     let closeTimer: ReturnType<typeof setTimeout> | null = null;
     function onOutsideClick(event: MouseEvent) {
       if (!(event.target instanceof Node) || container.current?.contains(event.target)) return;
-      // Keep filtered rows mounted until the target's click handler has run.
+      // A nonempty search remains visible and keeps filtering after outside clicks.
+      if (text) return;
       if (closeTimer) clearTimeout(closeTimer);
       closeTimer = setTimeout(() => {
-        if (timer.current) clearTimeout(timer.current);
-        timer.current = null;
-        setText("");
-        onChange("");
         setOpen(false);
       }, 0);
     }
@@ -46,7 +43,7 @@ export function ExpandableSearch({
       document.removeEventListener("click", onOutsideClick, true);
       if (closeTimer) clearTimeout(closeTimer);
     };
-  }, [open, onChange]);
+  }, [open, text]);
   React.useEffect(() => {
     if (timer.current == null) setText(value);
   }, [value]);
@@ -67,8 +64,7 @@ export function ExpandableSearch({
   }
 
   function close() {
-    emit("", true);
-    setOpen(false);
+    if (!text) setOpen(false);
   }
 
   if (!open) {
