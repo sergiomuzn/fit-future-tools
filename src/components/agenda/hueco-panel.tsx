@@ -319,7 +319,6 @@ export function HuecoPanel({
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["sessions-range"] });
       qc.invalidateQueries({ queryKey: ["sessions"] });
-      toast.success("Reserva añadida");
     },
     onError: (e: Error, vars) => {
       setPickerValues((old) => old.map((v) => (v === vars.clientId ? null : v)));
