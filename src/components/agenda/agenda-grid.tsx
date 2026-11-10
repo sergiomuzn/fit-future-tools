@@ -1607,7 +1607,10 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 if (!ok) return false;
               }
               const remaining = activos.filter((row) => row.id !== r.id);
-              const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length);
+              const { data: fila } = await supabase.from("sessions").select("reemplaza_session_id").eq("id", r.id).maybeSingle();
+              const cancelada = (fila as any)?.reemplaza_session_id ? sessions.find((x) => x.id === (fila as any).reemplaza_session_id) ?? null : null;
+              const keepsCancellation = !!(fila as any)?.reemplaza_session_id || block.some((x) => x.estado === "cancelada");
+              const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length, keepsCancellation);
               onRemoving();
               const aviso = r.online ? await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => null) : null;
               const { error } = action === "clear"
@@ -1617,13 +1620,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // La plaza liberada se ofrece al primero de la cola.
               if (aviso?.claves?.length) void ofrecerPlazasLiberadas({ data: { claves: aviso.claves } }).catch(() => {});
               if (ps?.id === r.id) {
-                setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? null);
+                setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? cancelada ?? block.find((x) => x.estado === "cancelada") ?? null);
               }
+              if (action === "delete") qc.setQueriesData<Session[]>({ queryKey: ["sessions"] }, (old) => Array.isArray(old) ? old.filter((x) => x.id !== r.id) : old);
               void qc.invalidateQueries({ queryKey: ["sessions"] });
               void qc.invalidateQueries({ queryKey: ["sessions-past"] });
               void qc.invalidateQueries({ queryKey: ["sessions-range"] });
               void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
               void qc.invalidateQueries({ queryKey: ["client_bonos"] });
+              return action === "delete" ? "deleted" : true;
             }}
           />
         );

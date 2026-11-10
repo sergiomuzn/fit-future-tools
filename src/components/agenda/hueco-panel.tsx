@@ -90,7 +90,7 @@ interface Props {
   onDelete?: () => void;
   /** Elimina esta sesión y sus repeticiones posteriores. */
   onDeleteFuture?: () => void;
-  onCancelarReserva: (r: PanelReserva, onRemoving: () => void) => Promise<boolean | void>;
+  onCancelarReserva: (r: PanelReserva, onRemoving: () => void) => Promise<boolean | "deleted" | void>;
 }
 
 const NONE = "__none";
@@ -162,7 +162,7 @@ export function HuecoPanel({
       });
       if (result === false) restore();
       // Sesión manual sin más clientes: la fila queda vacía y la siguiente alta la rellena.
-      else if (slotInstanceId === null && !reservasVisibles.some((r) => r.id !== reserva.id)) grupoRef.current.fillTarget = reserva.id;
+      else if (result !== "deleted" && slotInstanceId === null && !reservasVisibles.some((r) => r.id !== reserva.id)) grupoRef.current.fillTarget = reserva.id;
     } catch {
       restore();
     }
