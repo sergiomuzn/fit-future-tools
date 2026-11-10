@@ -1,0 +1,2 @@
+ALTER TABLE public.sessions ADD COLUMN IF NOT EXISTS plazas integer NULL CHECK (plazas IS NULL OR plazas >= 1);
+COMMENT ON COLUMN public.sessions.plazas IS 'Plazas disponibles de esta sesión; NULL = capacidad del servicio';
