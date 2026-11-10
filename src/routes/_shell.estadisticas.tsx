@@ -816,7 +816,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const xAxisProps = manyTicks
     ? { tick: { fontSize: 10 }, angle: -45, textAnchor: "end" as const, height: 60, interval: 0 }
     : { tick: { fontSize: 12 } };
-  const chartMargin = manyTicks ? { top: 10, right: 10, left: 0, bottom: 24 } : { top: 10, right: 10, left: 0, bottom: 0 };
+  const chartMargin = { top: 10, right: 10, left: mediaKeys?.length ? 70 : 0, bottom: manyTicks ? 24 : 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
 
@@ -1080,6 +1080,20 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                    {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
+                  {(mediaKeys ?? []).map((mk) => (
+                    <Line
+                      key={mk}
+                      type="linear"
+                      dataKey={mk}
+                      name={(mediaKeys ?? []).length > 1 ? `Media ${mk.replace("__media__", "")}` : "Media"}
+                      stroke={colorForSeries(mk.replace("__media__", ""), seriesKeys.indexOf(mk.replace("__media__", "")))}
+                      strokeWidth={1.5}
+                      strokeDasharray="5 5"
+                      dot={false}
+                      activeDot={false}
+                      isAnimationActive={false}
+                    />
+                  ))}
                    {areas && seriesKeys.map((k, i) => (
                      <Area
                        key={`a-${k}`}
@@ -1112,22 +1126,9 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                     >
                     </Line>
                   ))}
-                  {(mediaKeys ?? []).map((mk) => (
-                    <Line
-                      key={mk}
-                      type="linear"
-                      dataKey={mk}
-                      name={(mediaKeys ?? []).length > 1 ? `Media ${mk.replace("__media__", "")}` : "Media"}
-                      stroke={metric === "sesiones" && desglose === "turno" && period === "historico"
-                        ? colorForSeries(mk.replace("__media__", ""), seriesKeys.indexOf(mk.replace("__media__", "")))
-                        : "#94a3b8"}
-                      strokeWidth={1.5}
-                      strokeDasharray="5 5"
-                      dot={false}
-                      activeDot={false}
-                      isAnimationActive={false}
-                    />
-                  ))}
+                  {!!mediaKeys?.length && <Customized component={
+                    <StatsComparisonLabels seriesKeys={mediaKeys} colors={mediaKeys.map((mk) => colorForSeries(mk.replace("__media__", ""), seriesKeys.indexOf(mk.replace("__media__", ""))))} leftLabels />
+                  } />}
                     <Customized component={
                       <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} labelEvery={labelEvery} />
                     } />

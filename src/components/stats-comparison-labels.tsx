@@ -13,10 +13,11 @@ type ComparisonLabelsProps = {
   colors: string[];
   labelEvery?: number;
   bars?: boolean;
+  leftLabels?: boolean;
 };
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, seriesKeys, colors, labelEvery = 1, bars = false }: ComparisonLabelsProps) {
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false }: ComparisonLabelsProps) {
   const series = seriesKeys.map((key, index) => {
     const graphical = formattedGraphicalItems.find(({ item }) =>
       isValidElement(item) && item.props.dataKey === key)?.props;
@@ -26,7 +27,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
     points: graphical?.points ?? graphical?.data ?? [],
   };
   });
-  const count = Math.max(0, ...series.map(({ points }) => points.length));
+  const count = leftLabels ? 1 : Math.max(0, ...series.map(({ points }) => points.length));
   const top = (offset?.top ?? 0) + 7;
   const bottom = (offset?.top ?? 0) + (offset?.height ?? 300) - 7;
 
@@ -39,7 +40,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
           if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.value == null) return [];
           const value = Array.isArray(point.value) ? point.value[1] - point.value[0] : point.value;
           if (bars && Number(value) === 0) return [];
-          return [{ key, color, x: Number(point.x) + (bars ? (point.width ?? 0) / 2 : 0), pointY: Number(point.y), y: Number(point.y) - 13, value }];
+          return [{ key, color, x: Number(point.x) + (leftLabels ? -70 : bars ? (point.width ?? 0) / 2 : 0), pointY: Number(point.y), y: Number(point.y) - (leftLabels ? 0 : 13), value }];
         }).sort((a, b) => a.pointY - b.pointY);
 
         // Maintain the curves' vertical order, including equal values, with a
@@ -57,13 +58,13 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
             key={`${index}-${label.key}`}
             x={label.x}
             y={label.y}
-            textAnchor="middle"
+            textAnchor={leftLabels ? "end" : "middle"}
             dominantBaseline="central"
             fill={label.color}
             stroke="none"
             fontSize={11}
             fontWeight={600}
-            aria-label={`${label.key}: ${label.value}`}
+            aria-label={`${leftLabels ? "Media " : ""}${label.key.replace("__media__", "")}: ${label.value}`}
           >
             {label.value}
           </text>
