@@ -4,6 +4,7 @@ import { formatDateShort } from "@/lib/utils";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { saveSessionClients } from "./save-session-clients";
 import { draftSessionMembers } from "@/lib/session-draft-clients";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
@@ -912,7 +913,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       supabase.from("sessions").select("*").in("reemplaza_session_id", blockIdList).neq("estado", "cancelada"),
     ]);
     const freshRows = [...((freshBlock ?? []) as Session[]), ...((replacements ?? []) as Session[]).filter((r) => !blockIdList.includes(r.id))];
-    const allRows = freshRows.length ? freshRows : sessions.filter((row) => blockIdList.includes(row.id));
+    let allRows = freshRows.length ? freshRows : sessions.filter((row) => blockIdList.includes(row.id));
+    try { allRows = await saveSessionClients(qc, allRows, draft, ps); }
+    catch (error) { toast.error(error instanceof Error ? error.message : "No se pudieron guardar los clientes"); return false; }
     const allIds = allRows.map((row) => row.id);
     // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando):
     // nunca se reescribe su estado. Si solo quedan cancelaciones, se guardan
@@ -1072,7 +1075,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       supabase.from("sessions").select("client_id").eq("recurrencia_id", serieId).eq("fecha", fecha).neq("estado", "cancelada"),
       supabase.from("sessions").select("*").eq("recurrencia_id", serieId).gt("fecha", fecha).neq("estado", "realizada").neq("estado", "cancelada"),
     ]);
-    if (e1 || e2) return { error: (e1 ?? e2)!.message };
+    const readError = e1 ?? e2;
+    if (readError) return { error: readError.message };
     const clientesActuales = [...new Set((actuales ?? []).map((row) => row.client_id).filter((id): id is string => !!id))];
     const porFecha = new Map<string, any[]>();
     for (const row of (futuras ?? []) as any[]) porFecha.set(row.fecha, [...(porFecha.get(row.fecha) ?? []), row]);
@@ -1576,7 +1580,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             trainers={trainers}
             servicios={servicios}
             isNew={isNewPanel}
-            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, online: !!(x as any).booked_by_user_id && (x as any).booking_tipo !== "centro" }))}
+            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, pending: !!x.por_confirmar, online: !!(x as any).booked_by_user_id && (x as any).booking_tipo !== "centro" }))}
             estadoInicial={est}
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar && !(ps as any)?.__cola}
@@ -1606,29 +1610,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 const ok = await confirmPanel({ title: "Cancelar la reserva", description: `Se cancelará la sesión que ${r.clients?.nombre ?? "este cliente"} reservó de forma online.`, confirmText: "Cancelar reserva" });
                 if (!ok) return false;
               }
-              const remaining = activos.filter((row) => row.id !== r.id);
-              const { data: fila } = await supabase.from("sessions").select("reemplaza_session_id").eq("id", r.id).maybeSingle();
-              const cancelada = (fila as any)?.reemplaza_session_id ? sessions.find((x) => x.id === (fila as any).reemplaza_session_id) ?? null : null;
-              const keepsCancellation = !!(fila as any)?.reemplaza_session_id || block.some((x) => x.estado === "cancelada");
-              const action = clientRemovalAction(!!(ps as any)?.slot_instance_id, remaining.length, keepsCancellation);
-              onRemoving();
-              const aviso = r.online ? await notificarReservasCanceladas({ data: { sessionIds: [r.id] } }).catch(() => null) : null;
-              const { error } = action === "clear"
-                ? await supabase.from("sessions").update(EMPTY_SESSION_CLIENT).eq("id", r.id)
-                : await supabase.from("sessions").delete().eq("id", r.id);
-              if (error) { toast.error(error.message); return false; }
-              // La plaza liberada se ofrece al primero de la cola.
-              if (aviso?.claves?.length) void ofrecerPlazasLiberadas({ data: { claves: aviso.claves } }).catch(() => {});
-              if (ps?.id === r.id) {
-                setPanelSession(action === "clear" ? { ...ps, ...EMPTY_SESSION_CLIENT } : remaining[0] ?? cancelada ?? block.find((x) => x.estado === "cancelada") ?? null);
-              }
-              if (action === "delete") qc.setQueriesData<Session[]>({ queryKey: ["sessions"] }, (old) => Array.isArray(old) ? old.filter((x) => x.id !== r.id) : old);
-              void qc.invalidateQueries({ queryKey: ["sessions"] });
-              void qc.invalidateQueries({ queryKey: ["sessions-past"] });
-              void qc.invalidateQueries({ queryKey: ["sessions-range"] });
-              void qc.invalidateQueries({ queryKey: ["hueco-panel"] });
-              void qc.invalidateQueries({ queryKey: ["client_bonos"] });
-              return action === "delete" ? "deleted" : true;
+              return true;
             }}
           />
         );
