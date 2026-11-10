@@ -21,6 +21,8 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { formatDateShort } from "@/lib/utils";
 import { useColores } from "@/lib/colors";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
+import { saveSessionClients } from "./save-session-clients";
+import type { Session } from "@/lib/db";
 import { isSelfBooking } from "./online-booking";
 
 /** Sesión reservada asociada a un hueco propagado. */
@@ -249,7 +251,13 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       toast.error(error.message);
       return false;
     }
-    const activeReservations = reservasDeHueco(inst);
+    const { data: savedRows, error: readError } = await supabase.from("sessions").select("*").eq("slot_instance_id", inst.id);
+    if (readError) return toast.error(readError.message), false;
+    let activeReservations: Session[];
+    try {
+      const base = { ...(savedRows?.[0] ?? {}), fecha: inst.fecha, slot_instance_id: inst.id, ocupacion: 1, recurrencia_id: null } as Session;
+      activeReservations = (await saveSessionClients(qc, (savedRows ?? []) as Session[], draft, base)).filter((row) => row.estado !== "cancelada");
+    } catch (error) { return toast.error(error instanceof Error ? error.message : "No se pudo guardar"), false; }
     if (activeReservations.length && !timeOrTrainerChanged) {
       const nextEstado = draft.estado;
       const { error: sessionError } = await supabase.from("sessions").update({
@@ -546,12 +554,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
             });
             if (!ok) return false;
           }
-          onRemoving();
-          try {
-            await cancelarReserva.mutateAsync(r.id);
-          } catch {
-            return false;
-          }
+          return true;
         }}
       />
       {confirmDialog}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal, UserMinus, Ban, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +17,6 @@ import { useCenterConfig, isOutsideOpening } from "@/lib/center-schedule";
 import { estadoColorOf, servicioColorOf } from "@/lib/colors";
 import { useBehaviorConfig } from "@/lib/behavior-config";
 import { type Client, type SesionEstado } from "@/lib/db";
-import { notificarSesionesAsignadas } from "@/lib/notificaciones.functions";
 import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
 import { cn, formatDateShort } from "@/lib/utils";
@@ -27,9 +26,6 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
-import { notificarReservasCanceladas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
-import { sessionQueueKey } from "./online-booking";
-import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { cancelDraftClient, type DraftCancellation } from "@/lib/session-draft-clients";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
@@ -42,6 +38,7 @@ export interface PanelReserva {
   clients: { nombre: string } | null;
   /** La reserva la hizo el propio cliente desde su portal. */
   online?: boolean;
+  pending?: boolean;
 }
 
 export interface HuecoPanelDraft {
@@ -58,6 +55,7 @@ export interface HuecoPanelDraft {
   /** Plazas disponibles propias de la sesión; null = las del servicio. */
   plazas: number | null;
   cancelledClients: DraftCancellation[];
+  removedSessionIds: string[];
   /** Valores de "No contabilizar" marcados antes de guardar (id de sesión → valor). */
   noContabilizar: Record<string, boolean>;
 }
@@ -155,17 +153,9 @@ export function HuecoPanel({
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
   async function quitarCliente(reserva: PanelReserva) {
-    const restore = () => setRemovedIds((old) => old.filter((id) => id !== reserva.id));
-    try {
-      const result = await onCancelarReserva(reserva, () => {
-        setRemovedIds((old) => [...old, reserva.id]);
-      });
-      if (result === false) restore();
-      // Sesión manual sin más clientes: la fila queda vacía y la siguiente alta la rellena.
-      else if (result !== "deleted" && slotInstanceId === null && !reservasVisibles.some((r) => r.id !== reserva.id)) grupoRef.current.fillTarget = reserva.id;
-    } catch {
-      restore();
-    }
+    // Confirmation is local; persistence belongs exclusively to Save.
+    if (reserva.online && await onCancelarReserva(reserva, () => {}) === false) return;
+    setRemovedIds((old) => [...new Set([...old, reserva.id])]);
   }
   const { data: allClients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
   const abrirPerfil = (clientId: string | null | undefined) => {
@@ -191,7 +181,7 @@ export function HuecoPanel({
     setNoContLocal({});
     setRemovedIds([]);
     setPendientes([]);
-  }, [inst?.id, estadoInicial, esPruebaInicial, porConfirmarInicial, notasIniciales]);
+  }, [inst?.id, inst?.fecha]);
 
   const { data: extra } = useQuery({
     queryKey: ["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")],
@@ -230,7 +220,7 @@ export function HuecoPanel({
     if (Number.isFinite(n) && n >= 1) setPlazasOverride(n === capacidadServicio ? null : Math.min(n, 99));
     setEditPlazas(false);
   }
-  const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
+  const selectedNewCount = pickerValues.filter(Boolean).length;
   const places = sessionPlaces(capacidad, reservedSessionPlaces(reservasVisibles) + selectedNewCount);
   useEffect(() => {
     // Conserva las selecciones en curso y recorta primero los buscadores vacíos.
@@ -241,171 +231,24 @@ export function HuecoPanel({
     });
   }, [capacidad, reservasVisibles.length, inst?.id]);
 
-  // Estado del bloque manual mientras el menú está abierto: la fila vacía solo
-  // se rellena una vez y todas las altas comparten recurrencia_id, aunque las
-  // props (instantánea al abrir) aún no se hayan refrescado.
-  const grupoRef = useRef<{ instId: string | null; fillTarget: string | null; rec: string | null; grouped: boolean; ids: Set<string> }>({ instId: null, fillTarget: null, rec: null, grouped: false, ids: new Set() });
-  if (grupoRef.current.instId !== (inst?.id ?? null)) {
-    grupoRef.current = { instId: inst?.id ?? null, fillTarget: fillSessionId ?? null, rec: grupoManual?.recurrenciaId ?? null, grouped: grupoManual?.ocupacion === 2 && !!grupoManual?.recurrenciaId, ids: new Set(grupoManual?.ids ?? []) };
-  }
-  for (const id of grupoManual?.ids ?? []) grupoRef.current.ids.add(id);
-  // Las altas se encadenan: dos clientes añadidos seguidos nunca compiten.
-  const colaAltas = useRef<Promise<unknown>>(Promise.resolve());
-
-  const anadir = useMutation({
-    mutationFn: ({ clientId }: { clientId: string }) => {
-      const run = async () => {
-      if (!inst || isNew) return;
-      const g = grupoRef.current;
-      const valores = {
-        fecha: inst.fecha,
-        hora_inicio: `${horaInicio}:00`,
-        hora_fin: `${horaFin}:00`,
-        servicio_slug: inst.servicio_slug,
-        trainer_id: trainerId,
-        client_id: clientId,
-        estado,
-        tipo: esPrueba ? "prueba" : null,
-        por_confirmar: estado === "reservada" && porConfirmar,
-        plazas: plazasOverride,
-      };
-      const rellenar = g.fillTarget;
-      // Sesión manual de varias plazas: todas las filas comparten recurrencia_id
-      // y ocupacion=2 para que la Agenda las muestre como un único bloque.
-      let grupo: { recurrencia_id: string; ocupacion: number } | null = null;
-      if (slotInstanceId === null && grupoManual && capacidad > 1) {
-        if (!g.grouped || !g.rec) {
-          // Conserva la serie de repeticiones: nunca se sustituye su recurrencia_id.
-          g.rec = g.rec ?? crypto.randomUUID();
-          if (g.ids.size) {
-            const { error: e2 } = await supabase.from("sessions").update({ recurrencia_id: g.rec, ocupacion: 2 } as any).in("id", [...g.ids]);
-            if (e2) throw e2;
-          }
-          g.grouped = true;
-        }
-        grupo = { recurrencia_id: g.rec, ocupacion: 2 };
-      }
-      const { data, error } = rellenar
-        ? await supabase.from("sessions").update({ ...valores, ...(grupo ?? {}) } as any).eq("id", rellenar).select("*").single()
-        : await supabase.from("sessions").insert({
-            ...valores,
-            booking_tipo: "centro",
-            slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
-            reemplaza_session_id: slotInstanceId === null ? (canceladasIds?.[0] ?? cancelledHereRef.current[0] ?? null) : null,
-            ...(grupo ?? {}),
-          } as any).select("*").single();
-      if (error) throw error;
-      commitAgendaRows(qc, [data]);
-      // Muestra la reserva al instante mientras llega el refresco, para que el
-      // cliente no desaparezca del menú entre el guardado y la recarga.
-      const cli = allClients.find((c) => c.id === clientId);
-      // La fila vaciada al quitar al cliente anterior se reutiliza: deja de estar oculta.
-      setRemovedIds((old) => old.filter((id) => id !== data.id));
-      setPendientes((old) => [...old.filter((p) => p.id !== data.id), { id: data.id, client_id: clientId, titulo: null, clients: { nombre: cli?.nombre ?? "Cliente" } } as unknown as PanelReserva]);
-      if (rellenar) g.fillTarget = null;
-      g.ids.add(data.id);
-      // Quita el buscador por cliente (no por posición): otra alta en curso no
-      // debe borrar la selección de otra fila.
-      setPickerValues((old) => {
-        const i = old.indexOf(clientId);
-        return i < 0 ? old : old.filter((_, index) => index !== i);
-      });
-      void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: inst.fecha, hora: `${horaInicio}:00` }] } }).catch(() => {});
-      return data;
-      };
-      const p = colaAltas.current.then(run, run);
-      colaAltas.current = p.catch(() => {});
-      return p;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["sessions-range"] });
-      qc.invalidateQueries({ queryKey: ["sessions"] });
-    },
-    onError: (e: Error, vars) => {
-      setPickerValues((old) => old.map((v) => (v === vars.clientId ? null : v)));
-      toast.error(e.message);
-    },
-  });
-
-  // Cancelación contabilizada por defecto; "No contabilizar" la excluye del
-  // bono y de las realizadas (lo resuelven los triggers de sesiones).
-  const toggleNoContabilizar = useMutation({
-    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
-      const { data, error } = await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", id).select("*").single();
-      if (error) throw error;
-      commitAgendaRows(qc, [data]);
-    },
-    onMutate: ({ id, value }) => {
-      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => old ? {
-        ...old,
-        cancelados: old.cancelados.map((c: any) => c.id === id ? { ...c, noContabilizar: value } : c),
-      } : old);
-    },
-    onSettled: () => {
-      qc.invalidateQueries({ queryKey: ["hueco-panel"] });
-      qc.invalidateQueries({ queryKey: ["sessions"] });
-      qc.invalidateQueries({ queryKey: ["sessions-range"] });
-      qc.invalidateQueries({ queryKey: ["sessions-past"] });
-      qc.invalidateQueries({ queryKey: ["client_bonos"] });
-      qc.invalidateQueries({ queryKey: ["client-bonos"] });
-      qc.invalidateQueries({ queryKey: ["bonos"] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
-
-  const cancelledHereRef = useRef<string[]>([]);
-  const cancelarCliente = useMutation({
-    mutationFn: async (reserva: PanelReserva) => {
-      const { data: original, error: readError } = await supabase.from("sessions").select("*").eq("id", reserva.id).single();
-      if (readError) throw readError;
-      // Pending reservations never charge a session. Clear pending first to
-      // respect the existing database protection, retaining cancellation history.
-      if (original.por_confirmar) {
-        const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", reserva.id);
-        if (error) throw error;
-      }
-      const { data, error } = await supabase.from("sessions").update(clientCancellationFields(original.por_confirmar, behavior.cancelacionDefaultNoContabilizar)).eq("id", reserva.id).select("*").single();
-      if (error) throw error;
-      commitAgendaRows(qc, [data]);
-      setRemovedIds((old) => [...old, reserva.id]);
-      grupoRef.current.fillTarget = null;
-      cancelledHereRef.current = [...cancelledHereRef.current, reserva.id];
-      qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => ({
-        cola: old?.cola ?? [],
-        cancelados: [...(old?.cancelados ?? []).filter((r: any) => r.id !== reserva.id), { id: reserva.id, clientId: reserva.client_id, nombre: reserva.clients?.nombre ?? "Cliente", noContabilizar: data.no_contabilizar }],
-      }));
-      setTab("cancelados");
-      void notificarReservasCanceladas({ data: { sessionIds: [reserva.id] } }).then((result) => {
-        const clave = sessionQueueKey(original);
-        const claves = [...new Set([...(result?.claves ?? []), ...(clave ? [clave] : [])])];
-        if (claves.length) return ofrecerPlazasLiberadas({ data: { claves } });
-      }).catch(() => {});
-    },
-    onSuccess: () => {
-      for (const key of ["sessions", "sessions-range", "sessions-past", "client_bonos", "client-bonos", "bonos", "agenda-booking-details"]) void qc.invalidateQueries({ queryKey: [key] });
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
   async function pedirCancelacion(reserva: PanelReserva) {
-    if (cancelarCliente.isPending) return;
-    if (await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cliente Cancela" })) cancelarCliente.mutate(reserva);
+    if (!reserva.client_id) return;
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cliente Cancela" }))) return;
+    const cancellation: DraftCancellation = {
+      id: reserva.id, sessionId: reserva.id, clientId: reserva.client_id,
+      noContabilizar: clientCancellationFields(reserva.pending ?? porConfirmar, behavior.cancelacionDefaultNoContabilizar).no_contabilizar,
+    };
+    setRemovedIds((old) => [...new Set([...old, reserva.id])]);
+    setDraftCancelled((old) => [...old.filter((c) => c.id !== reserva.id), cancellation]);
+    setTab("cancelados");
   }
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = {
     reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
     cola: extra?.cola ?? [],
-    cancelados: [...(isNew ? [] : extra?.cancelados ?? []), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? "Cliente", noContabilizar: c.noContabilizar }))],
+    cancelados: [...(isNew ? [] : extra?.cancelados ?? []).map((c) => ({ ...c, noContabilizar: noContLocal[c.id] ?? c.noContabilizar })), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? "Cliente", noContabilizar: c.noContabilizar }))],
   };
 
   async function cancelarSeleccion(clientId: string, row: number) {
-    if (!isNew) {
-      await colaAltas.current;
-      const ids = [...grupoRef.current.ids];
-      if (!ids.length) return;
-      const { data, error } = await supabase.from("sessions").select("*,clients(nombre)").in("id", ids).eq("client_id", clientId).neq("estado", "cancelada").limit(1).maybeSingle();
-      if (error) { toast.error(error.message); return; }
-      if (data) await pedirCancelacion(data as unknown as PanelReserva);
-      return;
-    }
     const result = cancelDraftClient(pickerValues, draftCancelled, clientId, porConfirmar, behavior.cancelacionDefaultNoContabilizar);
     setPickerValues(result.selected);
     setDraftCancelled(result.cancelled);
@@ -413,28 +256,18 @@ export function HuecoPanel({
   }
 
   async function quitarSeleccion(clientId: string, row: number) {
-    if (isNew) {
-      setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
-      return;
-    }
-    // A click immediately after selection must also remove an in-flight add.
-    await colaAltas.current;
-    const ids = [...grupoRef.current.ids];
-    if (!ids.length) return;
-    const { data, error } = await supabase.from("sessions").select("*,clients(nombre)").in("id", ids).eq("client_id", clientId).neq("estado", "cancelada").limit(1).maybeSingle();
-    if (error) { toast.error(error.message); return; }
-    if (data) await quitarCliente(data as unknown as PanelReserva);
+    setPickerValues((old) => old.map((id, index) => index === row && id === clientId ? null : id));
   }
 
   async function guardar() {
-    if (!inst || !onSave || saving || anadir.isPending) return;
+    if (!inst || !onSave || saving) return;
     if (!horaInicio || !horaFin || horaFin <= horaInicio) {
       toast.error("Revisa las horas de la sesión");
       return;
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, noContabilizar: noContLocal, plazas: plazasOverride });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), noContabilizar: noContLocal, plazas: plazasOverride });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
@@ -600,7 +433,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
-                        <DropdownMenuItem disabled={cancelarCliente.isPending} onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -613,7 +446,7 @@ export function HuecoPanel({
                           checked={!!item.noContabilizar}
                           onCheckedChange={(value) => {
                             if (draftCancelled.some((c) => c.id === item.id)) setDraftCancelled((old) => old.map((c) => c.id === item.id ? { ...c, noContabilizar: !!value } : c));
-                            else toggleNoContabilizar.mutate({ id: item.id, value: !!value });
+                            else setNoContLocal((old) => ({ ...old, [item.id]: !!value }));
                           }}
                         />
                         No contabilizar
@@ -631,7 +464,6 @@ export function HuecoPanel({
                       autoFocus={row === 0}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
-                        if (clientId && !isNew) anadir.mutate({ clientId });
                       }}
                       onNameClick={(c) => setPerfilCliente(c)}
                     /></div>
@@ -687,7 +519,7 @@ export function HuecoPanel({
                 {onDelete && <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button>}
                 {onDeleteFuture && <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDeleteFuture}>Eliminar sesiones futuras</Button>}
               </div>
-              <Button disabled={!onSave || saving || anadir.isPending} onClick={guardar}>Guardar</Button>
+              <Button disabled={!onSave || saving} onClick={guardar}>Guardar</Button>
             </DialogFooter>
           </>
         )}
