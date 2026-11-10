@@ -8,7 +8,7 @@ type ChartItem = {
 
 type ComparisonLabelsProps = {
   formattedGraphicalItems?: ChartItem[];
-  offset?: { top: number; height: number };
+  offset?: { top: number; height: number; left?: number };
   seriesKeys: string[];
   colors: string[];
   labelEvery?: number;
