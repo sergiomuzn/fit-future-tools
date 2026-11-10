@@ -909,7 +909,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     // Las cancelaciones de clientes se conservan tal cual (siguen contabilizando)
     // cuando la sesión tiene otras reservas activas.
     const hayActivas = allRows.some((row) => row.estado !== "cancelada");
-    const ids = allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id);
+    const ids = hayActivas ? allRows.filter((row) => row.estado !== "cancelada").map((row) => row.id) : allIds;
     const idSet = new Set(ids);
     const rows = sessions.filter((row) => idSet.has(row.id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
