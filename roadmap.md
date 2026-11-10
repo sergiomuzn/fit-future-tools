@@ -38,3 +38,4 @@
 - [x] Reparar la reserva incorrecta detectada y devolver la sesión descontada.
 - [x] Verificar cancelación pendiente y acciones de confirmación/denegación.
 - [x] Eliminar el lapso visual al cambiar entre reservar y cancelar.
+- [ ] Mantener toda edición de sesión pendiente hasta Guardar, incluidos clientes, cancelaciones y No contabilizar; verificar cierre sin guardar y guardado real.

@@ -30,3 +30,5 @@
 - Derive session presentation with the shared automatic-state/block-summary helpers and explicit slot/recurrence identities; cancellation persists only the affected client row so mixed blocks retain active state and independent accounting.
 - Keep unsaved client cancellations in a shared draft model until Save; serialize them as individual cancelled rows in the exact block so cancellation never becomes mere removal.
 - Use shared session-places presentation for reserved/service-capacity counters in Agenda and session editors, counting clients only within the exact block and excluding queue, empty and cancelled rows, so opening a session cannot change the indicator.
+
+- Session editors stage all field, membership, cancellation and accounting edits locally until Save; only explicit session deletion is immediate, so closing an editor cannot persist partial configuration.
