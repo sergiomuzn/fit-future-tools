@@ -275,7 +275,8 @@ export function HuecoPanel({
       let grupo: { recurrencia_id: string; ocupacion: number } | null = null;
       if (slotInstanceId === null && grupoManual && capacidad > 1) {
         if (!g.grouped || !g.rec) {
-          g.rec = crypto.randomUUID();
+          // Conserva la serie de repeticiones: nunca se sustituye su recurrencia_id.
+          g.rec = g.rec ?? crypto.randomUUID();
           if (g.ids.size) {
             const { error: e2 } = await supabase.from("sessions").update({ recurrencia_id: g.rec, ocupacion: 2 } as any).in("id", [...g.ids]);
             if (e2) throw e2;
