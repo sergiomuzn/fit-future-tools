@@ -10,7 +10,7 @@ import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, Line, ComposedChart, LabelList, Cell, Customized,
+  Legend as RLegend, Line, ComposedChart, Cell, Customized,
 } from "recharts";
 import { StatsComparisonLabels } from "@/components/stats-comparison-labels";
 import {
@@ -811,7 +811,6 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Ya no se dibuja línea de total superpuesta sobre las barras.
   const rowsWithTotal = rows;
-  const separateMonthLabels = true;
   // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
   const manyTicks = rows.length > 10;
   const xAxisProps = manyTicks
@@ -1111,29 +1110,6 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       isAnimationActive={false}
                     >
-                      {!separateMonthLabels && <LabelList
-                        dataKey={k}
-                        position="top"
-                        style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
-                        content={
-                          labelEvery && labelEvery > 1
-                            ? (props: { x?: number | string; y?: number | string; value?: number | string; index?: number }) => {
-                                const idx = props.index ?? 0;
-                                if (idx % labelEvery !== 0) return null;
-                                return (
-                                  <text
-                                    x={Number(props.x)}
-                                    y={Number(props.y) - 8}
-                                    textAnchor="middle"
-                                    style={{ fill: "var(--color-foreground)", fontSize: 11, fontWeight: 600 }}
-                                  >
-                                    {props.value}
-                                  </text>
-                                );
-                              }
-                            : undefined
-                        }
-                      />}
                     </Line>
                   ))}
                   {(mediaKeys ?? []).map((mk) => (
@@ -1152,11 +1128,9 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                       isAnimationActive={false}
                     />
                   ))}
-                  {separateMonthLabels && (
                     <Customized component={
                       <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} labelEvery={labelEvery} />
                     } />
-                  )}
                 </ComposedChart>
               ) : (
                 <ComposedChart data={rowsWithTotal} margin={chartMargin}>
@@ -1170,16 +1144,6 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
                         ))}
-                      {false && <LabelList
-                        dataKey={k}
-                        position={stackMap?.[k] ? "center" : "top"}
-                        style={{
-                          fill: stackMap?.[k] ? "#ffffff" : "var(--color-foreground)",
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                        formatter={(v: number) => (Number(v) === 0 ? "" : v)}
-                      />}
                     </Bar>
                   ))}
                   <Customized component={
