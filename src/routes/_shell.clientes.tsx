@@ -275,7 +275,7 @@ function ClientesPage() {
           </TooltipProvider>
         </div>
       </div>
-      <Tabs value={tab} onValueChange={(v) => setTab(v as "clientes" | "accesos" | "bonos")}>
+      <Tabs value={tab} onValueChange={(v) => { setQ(""); setTab(v as "clientes" | "accesos" | "bonos"); }}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="bonos">Bonos</TabsTrigger>
