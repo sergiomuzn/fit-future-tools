@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { formatDateShort } from "@/lib/utils";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, ESTADO_BG } from "@/lib/db";
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
@@ -815,6 +816,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   // Dialog
   const [panelSession, setPanelSession] = useState<Session | null>(null);
+  // Solo se ofrece "Eliminar sesiones futuras" si la serie tiene repeticiones posteriores.
+  const { data: futureSeries = false } = useQuery({
+    queryKey: ["future-series", panelSession?.recurrencia_id ?? null, panelSession?.fecha ?? null],
+    enabled: !!panelSession?.recurrencia_id && !!panelSession?.id,
+    queryFn: async () => {
+      const { count } = await supabase.from("sessions").select("id", { count: "exact", head: true }).eq("recurrencia_id", panelSession!.recurrencia_id!).gt("fecha", panelSession!.fecha);
+      return (count ?? 0) > 0;
+    },
+  });
   const { confirm: confirmPanel, dialog: confirmPanelDialog } = useConfirm();
 
   // Click on a session — if paintMode, just assign trainer
@@ -980,6 +990,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     if (draft.repeatWeeks > 0) {
       const originals = sessions.filter((row) => idSet.has(row.id));
+      // Las repeticiones comparten recurrencia_id con la sesión original para
+      // poder eliminarlas después como "sesiones futuras".
+      const serieId = originals.find((row) => row.recurrencia_id)?.recurrencia_id ?? crypto.randomUUID();
+      const sinSerie = originals.filter((row) => !row.recurrencia_id).map((row) => row.id);
+      if (sinSerie.length) await supabase.from("sessions").update({ recurrencia_id: serieId } as any).in("id", sinSerie);
       const inserts = Array.from({ length: draft.repeatWeeks }, (_, index) => index + 1).flatMap((week) => originals.map((row) => {
         const fecha = new Date(`${row.fecha}T00:00:00`);
         fecha.setDate(fecha.getDate() + week * 7);
@@ -990,7 +1005,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           modalidad: (row as any).modalidad ?? null,
           titulo: row.titulo ?? null,
           ocupacion: row.ocupacion ?? 1,
-          recurrencia_id: row.recurrencia_id ?? null,
+          recurrencia_id: serieId,
           slot_instance_id: null,
           booking_tipo: "centro",
           no_contabilizar: false,
@@ -1014,6 +1029,37 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     void qc.invalidateQueries({ queryKey: ["client_bonos"] });
     toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
     return true;
+  }
+
+  async function deleteFutureSessions(ps: Session) {
+    if (!ps.recurrencia_id) return;
+    const ok = await confirmPanel({
+      title: "¿Eliminar sesiones futuras?",
+      description: `Se eliminarán esta sesión y todas sus repeticiones desde el ${formatDateShort(ps.fecha)}. Las sesiones anteriores se conservan.`,
+      confirmText: "Eliminar",
+    });
+    if (!ok) return;
+    pendingPanelWrites.current += 1;
+    setPanelSession(null);
+    try {
+      const { data: rows, error: readError } = await supabase.from("sessions").select("id,booked_by_user_id,booking_tipo,por_confirmar").eq("recurrencia_id", ps.recurrencia_id).gte("fecha", ps.fecha).neq("estado", "realizada");
+      if (readError) throw readError;
+      const all = (rows ?? []) as any[];
+      const portalIds = all.filter((row) => isPortalRow(row as Session)).map((row) => row.id as string);
+      if (portalIds.length) await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+      const ids = all.map((row) => row.id as string);
+      if (ids.length) {
+        removeAgendaRows(qc, ids);
+        const { error } = await supabase.from("sessions").delete().in("id", ids);
+        if (error) throw error;
+      }
+      toast.success(ids.length === 1 ? "Sesión eliminada" : `${ids.length} sesiones eliminadas`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "No se pudieron eliminar las sesiones");
+    } finally {
+      pendingPanelWrites.current = Math.max(0, pendingPanelWrites.current - 1);
+      refreshAgenda(qc);
+    }
   }
 
   async function deletePanelSession(ps: Session) {
@@ -1441,6 +1487,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               try { return await savePanelSession(ps, draft); }
               finally { pendingPanelWrites.current = Math.max(0, pendingPanelWrites.current - 1); }
             }}
+            onDeleteFuture={!isNewPanel && ps && !(ps as any).__cola && ps.recurrencia_id && futureSeries ? () => { void deleteFutureSessions(ps); } : undefined}
             onDelete={isNewPanel || (ps as any)?.__cola ? undefined : () => { if (ps) void deletePanelSession(ps); }}
             onCancelarReserva={async (r, onRemoving) => {
               // Solo se pide confirmación cuando la reserva la hizo el cliente

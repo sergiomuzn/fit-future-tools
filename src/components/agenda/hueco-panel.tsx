@@ -88,6 +88,8 @@ interface Props {
   onClose: () => void;
   onSave?: (draft: HuecoPanelDraft) => Promise<boolean | void> | boolean | void;
   onDelete?: () => void;
+  /** Elimina esta sesión y sus repeticiones posteriores. */
+  onDeleteFuture?: () => void;
   onCancelarReserva: (r: PanelReserva, onRemoving: () => void) => Promise<boolean | void>;
 }
 
@@ -115,6 +117,7 @@ export function HuecoPanel({
   onClose,
   onSave,
   onDelete,
+  onDeleteFuture,
   onCancelarReserva,
 }: Props) {
   const qc = useQueryClient();
@@ -451,7 +454,7 @@ export function HuecoPanel({
   return (
     <>
     <Dialog open={!!inst} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent onKeyDown={enterToSave(guardar)} className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg">
+      <DialogContent onKeyDown={enterToSave(guardar)} className="flex max-h-[calc(100dvh-1.5rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-lg [&>button.absolute]:!bg-transparent [&>button.absolute]:!text-primary-foreground [&>button.absolute]:opacity-90 [&>button.absolute_svg]:h-5 [&>button.absolute_svg]:w-5">
         {inst && (
           <>
             <DialogDescription className="sr-only">Detalle y edición de la sesión</DialogDescription>
@@ -672,11 +675,11 @@ export function HuecoPanel({
             </div>
 
             <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4 sm:justify-between">
-              {onDelete ? <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button> : <span />}
-              <div className="flex gap-2">
-                <Button variant="ghost" className="text-muted-foreground" onClick={onClose}>Cerrar</Button>
-                <Button disabled={!onSave || saving || anadir.isPending} onClick={guardar}>Guardar cambios</Button>
+              <div className="flex gap-1">
+                {onDelete && <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDelete}>Eliminar sesión</Button>}
+                {onDeleteFuture && <Button variant="ghost" className="text-xs font-bold uppercase text-destructive hover:text-destructive" onClick={onDeleteFuture}>Eliminar sesiones futuras</Button>}
               </div>
+              <Button disabled={!onSave || saving || anadir.isPending} onClick={guardar}>Guardar</Button>
             </DialogFooter>
           </>
         )}
