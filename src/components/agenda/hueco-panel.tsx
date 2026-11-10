@@ -291,7 +291,7 @@ export function HuecoPanel({
             ...valores,
             booking_tipo: "centro",
             slot_instance_id: slotInstanceId !== undefined ? slotInstanceId : inst.id,
-            reemplaza_session_id: slotInstanceId === null && canceladasIds?.length ? canceladasIds[0] : null,
+            reemplaza_session_id: slotInstanceId === null ? (canceladasIds?.[0] ?? cancelledHereRef.current[0] ?? null) : null,
             ...(grupo ?? {}),
           } as any).select("*").single();
       if (error) throw error;
@@ -353,6 +353,7 @@ export function HuecoPanel({
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const cancelledHereRef = useRef<string[]>([]);
   const cancelarCliente = useMutation({
     mutationFn: async (reserva: PanelReserva) => {
       const { data: original, error: readError } = await supabase.from("sessions").select("*").eq("id", reserva.id).single();
@@ -368,6 +369,7 @@ export function HuecoPanel({
       commitAgendaRows(qc, [data]);
       setRemovedIds((old) => [...old, reserva.id]);
       grupoRef.current.fillTarget = null;
+      cancelledHereRef.current = [...cancelledHereRef.current, reserva.id];
       qc.setQueryData(["hueco-panel", inst?.id, inst?.fecha, inst?.hora_inicio, canceladasIds?.join(",")], (old: any) => ({
         cola: old?.cola ?? [],
         cancelados: [...(old?.cancelados ?? []).filter((r: any) => r.id !== reserva.id), { id: reserva.id, clientId: reserva.client_id, nombre: reserva.clients?.nombre ?? "Cliente", noContabilizar: data.no_contabilizar }],
