@@ -147,7 +147,11 @@ export function HuecoPanel({
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
-  const reservasAll = useMemo(() => [...reservas, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))], [reservas, pendientes]);
+  // Una fila reutilizada para otro cliente se muestra con su cliente nuevo hasta que llega el refresco.
+  const reservasAll = useMemo(() => {
+    const vigentes = reservas.map((r) => pendientes.find((x) => x.id === r.id) ?? r);
+    return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
+  }, [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
   async function quitarCliente(reserva: PanelReserva) {
@@ -294,6 +298,8 @@ export function HuecoPanel({
       // Muestra la reserva al instante mientras llega el refresco, para que el
       // cliente no desaparezca del menú entre el guardado y la recarga.
       const cli = allClients.find((c) => c.id === clientId);
+      // La fila vaciada al quitar al cliente anterior se reutiliza: deja de estar oculta.
+      setRemovedIds((old) => old.filter((id) => id !== data.id));
       setPendientes((old) => [...old.filter((p) => p.id !== data.id), { id: data.id, client_id: clientId, titulo: null, clients: { nombre: cli?.nombre ?? "Cliente" } } as unknown as PanelReserva]);
       if (rellenar) g.fillTarget = null;
       g.ids.add(data.id);
