@@ -402,7 +402,7 @@ export function BehaviorForm() {
           </Row>
           {cfg.mostrarSesionesRestantesEnSesion && (
             <div className="space-y-3 border-b py-3">
-              <Label className="block pb-3 text-sm font-medium">Servicios con sesiones restantes visibles</Label>
+              <Label className="block pb-2 text-sm font-medium">Servicios con sesiones restantes visibles</Label>
               {servicios.map((s) => (
                 <label key={s.slug} className="flex items-center gap-2 text-sm">
                   <Checkbox
