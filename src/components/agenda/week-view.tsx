@@ -240,7 +240,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                       : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
                         (session.client_id ? [clientMap.get(session.client_id)?.nombre ?? "?"] : []));
                     const ocupados = reservedSessionPlaces(agendaBlockMembers(session, sessions));
-                    const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
+                    const plazas = agendaBlockMembers(session, sessions).map((m) => (m as any).plazas as number | null).find((n) => n != null) ?? servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const places = sessionPlaces(plazas, ocupados);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
