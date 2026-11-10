@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal, UserMinus, Ban } from "lucide-react";
+import { MoreHorizontal, UserMinus, Ban, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,8 @@ export interface HuecoPanelDraft {
   repeatWeeks: number;
   notas: string;
   clientIds: string[];
+  /** Plazas disponibles propias de la sesión; null = las del servicio. */
+  plazas: number | null;
   cancelledClients: DraftCancellation[];
   /** Valores de "No contabilizar" marcados antes de guardar (id de sesión → valor). */
   noContabilizar: Record<string, boolean>;
@@ -73,6 +75,8 @@ interface Props {
   esPruebaInicial?: boolean;
   porConfirmarInicial?: boolean;
   notasIniciales?: string | null;
+  /** Plazas disponibles guardadas en la sesión; null = las del servicio. */
+  plazasIniciales?: number | null;
   /** Id real del hueco propagado; null cuando la sesión es manual de Agenda. */
   slotInstanceId?: string | null;
   /** Fila de sesión vacía existente que se rellena con el primer cliente. */
@@ -103,6 +107,7 @@ export function HuecoPanel({
   esPruebaInicial = false,
   porConfirmarInicial = false,
   notasIniciales,
+  plazasIniciales = null,
   slotInstanceId,
   fillSessionId,
   grupoManual,
@@ -128,6 +133,9 @@ export function HuecoPanel({
   const { confirm, dialog: cancelDialog } = useConfirm();
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [notas, setNotas] = useState("");
+  const [plazasOverride, setPlazasOverride] = useState<number | null>(null);
+  const [editPlazas, setEditPlazas] = useState(false);
+  const [plazasTexto, setPlazasTexto] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
   const [draftCancelled, setDraftCancelled] = useState<DraftCancellation[]>([]);
   const [noContLocal, setNoContLocal] = useState<Record<string, boolean>>({});
@@ -161,6 +169,8 @@ export function HuecoPanel({
   useEffect(() => {
     if (!inst) return;
     setTab("reservados");
+    setPlazasOverride(plazasIniciales ?? null);
+    setEditPlazas(false);
     setHoraInicio(hhmm(inst.hora_inicio));
     setHoraFin(hhmm(inst.hora_fin));
     setTrainerId(inst.trainer_id);
@@ -206,7 +216,13 @@ export function HuecoPanel({
     },
   });
 
-  const capacidad = Math.max(1, servicios.find((service) => service.slug === servicioSlug)?.capacidad_default ?? inst?.capacidad ?? 1);
+  const capacidadServicio = Math.max(1, servicios.find((service) => service.slug === servicioSlug)?.capacidad_default ?? inst?.capacidad ?? 1);
+  const capacidad = Math.max(1, plazasOverride ?? capacidadServicio);
+  function confirmarPlazas() {
+    const n = Number.parseInt(plazasTexto, 10);
+    if (Number.isFinite(n) && n >= 1) setPlazasOverride(n === capacidadServicio ? null : Math.min(n, 99));
+    setEditPlazas(false);
+  }
   const selectedNewCount = isNew ? pickerValues.filter(Boolean).length : 0;
   const places = sessionPlaces(capacidad, reservedSessionPlaces(reservasVisibles) + selectedNewCount);
   useEffect(() => {
@@ -244,6 +260,7 @@ export function HuecoPanel({
         estado,
         tipo: esPrueba ? "prueba" : null,
         por_confirmar: estado === "reservada" && porConfirmar,
+        plazas: plazasOverride,
       };
       const rellenar = g.fillTarget;
       // Sesión manual de varias plazas: todas las filas comparten recurrencia_id
@@ -406,7 +423,7 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, noContabilizar: noContLocal });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, noContabilizar: noContLocal, plazas: plazasOverride });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
@@ -449,9 +466,39 @@ export function HuecoPanel({
                     </Select>
                   ) : <span className="truncate">{servicioNombre}</span>}
                 </DialogTitle>
-                <span className="shrink-0 text-sm font-normal text-primary-foreground/65">
-                  ({places.label})
-                </span>
+                {editPlazas ? (
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-normal text-primary-foreground/65">
+                    ({places.reserved}/
+                    <Input
+                      aria-label="Plazas disponibles"
+                      type="number"
+                      min={1}
+                      max={99}
+                      autoFocus
+                      value={plazasTexto}
+                      onChange={(e) => setPlazasTexto(e.target.value)}
+                      onBlur={confirmarPlazas}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); confirmarPlazas(); }
+                        if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); setEditPlazas(false); }
+                      }}
+                      className="h-6 w-10 border-0 bg-primary-foreground/10 p-0 text-center text-sm text-primary-foreground shadow-none [appearance:textfield] focus-visible:ring-1 focus-visible:ring-primary-foreground/40 [&::-webkit-inner-spin-button]:appearance-none"
+                    />)
+                  </span>
+                ) : (
+                  <span className="flex shrink-0 items-center gap-1 text-sm font-normal text-primary-foreground/65">
+                    ({places.label})
+                    <button
+                      type="button"
+                      aria-label="Editar plazas disponibles"
+                      title="Editar plazas disponibles"
+                      onClick={() => { setPlazasTexto(String(capacidad)); setEditPlazas(true); }}
+                      className="rounded p-0.5 text-primary-foreground/60 hover:text-primary-foreground"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                  </span>
+                )}
               </div>
 
               <div className="mb-4 flex flex-wrap items-center gap-2">
