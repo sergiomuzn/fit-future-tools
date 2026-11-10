@@ -1,9 +1,9 @@
 import { isValidElement, type ReactElement } from "react";
 
-type ChartPoint = { x?: number; y?: number; value?: number | string | null };
+type ChartPoint = { x?: number; y?: number; width?: number; height?: number; value?: number | string | number[] | null };
 type ChartItem = {
   item?: ReactElement<{ dataKey?: string }>;
-  props?: { points?: ChartPoint[] };
+  props?: { points?: ChartPoint[]; data?: ChartPoint[] };
 };
 
 type ComparisonLabelsProps = {
@@ -11,16 +11,21 @@ type ComparisonLabelsProps = {
   offset?: { top: number; height: number };
   seriesKeys: string[];
   colors: string[];
+  labelEvery?: number;
+  bars?: boolean;
 };
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, seriesKeys, colors }: ComparisonLabelsProps) {
-  const series = seriesKeys.map((key, index) => ({
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, seriesKeys, colors, labelEvery = 1, bars = false }: ComparisonLabelsProps) {
+  const series = seriesKeys.map((key, index) => {
+    const graphical = formattedGraphicalItems.find(({ item }) =>
+      isValidElement(item) && item.props.dataKey === key)?.props;
+    return {
     key,
     color: colors[index],
-    points: formattedGraphicalItems.find(({ item }) =>
-      isValidElement(item) && item.props.dataKey === key)?.props?.points ?? [],
-  }));
+    points: graphical?.points ?? graphical?.data ?? [],
+  };
+  });
   const count = Math.max(0, ...series.map(({ points }) => points.length));
   const top = (offset?.top ?? 0) + 7;
   const bottom = (offset?.top ?? 0) + (offset?.height ?? 300) - 7;
@@ -28,10 +33,13 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
   return (
     <g className="stats-comparison-labels" pointerEvents="none">
       {Array.from({ length: count }, (_, index) => {
+        if (index % labelEvery !== 0) return null;
         const labels = series.flatMap(({ key, color, points }) => {
           const point = points[index];
           if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.value == null) return [];
-          return [{ key, color, x: Number(point.x), pointY: Number(point.y), y: Number(point.y) - 13, value: point.value }];
+          const value = Array.isArray(point.value) ? point.value[1] - point.value[0] : point.value;
+          if (bars && Number(value) === 0) return [];
+          return [{ key, color, x: Number(point.x) + (bars ? (point.width ?? 0) / 2 : 0), pointY: Number(point.y), y: Number(point.y) - 13, value }];
         }).sort((a, b) => a.pointY - b.pointY);
 
         // Maintain the curves' vertical order, including equal values, with a

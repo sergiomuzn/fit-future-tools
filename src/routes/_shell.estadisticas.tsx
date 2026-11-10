@@ -811,7 +811,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Ya no se dibuja línea de total superpuesta sobre las barras.
   const rowsWithTotal = rows;
-  const separateMonthLabels = metric === "sesiones" && desglose === "franja" && period === "comparar";
+  const separateMonthLabels = true;
   // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
   const manyTicks = rows.length > 10;
   const xAxisProps = manyTicks
@@ -1154,7 +1154,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   ))}
                   {separateMonthLabels && (
                     <Customized component={
-                      <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} />
+                      <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} labelEvery={labelEvery} />
                     } />
                   )}
                 </ComposedChart>
@@ -1170,7 +1170,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
                         ))}
-                      <LabelList
+                      {false && <LabelList
                         dataKey={k}
                         position={stackMap?.[k] ? "center" : "top"}
                         style={{
@@ -1179,9 +1179,12 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                           fontWeight: 600,
                         }}
                         formatter={(v: number) => (Number(v) === 0 ? "" : v)}
-                      />
+                      />}
                     </Bar>
                   ))}
+                  <Customized component={
+                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars />
+                  } />
                 </ComposedChart>
               )}
             </ResponsiveContainer>
