@@ -1079,7 +1079,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
+                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {(mediaKeys ?? []).map((mk) => (
                     <Line
                       key={mk}
@@ -1138,7 +1138,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend />}
+                  {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
@@ -2262,5 +2262,24 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+// Legend with a dashed marker for mean lines, matching how they are drawn.
+function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown }> }) {
+  return (
+    <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+      {(props.payload ?? []).map((entry, i) => {
+        const isMedia = String(entry.dataKey ?? "").startsWith("__media__") || /^media/i.test(String(entry.value ?? ""));
+        return (
+          <li key={i} className="flex items-center gap-1.5" style={{ color: entry.color }}>
+            <svg width="18" height="10" aria-hidden>
+              <line x1="0" y1="5" x2="18" y2="5" stroke={entry.color} strokeWidth={2} strokeDasharray={isMedia ? "4 3" : undefined} />
+            </svg>
+            {String(entry.value ?? "")}
+          </li>
+        );
+      })}
+    </ul>
   );
 }
