@@ -8,7 +8,7 @@ type ChartItem = {
 
 type ComparisonLabelsProps = {
   formattedGraphicalItems?: ChartItem[];
-  offset?: { top: number; height: number };
+  offset?: { top: number; height: number; left?: number };
   seriesKeys: string[];
   colors: string[];
   labelEvery?: number;
@@ -40,7 +40,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
           if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y) || point.value == null) return [];
           const value = Array.isArray(point.value) ? point.value[1] - point.value[0] : point.value;
           if (bars && Number(value) === 0) return [];
-          return [{ key, color, x: Number(point.x) + (leftLabels ? -70 : bars ? (point.width ?? 0) / 2 : 0), pointY: Number(point.y), y: Number(point.y) - (leftLabels ? 0 : 13), value }];
+          return [{ key, color, x: (leftLabels ? (offset?.left ?? Number(point.x)) - 9 : Number(point.x) + ( bars ? (point.width ?? 0) / 2 : 0)), pointY: Number(point.y), y: Number(point.y) - (leftLabels ? 0 : 13), value }];
         }).sort((a, b) => a.pointY - b.pointY);
 
         // Maintain the curves' vertical order, including equal values, with a
@@ -54,8 +54,9 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
         }
 
         return labels.map((label) => (
+          <g key={`${index}-${label.key}`}>
+          {leftLabels && <rect x={label.x - 40} y={label.y - 8} width={42} height={16} fill="var(--color-card)" />}
           <text
-            key={`${index}-${label.key}`}
             x={label.x}
             y={label.y}
             textAnchor={leftLabels ? "end" : "middle"}
@@ -68,6 +69,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, se
           >
             {label.value}
           </text>
+          </g>
         ));
       })}
     </g>

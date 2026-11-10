@@ -816,7 +816,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const xAxisProps = manyTicks
     ? { tick: { fontSize: 10 }, angle: -45, textAnchor: "end" as const, height: 60, interval: 0 }
     : { tick: { fontSize: 12 } };
-  const chartMargin = { top: 10, right: 10, left: mediaKeys?.length ? 70 : 0, bottom: manyTicks ? 24 : 0 };
+  const chartMargin = { top: 10, right: 10, left: 0, bottom: manyTicks ? 24 : 0 };
 
   const chartInfo = getChartInfo(metric, desglose, period);
 
