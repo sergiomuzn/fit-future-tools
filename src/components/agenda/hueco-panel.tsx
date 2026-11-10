@@ -147,7 +147,11 @@ export function HuecoPanel({
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
-  const reservasAll = useMemo(() => [...reservas, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))], [reservas, pendientes]);
+  // Una fila reutilizada para otro cliente se muestra con su cliente nuevo hasta que llega el refresco.
+  const reservasAll = useMemo(() => {
+    const vigentes = reservas.map((r) => { const p = pendientes.find((x) => x.id === r.id); return p && p.client_id !== r.client_id && r.client_id ? r : p ?? r; });
+    return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
+  }, [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
   async function quitarCliente(reserva: PanelReserva) {
