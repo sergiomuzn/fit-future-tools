@@ -1084,6 +1084,7 @@ export type Database = {
           modalidad: string | null
           no_contabilizar: boolean
           ocupacion: number
+          plazas: number | null
           por_confirmar: boolean
           recurrencia_id: string | null
           reemplaza_session_id: string | null
@@ -1110,6 +1111,7 @@ export type Database = {
           modalidad?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
+          plazas?: number | null
           por_confirmar?: boolean
           recurrencia_id?: string | null
           reemplaza_session_id?: string | null
@@ -1136,6 +1138,7 @@ export type Database = {
           modalidad?: string | null
           no_contabilizar?: boolean
           ocupacion?: number
+          plazas?: number | null
           por_confirmar?: boolean
           recurrencia_id?: string | null
           reemplaza_session_id?: string | null

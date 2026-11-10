@@ -859,7 +859,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       return false;
     }
     if (!ps.id) {
-      const capacity = Math.max(1, servicioCapMap.get(draft.servicioSlug) ?? 1);
+      const capacity = Math.max(1, draft.plazas ?? servicioCapMap.get(draft.servicioSlug) ?? 1);
       const selected = draft.clientIds.slice(0, capacity);
       const members = draftSessionMembers(selected, draft.cancelledClients);
       const grouped = capacity > 1 || members.length > 1;
@@ -881,6 +881,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           incidencia: draft.notas || null,
           ocupacion: grouped ? 2 : 1,
           recurrencia_id: recurrenciaId,
+          plazas: draft.plazas,
         };
       })).flat();
       await qc.cancelQueries({ queryKey: ["sessions", isoDate] });
@@ -951,6 +952,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       tipo: draft.esPrueba ? "prueba" : null,
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
+      plazas: draft.plazas,
     } as Session) : row));
     const updateIds = Array.from(idSet);
     const { error } = updateIds.length ? await supabase.from("sessions").update({
@@ -962,12 +964,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       tipo: draft.esPrueba ? "prueba" : null,
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
-    }).in("id", updateIds) : { error: null };
+      plazas: draft.plazas,
+    } as any).in("id", updateIds) : { error: null };
     if (error) {
       qc.setQueryData(["sessions", isoDate], previous);
       toast.error(error.message);
       return false;
     }
+    // Las plazas son de toda la sesión: también se guardan en sus cancelaciones.
+    const restoIds = allIds.filter((id) => !idSet.has(id));
+    if (restoIds.length) await supabase.from("sessions").update({ plazas: draft.plazas } as any).in("id", restoIds);
     // Marcas de "No contabilizar" hechas en el panel antes de guardar.
     for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
       await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
@@ -988,6 +994,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           tipo: draft.esPrueba ? "prueba" : null,
           por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
           incidencia: draft.notas || null,
+          plazas: draft.plazas,
           clients: undefined,
         };
       }));
@@ -1218,7 +1225,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const instCap = instId ? instCapMap.get(instId) : undefined;
               const huecoCap = instCap ?? (esReservaOnline ? huecoCapMap.get(huecoKey) : undefined);
               // Las plazas siempre son las del servicio.
+              const plazasSesion = agendaBlockMembers(session, sessions).map((m) => (m as any).plazas as number | null).find((n) => n != null);
               const plazas =
+                plazasSesion ??
                 servicioCapMap.get(servicioSlug) ??
                 huecoCap ??
                 (isGroup ? Math.max(2, groupMemberCount) : 1);
@@ -1409,6 +1418,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar && !(ps as any)?.__cola}
             notasIniciales={ps?.incidencia}
+            plazasIniciales={block.map((x) => (x as any).plazas as number | null).find((n) => n != null) ?? null}
             slotInstanceId={(ps as any)?.slot_instance_id ?? null}
             fillSessionId={ps && !isNewPanel && !ps.client_id && !(ps as any).__cola ? ps.id : null}
             grupoManual={ps && !isNewPanel && !(ps as any).slot_instance_id && !(ps as any).__cola ? { recurrenciaId: ps.recurrencia_id ?? null, ocupacion: ps.ocupacion ?? 1, ids: block.filter((x) => !(x as any).__cola).map((x) => x.id) } : undefined}

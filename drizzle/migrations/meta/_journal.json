@@ -92,6 +92,13 @@
       "when": 1793202352298,
       "tag": "0012_trainer_activity_history",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794269431724,
+      "tag": "0013_session_plazas_override",
+      "breakpoints": true
     }
   ]
 }
