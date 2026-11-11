@@ -2266,10 +2266,21 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
 }
 
 // Legend with a dashed marker for mean lines, matching how they are drawn.
-function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown }> }) {
+function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string }> }) {
+  // Hide entries with legendType="none" (e.g. shaded areas) and repeated series.
+  const seen = new Set<string>();
+  const entries = (props.payload ?? []).filter((entry) => {
+    if (entry.type === "none") return false;
+    const id = `${String(entry.dataKey ?? "")}|${String(entry.value ?? "")}`;
+    const label = String(entry.value ?? "");
+    if (seen.has(id) || seen.has(`label:${label}`)) return false;
+    seen.add(id);
+    seen.add(`label:${label}`);
+    return true;
+  });
   return (
     <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
-      {(props.payload ?? []).map((entry, i) => {
+      {entries.map((entry, i) => {
         const isMedia = String(entry.dataKey ?? "").startsWith("__media__") || /^media/i.test(String(entry.value ?? ""));
         return (
           <li key={i} className="flex items-center gap-1.5" style={{ color: entry.color }}>
