@@ -2060,6 +2060,17 @@ function buildSeries(args: {
   // la línea sea continua de izquierda a derecha sin huecos.
   const finalRows = isLineChart ? rows : (nonZero.length ? nonZero : rows);
   const finalSeries = seriesKeys.length ? seriesKeys : ["value"];
+  // Cancelaciones · día de la semana · mes actual: mismo formato que el histórico.
+  if (metric === "cancelaciones" && desglose === "dow") {
+    return {
+      rows: finalRows,
+      seriesKeys: finalSeries,
+      isLineChart: true,
+      areas: true,
+      mediaKeys: attachMedia(finalRows, finalSeries, 0),
+      unclassified: trackUnclassified ? unclassified : undefined,
+    };
+  }
   return { rows: finalRows, seriesKeys: finalSeries, isLineChart, unclassified: trackUnclassified ? unclassified : undefined };
 
   // suppress unused
