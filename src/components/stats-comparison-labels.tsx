@@ -37,7 +37,7 @@ function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, l: numbe
 }
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false, inside = false }: ComparisonLabelsProps & { inside?: boolean }) {
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false, inside = false, totals = false }: ComparisonLabelsProps & { inside?: boolean; totals?: boolean }) {
   const series = seriesKeys.map((key, index) => {
     const graphical = formattedGraphicalItems.find(({ item }) =>
       isValidElement(item) && item.props.dataKey === key)?.props;
@@ -80,9 +80,19 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
         }).sort((a, b) => a.pointY - b.pointY);
 
         if (inside) {
-          return labels.map((label) => {
+          const sum = labels.reduce((acc, l) => acc + Number(l.value || 0), 0);
+          const topY = labels.length ? Math.min(...labels.map((l) => l.pointY)) : 0;
+          const total = totals && labels.length ? (
+            <text key={`${index}-total`} x={labels[0].x} y={topY - 8} textAnchor="middle"
+              fill="var(--color-foreground, currentColor)" fontSize={FONT} fontWeight={700} aria-label={`Total: ${sum}`}>
+              {sum}
+            </text>
+          ) : null;
+          return [total, ...labels.map((label) => {
             const p = series.find((s) => s.key === label.key)!.points[index];
             const h = Math.abs(Number(p.height) || 0);
+            // Too thin a segment: hide the number (still shown on hover).
+            if (h < LABEL_H + 2) return null;
             return (
               <text key={`${index}-${label.key}`} x={label.x} y={label.pointY + h / 2}
                 textAnchor="middle" dominantBaseline="central" fill={contrastText(label.color)}
@@ -90,7 +100,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
                 {label.value}
               </text>
             );
-          });
+          })];
         }
 
         if (leftLabels) {
