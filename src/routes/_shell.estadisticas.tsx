@@ -746,12 +746,26 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const availableTrainers = useMemo(() => {
     const months = period === "mesUnico" ? [monthA]
       : period === "comparar" ? compareMonths : [...activityMonthsCmp];
-    return trainers.filter((trainer) => months.some((selectedMonth) =>
-      trainerAvailableInMonth(trainer, selectedMonth, trainerHistory, sourceSessions)));
+    const monthSet = new Set(months);
+    // Sesiones hechas por entrenador en los meses seleccionados (orden y filtro).
+    const counts = new Map<string, number>();
+    for (const sess of sourceSessions) {
+      if (!sess.trainer_id || sess.estado === "cancelada" || !monthSet.has(sess.fecha.slice(0, 7))) continue;
+      counts.set(sess.trainer_id, (counts.get(sess.trainer_id) ?? 0) + 1);
+    }
+    return trainers
+      .filter((trainer) => (counts.get(trainer.id) ?? 0) > 0 && months.some((selectedMonth) =>
+        trainerAvailableInMonth(trainer, selectedMonth, trainerHistory, sourceSessions)))
+      .sort((x, y) => (counts.get(y.id) ?? 0) - (counts.get(x.id) ?? 0));
   }, [period, monthA, compareMonths, activityMonthsCmp, trainers, trainerHistory, sourceSessions]);
+  // Colores únicos y bien diferenciados por entrenador dentro de Estadísticas.
+  const statsTrainerColors = useMemo(() => {
+    const pal = ["#2563EB", "#DC2626", "#16A34A", "#9333EA", "#EA580C", "#0891B2", "#CA8A04", "#DB2777", "#0D9488", "#4F46E5", "#65A30D", "#78350F", "#475569", "#BE123C"];
+    return new Map(availableTrainers.map((t, i) => [t.id, pal[i % pal.length]]));
+  }, [availableTrainers]);
   const trainerMap = useMemo(() => new Map(availableTrainers.map((t) => [t.id, t])), [availableTrainers]);
   const selectedTrainers = useMemo(() => availableTrainers.filter((t) => selectedTrainerIds.includes(t.id)), [availableTrainers, selectedTrainerIds]);
-  const trainerColorByInitials = useMemo(() => new Map(selectedTrainers.map((t) => [t.iniciales, trainerColor(t.id)])), [selectedTrainers]);
+  const trainerColorByInitials = useMemo(() => new Map(selectedTrainers.map((t) => [t.iniciales, statsTrainerColors.get(t.id) ?? trainerColor(t.id)])), [selectedTrainers, statsTrainerColors]);
   useEffect(() => {
     setSelectedTrainerIds((ids) => {
       const next = ids.filter((id) => availableTrainers.some((t) => t.id === id));
@@ -789,6 +803,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (metric === "porEntrenador" && trainerColorByInitials.get(name)) return trainerColorByInitials.get(name)!;
     if (seriesColors?.[name]) return seriesColors[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
@@ -1029,7 +1044,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
               {availableTrainers.map((t) => {
                 const active = selectedTrainerIds.includes(t.id);
                 const disabled = !active && selectedTrainerIds.length >= 3;
-                const color = trainerColor(t.id);
+                const color = statsTrainerColors.get(t.id) ?? trainerColor(t.id);
                 return (
                   <Button
                     key={t.id}
@@ -1167,7 +1182,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
             ) : (
               selectedTrainers.map((t) => (
                 <div key={t.id} className="flex items-center gap-1.5">
-                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: trainerColor(t.id) }} />
+                  <span className="h-3 w-3 rounded-sm" style={{ backgroundColor: statsTrainerColors.get(t.id) ?? trainerColor(t.id) }} />
                   <span className="font-medium">{t.iniciales}</span>
                   <span className="text-muted-foreground">{t.nombre}</span>
                 </div>
