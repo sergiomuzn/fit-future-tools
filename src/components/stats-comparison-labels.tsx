@@ -37,7 +37,7 @@ function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, l: numbe
 }
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false }: ComparisonLabelsProps) {
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false, inside = false }: ComparisonLabelsProps & { inside?: boolean }) {
   const series = seriesKeys.map((key, index) => {
     const graphical = formattedGraphicalItems.find(({ item }) =>
       isValidElement(item) && item.props.dataKey === key)?.props;
@@ -78,6 +78,20 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
           if (bars && Number(value) === 0) return [];
           return [{ key, color, x: (leftLabels ? (offset?.left ?? Number(point.x)) - 9 : Number(point.x) + ( bars ? (point.width ?? 0) / 2 : 0)), pointY: Number(point.y), y: Number(point.y) - 13, value }];
         }).sort((a, b) => a.pointY - b.pointY);
+
+        if (inside) {
+          return labels.map((label) => {
+            const p = series.find((s) => s.key === label.key)!.points[index];
+            const h = Math.abs(Number(p.height) || 0);
+            return (
+              <text key={`${index}-${label.key}`} x={label.x} y={label.pointY + h / 2}
+                textAnchor="middle" dominantBaseline="central" fill={contrastText(label.color)}
+                fontSize={FONT} fontWeight={700} aria-label={`${label.key}: ${label.value}`}>
+                {label.value}
+              </text>
+            );
+          });
+        }
 
         if (leftLabels) {
           // Mean values sit on the axis: keep them on their line unless a tick
@@ -139,4 +153,11 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
       })}
     </g>
   );
+}
+
+function contrastText(hex: string): string {
+  const h = hex.replace("#", "");
+  if (h.length !== 6) return "#111827";
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? "#111827" : "#ffffff";
 }

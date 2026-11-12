@@ -1140,7 +1140,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={[4, 4, 0, 0]} isAnimationActive={false}>
+                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={stackMap?.[k] && seriesKeys.slice(i + 1).some((o) => stackMap[o] === stackMap[k]) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
@@ -1148,7 +1148,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                     </Bar>
                   ))}
                   <Customized component={
-                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars />
+                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars inside={!!stackMap} />
                   } />
                 </ComposedChart>
               )}
@@ -1556,8 +1556,8 @@ function buildSeries(args: {
   // ---------------------------------------------------------------
   // Casos especiales de comparación por meses
   // ---------------------------------------------------------------
-  const MONTH_PALETTE = ["#0EA5E9", "#F97316", "#22C55E", "#A855F7"];
-  const MONTH_PALETTE_NC = ["#075985", "#9A3412", "#166534", "#6B21A8"];
+  const MONTH_PALETTE = ["#0EA5E9", "#F97316", "#22C55E", "#A855F7", "#EF4444", "#EAB308", "#14B8A6", "#EC4899", "#6366F1", "#84CC16", "#F43F5E", "#06B6D4"];
+  const MONTH_PALETTE_NC = ["#075985", "#9A3412", "#166534", "#6B21A8", "#991B1B", "#854D0E", "#115E59", "#9D174D", "#3730A3", "#3F6212", "#9F1239", "#155E75"];
 
   // Cancelaciones · comparar meses
   if (metric === "cancelaciones" && period === "comparar") {
