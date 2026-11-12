@@ -1993,7 +1993,7 @@ function buildSeries(args: {
     const finalT = nzT.length ? nzT : trows;
     // Histórico de facturación / ocupación: áreas sombreadas, línea de media
     // en "sin desglosar" y etiquetas espaciadas en el desglose por turno.
-    if (period === "historico" && metric === "ocupacion") {
+    if (period === "historico" && metric === "ocupacion" && desglose !== "dow") {
       return {
         rows: finalT,
         seriesKeys: slots,
