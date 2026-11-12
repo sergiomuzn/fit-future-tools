@@ -1669,20 +1669,18 @@ function buildSeries(args: {
     const countFor = (id: string, p: { filter: (s: Session) => boolean }) =>
       sessions.filter((s) => p.filter(s) && countsAsTraining(s) && s.trainer_id === id).length;
     if (period === "comparar") {
-      // X = entrenadores, una barra por mes.
-      const seriesColors: Record<string, string> = {};
-      periods.forEach((p, i) => { seriesColors[p.key] = MONTH_PALETTE[i % MONTH_PALETTE.length]; });
-      const rowsT: SeriesRow[] = ids.map((id) => {
-        const row: SeriesRow = { bucket: initialsOf(id) };
-        for (const p of periods) row[p.key] = countFor(id, p);
+      // X = meses, una barra por entrenador.
+      const withData = ids.filter((id) => periods.some((p) => countFor(id, p) > 0));
+      const idsC = withData.length ? withData : ids;
+      const rowsT: SeriesRow[] = periods.map((p) => {
+        const row: SeriesRow = { bucket: p.key };
+        for (const id of idsC) row[initialsOf(id)] = countFor(id, p);
         return row;
       });
-      const nz = rowsT.filter((r) => periods.some((p) => Number(r[p.key]) !== 0));
       return {
-        rows: nz.length ? nz : rowsT,
-        seriesKeys: periods.map((p) => p.key),
+        rows: rowsT,
+        seriesKeys: idsC.map(initialsOf),
         isLineChart: false,
-        seriesColors,
       };
     }
     // histórico → barras apiladas: X = meses, una serie por entrenador.
