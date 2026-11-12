@@ -803,6 +803,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
+    if (metric === "porEntrenador" && trainerColorByInitials.get(name)) return trainerColorByInitials.get(name)!;
     if (seriesColors?.[name]) return seriesColors[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
