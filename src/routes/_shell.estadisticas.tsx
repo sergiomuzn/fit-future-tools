@@ -1624,11 +1624,13 @@ function buildSeries(args: {
         }
         return row;
       });
-      const nz = rowsC.filter((r) => periods.some((p) => Number(r[p.key]) !== 0));
+      const keysD = periods.map((p) => p.key);
       return {
-        rows: nz.length ? nz : rowsC,
-        seriesKeys: periods.map((p) => p.key),
-        isLineChart: false,
+        rows: rowsC,
+        seriesKeys: keysD,
+        isLineChart: true,
+        areas: true,
+        mediaKeys: attachMedia(rowsC, keysD, 0),
         seriesColors,
       };
     }
