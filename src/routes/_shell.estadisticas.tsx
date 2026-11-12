@@ -1580,7 +1580,7 @@ function buildSeries(args: {
         seriesColors: { Cancelada: MONTH_PALETTE[0], NC: MONTH_PALETTE[1] },
       };
     }
-    if (desglose === "turno") {
+    if (desglose === "turno" && false) {
       // X = Mañana / Tarde. Una barra apilada (Cancelada + NC) por cada mes.
       const keys: string[] = [];
       const stackMap: Record<string, string> = {};
@@ -1948,7 +1948,8 @@ function buildSeries(args: {
     if (
       period === "comparar" &&
       (desglose === "franja" || desglose === "dow" || desglose === "turno" || desglose === "tipoSesion" || desglose === "modalidad") &&
-      metric !== "porEntrenador"
+      metric !== "porEntrenador" &&
+      !(metric === "cancelaciones" && desglose === "turno")
     ) {
       const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
       const finalSeriesM = monthSeries.length ? monthSeries : seriesKeys;
@@ -2025,6 +2026,17 @@ function buildSeries(args: {
           matrix: buildHeatmap(finalT, slots, ""),
         };
       }
+      return {
+        rows: finalT,
+        seriesKeys: slots,
+        isLineChart: true,
+        areas: true,
+        mediaKeys: attachMedia(finalT, slots, 0),
+        unclassified: trackUnclassified ? unclassified : undefined,
+      };
+    }
+    // Cancelaciones · turno · comparar meses: mismo formato que el histórico.
+    if (metric === "cancelaciones" && desglose === "turno") {
       return {
         rows: finalT,
         seriesKeys: slots,
