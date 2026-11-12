@@ -1444,7 +1444,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
                     fill
                       ? "text-white"
-                      : isGroup && estadoForColor !== "cancelada"
+                      : isGroup && (multiPlaza || !!(session as any).group_id) && estadoForColor !== "cancelada"
                         ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                         : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",
