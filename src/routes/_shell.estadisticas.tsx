@@ -2278,19 +2278,42 @@ function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; c
     seen.add(`label:${label}`);
     return true;
   });
+  // Group "Prefix · Suffix" entries so the shared prefix (e.g. a month) is shown once.
+  const pretty = (t: string) => (t === "NC" ? "No contabilizada" : t);
+  const groups: { title: string | null; items: typeof entries[number][] }[] = [];
+  for (const entry of entries) {
+    const label = String(entry.value ?? "");
+    const idx = label.lastIndexOf(" · ");
+    const title = idx > 0 ? label.slice(0, idx) : null;
+    const last = groups[groups.length - 1];
+    if (title && last && last.title === title) last.items.push(entry);
+    else groups.push({ title, items: [entry] });
+  }
+  const marker = (entry: typeof entries[number]) => {
+    const isMedia = String(entry.dataKey ?? "").startsWith("__media__") || /^media/i.test(String(entry.value ?? ""));
+    return (
+      <svg width="14" height="10" aria-hidden>
+        <line x1="0" y1="5" x2="14" y2="5" stroke={entry.color} strokeWidth={2.5} strokeDasharray={isMedia ? "4 3" : undefined} />
+      </svg>
+    );
+  };
   return (
     <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
-      {entries.map((entry, i) => {
-        const isMedia = String(entry.dataKey ?? "").startsWith("__media__") || /^media/i.test(String(entry.value ?? ""));
-        return (
-          <li key={i} className="flex items-center gap-1.5" style={{ color: entry.color }}>
-            <svg width="18" height="10" aria-hidden>
-              <line x1="0" y1="5" x2="18" y2="5" stroke={entry.color} strokeWidth={2} strokeDasharray={isMedia ? "4 3" : undefined} />
-            </svg>
-            {String(entry.value ?? "")}
-          </li>
-        );
-      })}
+      {groups.map((g, gi) => (
+        <li key={gi} className="flex items-center gap-1.5">
+          {g.title && <span className="font-medium text-foreground">{g.title}:</span>}
+          {g.items.map((entry, i) => {
+            const label = String(entry.value ?? "");
+            const text = g.title ? label.slice(g.title.length + 3) : label;
+            return (
+              <span key={i} className="flex items-center gap-1" style={{ color: entry.color }}>
+                {marker(entry)}
+                {pretty(text)}
+              </span>
+            );
+          })}
+        </li>
+      ))}
     </ul>
   );
 }
