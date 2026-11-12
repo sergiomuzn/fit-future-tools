@@ -1959,6 +1959,16 @@ function buildSeries(args: {
         : (rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0)).length
             ? rows.filter((r) => finalSeriesM.some((k) => Number(r[k]) !== 0))
             : rows);
+      if (metric === "cancelaciones" && desglose === "dow") {
+        return {
+          rows: rowsM,
+          seriesKeys: finalSeriesM,
+          isLineChart: true,
+          areas: true,
+          mediaKeys: attachMedia(rowsM, finalSeriesM, 0),
+          unclassified: trackUnclassified ? unclassified : undefined,
+        };
+      }
       return {
         rows: rowsM,
         seriesKeys: finalSeriesM,
