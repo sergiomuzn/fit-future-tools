@@ -10,7 +10,7 @@ import { Download, Info } from "lucide-react";
 import { Tooltip as UITooltip, TooltipContent as UITooltipContent, TooltipProvider as UITooltipProvider, TooltipTrigger as UITooltipTrigger } from "@/components/ui/tooltip";
 import {
   Bar, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid,
-  Legend as RLegend, Line, ComposedChart, Cell, Customized,
+  Legend as RLegend, Tooltip as RTooltip, Line, ComposedChart, Cell, Customized,
 } from "recharts";
 import { StatsComparisonLabels } from "@/components/stats-comparison-labels";
 import {
@@ -765,7 +765,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   }, [availableTrainers]);
   const trainerMap = useMemo(() => new Map(availableTrainers.map((t) => [t.id, t])), [availableTrainers]);
   const selectedTrainers = useMemo(() => availableTrainers.filter((t) => selectedTrainerIds.includes(t.id)), [availableTrainers, selectedTrainerIds]);
-  const trainerColorByInitials = useMemo(() => new Map(selectedTrainers.map((t) => [t.iniciales, statsTrainerColors.get(t.id) ?? trainerColor(t.id)])), [selectedTrainers, statsTrainerColors]);
+  const trainerColorByInitials = useMemo(() => new Map(availableTrainers.map((t) => [t.iniciales, statsTrainerColors.get(t.id) ?? trainerColor(t.id)])), [availableTrainers, statsTrainerColors]);
   useEffect(() => {
     setSelectedTrainerIds((ids) => {
       const next = ids.filter((id) => availableTrainers.some((t) => t.id === id));
@@ -1163,8 +1163,15 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                     </Bar>
                   ))}
                   <Customized component={
-                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars inside={!!stackMap} />
+                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars inside={!!stackMap} totals={metric === "porEntrenador" && !!stackMap} />
                   } />
+                  {!!stackMap && (
+                    <RTooltip
+                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                      formatter={(v: unknown, n: unknown) => [String(v), n === "NC" ? "No contabilizada" : String(n)]}
+                    />
+                  )}
                 </ComposedChart>
               )}
             </ResponsiveContainer>
