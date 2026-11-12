@@ -761,8 +761,10 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   // Colores únicos y bien diferenciados por entrenador dentro de Estadísticas.
   const statsTrainerColors = useMemo(() => {
     const pal = ["#2563EB", "#DC2626", "#16A34A", "#9333EA", "#EA580C", "#0891B2", "#CA8A04", "#DB2777", "#0D9488", "#4F46E5", "#65A30D", "#78350F", "#475569", "#BE123C"];
-    return new Map(availableTrainers.map((t, i) => [t.id, pal[i % pal.length]]));
-  }, [availableTrainers]);
+    // Fixed per trainer: same color in every chart, period and breakdown.
+    const stable = [...trainers].sort((x, y) => x.id.localeCompare(y.id));
+    return new Map(stable.map((t, i) => [t.id, pal[i % pal.length]]));
+  }, [trainers]);
   const trainerMap = useMemo(() => new Map(availableTrainers.map((t) => [t.id, t])), [availableTrainers]);
   const selectedTrainers = useMemo(() => availableTrainers.filter((t) => selectedTrainerIds.includes(t.id)), [availableTrainers, selectedTrainerIds]);
   const trainerColorByInitials = useMemo(() => new Map(availableTrainers.map((t) => [t.iniciales, statsTrainerColors.get(t.id) ?? trainerColor(t.id)])), [availableTrainers, statsTrainerColors]);
