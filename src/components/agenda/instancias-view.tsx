@@ -147,7 +147,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
    */
   const reservasPorHueco = useMemo(() => {
     const portal = sesiones.filter(
-      (r) => !!r.client_id && r.estado !== "cancelada" && (!!r.booked_by_user_id || !!r.booking_tipo),
+      (r) => !!r.client_id && r.estado !== "cancelada" && !!r.booked_by_user_id && r.booking_tipo !== "centro",
     );
     return asignarReservasAHuecos(instancias, portal);
   }, [sesiones, instancias]);
@@ -545,7 +545,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         onCancelarReserva={async (r, onRemoving) => {
           // Solo se pide confirmación cuando la reserva la hizo el cliente desde
           // su portal; las hechas por el centro se quitan directamente.
-          const esOnline = r.online ?? !!((r as unknown as { booked_by_user_id?: string | null }).booked_by_user_id || (r as unknown as { booking_tipo?: string | null }).booking_tipo);
+          const esOnline = r.online ?? (!!(r as unknown as { booked_by_user_id?: string | null }).booked_by_user_id && (r as unknown as { booking_tipo?: string | null }).booking_tipo !== "centro");
           if (esOnline) {
             const ok = await confirm({
               title: "Cancelar la reserva",

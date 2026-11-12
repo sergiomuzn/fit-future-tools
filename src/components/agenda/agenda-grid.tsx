@@ -564,7 +564,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   function isPortalRow(s: Session) {
     const r = s as Session & { booked_by_user_id?: string | null; booking_tipo?: string | null };
-    return !!s.client_id && (!!r.booked_by_user_id || !!r.booking_tipo);
+    return !!s.client_id && !!r.booked_by_user_id && r.booking_tipo !== "centro";
   }
 
   async function confirmPortalEdit() {
@@ -1444,7 +1444,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
                     fill
                       ? "text-white"
-                      : isGroup && estadoForColor !== "cancelada"
+                      : isGroup && (multiPlaza || !!(session as any).group_id) && estadoForColor !== "cancelada"
                         ? "bg-state-grupo text-state-grupo-fg border-state-grupo"
                         : ESTADO_BG[estadoForColor],
                     isCanceladaNC && !isGroup && "opacity-70 border-dashed border-white/60",

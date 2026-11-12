@@ -47,7 +47,8 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
   const additions = draft.clientIds.map((clientId) => ({ clientId, cancellation: null as typeof newCancellations[number] | null }));
   const members = [...additions, ...newCancellations.map((cancellation) => ({ clientId: cancellation.clientId, cancellation }))];
   let rec = base.recurrencia_id;
-  const grouped = !base.slot_instance_id && (next.length + members.length > 1 || (draft.plazas ?? 1) > 1);
+  // Cancelled rows never turn a single-place session into a group.
+  const grouped = !base.slot_instance_id && (next.filter((r) => r.estado !== "cancelada" && !!r.client_id).length + additions.length > 1 || (draft.plazas ?? 1) > 1);
   if (grouped) {
     rec = rec ?? crypto.randomUUID();
     if (next.length) {
