@@ -54,6 +54,8 @@ export const barrerSesionesRealizadas = createServerFn({ method: "POST" })
     const ids = (rows ?? [])
       .filter((s) => {
         if (s.por_confirmar) return false;
+        // Sin ningún cliente agendado nadie asistió: no pasa a realizada.
+        if (!s.client_id && !s.group_id) return false;
         const isGroup = !!s.group_id || s.ocupacion === 2;
         if (isGroup && !data.autoGrupales) return false;
         if (!isGroup && !data.autoIndividuales) return false;

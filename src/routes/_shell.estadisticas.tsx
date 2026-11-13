@@ -26,7 +26,7 @@ import { servicioColorOf } from "@/lib/colors";
 import { cn, formatDateShort } from "@/lib/utils";
 import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-config";
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
-import { countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
+import { hasAttendee, countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
 import { trainerActiveOnDate, trainerAvailableInMonth } from "@/lib/trainer-availability";
 
 export const Route = createFileRoute("/_shell/estadisticas")({
@@ -60,6 +60,7 @@ function spacesFor(tipo: Session["tipo"]): number {
 // Una sesión cuenta como entrenamiento si está realizada, o cancelada según el
 // ajuste Configuración → Funcionamiento → Cancelaciones.
 function countsAsTraining(s: Session): boolean {
+  if (!hasAttendee(s)) return false;
   return sessionCountsAsTraining(s.estado, s.no_contabilizar, getBehaviorConfig().canceladasCuentanModo);
 }
 // Aplica la preferencia "Contabilizar grupales sin asistentes" del apartado

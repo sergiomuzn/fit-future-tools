@@ -15,9 +15,9 @@ describe("monthly session accounting", () => {
       strictEqual(countsInSessionTotal({ ...session, estado, por_confirmar: true }, now), false);
     }
   });
-  test("empty performed sessions from every service count", () => {
+  test("empty performed sessions from every service do not count", () => {
     const rows = ["individual", "grupal", "pilates"].map((servicio_slug) => ({ ...session, servicio_slug, client_id: null, group_id: null }));
-    strictEqual(sessionsInMonthTotal(rows, "2026-10", now).length, 3);
+    strictEqual(sessionsInMonthTotal(rows, "2026-10", now).length, 0);
   });
   test("performed trial sessions count", () => strictEqual(countsInSessionTotal({ ...session, estado: "prueba" }, now), true));
   test("performed renewal sessions count", () => strictEqual(countsInSessionTotal({ ...session, estado: "renovacion" }, now), true));

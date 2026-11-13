@@ -5,10 +5,18 @@ export type CountableSession = {
   estado: string;
   no_contabilizar?: boolean | null;
   por_confirmar?: boolean | null;
+  client_id?: string | null;
+  group_id?: string | null;
 };
+
+/** A performed session needs at least one client; empty slots count as not performed. */
+export function hasAttendee(session: { client_id?: string | null; group_id?: string | null }): boolean {
+  return session.client_id === undefined ? true : !!session.client_id || !!session.group_id;
+}
 
 export function countsInSessionTotal(session: CountableSession, now = new Date()): boolean {
   if (session.por_confirmar || session.no_contabilizar) return false;
+  if (!hasAttendee(session)) return false;
   if (session.estado === "realizada" || session.estado === "cancelada") return true;
   // Legacy trial/renewal states do not identify completion: only count after end.
   if (session.estado === "prueba" || session.estado === "renovacion") {
