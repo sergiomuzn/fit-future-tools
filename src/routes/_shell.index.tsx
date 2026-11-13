@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { trainerActiveOnDate, trainerAvailableInMonth, type TrainerActivity } from "@/lib/trainer-availability";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Info } from "lucide-react";
 import { supabase, type Trainer } from "@/lib/db";
@@ -72,11 +73,35 @@ function AgendaPage() {
   const special = specialsMap.get(ymd(date));
 
   const { data: trainers = [] } = useQuery({
-    queryKey: ["trainers", "active"],
+    queryKey: ["trainers", "all"],
     queryFn: async () => {
-      const { data } = await supabase.from("trainers").select("*").eq("activo", true).order("nombre");
+      const { data } = await supabase.from("trainers").select("*").order("nombre");
       return (data ?? []) as Trainer[];
     },
+  });
+  // Historial de actividad: "Pintar entrenador" ofrece a quien estaba activo en la fecha vista.
+  const { data: trainerHistory = [] } = useQuery({
+    queryKey: ["trainer_activity_history"],
+    queryFn: async () => ((await supabase.from("trainer_activity_history").select("trainer_id,activo,effective_at")).data ?? []) as TrainerActivity[],
+  });
+  const viewedMonth = ymd(date).slice(0, 7);
+  const { data: monthTrainerSessions = [] } = useQuery({
+    queryKey: ["trainer-month-sessions", viewedMonth],
+    staleTime: 5 * 60 * 1000,
+    queryFn: async () => {
+      const [y, m] = viewedMonth.split("-").map(Number);
+      const last = new Date(y, m, 0).getDate();
+      const { data } = await supabase.from("sessions").select("trainer_id,fecha")
+        .gte("fecha", `${viewedMonth}-01`).lte("fecha", `${viewedMonth}-${String(last).padStart(2, "0")}`)
+        .not("trainer_id", "is", null).limit(5000);
+      return (data ?? []) as { trainer_id: string | null; fecha: string }[];
+    },
+  });
+  const paintableTrainers = trainers.filter((t) => {
+    const today = ymd(new Date());
+    if (ymd(date) >= today) return t.activo !== false;
+    return trainerActiveOnDate(t.id, ymd(date), trainerHistory)
+      && trainerAvailableInMonth(t, viewedMonth, trainerHistory, monthTrainerSessions);
   });
 
   const monthStart = new Date(date.getFullYear(), date.getMonth(), 1).toISOString().slice(0, 10);
@@ -110,7 +135,7 @@ function AgendaPage() {
     },
   });
 
-  const sortedTrainers = [...trainers].sort((a, b) => {
+  const sortedTrainers = [...paintableTrainers].sort((a, b) => {
     const diff = (monthCounts[b.id] ?? 0) - (monthCounts[a.id] ?? 0);
     if (diff !== 0) return diff;
     return a.nombre.localeCompare(b.nombre);
