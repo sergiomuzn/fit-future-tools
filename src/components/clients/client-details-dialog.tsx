@@ -1,12 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { enterToSave } from "@/lib/enter-to-save";
 import { supabase, prettyBonoNombre, colorEstadoFor, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { cn, formatDateShort, formatNameTitle } from "@/lib/utils";
 import { useServicios } from "@/lib/servicios";
 import { chipStyle, useColores } from "@/lib/colors";
@@ -14,7 +21,7 @@ import { chipStyle, useColores } from "@/lib/colors";
 export type ClientDetailsTab = "info" | "historial" | "calendario";
 
 export function ClientDetailsDialog({
-  client,
+  client: clientProp,
   defaultTab = "info",
   onOpenChange,
 }: {
@@ -22,6 +29,35 @@ export function ClientDetailsDialog({
   defaultTab?: ClientDetailsTab;
   onOpenChange: (open: boolean) => void;
 }) {
+  const qc = useQueryClient();
+  const [saved, setSaved] = useState<Client | null>(null);
+  const [editing, setEditing] = useState<Partial<Client> | null>(null);
+  const [saving, setSaving] = useState(false);
+  useEffect(() => { setSaved(null); setEditing(null); }, [clientProp?.id]);
+  const client = clientProp ? (saved && saved.id === clientProp.id ? saved : clientProp) : null;
+
+  async function saveInfo() {
+    if (!client || !editing || saving) return;
+    if (!editing.nombre?.trim()) { toast.error("Nombre requerido"); return; }
+    const payload = {
+      nombre: formatNameTitle(editing.nombre),
+      telefono: editing.telefono || null,
+      email: editing.email || null,
+      fecha_inicio: editing.fecha_inicio || null,
+      cumpleanos: editing.cumpleanos || null,
+      sexo: editing.sexo ?? null,
+      notas: editing.notas || null,
+      activo: editing.activo ?? true,
+    };
+    setSaving(true);
+    const { error } = await supabase.from("clients").update(payload).eq("id", client.id);
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    setSaved({ ...client, ...payload } as Client);
+    setEditing(null);
+    toast.success("Cliente guardado");
+    qc.invalidateQueries({ queryKey: ["clients"] });
+  }
   const { data: bonos = [] } = useQuery({
     queryKey: ["client_bonos"],
     queryFn: async () => (await supabase.from("client_bonos").select("*")).data as ClientBono[] ?? [],
@@ -61,7 +97,42 @@ export function ClientDetailsDialog({
               <TabsTrigger value="calendario">Calendario</TabsTrigger>
             </TabsList>
             <TabsContent value="info" className="min-w-0 overflow-x-hidden">
-              <div className="px-6">
+              <div className="px-6 pb-5">
+              {editing ? (
+                <div className="grid gap-3" onKeyDown={enterToSave(saveInfo)}>
+                  <div className="space-y-1.5"><Label>Nombre</Label><Input autoComplete="nope" value={editing.nombre ?? ""} onChange={(e) => setEditing({ ...editing, nombre: e.target.value })} /></div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5"><Label>Teléfono</Label><Input autoComplete="nope" value={editing.telefono ?? ""} onChange={(e) => setEditing({ ...editing, telefono: e.target.value })} /></div>
+                    <div className="space-y-1.5"><Label>Email</Label><Input type="email" autoComplete="nope" value={editing.email ?? ""} onChange={(e) => setEditing({ ...editing, email: e.target.value })} /></div>
+                    <div className="space-y-1.5"><Label>Fecha de inicio</Label><Input type="date" value={editing.fecha_inicio ?? ""} onChange={(e) => setEditing({ ...editing, fecha_inicio: e.target.value })} /></div>
+                    <div className="space-y-1.5"><Label>Fecha de nacimiento</Label><Input type="date" value={editing.cumpleanos ?? ""} onChange={(e) => setEditing({ ...editing, cumpleanos: e.target.value })} /></div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Sexo</Label>
+                    <Select value={editing.sexo ?? "sin"} onValueChange={(v) => setEditing({ ...editing, sexo: v === "sin" ? null : v })}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="sin">Sin especificar</SelectItem>
+                        <SelectItem value="hombre">Hombre</SelectItem>
+                        <SelectItem value="mujer">Mujer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5"><Label>Notas</Label><Textarea rows={2} value={editing.notas ?? ""} onChange={(e) => setEditing({ ...editing, notas: e.target.value })} /></div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox id="detail-activo" checked={editing.activo ?? true} onCheckedChange={(v) => setEditing({ ...editing, activo: Boolean(v) })} />
+                    <Label htmlFor="detail-activo" className="cursor-pointer">Activo</Label>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setEditing(null)}>Cancelar</Button>
+                    <Button onClick={saveInfo} disabled={saving}>Guardar</Button>
+                  </div>
+                </div>
+              ) : (
+              <div className="relative">
+              <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-8 w-8" aria-label="Editar información" title="Editar información" onClick={() => setEditing({ ...client })}>
+                <Pencil className="h-4 w-4" />
+              </Button>
               <dl className="grid grid-cols-2 gap-x-6 gap-y-3 text-sm">
                 <Field label="Nombre" value={formatNameTitle(client.nombre)} />
                 <Field label="Estado" value={
@@ -80,6 +151,8 @@ export function ClientDetailsDialog({
                   <div className="text-xs text-muted-foreground mb-1">Notas</div>
                   <div className="text-sm whitespace-pre-wrap">{client.notas}</div>
                 </div>
+              )}
+                            </div>
               )}
               </div>
             </TabsContent>
