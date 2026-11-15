@@ -57,7 +57,7 @@ export function useConfirm() {
             <AlertDialogDescription>{opts.description}</AlertDialogDescription>
           ) : null}
         </AlertDialogHeader>
-        {opts.textInput && <div className="space-y-2"><Label htmlFor="confirmation-note">{opts.textInput.label}</Label><Textarea id="confirmation-note" value={text} onChange={(e) => setText(e.target.value)} rows={3} /></div>}
+        {opts.textInput && <div className="space-y-2"><Label htmlFor="confirmation-note">{opts.textInput.label}</Label><Textarea id="confirmation-note" value={text} onChange={(e) => setText(e.target.value)} rows={1} className="min-h-0 resize-none [field-sizing:content]" /></div>}
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => close(false)}>
             {opts.cancelText ?? "Cancelar"}
