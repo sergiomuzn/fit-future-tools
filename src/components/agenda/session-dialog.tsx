@@ -683,7 +683,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       } else {
         // Sesión individual.
-        const payload = { ...base, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRows.find((r) => r.id === session.id)?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
+        const cancelledRow = cancelledRows.find((r) => r.id === session.id);
+        const payload = { ...base, incidencia: cancelledRow?.incidencia ?? base.incidencia, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRow?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
         if (scope === "future" && recurrenciaId) {
           // Aplicar a todas las sesiones futuras de la serie (misma serie, fecha >= actual).
           // Excluimos "fecha" del payload para no colapsar todas al mismo día.
@@ -758,13 +759,15 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const blockIds = (groupMembersData?.length ? groupMembersData : [session]).map((row) => row.id).filter((id): id is string => !!id);
       const { error: groupError } = await supabase.from("sessions").update({ recurrencia_id: rec, ocupacion: 2 }).in("id", blockIds);
       if (groupError) { toast.error(groupError.message); return; }
-      const { data, error } = await supabase.from("sessions").insert(draftCancelled.map((c) => ({ ...base, client_id: c.clientId, estado: "cancelada" as const, por_confirmar: false, no_contabilizar: c.noContabilizar, recurrencia_id: rec, ocupacion: 2 }))).select("*");
+      const { data, error } = await supabase.from("sessions").insert(draftCancelled.map((c) => ({ ...base, incidencia: cancellationIncidence(base.incidencia, c.incidencia), client_id: c.clientId, estado: "cancelada" as const, por_confirmar: false, no_contabilizar: c.noContabilizar, recurrencia_id: rec, ocupacion: 2 }))).select("*");
       if (error) { toast.error(error.message); return; }
       commitAgendaRows(qc, data ?? []);
     }
     // Las sesiones de prueba no generan bono; el tipo "Prueba" se deriva de la sesión.
     refreshAgenda(qc);
     qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    void qc.invalidateQueries({ queryKey: ["client-sessions"] });
+    void qc.invalidateQueries({ queryKey: ["sessions-past"] });
     qc.removeQueries({ queryKey: ["group-members"] });
     qc.removeQueries({ queryKey: ["series-future-rows"] });
     setScopeAsk(false);
