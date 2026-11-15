@@ -15,6 +15,14 @@ test("cancellation incidence preserves previous notes without requiring a new no
   strictEqual(cancellationIncidence("Nota previa", " "), "Nota previa");
   strictEqual(cancellationIncidence(null, " "), null);
 });
+test("an empty incidence never prevents cancelling the selected client", () => {
+  const draft = cancelDraftClient(["a"], [], "a", false, false, "");
+  const rows = draftSessionMembers(draft.selected, draft.cancelled);
+  strictEqual(rows.length, 1);
+  strictEqual(rows[0]?.clientId, "a");
+  strictEqual(rows[0]?.cancellation?.incidencia, "");
+  strictEqual(cancellationIncidence(null, rows[0]?.cancellation?.incidencia), null);
+});
 
 test("cancelling an unsaved client moves only that client into cancellations", () => {
   const result = cancelDraftClient(["a", "b"], [], "a", false, false);
