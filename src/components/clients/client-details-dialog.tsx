@@ -431,6 +431,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
               <div className="flex items-center justify-between gap-0.5">
                 <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
                 <span className="flex items-center gap-0.5">
+                {daySessions.some((s) => s.incidencia?.trim()) && <Tooltip><TooltipTrigger asChild><span aria-label="Sesiones con incidencia" className="font-bold text-destructive cursor-default">!</span></TooltipTrigger><TooltipContent className="max-w-56 whitespace-pre-wrap">{daySessions.filter((s) => s.incidencia?.trim()).map((s) => <div key={s.id}>{s.hora_inicio.slice(0, 5)} · Incidencia: {s.incidencia}</div>)}</TooltipContent></Tooltip>}
                 {notaByDate.has(iso) && (
                   <Tooltip>
                     <TooltipTrigger asChild>

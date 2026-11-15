@@ -1,6 +1,20 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { cancelDraftClient, draftSessionMembers, sessionDraftChanges } from "./session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges } from "./session-draft-clients";
+
+test("cancellation note stays on the affected client through draft serialization", () => {
+  const draft = cancelDraftClient(["a", "b"], [], "a", false, true, "Avisó por enfermedad");
+  const rows = draftSessionMembers(draft.selected, draft.cancelled);
+  strictEqual(rows[0]?.clientId, "b");
+  strictEqual(rows[0]?.cancellation, null);
+  strictEqual(rows[1]?.cancellation?.incidencia, "Avisó por enfermedad");
+  strictEqual(rows[1]?.cancellation?.noContabilizar, true);
+});
+test("cancellation incidence preserves previous notes without requiring a new note", () => {
+  strictEqual(cancellationIncidence("Nota previa", " Enfermedad "), "Nota previa\nEnfermedad");
+  strictEqual(cancellationIncidence("Nota previa", " "), "Nota previa");
+  strictEqual(cancellationIncidence(null, " "), null);
+});
 
 test("cancelling an unsaved client moves only that client into cancellations", () => {
   const result = cancelDraftClient(["a", "b"], [], "a", false, false);

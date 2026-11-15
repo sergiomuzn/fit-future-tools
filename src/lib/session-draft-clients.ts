@@ -6,12 +6,18 @@ export interface DraftCancellation {
   /** Existing reservation to cancel at Save; absent for a new draft client. */
   sessionId?: string;
   noContabilizar: boolean;
+  incidencia?: string;
 }
 
-export function cancelDraftClient(selected: (string | null)[], cancelled: DraftCancellation[], clientId: string, pending: boolean, defaultNoCount: boolean) {
+/** Keep existing notes; a cancellation note belongs only to its client's row. */
+export function cancellationIncidence(existing: string | null | undefined, note: string | null | undefined) {
+  return [existing?.trim(), note?.trim()].filter(Boolean).join("\n") || null;
+}
+
+export function cancelDraftClient(selected: (string | null)[], cancelled: DraftCancellation[], clientId: string, pending: boolean, defaultNoCount: boolean, incidencia?: string) {
   return {
     selected: selected.map((id) => id === clientId ? null : id),
-    cancelled: [...cancelled, { id: crypto.randomUUID(), clientId, noContabilizar: clientCancellationFields(pending, defaultNoCount).no_contabilizar }],
+    cancelled: [...cancelled, { id: crypto.randomUUID(), clientId, incidencia, noContabilizar: clientCancellationFields(pending, defaultNoCount).no_contabilizar }],
   };
 }
 

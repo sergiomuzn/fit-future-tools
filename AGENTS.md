@@ -32,3 +32,4 @@
 - Use shared session-places presentation for reserved/service-capacity counters in Agenda and session editors, counting clients only within the exact block and excluding queue, empty and cancelled rows, so opening a session cannot change the indicator.
 
 - Session editors stage all field, membership, cancellation and accounting edits locally until Save; only explicit session deletion is immediate, so closing an editor cannot persist partial configuration.
+- Cancellation notes live in each client's session incidence and in the local cancellation draft until Save; shared session edits must preserve them so mixed-block history and client calendars retain the correct note.

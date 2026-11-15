@@ -1,6 +1,6 @@
 import { supabase, type Session } from "@/lib/db";
 import { commitAgendaRows, removeAgendaRows } from "@/lib/agenda-session-cache";
-import { sessionDraftChanges } from "@/lib/session-draft-clients";
+import { cancellationIncidence, sessionDraftChanges } from "@/lib/session-draft-clients";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { notificarReservasCanceladas, notificarSesionesAsignadas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
 import { sessionQueueKey } from "./online-booking";
@@ -21,7 +21,7 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       const { error } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", original.id);
       if (error) throw error;
     }
-    const { data, error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: c.noContabilizar }).eq("id", original.id).select("*").single();
+    const { data, error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: c.noContabilizar, incidencia: cancellationIncidence(original.incidencia, c.incidencia) }).eq("id", original.id).select("*").single();
     if (error) throw error;
     accept(data as Session); notices.push(original.id);
     const key = sessionQueueKey(original); if (key) queueKeys.add(key);
@@ -63,7 +63,7 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       servicio_slug: draft.servicioSlug, trainer_id: draft.trainerId, client_id: clientId,
       estado: cancellation ? "cancelada" : draft.estado, por_confirmar: cancellation ? false : draft.porConfirmar,
       no_contabilizar: cancellation?.noContabilizar ?? false, tipo: draft.esPrueba ? "prueba" : null,
-      incidencia: draft.notas || null, plazas: draft.plazas, booking_tipo: "centro",
+      incidencia: cancellation ? cancellationIncidence(draft.notas, cancellation.incidencia) : draft.notas || null, plazas: draft.plazas, booking_tipo: "centro",
       slot_instance_id: base.slot_instance_id ?? null, recurrencia_id: rec, ocupacion: grouped ? 2 : base.ocupacion,
       reemplaza_session_id: !base.slot_instance_id ? next.find((r) => r.estado === "cancelada")?.id ?? null : null,
     };

@@ -260,6 +260,7 @@ export function HistorialPanel() {
                 </TableCell>
                 <TableCell>
                   <Input defaultValue={s.incidencia ?? ""} onBlur={(e) => updateIncidencia(s.id, e.target.value)} placeholder="—" className="h-8" />
+                  {summaries.get(s.id)?.cancelled.filter((row) => row.id !== s.id && row.incidencia?.trim()).map((row) => <div key={row.id} className="mt-1 text-xs whitespace-pre-wrap break-words"><span className="font-medium">{row.client_id ? clientMap.get(row.client_id)?.nombre ?? "Cliente" : "Cliente"}: </span>{row.incidencia}</div>)}
                 </TableCell>
               </TableRow>
             ))}

@@ -5,7 +5,7 @@ import { supabase, type Session, type Trainer, type Client, type ClientBono, EST
 import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw, snapMin, minToTime, timeToMin, formatDateISO } from "./types";
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { saveSessionClients } from "./save-session-clients";
-import { draftSessionMembers } from "@/lib/session-draft-clients";
+import { cancellationIncidence, draftSessionMembers } from "@/lib/session-draft-clients";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
@@ -889,7 +889,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           tipo: draft.esPrueba ? "prueba" : null,
           por_confirmar: !cancellation && draft.estado === "reservada" && draft.porConfirmar,
           no_contabilizar: cancellation?.noContabilizar ?? false,
-          incidencia: draft.notas || null,
+          incidencia: cancellation ? cancellationIncidence(draft.notas, cancellation.incidencia) : draft.notas || null,
           ocupacion: grouped ? 2 : 1,
           recurrencia_id: recurrenciaId,
           plazas: draft.plazas,
@@ -1004,10 +1004,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         servicio_slug: draft.servicioSlug,
         trainer_id: draft.trainerId,
         tipo: draft.esPrueba ? "prueba" : null,
-        incidencia: draft.notas || null,
         plazas: draft.plazas,
       } as any).in("id", cancelledOnlyIds);
       if (cancelledError) return toast.error(cancelledError.message), false;
+      // Preserve the individual cancellation note; unchanged common notes must not overwrite it.
+      if (draft.notas !== (ps.incidencia ?? "")) {
+        for (const row of allRows.filter((r) => cancelledOnlyIds.includes(r.id))) {
+          const { error: noteError } = await supabase.from("sessions").update({ incidencia: cancellationIncidence(row.incidencia, draft.notas) }).eq("id", row.id);
+          if (noteError) return toast.error(noteError.message), false;
+        }
+      }
     }
     // Marcas de "No contabilizar" hechas en el panel antes de guardar.
     for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
@@ -1065,6 +1071,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     }
     refreshAgenda(qc);
     void qc.invalidateQueries({ queryKey: ["client_bonos"] });
+    void qc.invalidateQueries({ queryKey: ["client-sessions"] });
+    void qc.invalidateQueries({ queryKey: ["sessions-past"] });
     toast.success(draft.repeatWeeks ? `Sesión actualizada (+${draft.repeatWeeks} repeticiones)` : "Sesión actualizada");
     return true;
   }
