@@ -307,7 +307,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function cancelarCliente(row: Session) {
     let note = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
     const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.incidencia, note) } as Session;
     setCancelledIds((old) => [...old, row.id]);
     setCancelledOverrides((old) => [...old.filter((r) => r.id !== row.id), updated]);
@@ -321,7 +321,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       let note = "";
-      if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
+      if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
       const result = cancelDraftClient(grupo ? groupClientIds : [clientId], draftCancelled, selectedId, porConfirmar, behaviorCfg.cancelacionDefaultNoContabilizar, note);
       setDraftCancelled(result.cancelled);
       remove();

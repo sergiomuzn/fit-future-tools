@@ -234,7 +234,7 @@ export function HuecoPanel({
   async function pedirCancelacion(reserva: PanelReserva) {
     if (!reserva.client_id) return;
     let incidencia = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { incidencia = value; } } }))) return;
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { incidencia = value; } } }))) return;
     const cancellation: DraftCancellation = {
       id: reserva.id, sessionId: reserva.id, clientId: reserva.client_id,
       incidencia,
@@ -252,7 +252,7 @@ export function HuecoPanel({
 
   async function cancelarSeleccion(clientId: string, row: number) {
     let incidencia = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { incidencia = value; } } }))) return;
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { incidencia = value; } } }))) return;
     const result = cancelDraftClient(pickerValues, draftCancelled, clientId, porConfirmar, behavior.cancelacionDefaultNoContabilizar, incidencia);
     setPickerValues(result.selected);
     setDraftCancelled(result.cancelled);
