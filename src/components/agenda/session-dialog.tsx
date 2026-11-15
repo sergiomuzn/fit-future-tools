@@ -5,7 +5,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clientCancellationFields } from "@/lib/session-state";
-import { cancelDraftClient, draftSessionMembers, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, type DraftCancellation } from "@/lib/session-draft-clients";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
 import { sessionPlaces } from "@/lib/session-places";
@@ -306,8 +306,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   }
 
   async function cancelarCliente(row: Session) {
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela" }))) return;
-    const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar) } as Session;
+    let note = "";
+    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
+    const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.incidencia, note) } as Session;
     setCancelledIds((old) => [...old, row.id]);
     setCancelledOverrides((old) => [...old.filter((r) => r.id !== row.id), updated]);
     if (row.client_id === clientId) setClientId(null);
@@ -319,7 +320,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
-      const result = cancelDraftClient(grupo ? groupClientIds : [clientId], draftCancelled, selectedId, porConfirmar, behaviorCfg.cancelacionDefaultNoContabilizar);
+      let note = "";
+      if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", textInput: { label: "Incidencia o nota (opcional)", onConfirm: (value) => { note = value; } } }))) return;
+      const result = cancelDraftClient(grupo ? groupClientIds : [clientId], draftCancelled, selectedId, porConfirmar, behaviorCfg.cancelacionDefaultNoContabilizar, note);
       setDraftCancelled(result.cancelled);
       remove();
     }}><Ban />Cliente Cancela</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
@@ -361,7 +364,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         const { error: pendingError } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", row.id);
         if (pendingError) return toast.error(pendingError.message);
       }
-      const { error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: !!row.no_contabilizar }).eq("id", row.id);
+      const { error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: !!row.no_contabilizar, incidencia: row.incidencia }).eq("id", row.id);
       if (error) return toast.error(error.message);
     }
     if (cancelledIds.length) void notificarReservasCanceladas({ data: { sessionIds: cancelledIds } }).then((r) => {
@@ -452,6 +455,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           estado: cancellation ? "cancelada" as const : estadoForDate(fecha),
           por_confirmar: cancellation ? false : base.por_confirmar,
           no_contabilizar: cancellation?.noContabilizar ?? false,
+          incidencia: cancellation ? cancellationIncidence(base.incidencia, cancellation.incidencia) : base.incidencia,
           ocupacion: grupo || members.length > 1 ? 2 : 1,
           client_id: cid,
           recurrencia_id: seriesId,

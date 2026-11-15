@@ -9,6 +9,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 type ConfirmOptions = {
   title?: string;
@@ -16,6 +18,7 @@ type ConfirmOptions = {
   confirmText?: string;
   cancelText?: string;
   destructive?: boolean;
+  textInput?: { label: string; onConfirm: (value: string) => void };
 };
 
 /**
@@ -25,11 +28,13 @@ type ConfirmOptions = {
 export function useConfirm() {
   const [open, setOpen] = useState(false);
   const [opts, setOpts] = useState<ConfirmOptions>({});
+  const [text, setText] = useState("");
   const resolver = useRef<((v: boolean) => void) | null>(null);
 
   const confirm = useCallback((options: ConfirmOptions | string) => {
     const o = typeof options === "string" ? { description: options } : options;
     setOpts(o);
+    setText("");
     setOpen(true);
     return new Promise<boolean>((resolve) => {
       resolver.current = resolve;
@@ -37,6 +42,7 @@ export function useConfirm() {
   }, []);
 
   const close = (value: boolean) => {
+    if (value) opts.textInput?.onConfirm(text);
     setOpen(false);
     resolver.current?.(value);
     resolver.current = null;
@@ -51,6 +57,7 @@ export function useConfirm() {
             <AlertDialogDescription>{opts.description}</AlertDialogDescription>
           ) : null}
         </AlertDialogHeader>
+        {opts.textInput && <div className="space-y-2"><Label htmlFor="confirmation-note">{opts.textInput.label}</Label><Textarea id="confirmation-note" value={text} onChange={(e) => setText(e.target.value)} rows={3} /></div>}
         <AlertDialogFooter>
           <AlertDialogCancel onClick={() => close(false)}>
             {opts.cancelText ?? "Cancelar"}
