@@ -300,6 +300,7 @@ const ESTADO_DOT: Record<string, string> = {
 };
 
 function ClientCalendar({ clientId }: { clientId: string }) {
+  const { servicioColor } = useColores();
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -470,7 +471,10 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
                   const inc = (s.incidencia ?? "").trim();
                   const isPorConfirmar = s.estado === "reservada" && (s as any).por_confirmar;
-                  const dot = ESTADO_DOT[colorEstadoFor(s)] ?? "bg-muted";
+                  const estadoColor = colorEstadoFor(s);
+                  // Booked and performed sessions take their service colour.
+                  const svcColor = (estadoColor === "reservada" || estadoColor === "realizada") && s.servicio_slug ? servicioColor(s.servicio_slug) : null;
+                  const dot = svcColor ? "" : ESTADO_DOT[estadoColor] ?? "bg-muted";
                   return (
                     <Tooltip key={s.id}>
                       <TooltipTrigger asChild>
@@ -481,6 +485,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                             isNC && "opacity-60 border border-dashed border-white/60",
                           )}
                           style={{
+                            backgroundColor: svcColor ?? undefined,
                             backgroundImage: isPorConfirmar
                               ? "repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 3px, transparent 3px 6px)"
                               : undefined,
@@ -510,8 +515,7 @@ function ClientCalendar({ clientId }: { clientId: string }) {
         })}
       </div>
       <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
-        <LegendDot color="bg-state-reservada" label="Reservada" />
-        <LegendDot color="bg-state-realizada" label="Realizada" />
+        <span>Reservada / realizada: color del servicio</span>
         <LegendDot color="bg-state-cancelada" label="Cancelada" />
         <LegendDot color="bg-state-prueba" label="Prueba" />
         <LegendDot color="bg-amber-500" label="Renovación" />

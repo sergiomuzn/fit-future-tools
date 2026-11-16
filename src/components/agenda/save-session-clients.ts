@@ -13,7 +13,12 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
   let next = [...rows];
   const notices: string[] = [];
   const queueKeys = new Set<string>();
-  const accept = (row: Session) => { next = [...next.filter((r) => r.id !== row.id), row]; commitAgendaRows(qc, [row]); };
+  // Buffer cache writes and publish them once, so the Agenda never renders a
+  // half-saved block (e.g. members split between old and new grouping).
+  const committed = new Map<string, Session>();
+  const removedIds: string[] = [];
+  const accept = (row: Session) => { next = [...next.filter((r) => r.id !== row.id), row]; committed.set(row.id, row); };
+  try {
   for (const c of draft.cancelledClients.filter((c) => c.sessionId)) {
     const original = rows.find((r) => r.id === c.sessionId);
     if (!original) throw new Error("La reserva ya no está disponible. Vuelve a abrir la sesión.");
@@ -41,7 +46,7 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
     } else {
       const { error } = await supabase.from("sessions").delete().eq("id", original.id);
       if (error) throw error;
-      next = next.filter((r) => r.id !== original.id); removeAgendaRows(qc, [original.id]);
+      next = next.filter((r) => r.id !== original.id); committed.delete(original.id); removedIds.push(original.id);
     }
   }
   const additions = draft.clientIds.map((clientId) => ({ clientId, cancellation: null as typeof newCancellations[number] | null }));
@@ -76,6 +81,10 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
   for (const [id, value] of Object.entries(draft.noContabilizar)) {
     const { data, error } = await supabase.from("sessions").update({ no_contabilizar: value }).eq("id", id).select("*").single();
     if (error) throw error; accept(data as Session);
+  }
+  } finally {
+    if (removedIds.length) removeAgendaRows(qc, removedIds);
+    if (committed.size) commitAgendaRows(qc, [...committed.values()]);
   }
   if (notices.length) void notificarReservasCanceladas({ data: { sessionIds: notices } }).catch(() => {});
   if (queueKeys.size) void ofrecerPlazasLiberadas({ data: { claves: [...queueKeys] } }).catch(() => {});
