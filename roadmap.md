@@ -1,5 +1,7 @@
 # Tareas
 
+- [x] Separar entrenador y mes en comparativas por turno y día de la semana, conservar colores y convertir la segunda en líneas; 9 pruebas correctas y selección de uno/dos/tres entrenadores, cifras exportadas, móvil y ambos temas verificados.
+
 - [x] Situar el total encima de cada barra o torre apilada sin modificar sus cálculos; 12 vistas reales comprobadas en entrenadores, sesiones, cancelaciones, facturación, sexo, edad y altas/bajas, incluida pantalla móvil.
 
 - [x] Corregir incidencias de cancelación en el diálogo: notas editadas guardadas sin copiarlas a sesiones futuras; 30 pruebas correctas y cancelación, guardado en serie y reapertura verificados con datos temporales eliminados.

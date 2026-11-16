@@ -28,6 +28,7 @@ import { useStatsConfig, isDefaultCompat, type StatsKpiKey } from "@/lib/stats-c
 import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
 import { hasAttendee, countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
 import { trainerActiveOnDate, trainerAvailableInMonth } from "@/lib/trainer-availability";
+import { trainerMonthComparison } from "@/lib/stats-trainer-comparison";
 
 export const Route = createFileRoute("/_shell/estadisticas")({
   head: () => ({ meta: [
@@ -781,7 +782,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const splitModalidadActive = puedeSplitModalidad && splitModalidad;
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, trainerSeries } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
@@ -806,7 +807,10 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const palette = ["var(--primary)", "hsl(24 90% 55%)", "hsl(150 60% 45%)", "hsl(280 60% 55%)", "hsl(340 70% 55%)", "hsl(200 70% 50%)"];
   const colorForSeries = (name: string, idx: number): string => {
     const lower = name.toLowerCase();
-    if (metric === "porEntrenador" && trainerColorByInitials.get(name)) return trainerColorByInitials.get(name)!;
+    const owner = trainerSeries?.[name];
+    if (owner) return statsTrainerColors.get(owner.trainerId) ?? "var(--color-muted-foreground)";
+    const trainerSeriesColor = metric === "porEntrenador" ? trainerColorByInitials.get(name) : undefined;
+    if (trainerSeriesColor) return trainerSeriesColor;
     if (seriesColors?.[name]) return seriesColors[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
@@ -1086,7 +1090,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
         <div className="h-[420px] overflow-x-hidden">
           <div
             className="h-full"
-            style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
+            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
@@ -1097,7 +1101,8 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                   {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
+                   {(metric !== "porEntrenador" || !!trainerSeries || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
+                  {!!trainerSeries && <RTooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", fontSize: 12 }} />}
                   {(mediaKeys ?? []).map((mk) => (
                     <Line
                       key={mk}
@@ -1129,7 +1134,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
-                      type="monotone"
+                      type={trainerSeries ? "linear" : "monotone"}
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
                       strokeWidth={
@@ -1137,6 +1142,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                           ? 0
                           : 2
                       }
+                      strokeDasharray={trainerSeries?.[k]?.variant ? ["", "6 4", "2 3", "10 3 2 3"][trainerSeries[k].variant % 4] : undefined}
                       connectNulls
                       dot={{ r: 4, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
                       activeDot={{ r: 6, fill: colorForSeries(k, i), stroke: "#ffffff", strokeWidth: 2 }}
@@ -1156,9 +1162,9 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {(metric !== "porEntrenador" || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
+                  {(metric !== "porEntrenador" || !!trainerSeries || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} radius={stackMap?.[k] && seriesKeys.slice(i + 1).some((o) => stackMap[o] === stackMap[k]) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
+                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} fillOpacity={trainerSeries?.[k]?.variant === 1 ? 0.6 : 1} radius={stackMap?.[k] && seriesKeys.slice(i + 1).some((o) => stackMap[o] === stackMap[k]) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
                         rowsWithTotal.map((r, idx) => (
                           <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
@@ -1168,7 +1174,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <Customized component={
                     <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars />
                   } />
-                  {!!stackMap && (
+                  {(!!stackMap || !!trainerSeries) && (
                     <RTooltip
                       cursor={{ fill: "var(--muted)", opacity: 0.4 }}
                       contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
@@ -1296,6 +1302,7 @@ function buildSeries(args: {
   labelEvery?: number;
   matrix?: MatrixData;
   avgAge?: number;
+  trainerSeries?: Record<string, { trainerId: string; variant: number }>;
 } {
   const { sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap = new Map<string, string>(), clientNacMap = new Map<string, string>(), clientNombreMap = new Map<string, string>(), selectedTrainerIds = [], catalogoTipos = [], modalidades: modalidadKeys = [], servicioNombres, splitModalidad = false, modalidadesByServicio = new Map<string, string[]>() } = args;
   const knownTipos = Array.from(new Set<string>(catalogoTipos));
@@ -1576,6 +1583,21 @@ function buildSeries(args: {
   const monthsForPeriods = collectMonthList("sessions");
   for (const { y, m, key } of monthsForPeriods) {
     periods.push({ key, filter: (s: Session) => inMonth(s, y, m), days: daysInMonth(y, m) });
+  }
+
+  if (metric === "porEntrenador" && period === "comparar" && (desglose === "turno" || desglose === "dow")) {
+    const selected = selectedTrainerIds.flatMap((id) => {
+      const trainer = trainerMap.get(id);
+      return trainer ? [{ id, nombre: trainer.nombre }] : [];
+    });
+    const comparison = trainerMonthComparison(sessions.filter(countsAsTraining), selected,
+      monthsForPeriods.map(({ y, m, key }) => ({ month: `${y}-${String(m + 1).padStart(2, "0")}`, label: key })), desglose);
+    return {
+      rows: comparison.rows,
+      seriesKeys: comparison.series.map((s) => s.key),
+      trainerSeries: Object.fromEntries(comparison.series.map((s) => [s.key, { trainerId: s.trainerId, variant: s.variant }])),
+      isLineChart: desglose === "dow",
+    };
   }
 
   // ---------------------------------------------------------------
@@ -2324,7 +2346,7 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
 }
 
 // Legend with a dashed marker for mean lines, matching how they are drawn.
-function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string }> }) {
+function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string; payload?: { strokeDasharray?: string | number; fillOpacity?: number } }> }) {
   // Hide entries with legendType="none" (e.g. shaded areas) and repeated series.
   const seen = new Set<string>();
   const entries = (props.payload ?? []).filter((entry) => {
@@ -2351,14 +2373,14 @@ function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; c
     const isMedia = String(entry.dataKey ?? "").startsWith("__media__") || /^media/i.test(String(entry.value ?? ""));
     return (
       <svg width="14" height="10" aria-hidden>
-        <line x1="0" y1="5" x2="14" y2="5" stroke={entry.color} strokeWidth={2.5} strokeDasharray={isMedia ? "4 3" : undefined} />
+        <line x1="0" y1="5" x2="14" y2="5" stroke={entry.color} opacity={entry.payload?.fillOpacity ?? 1} strokeWidth={2.5} strokeDasharray={isMedia ? "4 3" : entry.payload?.strokeDasharray} />
       </svg>
     );
   };
   return (
     <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
       {groups.map((g, gi) => (
-        <li key={gi} className="flex items-center gap-1.5">
+        <li key={gi} className="flex flex-wrap items-center justify-center gap-1.5">
           {g.title && <span className="font-medium text-foreground">{g.title}:</span>}
           {g.items.map((entry, i) => {
             const label = String(entry.value ?? "");
