@@ -391,6 +391,28 @@ function ClientCalendar({ clientId }: { clientId: string }) {
     invoicesByDate.set(i.fecha, arr);
   });
 
+  // Colores que aparecen de verdad en el calendario de este mes.
+  const presentServiceSlugs = new Set<string>();
+  const presentEstados = new Set<string>();
+  sessions.forEach((s) => {
+    const estadoColor = colorEstadoFor(s);
+    if (estadoColor === "reservada" || estadoColor === "realizada") {
+      if (s.servicio_slug) presentServiceSlugs.add(s.servicio_slug);
+    } else {
+      presentEstados.add(estadoColor);
+    }
+  });
+  const legendServices = servicios.filter((s) => presentServiceSlugs.has(s.slug));
+  const orphanServiceSlugs = [...presentServiceSlugs]
+    .filter((slug) => !servicios.some((s) => s.slug === slug))
+    .sort();
+  const legendHasItems =
+    legendServices.length > 0 ||
+    orphanServiceSlugs.length > 0 ||
+    presentEstados.has("cancelada") ||
+    presentEstados.has("prueba") ||
+    invoices.length > 0;
+
   type Cell = { date: Date; iso: string; isOutside: boolean };
   const cells: Cell[] = [];
   for (let i = 0; i < totalCells; i++) {
