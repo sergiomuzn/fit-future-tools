@@ -56,7 +56,7 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
   const yAxis = yAxisMap ? Object.values(yAxisMap)[0] : undefined;
   const scale = yAxis?.scale;
   const tickYs = scale
-    ? (yAxis.niceTicks ?? yAxis.ticks ?? []).map((t) => Number(scale(t))).filter(Number.isFinite)
+    ? (yAxis?.niceTicks ?? yAxis?.ticks ?? []).map((t) => Number(scale(t))).filter(Number.isFinite)
     : [];
 
   // Bars must never use the line-label layout: its downward collision shifts
