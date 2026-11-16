@@ -301,6 +301,7 @@ const ESTADO_DOT: Record<string, string> = {
 
 function ClientCalendar({ clientId }: { clientId: string }) {
   const { servicioColor } = useColores();
+  const { data: servicios = [] } = useServicios();
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
@@ -389,6 +390,31 @@ function ClientCalendar({ clientId }: { clientId: string }) {
     arr.push(i);
     invoicesByDate.set(i.fecha, arr);
   });
+
+  // Colores que aparecen de verdad en el calendario de este mes.
+  const presentServiceSlugs = new Set<string>();
+  const presentEstados = new Set<string>();
+  // Sesiones sin servicio: salen con el color de estado, no con el de servicio.
+  const presentFallback = new Set<string>();
+  sessions.forEach((s) => {
+    const estadoColor = colorEstadoFor(s);
+    if (estadoColor === "reservada" || estadoColor === "realizada") {
+      if (s.servicio_slug) presentServiceSlugs.add(s.servicio_slug);
+      else presentFallback.add(estadoColor);
+    } else {
+      presentEstados.add(estadoColor);
+    }
+  });
+  const legendServices = servicios.filter((s) => presentServiceSlugs.has(s.slug));
+  const orphanServiceSlugs = [...presentServiceSlugs]
+    .filter((slug) => !servicios.some((s) => s.slug === slug))
+    .sort();
+  const legendHasItems =
+    legendServices.length > 0 ||
+    orphanServiceSlugs.length > 0 ||
+    presentFallback.size > 0 ||
+    presentEstados.size > 0 ||
+    invoices.length > 0;
 
   type Cell = { date: Date; iso: string; isOutside: boolean };
   const cells: Cell[] = [];
@@ -514,21 +540,34 @@ function ClientCalendar({ clientId }: { clientId: string }) {
           );
         })}
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
-        <span>Reservada / realizada: color del servicio</span>
-        <LegendDot color="bg-state-cancelada" label="Cancelada" />
-        <LegendDot color="bg-state-prueba" label="Prueba" />
-        <LegendDot color="bg-amber-500" label="Renovación" />
-      </div>
+      {legendHasItems && (
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
+          {legendServices.map((s) => (
+            <LegendDot key={s.slug} colorHex={servicioColor(s.slug) ?? "#888888"} label={s.nombre} />
+          ))}
+          {orphanServiceSlugs.map((slug) => (
+            <LegendDot key={slug} colorHex={servicioColor(slug) ?? "#888888"} label={slug} />
+          ))}
+          {presentFallback.has("reservada") && <LegendDot color="bg-state-reservada" label="Sin servicio" />}
+          {presentFallback.has("realizada") && <LegendDot color="bg-state-realizada" label="Sin servicio" />}
+          {presentEstados.has("renovacion") && <LegendDot color="bg-state-renovacion" label="Renovación" />}
+          {presentEstados.has("cancelada") && <LegendDot color="bg-state-cancelada" label="Cancelada" />}
+          {presentEstados.has("prueba") && <LegendDot color="bg-state-prueba" label="Prueba" />}
+          {invoices.length > 0 && <LegendDot color="bg-amber-500" label="Renovación" />}
+        </div>
+      )}
     </div>
     </TooltipProvider>
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+function LegendDot({ color, colorHex, label }: { color?: string; colorHex?: string; label: string }) {
   return (
     <div className="flex items-center gap-1">
-      <span className={cn("h-2 w-2 rounded-sm", color)} />
+      <span
+        className={cn("h-2 w-2 rounded-sm", color)}
+        style={colorHex ? { backgroundColor: colorHex } : undefined}
+      />
       <span>{label}</span>
     </div>
   );
