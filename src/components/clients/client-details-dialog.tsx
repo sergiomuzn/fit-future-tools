@@ -301,6 +301,7 @@ const ESTADO_DOT: Record<string, string> = {
 
 function ClientCalendar({ clientId }: { clientId: string }) {
   const { servicioColor } = useColores();
+  const { data: servicios = [] } = useServicios();
   const today = new Date();
   const [cursor, setCursor] = useState(new Date(today.getFullYear(), today.getMonth(), 1));
 
