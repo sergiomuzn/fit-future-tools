@@ -99,10 +99,12 @@ function EntrenadoresPage() {
     else { qc.invalidateQueries({ queryKey: ["trainers"] }); qc.invalidateQueries({ queryKey: ["trainer_activity_history"] }); setOpen(false); toast.success("Guardado"); }
   }
   async function remove(id: string) {
-    if (!(await confirm({ title: "¿Eliminar entrenador?", description: "Esta acción no se puede deshacer." }))) return;
+    if (!(await confirm({ title: "¿Eliminar entrenador?", description: "Se borrará su nombre de todas las sesiones que hizo y desaparecerá de las estadísticas. Las sesiones se conservan, pero sin entrenador asignado. Esta acción no se puede deshacer." }))) return;
+    const { error: invErr } = await supabase.from("invoices").update({ cobrador_trainer_id: null }).eq("cobrador_trainer_id", id);
+    if (invErr) { toast.error(invErr.message); return; }
     const { error } = await supabase.from("trainers").delete().eq("id", id);
     if (error) toast.error(error.message);
-    else qc.invalidateQueries({ queryKey: ["trainers"] });
+    else { qc.invalidateQueries(); toast.success("Entrenador eliminado"); }
   }
 
   return (
