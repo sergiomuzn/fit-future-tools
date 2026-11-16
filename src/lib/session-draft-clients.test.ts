@@ -1,6 +1,25 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges } from "./session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits } from "./session-draft-clients";
+
+test("a cancellation incidence is not copied to future sessions", () => {
+  const edits = sessionIncidenceEdits("Cliente enfermo", true);
+  strictEqual(edits.current.incidencia, "Cliente enfermo");
+  const future = { incidencia: "Nota de la próxima sesión", ...edits.future };
+  strictEqual(future.incidencia, "Nota de la próxima sesión");
+});
+test("editing and clearing a cancelled session's note uses the editor value", () => {
+  strictEqual(sessionIncidenceEdits("Nota corregida", true).current.incidencia, "Nota corregida");
+  strictEqual(sessionIncidenceEdits(null, true).current.incidencia, null);
+});
+test("cancelling after editing notes retains both the edit and the cancellation note", () => {
+  const note = cancellationIncidence("Nota editada", "Cliente enfermo");
+  strictEqual(sessionIncidenceEdits(note, true).current.incidencia, "Nota editada\nCliente enfermo");
+});
+test("shared notes on non-cancelled sessions still follow the selected future scope", () => {
+  strictEqual(sessionIncidenceEdits("Nota compartida", false).future.incidencia, "Nota compartida");
+  strictEqual(sessionIncidenceEdits(null, false).future.incidencia, null);
+});
 
 test("cancellation note stays on the affected client through draft serialization", () => {
   const draft = cancelDraftClient(["a", "b"], [], "a", false, true, "Avisó por enfermedad");

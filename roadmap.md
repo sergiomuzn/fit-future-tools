@@ -1,5 +1,7 @@
 # Tareas
 
+- [ ] Corregir incidencias de cancelación en el diálogo: guardar las notas editadas sin copiarlas a sesiones futuras y verificar ambos casos.
+
 - [x] Añadir incidencia opcional a Cliente Cancela y conservarla por cliente al guardar; 28 pruebas correctas, guardado y lectura en Historial/calendario y cierre sin guardar verificados con datos temporales eliminados.
 
 - [x] Añadir selección de servicios al ajuste de sesiones restantes del centro; 11 pruebas correctas y guardado, recarga y saldo visible/oculto al cambiar de servicio verificados, restaurando los ajustes originales sin guardar sesiones.

@@ -5,7 +5,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clientCancellationFields } from "@/lib/session-state";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionIncidenceEdits, type DraftCancellation } from "@/lib/session-draft-clients";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
 import { sessionPlaces } from "@/lib/session-places";
@@ -272,6 +272,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const tituloDeseado = sinClientes ? (nombreLibreTrim || null) : null;
 
     const incidenciaDeseada = incidencia || null;
+    const localCancellation = !grupo && (session?.estado === "cancelada" || cancelledIds.includes(session?.id ?? ""));
 
     const byDate = new Map<string, Session[]>();
     for (const r of futureSiblings) {
@@ -284,7 +285,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       (r.hora_inicio ?? null) !== hi ||
       (r.hora_fin ?? null) !== hf ||
       ((r.titulo as string | null) ?? null) !== tituloDeseado ||
-      ((r.incidencia as string | null) ?? null) !== incidenciaDeseada ||
+      (!localCancellation && ((r.incidencia as string | null) ?? null) !== incidenciaDeseada) ||
       (r.ocupacion ?? 1) !== (grupo ? 2 : 1);
 
     if (grupo) {
@@ -308,7 +309,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   async function cancelarCliente(row: Session) {
     let note = "";
     if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
-    const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.incidencia, note) } as Session;
+    const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.id === session?.id ? incidencia : row.incidencia, note) } as Session;
+    if (row.id === session?.id) setIncidencia(updated.incidencia ?? "");
     setCancelledIds((old) => [...old, row.id]);
     setCancelledOverrides((old) => [...old.filter((r) => r.id !== row.id), updated]);
     if (row.client_id === clientId) setClientId(null);
@@ -359,12 +361,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setScopeAsk(false);
     onClose();
 
-    for (const row of cancelledOverrides) {
+    const cancellationsToSave = cancelledRows.filter((row) => row.id === session.id || cancelledOverrides.some((override) => override.id === row.id));
+    for (const row of cancellationsToSave) {
       if (cancelledIds.includes(row.id)) {
         const { error: pendingError } = await supabase.from("sessions").update({ por_confirmar: false }).eq("id", row.id);
         if (pendingError) return toast.error(pendingError.message);
       }
-      const { error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: !!row.no_contabilizar, incidencia: row.incidencia }).eq("id", row.id);
+      const { error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: !!row.no_contabilizar, incidencia: row.id === session.id ? incidencia || null : row.incidencia }).eq("id", row.id);
       if (error) return toast.error(error.message);
     }
     if (cancelledIds.length) void notificarReservasCanceladas({ data: { sessionIds: cancelledIds } }).then((r) => {
@@ -684,15 +687,17 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       } else {
         // Sesión individual.
         const cancelledRow = cancelledRows.find((r) => r.id === session.id);
-        const payload = { ...base, incidencia: cancelledRow?.incidencia ?? base.incidencia, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRow?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
+        const incidenceEdits = sessionIncidenceEdits(base.incidencia, !!cancelledRow);
+        const payload = { ...base, ...incidenceEdits.current, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRow?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
         if (scope === "future" && recurrenciaId) {
           // Aplicar a todas las sesiones futuras de la serie (misma serie, fecha >= actual).
           // Excluimos "fecha" del payload para no colapsar todas al mismo día.
-          const { fecha: _f, estado: _e, ...rest } = payload as any;
+          const { fecha: _f, estado: _e, incidencia: _i, ...rest } = payload as any;
           const { error: eSelf } = await supabase.from("sessions").update(payload).eq("id", session.id!);
           if (eSelf) updateErr = eSelf;
           await supabase.from("sessions").update({
             ...rest,
+            ...incidenceEdits.future,
             // Recalcular estado por fecha en el cliente sería ideal; para futuras dejamos "reservada"
             // salvo que el usuario haya elegido explícitamente otro estado distinto de reservada.
             estado: "reservada",
