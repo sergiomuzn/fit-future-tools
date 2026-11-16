@@ -1,5 +1,7 @@
 # Tareas
 
+- [x] Situar el total encima de cada barra o torre apilada sin modificar sus cálculos; 12 vistas reales comprobadas en entrenadores, sesiones, cancelaciones, facturación, sexo, edad y altas/bajas, incluida pantalla móvil.
+
 - [x] Corregir incidencias de cancelación en el diálogo: notas editadas guardadas sin copiarlas a sesiones futuras; 30 pruebas correctas y cancelación, guardado en serie y reapertura verificados con datos temporales eliminados.
 
 - [x] Añadir incidencia opcional a Cliente Cancela y conservarla por cliente al guardar; 28 pruebas correctas, guardado y lectura en Historial/calendario y cierre sin guardar verificados con datos temporales eliminados.
