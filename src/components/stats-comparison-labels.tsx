@@ -2,7 +2,7 @@ import { isValidElement, type ReactElement } from "react";
 
 type ChartPoint = { x?: number; y?: number; width?: number; height?: number; value?: number | string | number[] | null };
 type ChartItem = {
-  item?: ReactElement<{ dataKey?: string }>;
+  item?: ReactElement<{ dataKey?: string; stackId?: string }>;
   props?: { points?: ChartPoint[]; data?: ChartPoint[] };
 };
 type YAxisInfo = { scale?: (v: number) => number; niceTicks?: number[]; ticks?: number[] };
@@ -37,14 +37,15 @@ function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, l: numbe
 }
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false, inside = false, totals = false }: ComparisonLabelsProps & { inside?: boolean; totals?: boolean }) {
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false }: ComparisonLabelsProps) {
   const series = seriesKeys.map((key, index) => {
     const graphical = formattedGraphicalItems.find(({ item }) =>
-      isValidElement(item) && item.props.dataKey === key)?.props;
+      isValidElement(item) && item.props.dataKey === key);
     return {
     key,
     color: colors[index],
-    points: graphical?.points ?? graphical?.data ?? [],
+    stackId: graphical?.item?.props.stackId,
+    points: graphical?.props?.points ?? graphical?.props?.data ?? [],
   };
   });
   const count = leftLabels ? 1 : Math.max(0, ...series.map(({ points }) => points.length));
@@ -53,9 +54,67 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
 
   // Y-axis tick label positions, so mean values never sit on top of them.
   const yAxis = yAxisMap ? Object.values(yAxisMap)[0] : undefined;
-  const tickYs = yAxis?.scale
-    ? (yAxis.niceTicks ?? yAxis.ticks ?? []).map((t) => Number(yAxis.scale!(t))).filter(Number.isFinite)
+  const scale = yAxis?.scale;
+  const tickYs = scale
+    ? (yAxis.niceTicks ?? yAxis.ticks ?? []).map((t) => Number(scale(t))).filter(Number.isFinite)
     : [];
+
+  // Bars must never use the line-label layout: its downward collision shifts
+  // can put a number back inside its own bar. Group only actual stack members.
+  if (bars) {
+    const barLabels: Array<{ key: string; x: number; y: number; value: number; color: string }> = [];
+    const segments: ReactElement[] = [];
+    for (let index = 0; index < count; index++) {
+      const stacks = new Map<string, { key: string; x: number; y: number; value: number; color: string }>();
+      for (const { key, color, points, stackId } of series) {
+        const point = points[index];
+        if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
+        const value = Number(Array.isArray(point.value) ? point.value[1] - point.value[0] : point.value);
+        if (!Number.isFinite(value) || value === 0) continue;
+        const x = Number(point.x) + (point.width ?? 0) / 2;
+        const y = Math.min(Number(point.y), Number(point.y) + (point.height ?? 0));
+        const groupKey = `${index}-${stackId ?? key}`;
+        const existing = stacks.get(groupKey);
+        if (existing) {
+          existing.value += value;
+          existing.y = Math.min(existing.y, y - 13);
+          existing.color = "var(--color-foreground)";
+        } else {
+          stacks.set(groupKey, { key: groupKey, x, y: y - 13, value, color });
+        }
+        const h = Math.abs(point.height ?? 0);
+        if (stackId && h >= LABEL_H + 2) {
+          segments.push(<text key={`${index}-${key}-segment`} x={x} y={y + h / 2}
+            textAnchor="middle" dominantBaseline="central" fill={contrastText(color)}
+            fontSize={FONT} fontWeight={700} aria-label={`${key}: ${value}`}>{value}</text>);
+        }
+      }
+      barLabels.push(...stacks.values());
+    }
+    const placed: typeof barLabels = [];
+    for (const label of barLabels.sort((a, b) => a.y - b.y)) {
+      const w = labelWidth(label.value);
+      if (offset?.left != null) {
+        label.x = Math.max(label.x, offset.left + w / 2 + 4);
+        if (offset.width != null) label.x = Math.min(label.x, offset.left + offset.width - w / 2 - 2);
+      }
+      // Only overlapping text boxes need spacing; always move upwards, never
+      // down into a bar, and include labels from neighbouring X categories.
+      while (placed.some((other) => Math.abs(other.x - label.x) < (labelWidth(other.value) + w) / 2 + 3 && Math.abs(other.y - label.y) < LABEL_H + 3)) {
+        label.y -= LABEL_H + 3;
+      }
+      placed.push(label);
+    }
+    return <g className="stats-comparison-labels" pointerEvents="none">
+      {segments}
+      {placed.map((label) => <g key={label.key}>
+        <rect x={label.x - labelWidth(label.value) / 2} y={label.y - LABEL_H / 2}
+          width={labelWidth(label.value)} height={LABEL_H} rx={3} fill="var(--color-card, var(--card))" />
+        <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="central"
+          fill={label.color} fontSize={FONT} fontWeight={700} aria-label={`Total: ${label.value}`}>{label.value}</text>
+      </g>)}
+    </g>;
+  }
 
   // Polylines of every plotted curve (lines only) for crossing detection.
   const curves = bars ? [] : series.map(({ points }) =>
@@ -78,30 +137,6 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
           if (bars && Number(value) === 0) return [];
           return [{ key, color, x: (leftLabels ? (offset?.left ?? Number(point.x)) - 9 : Number(point.x) + ( bars ? (point.width ?? 0) / 2 : 0)), pointY: Number(point.y), y: Number(point.y) - 13, value }];
         }).sort((a, b) => a.pointY - b.pointY);
-
-        if (inside) {
-          const sum = labels.reduce((acc, l) => acc + Number(l.value || 0), 0);
-          const topY = labels.length ? Math.min(...labels.map((l) => l.pointY)) : 0;
-          const total = totals && labels.length ? (
-            <text key={`${index}-total`} x={labels[0].x} y={topY - 8} textAnchor="middle"
-              fill="var(--color-foreground, currentColor)" fontSize={FONT} fontWeight={700} aria-label={`Total: ${sum}`}>
-              {sum}
-            </text>
-          ) : null;
-          return [total, ...labels.map((label) => {
-            const p = series.find((s) => s.key === label.key)!.points[index];
-            const h = Math.abs(Number(p.height) || 0);
-            // Too thin a segment: hide the number (still shown on hover).
-            if (h < LABEL_H + 2) return null;
-            return (
-              <text key={`${index}-${label.key}`} x={label.x} y={label.pointY + h / 2}
-                textAnchor="middle" dominantBaseline="central" fill={contrastText(label.color)}
-                fontSize={FONT} fontWeight={700} aria-label={`${label.key}: ${label.value}`}>
-                {label.value}
-              </text>
-            );
-          })];
-        }
 
         if (leftLabels) {
           // Mean values sit on the axis: keep them on their line unless a tick
