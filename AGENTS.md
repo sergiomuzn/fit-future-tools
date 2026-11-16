@@ -12,6 +12,7 @@
 - Format every user-visible date through `formatDateShort` as `dd/mm/yy`; keep ISO only for storage, inputs, queries, and comparisons so presentation stays consistent without changing date semantics.
 - Render statistical line and bar labels in a final chart overlay with collision spacing and series colors, preserving historical label frequency; keep label presentation independent of statistical accounting.
 - Position bar totals above each independent bar or actual stack using rendered geometry; resolve text collisions upwards only, because line-label spacing can push totals inside bars.
+- Trainer shift/weekday month comparisons retain explicit trainer ownership and variant metadata in a pure presentation aggregator to avoid cross-trainer summation and preserve trainer colors.
 - Draw statistical mean lines before data series and place collision-spaced mean values in a dedicated left margin using the corresponding series color, so averages never cover data.
 - Propagated slot instances are unique per (service_slot_id, fecha), never merged by service+time; bookings are distributed across same-time instances via asignarReservasAHuecos (trainer match first) — two template slots at the same hour are distinct sessions.
 - Agenda cancellation visibility uses explicit slot-instance identity after recurrence grouping; manual sessions never merge by time, service or trainer, so independent cancellations remain accessible.
