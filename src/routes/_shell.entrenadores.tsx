@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/confirm-dialog";
 import { useBehaviorConfig, sessionCountsAsTraining } from "@/lib/behavior-config";
+import { trainerStatusInPeriod, type TrainerActivity } from "@/lib/trainer-availability";
 
 export const Route = createFileRoute("/_shell/entrenadores")({
   head: () => ({ meta: [
@@ -78,6 +79,16 @@ function EntrenadoresPage() {
     return acc;
   }, {});
 
+  const { data: history = [] } = useQuery({
+    queryKey: ["trainer_activity_history"],
+    queryFn: async () => ((await supabase.from("trainer_activity_history").select("trainer_id,activo,effective_at")).data ?? []) as TrainerActivity[],
+  });
+  const trainersWithSessions = new Set(sessions.map((s) => s.trainer_id).filter(Boolean) as string[]);
+  const periodTrainers = trainers
+    .map((t) => ({ t, st: trainerStatusInPeriod(t as any, start, end, history, trainersWithSessions.has(t.id)) }))
+    .filter((x) => x.st.exists)
+    .map((x) => ({ ...x.t, activo: x.st.activo, _real: x.t }));
+
   async function save() {
     if (!editing?.nombre || !editing.iniciales) { toast.error("Nombre e iniciales requeridos"); return; }
     const payload = { nombre: editing.nombre, iniciales: editing.iniciales, activo: editing.activo ?? true };
@@ -85,7 +96,7 @@ function EntrenadoresPage() {
       ? await supabase.from("trainers").update(payload).eq("id", editing.id)
       : await supabase.from("trainers").insert(payload);
     if (error) toast.error(error.message);
-    else { qc.invalidateQueries({ queryKey: ["trainers"] }); setOpen(false); toast.success("Guardado"); }
+    else { qc.invalidateQueries({ queryKey: ["trainers"] }); qc.invalidateQueries({ queryKey: ["trainer_activity_history"] }); setOpen(false); toast.success("Guardado"); }
   }
   async function remove(id: string) {
     if (!(await confirm({ title: "¿Eliminar entrenador?", description: "Esta acción no se puede deshacer." }))) return;
@@ -144,7 +155,7 @@ function EntrenadoresPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {[...trainers]
+            {[...periodTrainers]
               .sort((a, b) => {
                 if (a.activo === b.activo) return a.nombre.localeCompare(b.nombre);
                 return a.activo ? -1 : 1;
@@ -160,7 +171,7 @@ function EntrenadoresPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                    <Button variant="ghost" size="icon" onClick={() => { setEditing(t._real); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
                     <Button variant="ghost" size="icon" onClick={() => remove(t.id)}><Trash2 className="h-4 w-4" /></Button>
                   </TableCell>
                 </TableRow>
