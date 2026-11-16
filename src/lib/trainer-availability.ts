@@ -48,3 +48,21 @@ export function trainerAvailableInMonth(
   return records.some((row, i) => row.activo && Date.parse(row.effective_at) < end
     && (records[i + 1] ? Date.parse(records[i + 1].effective_at) : Infinity) > start);
 }
+/** Whether a trainer existed and was active during [start, end] (ISO dates, inclusive). */
+export function trainerStatusInPeriod(
+  trainer: { id: string; activo: boolean; created_at?: string | null },
+  start: string, end: string, history: TrainerActivity[], hadSessions: boolean,
+  today: string = new Date().toISOString().slice(0, 10),
+): { exists: boolean; activo: boolean } {
+  const startMs = dayStart(start);
+  const endMs = dayStart(end) + 86400000;
+  const created = trainer.created_at ? Date.parse(trainer.created_at) : -Infinity;
+  if (created >= endMs && !hadSessions) return { exists: false, activo: false };
+  if (today >= start && today <= end) return { exists: true, activo: trainer.activo };
+  if (hadSessions) return { exists: true, activo: true };
+  const records = history.filter((r) => r.trainer_id === trainer.id)
+    .sort((a, b) => Date.parse(a.effective_at) - Date.parse(b.effective_at));
+  const activo = records.some((r, i) => r.activo && Date.parse(r.effective_at) < endMs
+    && (records[i + 1] ? Date.parse(records[i + 1].effective_at) : Infinity) > startMs);
+  return { exists: true, activo };
+}
