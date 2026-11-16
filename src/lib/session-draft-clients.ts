@@ -14,6 +14,14 @@ export function cancellationIncidence(existing: string | null | undefined, note:
   return [existing?.trim(), note?.trim()].filter(Boolean).join("\n") || null;
 }
 
+/** A cancelled session's edited incidence is local, never a recurring-series note. */
+export function sessionIncidenceEdits(edited: string | null, cancelled: boolean) {
+  return {
+    current: { incidencia: edited },
+    future: cancelled ? {} : { incidencia: edited },
+  };
+}
+
 export function cancelDraftClient(selected: (string | null)[], cancelled: DraftCancellation[], clientId: string, pending: boolean, defaultNoCount: boolean, incidencia?: string) {
   return {
     selected: selected.map((id) => id === clientId ? null : id),
