@@ -130,6 +130,11 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
 
         return labels.map((label) => {
           const w = labelWidth(label.value);
+          // Keep data numbers fully inside the plot, clear of the Y axis line
+          // and its tick values.
+          if (!leftLabels && offset?.left != null) {
+            label.x = Math.max(label.x, offset.left + w / 2 + 4);
+          }
           // Where a curve crosses the number, interrupt it behind the label.
           const cut = !leftLabels && !bars && crossesCurve(label.x, label.y, w);
           return (
