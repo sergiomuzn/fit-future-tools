@@ -1,6 +1,6 @@
 # Tareas
 
-- [ ] Separar entrenador y mes en comparativas por turno y día de la semana, conservar el color del entrenador y convertir la segunda en líneas; verificar selección y cifras reales.
+- [x] Separar entrenador y mes en comparativas por turno y día de la semana, conservar colores y convertir la segunda en líneas; 9 pruebas correctas y selección de uno/dos/tres entrenadores, cifras exportadas, móvil y ambos temas verificados.
 
 - [x] Situar el total encima de cada barra o torre apilada sin modificar sus cálculos; 12 vistas reales comprobadas en entrenadores, sesiones, cancelaciones, facturación, sexo, edad y altas/bajas, incluida pantalla móvil.
 
