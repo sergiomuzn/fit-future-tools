@@ -394,10 +394,13 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   // Colores que aparecen de verdad en el calendario de este mes.
   const presentServiceSlugs = new Set<string>();
   const presentEstados = new Set<string>();
+  // Sesiones sin servicio: salen con el color de estado, no con el de servicio.
+  const presentFallback = new Set<string>();
   sessions.forEach((s) => {
     const estadoColor = colorEstadoFor(s);
     if (estadoColor === "reservada" || estadoColor === "realizada") {
       if (s.servicio_slug) presentServiceSlugs.add(s.servicio_slug);
+      else presentFallback.add(estadoColor);
     } else {
       presentEstados.add(estadoColor);
     }
@@ -409,8 +412,8 @@ function ClientCalendar({ clientId }: { clientId: string }) {
   const legendHasItems =
     legendServices.length > 0 ||
     orphanServiceSlugs.length > 0 ||
-    presentEstados.has("cancelada") ||
-    presentEstados.has("prueba") ||
+    presentFallback.size > 0 ||
+    presentEstados.size > 0 ||
     invoices.length > 0;
 
   type Cell = { date: Date; iso: string; isOutside: boolean };
@@ -545,6 +548,9 @@ function ClientCalendar({ clientId }: { clientId: string }) {
           {orphanServiceSlugs.map((slug) => (
             <LegendDot key={slug} colorHex={servicioColor(slug) ?? "#888888"} label={slug} />
           ))}
+          {presentFallback.has("reservada") && <LegendDot color="bg-state-reservada" label="Sin servicio" />}
+          {presentFallback.has("realizada") && <LegendDot color="bg-state-realizada" label="Sin servicio" />}
+          {presentEstados.has("renovacion") && <LegendDot color="bg-state-renovacion" label="Renovación" />}
           {presentEstados.has("cancelada") && <LegendDot color="bg-state-cancelada" label="Cancelada" />}
           {presentEstados.has("prueba") && <LegendDot color="bg-state-prueba" label="Prueba" />}
           {invoices.length > 0 && <LegendDot color="bg-amber-500" label="Renovación" />}
