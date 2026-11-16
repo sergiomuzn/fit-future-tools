@@ -1090,7 +1090,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
         <div className="h-[420px] overflow-x-hidden">
           <div
             className="h-full"
-            style={desglose === "franja" ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
+            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
@@ -1134,7 +1134,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
-                      type="monotone"
+                      type={trainerSeries ? "linear" : "monotone"}
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
                       strokeWidth={
@@ -2346,7 +2346,7 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
 }
 
 // Legend with a dashed marker for mean lines, matching how they are drawn.
-function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string; payload?: { strokeDasharray?: string; fillOpacity?: number } }> }) {
+function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string; payload?: { strokeDasharray?: string | number; fillOpacity?: number } }> }) {
   // Hide entries with legendType="none" (e.g. shaded areas) and repeated series.
   const seen = new Set<string>();
   const entries = (props.payload ?? []).filter((entry) => {
@@ -2380,7 +2380,7 @@ function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; c
   return (
     <ul className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
       {groups.map((g, gi) => (
-        <li key={gi} className="flex items-center gap-1.5">
+        <li key={gi} className="flex flex-wrap items-center justify-center gap-1.5">
           {g.title && <span className="font-medium text-foreground">{g.title}:</span>}
           {g.items.map((entry, i) => {
             const label = String(entry.value ?? "");
