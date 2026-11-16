@@ -537,21 +537,31 @@ function ClientCalendar({ clientId }: { clientId: string }) {
           );
         })}
       </div>
-      <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
-        <span>Reservada / realizada: color del servicio</span>
-        <LegendDot color="bg-state-cancelada" label="Cancelada" />
-        <LegendDot color="bg-state-prueba" label="Prueba" />
-        <LegendDot color="bg-amber-500" label="Renovación" />
-      </div>
+      {legendHasItems && (
+        <div className="flex flex-wrap items-center gap-3 text-[10px] text-muted-foreground pt-2 border-t">
+          {legendServices.map((s) => (
+            <LegendDot key={s.slug} colorHex={servicioColor(s.slug) ?? "#888888"} label={s.nombre} />
+          ))}
+          {orphanServiceSlugs.map((slug) => (
+            <LegendDot key={slug} colorHex={servicioColor(slug) ?? "#888888"} label={slug} />
+          ))}
+          {presentEstados.has("cancelada") && <LegendDot color="bg-state-cancelada" label="Cancelada" />}
+          {presentEstados.has("prueba") && <LegendDot color="bg-state-prueba" label="Prueba" />}
+          {invoices.length > 0 && <LegendDot color="bg-amber-500" label="Renovación" />}
+        </div>
+      )}
     </div>
     </TooltipProvider>
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
+function LegendDot({ color, colorHex, label }: { color?: string; colorHex?: string; label: string }) {
   return (
     <div className="flex items-center gap-1">
-      <span className={cn("h-2 w-2 rounded-sm", color)} />
+      <span
+        className={cn("h-2 w-2 rounded-sm", color)}
+        style={colorHex ? { backgroundColor: colorHex } : undefined}
+      />
       <span>{label}</span>
     </div>
   );
