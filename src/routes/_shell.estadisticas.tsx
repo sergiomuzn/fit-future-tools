@@ -18,6 +18,7 @@ import {
   type HorarioBase, type SpecialDay,
 } from "@/lib/center-schedule";
 import { trainerColor } from "@/lib/trainer-colors";
+import { applyStackRank } from "@/lib/stats-stack-order";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -782,7 +783,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const splitModalidadActive = puedeSplitModalidad && splitModalidad;
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, trainerSeries } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, trainerSeries, barKeys, barStackMap, stackOrder } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, modalidades: modalidadKeys, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, modalidadKeys, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
@@ -833,6 +834,19 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Ya no se dibuja línea de total superpuesta sobre las barras.
   const rowsWithTotal = rows;
+  // Barras apiladas: dentro de cada barra, de mayor (abajo) a menor (arriba).
+  const barSeries = barKeys ?? seriesKeys;
+  const stackOf = (k: string) => (barKeys ? barStackMap?.[k] : stackMap?.[k]);
+  const nameAtRank = (rank: number, rowIdx: number) => stackOrder?.[rowIdx]?.[rank] ?? "";
+  const seriesColorOf = new Map(seriesKeys.map((k, i) => [k, colorForSeries(k, i)]));
+  const barCellColors = barKeys
+    ? Object.fromEntries(barKeys.map((k, i) => [k, rows.map((_r, idx) => seriesColorOf.get(nameAtRank(i, idx)) ?? "var(--color-muted-foreground)")]))
+    : undefined;
+  const barCellNames = barKeys
+    ? Object.fromEntries(barKeys.map((k, i) => [k, rows.map((_r, idx) => nameAtRank(i, idx))]))
+    : undefined;
+  const legendContent = (p: Parameters<typeof renderStatsLegend>[0]) =>
+    renderStatsLegend(barKeys ? { payload: seriesKeys.map((k) => ({ value: k, color: seriesColorOf.get(k) ?? "", dataKey: k })) } : p);
   // Ejes: cuando hay muchas etiquetas (franja horaria) se rotan y reducen.
   const manyTicks = rows.length > 10;
   const xAxisProps = manyTicks
@@ -1162,24 +1176,33 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {(metric !== "porEntrenador" || !!trainerSeries || !!seriesColors || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
-                  {seriesKeys.map((k, i) => (
-                    <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} fillOpacity={trainerSeries?.[k]?.variant === 1 ? 0.6 : 1} radius={stackMap?.[k] && seriesKeys.slice(i + 1).some((o) => stackMap[o] === stackMap[k]) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
-                      {desglose === "tipoSesion" && seriesKeys.length === 1 &&
-                        rowsWithTotal.map((r, idx) => (
-                          <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
-                        ))}
+                  {(metric !== "porEntrenador" || !!trainerSeries || !!seriesColors || (desglose === "total" && period !== "mesUnico")) && <RLegend content={legendContent} />}
+                  {barSeries.map((k, i) => (
+                    <Bar key={k} dataKey={k} stackId={stackOf(k)} fill={colorForSeries(k, i)} fillOpacity={trainerSeries?.[k]?.variant === 1 ? 0.6 : 1} radius={stackOf(k) && barSeries.slice(i + 1).some((o) => stackOf(o) === stackOf(k)) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
+                      {barKeys
+                        ? rows.map((r, idx) => <Cell key={`c-${idx}`} fill={colorForSeries(nameAtRank(i, idx), i)} />)
+                        : desglose === "tipoSesion" && seriesKeys.length === 1 &&
+                          rowsWithTotal.map((r, idx) => (
+                            <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
+                          ))}
                     </Bar>
                   ))}
                   <Customized component={
-                    <StatsComparisonLabels seriesKeys={seriesKeys} colors={seriesKeys.map(colorForSeries)} bars />
+                    <StatsComparisonLabels seriesKeys={barSeries} colors={barSeries.map((k, i) => colorForSeries(k, i))} bars cellColors={barCellColors} cellNames={barCellNames} />
                   } />
                   {(!!stackMap || !!trainerSeries) && (
-                    <RTooltip
-                      cursor={{ fill: "var(--muted)", opacity: 0.4 }}
-                      contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
-                      formatter={(v: unknown, n: unknown) => [String(v), n === "NC" ? "No contabilizada" : String(n)]}
-                    />
+                    barKeys ? (
+                      <RTooltip
+                        cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                        content={(p: unknown) => <StatsStackTooltip {...(p as { active?: boolean; payload?: Array<{ payload?: SeriesRow }>; label?: unknown })} rows={rows} stackOrder={stackOrder} colorOf={(n) => seriesColorOf.get(n) ?? "var(--color-muted-foreground)"} />}
+                      />
+                    ) : (
+                      <RTooltip
+                        cursor={{ fill: "var(--muted)", opacity: 0.4 }}
+                        contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12 }}
+                        formatter={(v: unknown, n: unknown) => [String(v), n === "NC" ? "No contabilizada" : String(n)]}
+                      />
+                    )
                   )}
                 </ComposedChart>
               )}
@@ -1273,7 +1296,7 @@ function YearSelect({ label, value, onChange, years }: {
 // ============================================================
 type SeriesRow = { bucket: string; [key: string]: string | number };
 
-function buildSeries(args: {
+function buildSeriesRaw(args: {
   sessions: Session[]; events: ClientEvent[]; metric: Metric; desglose: Desglose; period: PeriodMode;
   monthA: string; compareMonths: string[];
   trainerMap: Map<string, Trainer>;
@@ -1296,6 +1319,9 @@ function buildSeries(args: {
   unclassified?: UnclassifiedInfo;
   notice?: { title: string; items: string[]; samples?: string[] };
   stackMap?: Record<string, string>;
+  barKeys?: string[];
+  barStackMap?: Record<string, string>;
+  stackOrder?: string[][];
   seriesColors?: Record<string, string>;
   areas?: boolean;
   mediaKeys?: string[];
@@ -2171,6 +2197,11 @@ function buildSeries(args: {
   void isMultiSeries;
 }
 
+// Stacked bars always read biggest at the bottom, smallest at the top.
+function buildSeries(args: Parameters<typeof buildSeriesRaw>[0]): ReturnType<typeof buildSeriesRaw> {
+  return applyStackRank(buildSeriesRaw(args));
+}
+
 function periodMonthOfPeriod(_p: { key: string }, monthA: string): [number, number] {
   // Parse from period key: "MMM YYYY"
   const parts = _p.key.split(" ");
@@ -2383,6 +2414,43 @@ function RankingTable({ matrix }: { matrix: MatrixData }) {
 }
 
 // Legend with a dashed marker for mean lines, matching how they are drawn.
+// Tooltip for stacked bars whose series are rendered as per-bar rank slots:
+// the real name of each segment comes from the row's stack order.
+function StatsStackTooltip({
+  active, payload, label, rows, stackOrder, colorOf,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: SeriesRow }>;
+  label?: unknown;
+  rows: SeriesRow[];
+  stackOrder?: string[][];
+  colorOf: (name: string) => string;
+}) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0]?.payload;
+  if (!row) return null;
+  let idx = rows.indexOf(row);
+  if (idx < 0) idx = rows.findIndex((r) => r.bucket === label);
+  const names = stackOrder?.[idx] ?? [];
+  const pretty = (n: string) => (n === "NC" ? "No contabilizada" : n);
+  return (
+    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12, padding: "6px 9px" }}>
+      <div style={{ fontWeight: 600, marginBottom: 3 }}>{String(label ?? "")}</div>
+      {names.map((n) => {
+        const v = Number(row[n]) || 0;
+        if (!v) return null;
+        return (
+          <div key={n} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ width: 8, height: 8, borderRadius: 2, background: colorOf(n), display: "inline-block" }} />
+            <span>{pretty(n)}</span>
+            <span style={{ marginLeft: "auto", fontWeight: 600 }}>{v}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; color?: string; dataKey?: unknown; type?: string; payload?: { strokeDasharray?: string | number; fillOpacity?: number } }> }) {
   // Hide entries with legendType="none" (e.g. shaded areas) and repeated series.
   const seen = new Set<string>();

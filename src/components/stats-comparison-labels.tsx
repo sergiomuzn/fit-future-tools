@@ -13,6 +13,10 @@ type ComparisonLabelsProps = {
   yAxisMap?: Record<string, YAxisInfo>;
   seriesKeys: string[];
   colors: string[];
+  /** per series key: colour of each bar (rank slots change colour per bar) */
+  cellColors?: Record<string, string[]>;
+  /** per series key: real series name of each bar, for accessible labels */
+  cellNames?: Record<string, string[]>;
   labelEvery?: number;
   bars?: boolean;
   leftLabels?: boolean;
@@ -37,7 +41,7 @@ function segmentHitsBox(x1: number, y1: number, x2: number, y2: number, l: numbe
 }
 
 // Render after every curve so no later series can cover another month's label.
-export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, labelEvery = 1, bars = false, leftLabels = false }: ComparisonLabelsProps) {
+export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yAxisMap, seriesKeys, colors, cellColors, cellNames, labelEvery = 1, bars = false, leftLabels = false }: ComparisonLabelsProps) {
   const series = seriesKeys.map((key, index) => {
     const graphical = formattedGraphicalItems.find(({ item }) =>
       isValidElement(item) && item.props.dataKey === key);
@@ -66,7 +70,8 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
     const segments: ReactElement[] = [];
     for (let index = 0; index < count; index++) {
       const stacks = new Map<string, { key: string; x: number; y: number; value: number; color: string }>();
-      for (const { key, color, points, stackId } of series) {
+      for (const { key, color: baseColor, points, stackId } of series) {
+        const color = cellColors?.[key]?.[index] ?? baseColor;
         const point = points[index];
         if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
         const value = Number(Array.isArray(point.value) ? point.value[1] - point.value[0] : point.value);
@@ -84,9 +89,10 @@ export function StatsComparisonLabels({ formattedGraphicalItems = [], offset, yA
         }
         const h = Math.abs(point.height ?? 0);
         if (stackId && h >= LABEL_H + 2) {
+          const segName = cellNames?.[key]?.[index] ?? key;
           segments.push(<text key={`${index}-${key}-segment`} x={x} y={y + h / 2}
             textAnchor="middle" dominantBaseline="central" fill={contrastText(color)}
-            fontSize={FONT} fontWeight={700} aria-label={`${key}: ${value}`}>{value}</text>);
+            fontSize={FONT} fontWeight={700} aria-label={`${segName}: ${value}`}>{value}</text>);
         }
       }
       barLabels.push(...stacks.values());
