@@ -1099,7 +1099,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
         <div className="h-[420px] overflow-x-hidden">
           <div
             className="h-full"
-            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 80, 240) }}
+            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 48, 240) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
@@ -1637,7 +1637,7 @@ function buildSeriesRaw(args: {
   // Sin desglosar → barras normales; turno → barras apiladas de mañana y tarde.
   if (
     metric === "porEntrenador" &&
-    ((period === "mesUnico" && (desglose === "total" || desglose === "turno")) ||
+    ((period === "mesUnico" && (desglose === "total" || desglose === "turno" || desglose === "dow")) ||
       (period === "comparar" && desglose === "turno"))
   ) {
     const counted = sessions.filter((s) => countsAsTraining(s) && !!s.trainer_id && periods.some((p) => p.filter(s)));
@@ -1651,6 +1651,11 @@ function buildSeriesRaw(args: {
     const buckets: { bucket: string; match: (s: Session) => boolean }[] = [];
     for (const p of periods) {
       if (desglose === "total") buckets.push({ bucket: p.key, match: p.filter });
+      else if (desglose === "dow") {
+        (["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const).forEach((d, i) => {
+          buckets.push({ bucket: d, match: (s) => p.filter(s) && (new Date(s.fecha + "T00:00:00").getDay() + 6) % 7 === i });
+        });
+      }
       else for (const turno of ["Mañana", "Tarde"] as const) {
         buckets.push({
           bucket: period === "comparar" ? `${p.key} · ${turno}` : turno,
@@ -1658,17 +1663,18 @@ function buildSeriesRaw(args: {
         });
       }
     }
-    const rowsE: SeriesRow[] = buckets.map(({ bucket, match }) => {
+    const rowsAll: SeriesRow[] = buckets.map(({ bucket, match }) => {
       const row: SeriesRow = { bucket };
       for (const id of ids) row[ini(id)] = counted.filter((s) => s.trainer_id === id && match(s)).length;
       return row;
     });
     const keysE = ids.map(ini);
+    const rowsE = rowsAll.filter((r) => r.bucket !== "Dom" || keysE.some((k) => Number(r[k]) > 0));
     return {
       rows: rowsE,
       seriesKeys: keysE,
       isLineChart: false,
-      stackMap: desglose === "turno" ? Object.fromEntries(keysE.map((k) => [k, "ent"])) : undefined,
+      stackMap: desglose !== "total" ? Object.fromEntries(keysE.map((k) => [k, "ent"])) : undefined,
       seriesColors: Object.fromEntries(ids.map((id) => [ini(id), trainerColor(id)])),
     };
   }
