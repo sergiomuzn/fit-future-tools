@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { test } from "node:test";
+import { ok, strictEqual } from "node:assert";
 import {
   DEFAULT_COMPAT,
   STATS_DESGLOSES,
@@ -8,20 +9,18 @@ import {
 
 // El desglose "Modalidad" se quita del selector: las modalidades solo se
 // consultan con la casilla "Desglosar en modalidades" sobre el desglose Servicio.
-describe("stats-config desglose options", () => {
-  it("does not offer modalidad as a breakdown", () => {
-    expect(STATS_DESGLOSES).not.toContain("modalidad");
-    expect(STATS_DESGLOSE_LABEL).not.toHaveProperty("modalidad");
-  });
+test("modalidad is not offered as a breakdown", () => {
+  ok(!(STATS_DESGLOSES as string[]).includes("modalidad"));
+  ok(!("modalidad" in STATS_DESGLOSE_LABEL));
+});
 
-  it("keeps modalidad out of every metric compatibility row", () => {
-    for (const m of STATS_METRICS) {
-      expect(DEFAULT_COMPAT[m]).not.toHaveProperty("modalidad");
-    }
-  });
+test("modalidad is absent from every metric compatibility row", () => {
+  for (const m of STATS_METRICS) {
+    ok(!("modalidad" in DEFAULT_COMPAT[m]));
+  }
+});
 
-  it("keeps Servicio available for Nº sesiones so the modality split stays reachable", () => {
-    expect(STATS_DESGLOSES).toContain("tipoSesion");
-    expect(DEFAULT_COMPAT.sesiones.tipoSesion).toBe(true);
-  });
+test("Servicio stays available for Nº sesiones so the modality split remains reachable", () => {
+  ok((STATS_DESGLOSES as string[]).includes("tipoSesion"));
+  strictEqual(DEFAULT_COMPAT.sesiones.tipoSesion, true);
 });
