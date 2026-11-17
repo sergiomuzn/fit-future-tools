@@ -778,7 +778,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, turnoBarColors, trainerSeries, barKeys, barStackMap, stackOrder } = useMemo(
-    () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
+    () => unifyLineChart(buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio })),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
 
@@ -1143,7 +1143,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                    {seriesKeys.map((k, i) => (
                     <Line
                       key={k}
-                      type={trainerSeries ? "linear" : "monotone"}
+                      type="monotone"
                       dataKey={k}
                       stroke={colorForSeries(k, i)}
                       strokeWidth={
@@ -2586,4 +2586,24 @@ function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; c
       ))}
     </ul>
   );
+}
+
+/** Every line chart shares the Cancelaciones · Turno · Histórico format: shaded areas plus a dashed mean per series. */
+function unifyLineChart<T extends { rows: any[]; seriesKeys: string[]; isLineChart: boolean; areas?: boolean; mediaKeys?: string[] }>(r: T): T {
+  if (!r.isLineChart || r.rows.length === 0) return r;
+  let mediaKeys = r.mediaKeys;
+  let rows = r.rows;
+  if (!mediaKeys?.length) {
+    mediaKeys = r.seriesKeys.map((k) => `__media__${k}`);
+    const means = r.seriesKeys.map((k) => {
+      const vals = rows.map((row) => Number(row[k])).filter((v) => Number.isFinite(v));
+      return vals.length ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10 : 0;
+    });
+    rows = rows.map((row) => {
+      const out = { ...row };
+      r.seriesKeys.forEach((k, i) => { out[`__media__${k}`] = means[i]; });
+      return out;
+    });
+  }
+  return { ...r, rows, areas: true, mediaKeys };
 }
