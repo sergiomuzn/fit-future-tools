@@ -88,7 +88,6 @@ export const listSesionesPersonales = createServerFn({ method: "POST" })
     const { getPortalProfile, listMyPersonalSessions } = await import("./client-portal.server");
     const profile = await getPortalProfile(context.userId);
     if (!profile) throw new Error("Cuenta de cliente no activa");
-    if (profile.acceso !== "personal" && profile.acceso !== "ambos") return [];
     return listMyPersonalSessions(context.userId);
   });
 
