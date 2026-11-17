@@ -1592,6 +1592,16 @@ function buildSeries(args: {
     });
     const comparison = trainerMonthComparison(sessions.filter(countsAsTraining), selected,
       monthsForPeriods.map(({ y, m, key }) => ({ month: `${y}-${String(m + 1).padStart(2, "0")}`, label: key })), desglose);
+    if (desglose === "dow") {
+      // Comparar meses · día de la semana: tabla como en histórico (fila = entrenador · mes).
+      const days = comparison.rows.map((r) => String(r.bucket));
+      const tRows: SeriesRow[] = comparison.series.map((s) => {
+        const row: SeriesRow = { bucket: s.key };
+        for (const r of comparison.rows) row[String(r.bucket)] = Number(r[s.key] ?? 0);
+        return row;
+      });
+      return { rows: tRows, seriesKeys: days, isLineChart: false, matrix: buildHeatmap(tRows, days, "") };
+    }
     return {
       rows: comparison.rows,
       seriesKeys: comparison.series.map((s) => s.key),
@@ -2112,7 +2122,8 @@ function buildSeries(args: {
   // En mesUnico ninguna vista es puramente lineal: franja/dow se dibujan como
   // barras con línea de puntos superpuesta; el resto son barras.
   // Franja horaria: siempre líneas con puntos conectados.
-  const isLineChart = desglose === "franja";
+  // Sesiones por entrenador · día de la semana · mes actual: líneas convencionales.
+  const isLineChart = desglose === "franja" || (metric === "porEntrenador" && desglose === "dow");
   // Para franja horaria mantenemos TODAS las horas (aunque valgan 0) para que
   // la línea sea continua de izquierda a derecha sin huecos.
   const finalRows = isLineChart ? rows : (nonZero.length ? nonZero : rows);
