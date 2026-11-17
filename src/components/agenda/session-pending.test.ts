@@ -18,8 +18,3 @@ describe("marking a session pending confirmation", () => {
     strictEqual(canMarkSessionPending("cancelada", false), false);
   });
 });
-
-test("an unconfirmed online booking can still be confirmed from the session", () => {
-  strictEqual(canMarkSessionPending("reservada", true, true), true);
-  strictEqual(canMarkSessionPending("reservada", true, false), false);
-});

@@ -151,7 +151,7 @@ export function HuecoPanel({
     return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
   }, [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
-  const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true), porConfirmarInicial);
+  const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
   async function quitarCliente(reserva: PanelReserva) {
     // Confirmation is local; persistence belongs exclusively to Save.
     if (reserva.online && await onCancelarReserva(reserva, () => {}) === false) return;
