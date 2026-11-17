@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { cn } from "@/lib/utils";
 
 interface Props {
   children: ReactElement;
@@ -11,17 +12,28 @@ interface Props {
   entrenador?: string | null;
   nombres: string[];
   nota?: string | null;
+  /** Vertical position of the tail; short rows (month view) need it higher. */
+  tailTop?: string;
 }
 
 /** Session summary bubble shown on hover, styled like the Agenda session menu header. */
-export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota }: Props) {
+export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota, tailTop = "top-4" }: Props) {
   const notaTxt = nota?.trim();
   if (nombres.length < 2 && !notaTxt) return children;
   return (
     <HoverCard openDelay={150} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
-      <HoverCardContent side="right" align="start" sideOffset={8} className="w-60 overflow-hidden rounded-xl border-0 p-0 shadow-xl">
-        <div className="bg-primary px-3.5 py-2.5 text-primary-foreground">
+      <HoverCardContent side="right" align="start" sideOffset={8} className="group w-60 rounded-xl border-0 p-0 shadow-xl">
+        {/* Tail pointing at the session this summary comes from */}
+        <span
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute h-3 w-3 rotate-45 rounded-[2px] bg-primary",
+            tailTop,
+            "group-data-[side=right]:-left-1 group-data-[side=left]:-right-1 group-data-[side=top]:top-auto group-data-[side=top]:-bottom-1 group-data-[side=top]:left-5 group-data-[side=bottom]:top-auto group-data-[side=bottom]:-top-1 group-data-[side=bottom]:left-5",
+          )}
+        />
+        <div className="rounded-t-xl bg-primary px-3.5 py-2.5 text-primary-foreground">
           <div className="flex min-w-0 items-center gap-2 text-sm font-semibold">
             <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color ?? undefined }} />
             <span className="truncate">{servicio}</span>
