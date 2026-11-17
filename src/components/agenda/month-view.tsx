@@ -192,7 +192,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         color={fill ?? null}
                         horario={`${s.hora_inicio.slice(0, 5)} – ${s.hora_fin.slice(0, 5)}`}
                         plazas={`${ocupados}/${plazas}`}
-                        entrenador={null}
+                        entrenador={s.trainer_id ? trainers.find((t) => t.id === s.trainer_id)?.nombre ?? null : null}
                         nombres={nombres.map((n) => String(n).toUpperCase())}
                       >
                       <button
