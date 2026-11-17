@@ -1,3 +1,4 @@
+import { SessionSummaryHover } from "./session-summary-hover";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
@@ -185,8 +186,16 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorEstadoFor(s));
                     return (
-                      <button
+                      <SessionSummaryHover
                         key={s.id}
+                        servicio={servicios.find((x) => x.slug === slug)?.nombre ?? s.titulo ?? "Sesión"}
+                        color={fill ?? null}
+                        horario={`${s.hora_inicio.slice(0, 5)} – ${s.hora_fin.slice(0, 5)}`}
+                        plazas={`${ocupados}/${plazas}`}
+                        entrenador={null}
+                        nombres={nombres.map((n) => String(n).toUpperCase())}
+                      >
+                      <button
                         data-online-booking={hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) || undefined}
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
@@ -195,7 +204,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) && "agenda-online-booking",
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
-                        title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${ocupados}/${plazas})${nombres.length > 1 ? `\nClientes reservados:\n${nombres.map((n) => String(n).toUpperCase()).join("\n")}` : ` ${name}`}`}
+                        title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${ocupados}/${plazas}) ${name}`}
                       >
                         {s.hora_inicio.slice(0, 5)}{" "}
                         {abrev && <span className="font-semibold">{abrev}</span>}
@@ -203,6 +212,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         {name.toUpperCase()} ({ocupados}/{plazas})
 
                       </button>
+                      </SessionSummaryHover>
                     );
                   })}
                   {list.length > 4 && (

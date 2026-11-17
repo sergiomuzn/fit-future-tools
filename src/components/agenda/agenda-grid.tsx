@@ -1,3 +1,4 @@
+import { SessionSummaryHover } from "./session-summary-hover";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDateShort } from "@/lib/utils";
@@ -1443,11 +1444,18 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : members ?? [session];
               const onlineDistinction = hasOnlineBookingDistinction(behavior.distinguirReservasOnline, blockBookings);
               return (
-                <div
+                <SessionSummaryHover
                   key={session.id}
+                  servicio={servicios.find((x) => x.slug === servicioSlug)?.nombre ?? session.titulo ?? "Sesión"}
+                  color={fill ?? null}
+                  horario={`${session.hora_inicio.slice(0, 5)} – ${session.hora_fin.slice(0, 5)}`}
+                  plazas={groupCountLabel}
+                  entrenador={session.trainer_id ? trainers.find((t) => t.id === session.trainer_id)?.nombre ?? null : null}
+                  nombres={nombres}
+                >
+                <div
                   data-session
                   data-online-booking={onlineDistinction || undefined}
-                  title={nombres.length > 1 ? `Clientes reservados:\n${nombres.join("\n")}` : undefined}
                   className={cn(
                     "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
@@ -1553,6 +1561,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     </>
                   )}
                 </div>
+                </SessionSummaryHover>
               );
             })}
             {draft && (
