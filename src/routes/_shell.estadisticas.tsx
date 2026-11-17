@@ -2296,21 +2296,38 @@ function fmtVal(v: number, unit?: string): string {
   return unit ? `${n}${unit === "€" ? " €" : unit}` : n;
 }
 
+function useIsNarrow() {
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return narrow;
+}
+
 function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerColors?: Map<string, string> }) {
   const flat = matrix.values.flat();
   const max = flat.length ? Math.max(...flat) : 0;
   const min = flat.length ? Math.min(...flat) : 0;
   const scrollRef = useRef<HTMLDivElement>(null);
+  const narrow = useIsNarrow();
   // Por defecto se muestran los meses más recientes (a la derecha).
   useEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollLeft = el.scrollWidth;
-  }, [matrix.colLabels.length, matrix.rowLabels.length]);
-  const groupW = matrix.trainerGroups ? 144 : 0;
-  const labelW = matrix.trainerGroups ? 72 : 96;
-  const mediaW = 64;
+  }, [matrix.colLabels.length, matrix.rowLabels.length, narrow]);
+  const groupW = matrix.trainerGroups ? (narrow ? 84 : 144) : 0;
+  const labelW = matrix.trainerGroups ? (narrow ? 58 : 72) : (narrow ? 44 : 96);
+  const mediaW = narrow ? 52 : 64;
   const colW = 60;
-  const means = matrix.values.map((row) => (row.length ? row.reduce((a, b) => a + b, 0) / row.length : 0));
+  // La media es por mes: la columna «Total» no entra en el cálculo.
+  const monthCols = matrix.colLabels.map((c, j) => (c === "Total" ? -1 : j)).filter((j) => j >= 0);
+  const means = matrix.values.map((row) =>
+    monthCols.length ? monthCols.reduce((a, j) => a + (row[j] ?? 0), 0) / monthCols.length : 0,
+  );
   const stickyBg = "bg-card";
   return (
     <div className="space-y-3">
