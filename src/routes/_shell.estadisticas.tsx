@@ -1606,7 +1606,7 @@ function buildSeries(args: {
       rows: comparison.rows,
       seriesKeys: comparison.series.map((s) => s.key),
       trainerSeries: Object.fromEntries(comparison.series.map((s) => [s.key, { trainerId: s.trainerId, variant: s.variant }])),
-      isLineChart: desglose === "dow",
+      isLineChart: false,
     };
   }
 
