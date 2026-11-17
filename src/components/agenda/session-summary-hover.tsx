@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn } from "@/lib/utils";
@@ -19,11 +19,20 @@ interface Props {
 /** Session summary bubble shown on hover, styled like the Agenda session menu header. */
 export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota, tailTop = "top-4" }: Props) {
   const notaTxt = nota?.trim();
+  // Narrow windows have no room beside the session, so the bubble goes under it.
+  const [narrow, setNarrow] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 639px)");
+    const sync = () => setNarrow(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   if (nombres.length < 2 && !notaTxt) return children;
   return (
     <HoverCard openDelay={150} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
-      <HoverCardContent side="right" align="start" sideOffset={8} className="group w-60 rounded-xl border-0 p-0 shadow-xl">
+      <HoverCardContent side={narrow ? "bottom" : "right"} align="start" sideOffset={8} className="group w-60 rounded-xl border-0 p-0 shadow-xl">
         {/* Tail pointing at the session this summary comes from */}
         <span
           aria-hidden
