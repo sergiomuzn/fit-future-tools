@@ -1701,22 +1701,7 @@ function buildSeries(args: {
     const initialsOf = (id: string) => trainerMap.get(id)?.iniciales ?? "—";
     const countFor = (id: string, p: { filter: (s: Session) => boolean }) =>
       sessions.filter((s) => p.filter(s) && countsAsTraining(s) && s.trainer_id === id).length;
-    if (period === "comparar") {
-      // X = meses, una barra por entrenador.
-      const withData = ids.filter((id) => periods.some((p) => countFor(id, p) > 0));
-      const idsC = withData.length ? withData : ids;
-      const rowsT: SeriesRow[] = periods.map((p) => {
-        const row: SeriesRow = { bucket: p.key };
-        for (const id of idsC) row[initialsOf(id)] = countFor(id, p);
-        return row;
-      });
-      return {
-        rows: rowsT,
-        seriesKeys: idsC.map(initialsOf),
-        isLineChart: false,
-      };
-    }
-    // histórico → barras apiladas: X = meses, una serie por entrenador.
+    // comparar e histórico → barras apiladas: X = meses, una serie por entrenador.
     const totalsById = new Map<string, number>();
     for (const id of ids) {
       let t = 0;
