@@ -174,8 +174,10 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                       "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? [])
-                      : (slotNamesMap.get(`${s.fecha}|${slug}|${s.hora_inicio}`) ??
-                        (s.client_id ? [clientMap.get(s.client_id)?.nombre ?? "?"] : []));
+                      : // Only clients of this exact session block; same-time sessions stay independent.
+                        agendaBlockMembers(s, sessions)
+                          .filter((m) => m.estado !== "cancelada" && m.client_id)
+                          .map((m) => clientMap.get(m.client_id as string)?.nombre ?? "?");
                     const ocupados = isGroup ? nombres.length : (s.client_id ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
@@ -193,7 +195,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) && "agenda-online-booking",
                         )}
                         style={{ backgroundColor: fill ?? undefined }}
-                        title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${ocupados}/${plazas})`}
+                        title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${ocupados}/${plazas})${nombres.length > 1 ? `\nClientes reservados:\n${nombres.map((n) => String(n).toUpperCase()).join("\n")}` : ` ${name}`}`}
                       >
                         {s.hora_inicio.slice(0, 5)}{" "}
                         {abrev && <span className="font-semibold">{abrev}</span>}

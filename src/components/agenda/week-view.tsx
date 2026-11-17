@@ -237,8 +237,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                       "";
                     const nombres = isGroup
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
-                      : (slotNamesMap.get(`${session.fecha}|${slug}|${session.hora_inicio}`) ??
-                        (session.client_id ? [clientMap.get(session.client_id)?.nombre ?? "?"] : []));
+                      : // Only clients of this exact session block; same-time sessions stay independent.
+                        agendaBlockMembers(session, sessions)
+                          .filter((m) => m.estado !== "cancelada" && m.client_id)
+                          .map((m) => clientMap.get(m.client_id as string)?.nombre ?? "?");
                     const ocupados = reservedSessionPlaces(agendaBlockMembers(session, sessions));
                     const plazas = agendaBlockMembers(session, sessions).map((m) => (m as any).plazas as number | null).find((n) => n != null) ?? servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const places = sessionPlaces(plazas, ocupados);
@@ -259,7 +261,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) && "agenda-online-booking",
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
-                        title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}${name} (${places.label})`}
+                        title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${places.label})${nombres.length > 1 ? `\nClientes reservados:\n${nombres.map((n) => String(n).toUpperCase()).join("\n")}` : ` ${name}`}`}
                       >
                         {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 rounded-sm bg-background px-1 font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
