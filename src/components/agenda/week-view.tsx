@@ -260,6 +260,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         plazas={places.label}
                         entrenador={trainerMap.get(session.trainer_id ?? "")?.nombre ?? null}
                         nombres={nombres.map((n) => String(n).toUpperCase())}
+                        nota={session.incidencia}
                       >
                       <button
                         data-online-booking={hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) || undefined}

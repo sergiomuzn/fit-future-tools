@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { Users } from "lucide-react";
+import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 
 interface Props {
@@ -10,11 +10,13 @@ interface Props {
   plazas: string;
   entrenador?: string | null;
   nombres: string[];
+  nota?: string | null;
 }
 
 /** Session summary bubble shown on hover, styled like the Agenda session menu header. */
-export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres }: Props) {
-  if (nombres.length < 2) return children;
+export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota }: Props) {
+  const notaTxt = nota?.trim();
+  if (nombres.length < 2 && !notaTxt) return children;
   return (
     <HoverCard openDelay={150} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
@@ -29,7 +31,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
             {horario}{entrenador ? ` · ${entrenador}` : ""}
           </div>
         </div>
-        <div className="px-3.5 py-2.5">
+        {nombres.length > 0 && <div className="px-3.5 py-2.5">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <Users className="h-3 w-3" /> Clientes reservados
           </div>
@@ -38,7 +40,15 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
               <li key={i} className="truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">{n}</li>
             ))}
           </ul>
-        </div>
+        </div>}
+        {notaTxt && (
+          <div className="border-t px-3.5 py-2.5">
+            <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              <StickyNote className="h-3 w-3" /> Nota
+            </div>
+            <p className="whitespace-pre-wrap break-words rounded-md bg-muted/50 px-2 py-1.5 text-xs">{notaTxt}</p>
+          </div>
+        )}
       </HoverCardContent>
     </HoverCard>
   );

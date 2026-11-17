@@ -1452,6 +1452,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   plazas={groupCountLabel}
                   entrenador={session.trainer_id ? trainers.find((t) => t.id === session.trainer_id)?.nombre ?? null : null}
                   nombres={nombres}
+                  nota={session.incidencia}
                 >
                 <div
                   data-session
@@ -1553,7 +1554,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                       {session.incidencia && (
                         <div
                           className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
-                          title={session.incidencia}
                         >
                           {session.incidencia}
                         </div>

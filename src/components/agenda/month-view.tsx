@@ -194,6 +194,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         plazas={`${ocupados}/${plazas}`}
                         entrenador={s.trainer_id ? trainers.find((t) => t.id === s.trainer_id)?.nombre ?? null : null}
                         nombres={nombres.map((n) => String(n).toUpperCase())}
+                        nota={s.incidencia}
                       >
                       <button
                         data-online-booking={hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) || undefined}
