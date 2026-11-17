@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import { strictEqual } from "node:assert";
-import { canMarkSessionPending, isSelfBooking } from "./online-booking";
+import { canEditSessionPending, canMarkSessionPending, isSelfBooking } from "./online-booking";
 
 describe("marking a session pending confirmation", () => {
   test("online bookings cannot be marked pending, including after centre confirmation", () => {
@@ -16,5 +16,10 @@ describe("marking a session pending confirmation", () => {
   test("performed and cancelled sessions cannot be marked pending", () => {
     strictEqual(canMarkSessionPending("realizada", false), false);
     strictEqual(canMarkSessionPending("cancelada", false), false);
+  });
+  test("unconfirmed online bookings can be confirmed; confirmed ones stay locked", () => {
+    strictEqual(canEditSessionPending("reservada", true, true), true);
+    strictEqual(canEditSessionPending("reservada", true, false), false);
+    strictEqual(canEditSessionPending("reservada", false, false), true);
   });
 });

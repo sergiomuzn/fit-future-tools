@@ -21,7 +21,7 @@ import { hhmm } from "@/lib/service-slots";
 import type { SlotInstance } from "@/lib/slot-propagation";
 import { cn, formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
-import { canMarkSessionPending } from "./online-booking";
+import { canEditSessionPending } from "./online-booking";
 import { enterToSave } from "@/lib/enter-to-save";
 import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -151,7 +151,7 @@ export function HuecoPanel({
     return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
   }, [reservas, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
-  const puedeMarcarPorConfirmar = canMarkSessionPending(estado, reservasVisibles.some((r) => r.online === true));
+  const puedeMarcarPorConfirmar = canEditSessionPending(estado, reservasVisibles.some((r) => r.online === true), porConfirmarInicial);
   async function quitarCliente(reserva: PanelReserva) {
     // Confirmation is local; persistence belongs exclusively to Save.
     if (reserva.online && await onCancelarReserva(reserva, () => {}) === false) return;

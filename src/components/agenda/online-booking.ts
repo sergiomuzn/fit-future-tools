@@ -14,6 +14,14 @@ export function canMarkSessionPending(estado: string, hasOnlineBooking: boolean)
   return estado === "reservada" && !hasOnlineBooking;
 }
 
+/**
+ * The pending checkbox is editable for centre bookings, and for online bookings
+ * still awaiting confirmation (so the centre can confirm them, or undo before Save).
+ */
+export function canEditSessionPending(estado: string, hasOnlineBooking: boolean, initiallyPending: boolean): boolean {
+  return canMarkSessionPending(estado, hasOnlineBooking) || (estado === "reservada" && initiallyPending);
+}
+
 export function hasOnlineBookingDistinction(enabled: boolean, bookings: Booking[]): boolean {
   return enabled && bookings.some((session) => session.estado !== "cancelada" && isSelfBooking(session));
 }

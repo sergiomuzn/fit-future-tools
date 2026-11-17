@@ -36,7 +36,7 @@ import {
 import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
-import { canMarkSessionPending, isSelfBooking } from "./online-booking";
+import { canEditSessionPending, isSelfBooking } from "./online-booking";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -970,9 +970,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
             </div>
             <div className="flex items-center gap-2">
-              {canMarkSessionPending(estado, reservasPortalIds.length > 0) ? (
+              {canEditSessionPending(estado, reservasPortalIds.length > 0, !!(session as any)?.por_confirmar) ? (
                 <>
-                  <Checkbox id="porconfirmar" checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (canMarkSessionPending(estado, reservasPortalIds.length > 0)) setPorConfirmar(!!v); }} />
+                  <Checkbox id="porconfirmar" checked={estado === "reservada" && porConfirmar} onCheckedChange={(v) => { if (canEditSessionPending(estado, reservasPortalIds.length > 0, !!(session as any)?.por_confirmar)) setPorConfirmar(!!v); }} />
                   <Label htmlFor="porconfirmar" className="cursor-pointer">Por confirmar</Label>
                 </>
               ) : (
