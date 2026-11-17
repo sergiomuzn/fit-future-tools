@@ -28,7 +28,6 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
-  if (nombres.length < 2 && !notaTxt) return children;
   return (
     <HoverCard openDelay={150} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
