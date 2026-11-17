@@ -1210,7 +1210,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
           </div>
         </div>
         )}
-        {metric === "porEntrenador" && (
+        {metric === "porEntrenador" && !(selectedTrainers.length === 0 && (seriesColors || trainerSeries || matrix)) && (
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs">
             {selectedTrainers.length === 0 ? (
               <div className="flex items-center gap-1.5 text-muted-foreground">
