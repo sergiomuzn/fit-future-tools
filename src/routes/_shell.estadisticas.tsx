@@ -777,7 +777,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
   const splitModalidadActive = puedeSplitModalidad && splitModalidad;
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
-  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, trainerSeries, barKeys, barStackMap, stackOrder } = useMemo(
+  const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, turnoBarColors, trainerSeries, barKeys, barStackMap, stackOrder } = useMemo(
     () => buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio }),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
@@ -1175,6 +1175,10 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                     <Bar key={k} dataKey={k} stackId={stackOf(k)} fill={colorForSeries(k, i)} fillOpacity={trainerSeries?.[k]?.variant === 1 ? 0.6 : 1} radius={stackOf(k) && barSeries.slice(i + 1).some((o) => stackOf(o) === stackOf(k)) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
                       {barKeys
                         ? rows.map((r, idx) => <Cell key={`c-${idx}`} fill={colorForSeries(nameAtRank(i, idx), i)} />)
+                        : turnoBarColors && seriesKeys.length === 1
+                        ? rowsWithTotal.map((r, idx) => (
+                            <Cell key={`c-${idx}`} fill={TURNO_BAR_COLORS[String((r as { bucket: string }).bucket)] ?? palette[0]} />
+                          ))
                         : desglose === "tipoSesion" && seriesKeys.length === 1 &&
                           rowsWithTotal.map((r, idx) => (
                             <Cell key={`c-${idx}`} fill={colorForSeries(String((r as { bucket: string }).bucket), idx)} />
@@ -1308,7 +1312,7 @@ function buildSeriesRaw(args: {
   modalidadesByServicio?: Map<string, string[]>;
 
 }): {
-  rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean;
+  rows: SeriesRow[]; seriesKeys: string[]; isLineChart: boolean; turnoBarColors?: boolean;
   unclassified?: UnclassifiedInfo;
   notice?: { title: string; items: string[]; samples?: string[] };
   stackMap?: Record<string, string>;
@@ -1544,7 +1548,7 @@ function buildSeriesRaw(args: {
         { bucket: "Tarde", [p.key]: Math.round(pm) },
         { bucket: "Total", [p.key]: Math.round(am + pm) },
       ];
-      return { rows, seriesKeys: [p.key], isLineChart: false };
+      return { rows, seriesKeys: [p.key], isLineChart: false, turnoBarColors: true };
     }
     // comparar / historico: X = meses; series según desglose
     const rows: SeriesRow[] = [];
@@ -1579,6 +1583,19 @@ function buildSeriesRaw(args: {
       desglose === "turno" ? ["Mañana", "Tarde"] :
       desglose === "dow" ? [...DOW_KEYS] :
       ["Total"];
+    if (period === "comparar" && desglose === "dow") {
+      // X = días de la semana; una línea por mes.
+      const monthKeys = rows.map((r) => String(r.bucket));
+      const rowsD: SeriesRow[] = DOW_KEYS.map((d) => {
+        const row: SeriesRow = { bucket: d };
+        for (const r of rows) row[String(r.bucket)] = Number(r[d] ?? 0);
+        return row;
+      });
+      return { rows: rowsD, seriesKeys: monthKeys, isLineChart: true, areas: true, mediaKeys: attachMedia(rowsD, monthKeys, 0) };
+    }
+    if (period === "comparar" && desglose === "turno") {
+      return { rows, seriesKeys, isLineChart: true, areas: true, mediaKeys: attachMedia(rows, seriesKeys, 0) };
+    }
     if (period === "historico") {
       if (desglose === "dow") {
         return { rows, seriesKeys, isLineChart: false, matrix: buildHeatmap(rows, seriesKeys, "€") };
@@ -2295,6 +2312,9 @@ function useIsNarrow() {
   return narrow;
 }
 
+const TURNO_BAR_COLORS: Record<string, string> = { "Mañana": "hsl(200 70% 50%)", Tarde: "hsl(24 90% 55%)", Total: "#94a3b8" };
+const MEDIA_HEAT_COLOR = "#f59e0b";
+
 function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerColors?: Map<string, string> }) {
   const flat = matrix.values.flat();
   const max = flat.length ? Math.max(...flat) : 0;
@@ -2307,7 +2327,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
     if (el) el.scrollLeft = el.scrollWidth;
   }, [matrix.colLabels.length, matrix.rowLabels.length, narrow]);
   const groupW = matrix.trainerGroups ? (narrow ? 84 : 144) : 0;
-  const labelW = matrix.trainerGroups ? (narrow ? 58 : 72) : (narrow ? 44 : 96);
+  const labelW = matrix.trainerGroups ? (narrow ? 58 : 72) : (narrow ? 40 : 48);
   const mediaW = narrow ? 52 : 64;
   const colW = 60;
   // La media es por mes: la columna «Total» no entra en el cálculo.
@@ -2315,6 +2335,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
   const means = matrix.values.map((row) =>
     monthCols.length ? monthCols.reduce((a, j) => a + (row[j] ?? 0), 0) / monthCols.length : 0,
   );
+  const meanMax = means.length ? Math.max(...means) : 0;
   const stickyBg = "bg-card";
   return (
     <div className="space-y-3">
@@ -2333,7 +2354,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
             <tr>
               {matrix.trainerGroups && <th className={`sticky left-0 z-20 ${stickyBg} text-left text-xs font-semibold text-muted-foreground px-1.5 py-1`}>Entrenador</th>}
               <th className={`sticky z-20 ${stickyBg} px-1.5 py-1`} style={{ left: groupW }} />
-              <th className={`sticky z-20 ${stickyBg} px-1.5 py-1 text-[11px] font-semibold text-foreground align-bottom border-r border-border`} style={{ left: groupW + labelW }}>
+              <th className={`sticky z-20 ${stickyBg} px-1.5 py-1 text-[11px] font-semibold text-muted-foreground align-bottom`} style={{ left: groupW + labelW }}>
                 Media
               </th>
               {matrix.colLabels.map((c) => (
@@ -2356,11 +2377,17 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
                 )}
                 <th className={`sticky z-10 ${stickyBg} text-left text-xs font-semibold px-1.5 py-1 whitespace-nowrap`} style={{ left: groupW }}>{r}</th>
                 <td
-                  className={`sticky z-10 ${stickyBg} px-1.5 py-1.5 text-center text-xs font-bold tabular-nums border-r border-border`}
+                  className={`sticky z-10 ${stickyBg} p-0 text-center text-xs font-semibold tabular-nums`}
                   style={{ left: groupW + labelW }}
                   title={`${r} · Media: ${fmtVal(means[i], matrix.unit)}`}
                 >
-                  <span className="block rounded-md bg-muted px-1 py-0.5">{fmtVal(Math.round(means[i] * 10) / 10, matrix.unit)}</span>
+                  <span
+                    className="block rounded-md px-1.5 py-1.5"
+                    style={{
+                      backgroundColor: means[i] === 0 ? "#f1f5f9" : mixWhite(MEDIA_HEAT_COLOR, 0.1 + (meanMax > 0 ? means[i] / meanMax : 0) * 0.6),
+                      color: "var(--heatmap-value-foreground, #111827)",
+                    }}
+                  >{fmtVal(Math.round(means[i] * 10) / 10, matrix.unit)}</span>
                 </td>
                 {matrix.values[i].map((v, j) => {
                   const t = max > 0 ? v / max : 0;
