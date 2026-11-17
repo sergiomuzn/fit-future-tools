@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
-import { cn } from "@/lib/utils";
+import { cn, formatNameTitle } from "@/lib/utils";
 
 interface Props {
   children: ReactElement;
@@ -58,7 +58,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
           </div>
           <ul className="space-y-1">
             {nombres.map((n, i) => (
-              <li key={i} className="truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">{n}</li>
+              <li key={i} className="truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">{formatNameTitle(n)}</li>
             ))}
           </ul>
         </div>}
