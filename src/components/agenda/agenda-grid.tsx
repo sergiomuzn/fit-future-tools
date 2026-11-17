@@ -1447,6 +1447,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   key={session.id}
                   data-session
                   data-online-booking={onlineDistinction || undefined}
+                  title={nombres.length > 1 ? `Clientes reservados:\n${nombres.join("\n")}` : undefined}
                   className={cn(
                     "absolute rounded-md shadow-sm cursor-pointer overflow-hidden border border-black/5 transition-shadow hover:shadow-md",
                     isUltraCompact ? "px-1 py-0 text-[9px]" : "px-2 py-1 text-xs",
