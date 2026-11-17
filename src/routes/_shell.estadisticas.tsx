@@ -30,6 +30,7 @@ import { useBehaviorConfig, getBehaviorConfig, sessionCountsAsTraining } from "@
 import { hasAttendee, countsInSessionTotal, sessionsInMonthTotal, fetchAllSessionPages } from "@/lib/stats-sessions";
 import { trainerActiveOnDate, trainerAvailableInMonth } from "@/lib/trainer-availability";
 import { trainerMonthComparison } from "@/lib/stats-trainer-comparison";
+import { trainerShiftHistory } from "@/lib/stats-trainer-shift-history";
 
 export const Route = createFileRoute("/_shell/estadisticas")({
   head: () => ({ meta: [
@@ -1098,7 +1099,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
           matrix.kind === "ranking" ? (
             <RankingTable matrix={matrix} />
           ) : (
-            <HeatmapTable matrix={matrix} />
+            <HeatmapTable matrix={matrix} trainerColors={statsTrainerColors} />
           )
         ) : (
         <div className="h-[420px] overflow-x-hidden">
@@ -1609,6 +1610,16 @@ function buildSeriesRaw(args: {
   const monthsForPeriods = collectMonthList("sessions");
   for (const { y, m, key } of monthsForPeriods) {
     periods.push({ key, filter: (s: Session) => inMonth(s, y, m), days: daysInMonth(y, m) });
+  }
+
+  if (metric === "porEntrenador" && desglose === "turno" && period === "historico") {
+    const history = trainerShiftHistory(sessions.filter(countsAsTraining), [...trainerMap.values()],
+      monthsForPeriods.map(({ y, m, key }) => ({ month: `${y}-${String(m + 1).padStart(2, "0")}`, label: key })), selectedTrainerIds);
+    return {
+      rows: history.rows, seriesKeys: history.colLabels, isLineChart: false,
+      matrix: { kind: "heatmap", rowLabels: history.rowLabels, colLabels: history.colLabels, values: history.values,
+        trainerGroups: history.groups.map((g) => ({ trainerId: g.trainerId, name: g.name })) },
+    };
   }
 
   // Sesiones por entrenador · mes actual (sin desglosar / turno) y comparar · turno:
@@ -2225,6 +2236,7 @@ type MatrixData = {
   colLabels: string[];
   values: number[][]; // [fila][columna]
   colColors?: string[];
+  trainerGroups?: { trainerId: string; name: string }[];
   unit?: string;
 };
 
@@ -2283,19 +2295,20 @@ function fmtVal(v: number, unit?: string): string {
   return unit ? `${n}${unit === "€" ? " €" : unit}` : n;
 }
 
-function HeatmapTable({ matrix }: { matrix: MatrixData }) {
+function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerColors?: Map<string, string> }) {
   const flat = matrix.values.flat();
   const max = flat.length ? Math.max(...flat) : 0;
   const min = flat.length ? Math.min(...flat) : 0;
   return (
     <div className="space-y-3">
-      <div className="overflow-x-hidden">
+      <div className={matrix.trainerGroups ? "overflow-x-auto" : "overflow-x-hidden"}>
         <table
           className="w-full table-fixed border-separate"
-          style={{ borderSpacing: 1, minWidth: 96 + matrix.colLabels.length * 52 }}
+          style={{ borderSpacing: 1, minWidth: (matrix.trainerGroups ? 240 : 96) + matrix.colLabels.length * 52 }}
         >
           <thead>
             <tr>
+              {matrix.trainerGroups && <th className="bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1 w-36">Entrenador</th>}
               <th
                 className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1"
                 style={{ width: 96 }}
@@ -2309,7 +2322,15 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
           </thead>
           <tbody>
             {matrix.rowLabels.map((r, i) => (
-              <tr key={r}>
+              <tr key={`${r}-${i}`}>
+                {matrix.trainerGroups && i % 2 === 0 && (
+                  <th rowSpan={2} scope="rowgroup" className="bg-card text-left text-xs font-semibold px-1.5 py-1 whitespace-normal break-words">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: trainerColors?.get(matrix.trainerGroups[i / 2].trainerId) }} />
+                      {matrix.trainerGroups[i / 2].name}
+                    </span>
+                  </th>
+                )}
                 <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold px-1.5 py-1 whitespace-nowrap">{r}</th>
                 {matrix.values[i].map((v, j) => {
                   const t = max > 0 ? v / max : 0;
@@ -2320,7 +2341,7 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
                       key={j}
                       className="rounded-md px-1.5 py-1.5 text-center text-xs font-semibold tabular-nums"
                       style={{ backgroundColor: bg, color: dark ? "#ffffff" : "var(--color-foreground)" }}
-                      title={`${r} · ${matrix.colLabels[j]}: ${fmtVal(v, matrix.unit)}`}
+                      title={`${matrix.trainerGroups ? `${matrix.trainerGroups[Math.floor(i / 2)].name} · ` : ""}${r} · ${matrix.colLabels[j]}: ${fmtVal(v, matrix.unit)}`}
                     >
                       {v === 0 ? "" : fmtVal(v, matrix.unit)}
                     </td>

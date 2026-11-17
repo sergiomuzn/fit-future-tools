@@ -14,6 +14,7 @@
 - Position bar totals above each independent bar or actual stack using rendered geometry; resolve text collisions upwards only, because line-label spacing can push totals inside bars.
 - Stacked statistical bars must always read largest at the bottom to smallest at the top; resolve that ordering per bar with generic rank slots while keeping real series names for legend, tooltip and accessible labels, because a chart can only carry one fixed series order.
 - Trainer shift/weekday month comparisons retain explicit trainer ownership and variant metadata in a pure presentation aggregator to avoid cross-trainer summation and preserve trainer colors.
+- Trainer shift history uses a pure presentation aggregator with paired shift rows per trainer, sorted by combined period totals, so selections never collapse trainer ownership.
 - Draw statistical mean lines before data series and place collision-spaced mean values in a dedicated left margin using the corresponding series color, so averages never cover data.
 - Propagated slot instances are unique per (service_slot_id, fecha), never merged by service+time; bookings are distributed across same-time instances via asignarReservasAHuecos (trainer match first) — two template slots at the same hour are distinct sessions.
 - Agenda cancellation visibility uses explicit slot-instance identity after recurrence grouping; manual sessions never merge by time, service or trainer, so independent cancellations remain accessible.
