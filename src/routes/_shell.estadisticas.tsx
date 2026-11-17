@@ -1060,7 +1060,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
         {metric === "porEntrenador" && (
           <div className="mb-3 space-y-1.5">
             <div className="text-xs text-muted-foreground">
-              Selecciona hasta 3 entrenadores para comparar. Sin selección se muestra el total global.
+              {matrix?.trainerGroups ? "" : "Selecciona hasta 3 entrenadores para comparar. Sin selección se muestra el total global."}
             </div>
             <div className="flex flex-wrap gap-2">
               {availableTrainers.map((t) => {
@@ -2340,7 +2340,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
                     <td
                       key={j}
                       className="rounded-md px-1.5 py-1.5 text-center text-xs font-semibold tabular-nums"
-                      style={{ backgroundColor: bg, color: dark ? "#ffffff" : "var(--color-foreground)" }}
+                      style={{ backgroundColor: bg, color: matrix.trainerGroups ? "var(--heatmap-value-foreground, #111827)" : dark ? "#ffffff" : "var(--color-foreground)" }}
                       title={`${matrix.trainerGroups ? `${matrix.trainerGroups[Math.floor(i / 2)].name} · ` : ""}${r} · ${matrix.colLabels[j]}: ${fmtVal(v, matrix.unit)}`}
                     >
                       {v === 0 ? "" : fmtVal(v, matrix.unit)}

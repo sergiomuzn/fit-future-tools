@@ -65,6 +65,7 @@
 
 :root {
   --radius: 0.5rem;
+  --heatmap-value-foreground: oklch(0.22 0.03 257);
   --background: oklch(0.99 0.003 247);
   --foreground: oklch(0.22 0.03 257);
   --card: oklch(1 0 0);
