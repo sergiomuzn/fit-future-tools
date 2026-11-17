@@ -778,7 +778,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
 
   // Build series: [{ bucket, seriesA, seriesB?, ... }]
   const { rows, seriesKeys, isLineChart, unclassified, notice, stackMap, seriesColors, areas, mediaKeys, labelEvery, matrix, avgAge, turnoBarColors, trainerSeries, barKeys, barStackMap, stackOrder } = useMemo(
-    () => unifyLineChart(buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio })),
+    () => unifyLineChart(metric, buildSeries({ sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTipos: catalogoTiposList, servicioNombres: servicioNombreMap, splitModalidad: splitModalidadActive, modalidadesByServicio })),
     [sessions, events, metric, desglose, period, monthA, compareMonths, trainerMap, horario, specialsMap, clientTipoMap, clientPricePerSessionMap, groupClientsMap, clientSexoMap, clientNacMap, clientNombreMap, selectedTrainerIds, catalogoTiposList, servicioNombreMap, canceladasModo, splitModalidadActive, modalidadesByServicio],
   );
 
@@ -807,7 +807,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
     const trainerSeriesColor = metric === "porEntrenador" ? trainerColorByInitials.get(name) : undefined;
     if (trainerSeriesColor) return trainerSeriesColor;
     if (seriesColors?.[name]) return seriesColors[name];
-    if (metric === "facturacion" && desglose === "turno" && TURNO_BAR_COLORS[name]) return TURNO_BAR_COLORS[name];
+    if (desglose === "turno" && TURNO_BAR_COLORS[name]) return TURNO_BAR_COLORS[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
       const c = trainerColorByInitials.get(name);
@@ -2055,6 +2055,19 @@ function buildSeriesRaw(args: {
     }
   }
 
+  // Occupation by shift also gets a Total bucket: booked minutes over open minutes of both shifts.
+  const ocupTurnoTotal = new Map<string, number>();
+  if (metric === "ocupacion" && desglose === "turno") {
+    for (const s of seriesKeysSet) {
+      let v = 0, cap = 0;
+      for (const b of ["Mañana", "Tarde"]) {
+        v += acc.get(b)?.get(s) ?? 0;
+        cap += capacityByBucketPeriod.get(`${b}||${s}`) ?? 0;
+      }
+      ocupTurnoTotal.set(s, cap > 0 ? Math.round((v / cap) * 1000) / 10 : 0);
+    }
+  }
+
   // Convert to percentages for ocupacion
   if (metric === "ocupacion") {
     for (const [b, m] of acc) {
@@ -2071,6 +2084,11 @@ function buildSeriesRaw(args: {
     for (const k of seriesKeys) row[k] = Number(acc.get(b)?.get(k) ?? 0);
     return row;
   });
+  if (ocupTurnoTotal.size) {
+    const totalRow: SeriesRow = { bucket: "Total" };
+    for (const k of seriesKeys) totalRow[k] = ocupTurnoTotal.get(k) ?? 0;
+    rows.push(totalRow);
+  }
 
   // Para comparar/histórico: transponer para que X = meses y series = slots de desglose.
   if (period !== "mesUnico") {
@@ -2319,7 +2337,7 @@ function useIsNarrow() {
   return narrow;
 }
 
-const TURNO_BAR_COLORS: Record<string, string> = { "Mañana": "hsl(200 70% 50%)", Tarde: "hsl(24 90% 55%)", Total: "#94a3b8" };
+const TURNO_BAR_COLORS: Record<string, string> = { "Mañana": "var(--primary)", Tarde: "hsl(24 90% 55%)", Total: "#94a3b8" };
 const MEDIA_HEAT_COLOR = "#f59e0b";
 
 function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerColors?: Map<string, string> }) {
@@ -2589,8 +2607,24 @@ function renderStatsLegend(props: { payload?: ReadonlyArray<{ value?: unknown; c
 }
 
 /** Every line chart shares the Cancelaciones · Turno · Histórico format: shaded areas plus a dashed mean per series. */
-function unifyLineChart<T extends { rows: any[]; seriesKeys: string[]; isLineChart: boolean; areas?: boolean; mediaKeys?: string[] }>(r: T): T {
-  if (!r.isLineChart || r.rows.length === 0) return r;
+function unifyLineChart<T extends { rows: any[]; seriesKeys: string[]; isLineChart: boolean; areas?: boolean; mediaKeys?: string[]; turnoBarColors?: boolean }>(metric: string, r: T): T {
+  if (!r.isLineChart) {
+    // Turno bars with only Mañana/Tarde always get a third Total bar (sums; occupation % is not additive).
+    const buckets = r.rows.map((row) => String(row.bucket));
+    if (metric === "ocupacion") {
+      return r.seriesKeys.length === 1 && buckets.join("|") === "Mañana|Tarde|Total" ? { ...r, turnoBarColors: true } : r;
+    }
+    if (r.seriesKeys.length === 1 && buckets.length === 2 && buckets[0] === "Mañana" && buckets[1] === "Tarde") {
+      const k = r.seriesKeys[0];
+      const total = r.rows.reduce((a, row) => a + (Number(row[k]) || 0), 0);
+      return { ...r, rows: [...r.rows, { bucket: "Total", [k]: Math.round(total * 100) / 100 }], turnoBarColors: true };
+    }
+    if (r.seriesKeys.length === 2 && r.seriesKeys[0] === "Mañana" && r.seriesKeys[1] === "Tarde") {
+      return { ...r, seriesKeys: [...r.seriesKeys, "Total"], rows: r.rows.map((row) => ({ ...row, Total: (Number(row["Mañana"]) || 0) + (Number(row["Tarde"]) || 0) })) };
+    }
+    return r;
+  }
+  if (r.rows.length === 0) return r;
   let mediaKeys = r.mediaKeys;
   let rows = r.rows;
   if (!mediaKeys?.length) {
