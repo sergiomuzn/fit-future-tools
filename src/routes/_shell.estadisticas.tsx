@@ -1101,7 +1101,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                   {(metric !== "porEntrenador" || !!trainerSeries || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
+                   {(metric !== "porEntrenador" || !!trainerSeries || !!seriesColors || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {!!trainerSeries && <RTooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", fontSize: 12 }} />}
                   {(mediaKeys ?? []).map((mk) => (
                     <Line
@@ -1162,7 +1162,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                   <XAxis dataKey="bucket" {...xAxisProps} />
                   <YAxis tick={{ fontSize: 12 }} domain={[0, (max: number) => Math.ceil((max || 1) * 1.15)]} allowDecimals={false} />
-                  {(metric !== "porEntrenador" || !!trainerSeries || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
+                  {(metric !== "porEntrenador" || !!trainerSeries || !!seriesColors || (desglose === "total" && period !== "mesUnico")) && <RLegend content={renderStatsLegend} />}
                   {seriesKeys.map((k, i) => (
                     <Bar key={k} dataKey={k} stackId={stackMap?.[k]} fill={colorForSeries(k, i)} fillOpacity={trainerSeries?.[k]?.variant === 1 ? 0.6 : 1} radius={stackMap?.[k] && seriesKeys.slice(i + 1).some((o) => stackMap[o] === stackMap[k]) ? 0 : [4, 4, 0, 0]} isAnimationActive={false}>
                       {desglose === "tipoSesion" && seriesKeys.length === 1 &&
@@ -1583,6 +1583,47 @@ function buildSeries(args: {
   const monthsForPeriods = collectMonthList("sessions");
   for (const { y, m, key } of monthsForPeriods) {
     periods.push({ key, filter: (s: Session) => inMonth(s, y, m), days: daysInMonth(y, m) });
+  }
+
+  // Sesiones por entrenador · mes actual (sin desglosar / turno) y comparar · turno:
+  // una serie por entrenador (todos con sesiones, o solo los seleccionados).
+  // Sin desglosar → barras normales; turno → barras apiladas de mañana y tarde.
+  if (
+    metric === "porEntrenador" &&
+    ((period === "mesUnico" && (desglose === "total" || desglose === "turno")) ||
+      (period === "comparar" && desglose === "turno"))
+  ) {
+    const counted = sessions.filter((s) => countsAsTraining(s) && !!s.trainer_id && periods.some((p) => p.filter(s)));
+    const baseIds = selectedTrainerIds.length ? selectedTrainerIds : Array.from(trainerMap.keys());
+    const totals = new Map<string, number>();
+    for (const s of counted) totals.set(s.trainer_id!, (totals.get(s.trainer_id!) ?? 0) + 1);
+    const ids = baseIds
+      .filter((id) => trainerMap.has(id) && ((totals.get(id) ?? 0) > 0 || selectedTrainerIds.includes(id)))
+      .sort((a, b) => (totals.get(b) ?? 0) - (totals.get(a) ?? 0));
+    const ini = (id: string) => trainerMap.get(id)?.iniciales ?? "—";
+    const buckets: { bucket: string; match: (s: Session) => boolean }[] = [];
+    for (const p of periods) {
+      if (desglose === "total") buckets.push({ bucket: p.key, match: p.filter });
+      else for (const turno of ["Mañana", "Tarde"] as const) {
+        buckets.push({
+          bucket: period === "comparar" ? `${p.key} · ${turno}` : turno,
+          match: (s) => p.filter(s) && (hourOf(s.hora_inicio) < 14) === (turno === "Mañana"),
+        });
+      }
+    }
+    const rowsE: SeriesRow[] = buckets.map(({ bucket, match }) => {
+      const row: SeriesRow = { bucket };
+      for (const id of ids) row[ini(id)] = counted.filter((s) => s.trainer_id === id && match(s)).length;
+      return row;
+    });
+    const keysE = ids.map(ini);
+    return {
+      rows: rowsE,
+      seriesKeys: keysE,
+      isLineChart: false,
+      stackMap: desglose === "turno" ? Object.fromEntries(keysE.map((k) => [k, "ent"])) : undefined,
+      seriesColors: Object.fromEntries(ids.map((id) => [ini(id), trainerColor(id)])),
+    };
   }
 
   if (metric === "porEntrenador" && period === "comparar" && (desglose === "turno" || desglose === "dow")) {
