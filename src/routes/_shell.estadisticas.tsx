@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, type ClientBono, type BonoCatalogo, type BonoTipo } from "@/lib/db";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -2069,7 +2069,7 @@ function buildSeriesRaw(args: {
       period === "comparar" &&
       (desglose === "franja" || desglose === "dow" || desglose === "turno" || desglose === "tipoSesion" || desglose === "modalidad") &&
       metric !== "porEntrenador" &&
-      !(metric === "cancelaciones" && desglose === "turno")
+      !((metric === "cancelaciones" || metric === "sesiones") && desglose === "turno")
     ) {
       const monthSeries = periods.map((p) => p.key).filter((k) => seriesKeys.includes(k));
       const finalSeriesM = monthSeries.length ? monthSeries : seriesKeys;
@@ -2093,6 +2093,7 @@ function buildSeriesRaw(args: {
         rows: rowsM,
         seriesKeys: finalSeriesM,
         isLineChart: desglose === "franja" || desglose === "dow",
+        mediaKeys: metric === "sesiones" && desglose === "dow" ? attachMedia(rowsM, finalSeriesM, 1) : undefined,
         unclassified: trackUnclassified ? unclassified : undefined,
       };
     }
@@ -2166,7 +2167,7 @@ function buildSeriesRaw(args: {
       };
     }
     // Cancelaciones · turno · comparar meses: mismo formato que el histórico.
-    if (metric === "cancelaciones" && desglose === "turno") {
+    if ((metric === "cancelaciones" || metric === "sesiones") && desglose === "turno") {
       return {
         rows: finalT,
         seriesKeys: slots,
@@ -2299,20 +2300,38 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
   const flat = matrix.values.flat();
   const max = flat.length ? Math.max(...flat) : 0;
   const min = flat.length ? Math.min(...flat) : 0;
+  const scrollRef = useRef<HTMLDivElement>(null);
+  // Por defecto se muestran los meses más recientes (a la derecha).
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollLeft = el.scrollWidth;
+  }, [matrix.colLabels.length, matrix.rowLabels.length]);
+  const groupW = matrix.trainerGroups ? 144 : 0;
+  const labelW = matrix.trainerGroups ? 72 : 96;
+  const mediaW = 64;
+  const colW = 60;
+  const means = matrix.values.map((row) => (row.length ? row.reduce((a, b) => a + b, 0) / row.length : 0));
+  const stickyBg = "bg-card";
   return (
     <div className="space-y-3">
-      <div className={matrix.trainerGroups ? "overflow-x-auto" : "overflow-x-hidden"}>
+      <div ref={scrollRef} className="overflow-x-auto pb-2">
         <table
           className="w-full table-fixed border-separate"
-          style={{ borderSpacing: 1, minWidth: (matrix.trainerGroups ? 240 : 96) + matrix.colLabels.length * 52 }}
+          style={{ borderSpacing: 1, minWidth: groupW + labelW + mediaW + matrix.colLabels.length * colW }}
         >
+          <colgroup>
+            {matrix.trainerGroups && <col style={{ width: groupW }} />}
+            <col style={{ width: labelW }} />
+            <col style={{ width: mediaW }} />
+            {matrix.colLabels.map((c) => <col key={c} style={{ width: colW }} />)}
+          </colgroup>
           <thead>
             <tr>
-              {matrix.trainerGroups && <th className="bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1 w-36">Entrenador</th>}
-              <th
-                className="sticky left-0 z-10 bg-card text-left text-xs font-semibold text-muted-foreground px-1.5 py-1"
-                style={{ width: 96 }}
-              />
+              {matrix.trainerGroups && <th className={`sticky left-0 z-20 ${stickyBg} text-left text-xs font-semibold text-muted-foreground px-1.5 py-1`}>Entrenador</th>}
+              <th className={`sticky z-20 ${stickyBg} px-1.5 py-1`} style={{ left: groupW }} />
+              <th className={`sticky z-20 ${stickyBg} px-1.5 py-1 text-[11px] font-semibold text-foreground align-bottom border-r border-border`} style={{ left: groupW + labelW }}>
+                Media
+              </th>
               {matrix.colLabels.map((c) => (
                 <th key={c} className="px-1.5 py-1 text-[11px] font-semibold text-muted-foreground whitespace-normal break-words leading-tight align-bottom">
                   {c}
@@ -2324,14 +2343,21 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
             {matrix.rowLabels.map((r, i) => (
               <tr key={`${r}-${i}`}>
                 {matrix.trainerGroups && i % 2 === 0 && (
-                  <th rowSpan={2} scope="rowgroup" className="bg-card text-left text-xs font-semibold px-1.5 py-1 whitespace-normal break-words">
+                  <th rowSpan={2} scope="rowgroup" className={`sticky left-0 z-10 ${stickyBg} text-left text-xs font-semibold px-1.5 py-1 whitespace-normal break-words`}>
                     <span className="inline-flex items-center gap-1.5">
                       <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: trainerColors?.get(matrix.trainerGroups[i / 2].trainerId) }} />
                       {matrix.trainerGroups[i / 2].name}
                     </span>
                   </th>
                 )}
-                <th className="sticky left-0 z-10 bg-card text-left text-xs font-semibold px-1.5 py-1 whitespace-nowrap">{r}</th>
+                <th className={`sticky z-10 ${stickyBg} text-left text-xs font-semibold px-1.5 py-1 whitespace-nowrap`} style={{ left: groupW }}>{r}</th>
+                <td
+                  className={`sticky z-10 ${stickyBg} px-1.5 py-1.5 text-center text-xs font-bold tabular-nums border-r border-border`}
+                  style={{ left: groupW + labelW }}
+                  title={`${r} · Media: ${fmtVal(means[i], matrix.unit)}`}
+                >
+                  <span className="block rounded-md bg-muted px-1 py-0.5">{fmtVal(Math.round(means[i] * 10) / 10, matrix.unit)}</span>
+                </td>
                 {matrix.values[i].map((v, j) => {
                   const t = max > 0 ? v / max : 0;
                   const bg = v === 0 ? "#f1f5f9" : mixWhite(HEAT_COLOR, 0.12 + t * 0.88);
