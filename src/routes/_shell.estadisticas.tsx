@@ -807,6 +807,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
     const trainerSeriesColor = metric === "porEntrenador" ? trainerColorByInitials.get(name) : undefined;
     if (trainerSeriesColor) return trainerSeriesColor;
     if (seriesColors?.[name]) return seriesColors[name];
+    if (metric === "facturacion" && desglose === "turno" && TURNO_BAR_COLORS[name]) return TURNO_BAR_COLORS[name];
     if (metric === "porEntrenador") {
       if (name === "Total") return "#94a3b8"; // neutro cuando no hay selección
       const c = trainerColorByInitials.get(name);
@@ -1098,7 +1099,7 @@ function ComparisonModule({ month, sessions: filteredSessions, totalSessions, tr
         <div className="h-[420px] overflow-x-hidden">
           <div
             className="h-full"
-            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 80, 400) }}
+            style={desglose === "franja" || trainerSeries ? undefined : { minWidth: Math.max(rows.length * 80, 240) }}
           >
           {rows.length === 0 ? (
             <div className="h-full flex items-center justify-center text-sm text-muted-foreground">Sin datos para esta combinación.</div>
@@ -2328,7 +2329,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
   }, [matrix.colLabels.length, matrix.rowLabels.length, narrow]);
   const groupW = matrix.trainerGroups ? (narrow ? 84 : 144) : 0;
   const labelW = matrix.trainerGroups ? (narrow ? 58 : 72) : (narrow ? 40 : 48);
-  const mediaW = narrow ? 52 : 64;
+  const mediaW = narrow ? 68 : 72;
   const colW = 60;
   // La media es por mes: la columna «Total» no entra en el cálculo.
   const monthCols = matrix.colLabels.map((c, j) => (c === "Total" ? -1 : j)).filter((j) => j >= 0);
@@ -2382,7 +2383,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
                   title={`${r} · Media: ${fmtVal(means[i], matrix.unit)}`}
                 >
                   <span
-                    className="block rounded-md px-1.5 py-1.5"
+                    className="block whitespace-nowrap rounded-md px-1 py-1.5"
                     style={{
                       backgroundColor: means[i] === 0 ? "#f1f5f9" : mixWhite(MEDIA_HEAT_COLOR, 0.1 + (meanMax > 0 ? means[i] / meanMax : 0) * 0.6),
                       color: "var(--heatmap-value-foreground, #111827)",
@@ -2397,7 +2398,7 @@ function HeatmapTable({ matrix, trainerColors }: { matrix: MatrixData; trainerCo
                     <td
                       key={j}
                       className="rounded-md px-1.5 py-1.5 text-center text-xs font-semibold tabular-nums"
-                      style={{ backgroundColor: bg, color: matrix.trainerGroups ? "var(--heatmap-value-foreground, #111827)" : dark ? "#ffffff" : "var(--color-foreground)" }}
+                      style={{ backgroundColor: bg, color: matrix.trainerGroups ? "var(--heatmap-value-foreground, #111827)" : dark ? "#ffffff" : "var(--heatmap-value-foreground, #111827)" }}
                       title={`${matrix.trainerGroups ? `${matrix.trainerGroups[Math.floor(i / 2)].name} · ` : ""}${r} · ${matrix.colLabels[j]}: ${fmtVal(v, matrix.unit)}`}
                     >
                       {v === 0 ? "" : fmtVal(v, matrix.unit)}
