@@ -2244,7 +2244,7 @@ function HeatmapTable({ matrix }: { matrix: MatrixData }) {
                 style={{ width: 96 }}
               />
               {matrix.colLabels.map((c) => (
-                <th key={c} className="px-1.5 py-1 text-[11px] font-semibold text-muted-foreground whitespace-nowrap">
+                <th key={c} className="px-1.5 py-1 text-[11px] font-semibold text-muted-foreground whitespace-normal break-words leading-tight align-bottom">
                   {c}
                 </th>
               ))}
