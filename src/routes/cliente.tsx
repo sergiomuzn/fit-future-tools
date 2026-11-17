@@ -26,7 +26,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import {
   accesoIncluyeGrupos,
-  accesoIncluyePersonal,
 
   type ClaseGrupal,
   type ResumenCliente,
@@ -104,7 +103,9 @@ function ClientePortal() {
   });
 
   const verGrupos = accesoIncluyeGrupos(profile?.acceso);
-  const verPersonal = accesoIncluyePersonal(profile?.acceso);
+  // Las sesiones reservadas a nombre del cliente (por el centro o por él) se
+  // muestran siempre, sea cual sea su tipo de acceso.
+  const verPersonal = !!profile;
 
   const { data: resumen } = useQuery({
     queryKey: ["portal-resumen"],
@@ -275,7 +276,7 @@ function ClientePortal() {
   const idsReservados = new Set(misReservas.map((c) => c.miSesionId).filter(Boolean) as string[]);
   const personalesUnicas = personales.filter((s) => !idsReservados.has(s.id));
 
-  const defaultTab = verGrupos ? "calendario" : "reservas";
+  const defaultTab = "calendario";
   const activeTab = ["calendario", "reservas", "bono"].includes(tab) ? tab : defaultTab;
 
   // Al cambiar de pestaña se recargan los datos para mostrar siempre la información actualizada.
@@ -327,13 +328,13 @@ function ClientePortal() {
       <main className="mx-auto max-w-3xl px-4 py-4">
         <Tabs value={activeTab} onValueChange={handleTabChange}>
           <TabsList className="mb-4">
-            {verGrupos && <TabsTrigger value="calendario">Calendario</TabsTrigger>}
+            <TabsTrigger value="calendario">Calendario</TabsTrigger>
             <TabsTrigger value="reservas">Mis reservas</TabsTrigger>
             <TabsTrigger value="bono">Mi bono</TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendario">
-            {isLoading ? (
+            {isLoading && verGrupos ? (
               <p className="text-sm text-muted-foreground">Cargando clases…</p>
             ) : (
               <CalendarioClases
