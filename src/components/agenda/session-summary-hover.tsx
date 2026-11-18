@@ -29,7 +29,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
     return () => mq.removeEventListener("change", sync);
   }, []);
   return (
-    <HoverCard openDelay={150} closeDelay={60}>
+    <HoverCard openDelay={700} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent side={narrow ? "bottom" : "right"} align="start" sideOffset={8} className="group w-60 rounded-xl border-0 p-0 shadow-xl">
         {/* Tail pointing at the session this summary comes from */}
@@ -51,7 +51,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
             {horario}{entrenador ? ` · ${entrenador}` : ""}
           </div>
         </div>
-        {nombres.length > 0 && <div className="px-3.5 py-2.5">
+        <div className="px-3.5 py-2.5">
           <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             <Users className="h-3 w-3" /> Clientes reservados
           </div>
@@ -60,7 +60,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
               <li key={i} className="truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">{formatNameTitle(n)}</li>
             ))}
           </ul>
-        </div>}
+        </div>
         {notaTxt && (
           <div className="border-t px-3.5 py-2.5">
             <div className="mb-1.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
