@@ -1,6 +1,25 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits, resizeClientPickerRows } from "./session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits, resizeClientPickerRows, retainSessionEditorRows } from "./session-draft-clients";
+
+test("an empty editor keeps Daniel only in the sixth row throughout cache refresh and save completion", () => {
+  const initial = retainSessionEditorRows<{ client_id: string }>( { key: null, rows: [] }, "empty-session", []);
+  const draft = [null, null, null, null, null, "Daniel Aguado"];
+  for (const refreshed of [[{ client_id: "Daniel Aguado" }], [{ client_id: "Daniel Aguado" }]]) {
+    const snapshot = retainSessionEditorRows(initial, "empty-session", refreshed);
+    const visible = [...snapshot.rows.map((r) => r.client_id), ...resizeClientPickerRows(draft, 6 - snapshot.rows.length)];
+    deepStrictEqual(visible, draft);
+    strictEqual(visible.filter((id) => id === "Daniel Aguado").length, 1);
+  }
+});
+test("reopening loads the saved client once in the first place", () => {
+  const closed = retainSessionEditorRows({ key: "session", rows: [] as { client_id: string }[] }, null, []);
+  const reopened = retainSessionEditorRows(closed, "session", [{ client_id: "Daniel Aguado" }]);
+  deepStrictEqual([...reopened.rows.map((r) => r.client_id), ...resizeClientPickerRows([], 6 - reopened.rows.length)], ["Daniel Aguado", null, null, null, null, null]);
+});
+test("switching sessions initializes only the new session's membership", () => {
+  deepStrictEqual(retainSessionEditorRows({ key: "first", rows: ["first-client"] }, "second", ["second-client"]).rows, ["second-client"]);
+});
 
 test("Daniel in the third place leaves the second place empty when rows refresh", () => {
   const freeRows = [null, "Daniel Aguado", null, null, null];

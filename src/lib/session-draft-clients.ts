@@ -9,6 +9,11 @@ export interface DraftCancellation {
   incidencia?: string;
 }
 
+/** Live cache rows only initialize an editor; refreshes cannot alter its draft. */
+export function retainSessionEditorRows<T>(snapshot: { key: string | null; rows: T[] }, key: string | null, rows: T[]) {
+  return snapshot.key === key ? snapshot : { key, rows: key === null ? [] : [...rows] };
+}
+
 /** Resize free rows without moving a selected client into an earlier empty row. */
 export function resizeClientPickerRows(selected: (string | null)[], count: number) {
   const next = [...selected];

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal, UserMinus, Ban, Pencil } from "lucide-react";
 import { toast } from "sonner";
@@ -26,7 +26,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
-import { cancelDraftClient, resizeClientPickerRows, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancelDraftClient, resizeClientPickerRows, retainSessionEditorRows, type DraftCancellation } from "@/lib/session-draft-clients";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
 type Pestana = "reservados" | "cola" | "cancelados";
@@ -145,15 +145,18 @@ export function HuecoPanel({
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
-  const savingReservas = useRef<PanelReserva[]>([]);
+  const [reservasSnapshot, setReservasSnapshot] = useState<{ key: string | null; rows: PanelReserva[] }>({ key: null, rows: [] });
+  const editorKey = inst ? `${inst.id}|${inst.fecha}` : null;
+  const editorSnapshot = retainSessionEditorRows(reservasSnapshot, editorKey, reservas);
+  // Reset with the editor identity, not with saving: successful cache writes
+  // must never become extra rows in the still-visible draft or closing frame.
+  if (editorSnapshot !== reservasSnapshot) setReservasSnapshot(editorSnapshot);
   // Una fila reutilizada para otro cliente se muestra con su cliente nuevo hasta que llega el refresco.
   const reservasAll = useMemo(() => {
-    // The returned booking rows can reach the Agenda cache before Save closes
-    // this panel. Keep its pre-save rows so new clients aren't shown twice.
-    const source = saving ? savingReservas.current : reservas;
+    const source = editorSnapshot.rows;
     const vigentes = source.map((r) => pendientes.find((x) => x.id === r.id) ?? r);
     return [...vigentes, ...pendientes.filter((p) => !source.some((r) => r.id === p.id))];
-  }, [reservas, pendientes, saving]);
+  }, [editorSnapshot.rows, pendientes]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   const puedeMarcarPorConfirmar = canEditSessionPending(estado, reservasVisibles.some((r) => r.online === true), porConfirmarInicial);
   async function quitarCliente(reserva: PanelReserva) {
@@ -269,7 +272,6 @@ export function HuecoPanel({
       toast.error("Revisa las horas de la sesión");
       return;
     }
-    savingReservas.current = reservas;
     setSaving(true);
     try {
       const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), noContabilizar: noContLocal, plazas: plazasOverride });
