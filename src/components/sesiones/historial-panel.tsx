@@ -2,7 +2,7 @@ import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
 import { useBehaviorConfig } from "@/lib/behavior-config";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, type Group, ESTADO_LABEL } from "@/lib/db";
+import { supabase, type Session, type Client, type Trainer, type ClientBono, type BonoCatalogo, ESTADO_LABEL } from "@/lib/db";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -16,11 +16,16 @@ import { normalizeText, formatDateShort, formatNameTitle } from "@/lib/utils";
 import { ExpandableSearch } from "@/components/expandable-search";
 import { ClientDetailsDialog } from "@/components/clients/client-details-dialog";
 import { useServicios } from "@/lib/servicios";
+import { useCenterConfig } from "@/lib/center-schedule";
+import { servicioColorOf, chipStyle } from "@/lib/colors";
+import { historySessionClientIds } from "@/lib/history-session-clients";
+import { HistoryClientNames } from "./history-client-names";
 
 
 export function HistorialPanel() {
   const qc = useQueryClient();
   const behavior = useBehaviorConfig();
+  const { colores } = useCenterConfig();
   const today = new Date().toISOString().slice(0, 10);
   const [search, setSearch] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -61,16 +66,11 @@ export function HistorialPanel() {
     queryKey: ["bonos_catalogo"],
     queryFn: async () => (await supabase.from("bonos_catalogo").select("*").order("orden")).data as BonoCatalogo[] ?? [],
   });
-  const { data: groups = [] } = useQuery({
-    queryKey: ["groups"],
-    queryFn: async () => (await supabase.from("groups").select("*")).data as Group[] ?? [],
-  });
 
   const { data: servicios = [] } = useServicios();
   const clientMap = new Map(clients.map((c) => [c.id, c]));
   const trainerMap = new Map(trainers.map((t) => [t.id, t]));
   const catalogoMap = new Map(catalogo.map((b) => [b.id, b]));
-  const groupMap = new Map(groups.map((g) => [g.id, g]));
   const servMap = new Map(servicios.map((sv) => [sv.slug, sv.nombre]));
   // Servicio del bono activo por cliente (fallback: más reciente por created_at)
   const clientBonoServicio = new Map<string, string>();
@@ -87,12 +87,11 @@ export function HistorialPanel() {
     return null;
   };
 
-  // Nombre a mostrar: si es grupo, nombre del grupo; si no, cliente o título.
+  const clientsForSession = (s: Session): Client[] => historySessionClientIds(blocks.get(sessionBlockKey(s)) ?? [s])
+    .flatMap((id) => { const client = clientMap.get(id); return client ? [client] : []; });
+  // Search/export include every client in the exact history block.
   const nameForSession = (s: Session): string => {
-    if (s.ocupacion === 2) {
-      return (s.group_id ? groupMap.get(s.group_id)?.nombre : null) ?? s.titulo ?? "Grupo";
-    }
-    return (s.client_id ? formatNameTitle(clientMap.get(s.client_id)?.nombre) : s.titulo) ?? "—";
+    return clientsForSession(s).map((client) => formatNameTitle(client.nombre)).join(", ") || "—";
   };
 
   const blocks = new Map<string, Session[]>();
@@ -220,7 +219,7 @@ export function HistorialPanel() {
             <TableRow>
               <TableHead>Fecha</TableHead>
               <TableHead>Hora</TableHead>
-              <TableHead>Cliente / Grupo</TableHead>
+              <TableHead>Clientes</TableHead>
               <TableHead>Servicio</TableHead>
               <TableHead>Entrenador</TableHead>
               <TableHead>Estado</TableHead>
@@ -232,14 +231,12 @@ export function HistorialPanel() {
               <TableRow key={s.id}>
                  <TableCell className="whitespace-nowrap">{formatDateShort(s.fecha)}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
-                <TableCell>{s.client_id && clientMap.get(s.client_id) ? (
-                  <button type="button" className="hover:underline text-left" onClick={() => setPerfilCliente(clientMap.get(s.client_id!) ?? null)}>{nameForSession(s)}</button>
-                ) : nameForSession(s)}</TableCell>
+                <TableCell><HistoryClientNames clients={clientsForSession(s)} onSelect={setPerfilCliente} /></TableCell>
                 <TableCell>
                   {(() => {
                     const sl = servicioForSession(s);
                     return sl ? (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground border">
+                      <span className="whitespace-nowrap text-xs px-2 py-0.5 rounded-full font-medium" style={chipStyle(servicioColorOf(colores, sl) ?? "var(--muted-foreground)")}>
                         {servMap.get(sl) ?? sl}
                       </span>
                     ) : (

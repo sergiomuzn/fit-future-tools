@@ -1,0 +1,1 @@
+- History client lists use exact session blocks and measured name widths; overflow opens individual profile links without changing attendance or accounting.
