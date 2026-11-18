@@ -10,6 +10,8 @@ type Props = {
   placeholder?: string;
   className?: string;
   inputClassName?: string;
+  /** Shared tab searches must commit before their input is unmounted. */
+  debounceMs?: number;
 };
 
 /** Buscador compacto: solo la lupa; al pincharla se despliega el campo. */
@@ -19,8 +21,9 @@ export function ExpandableSearch({
   placeholder = "Buscar...",
   className,
   inputClassName,
+  debounceMs = 150,
 }: Props) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(Boolean(value));
   // Texto local: las letras aparecen al instante y la lista se filtra
   // un momento después, sin bloquear la escritura.
   const [text, setText] = React.useState(value);
@@ -52,7 +55,7 @@ export function ExpandableSearch({
   function emit(v: string, immediate = false) {
     setText(v);
     if (timer.current) clearTimeout(timer.current);
-    if (immediate) {
+    if (immediate || debounceMs === 0) {
       timer.current = null;
       onChange(v);
       return;
@@ -60,7 +63,7 @@ export function ExpandableSearch({
     timer.current = setTimeout(() => {
       timer.current = null;
       onChange(v);
-    }, 150);
+    }, debounceMs);
   }
 
   function close() {

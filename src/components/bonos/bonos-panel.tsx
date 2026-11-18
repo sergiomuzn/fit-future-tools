@@ -37,7 +37,7 @@ const BONO_COLUMNS = [
   { key: "fecha", label: "Fecha de bono" },
 ];
 
-export function BonosPanel() {
+export function BonosPanel({ search, onSearchChange }: { search: string; onSearchChange: (value: string) => void }) {
   const { confirm, dialog } = useConfirm();
   const qc = useQueryClient();
   const { colores: tipoColores } = useCenterConfig();
@@ -46,7 +46,8 @@ export function BonosPanel() {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<ClientBono | null>(null);
   const [sortBy, setSortBy] = useState<"nombre" | "estado">("nombre");
-  const [q, setQ] = useState("");
+  const q = search;
+  const setQ = onSearchChange;
   const deferredQ = useDeferredValue(q);
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -259,7 +260,7 @@ export function BonosPanel() {
       {dialog}
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <ExpandableSearch value={q} onChange={setQ} />
+          <ExpandableSearch value={q} onChange={setQ} debounceMs={0} />
           <Button
             variant={filtersOpen ? "secondary" : "outline"}
             size="icon"

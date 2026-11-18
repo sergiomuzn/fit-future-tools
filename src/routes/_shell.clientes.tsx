@@ -36,6 +36,7 @@ import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
 import { useColumnVisibility } from "@/components/columns-menu";
+import { clientTabSearch } from "@/lib/client-tab-search";
 
 const CLIENT_COLUMNS = [
   { key: "servicio", label: "Servicio" },
@@ -275,7 +276,7 @@ function ClientesPage() {
           </TooltipProvider>
         </div>
       </div>
-      <Tabs value={tab} onValueChange={(v) => { setQ(""); setTab(v as "clientes" | "accesos" | "bonos"); }}>
+      <Tabs value={tab} onValueChange={(v) => { setQ((query) => clientTabSearch(query, tab, v)); setTab(v as "clientes" | "accesos" | "bonos"); }}>
         <TabsList>
           <TabsTrigger value="clientes">Clientes</TabsTrigger>
           <TabsTrigger value="bonos">Bonos</TabsTrigger>
@@ -284,7 +285,7 @@ function ClientesPage() {
 <TabsContent value="clientes" className="space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <ExpandableSearch value={q} onChange={setQ} />
+          <ExpandableSearch value={q} onChange={setQ} debounceMs={0} />
           <Button
             variant={filtersOpen ? "secondary" : "outline"}
             size="icon"
@@ -479,7 +480,7 @@ function ClientesPage() {
       </div>
         </TabsContent>
         <TabsContent value="bonos" className="space-y-4">
-          <BonosPanel />
+          <BonosPanel search={q} onSearchChange={setQ} />
         </TabsContent>
         <TabsContent value="accesos" className="space-y-4">
           <AccesosPanel />
