@@ -13,3 +13,8 @@ export function validCancellationReason(reason: string): boolean {
 export function withCancellationReason(message: string, reason?: string): string {
   return reason?.trim() ? `${message}\nMotivo: ${reason.trim()}` : message;
 }
+
+/** Título del cuadro «Cliente cancela»: «Sofía Ortega Gympass cancela su reserva». */
+export function clientCancellationTitle(nombre?: string | null): string {
+  return `${nombre?.trim() || "Cliente"} cancela su reserva`;
+}

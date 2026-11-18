@@ -27,6 +27,7 @@ import { automaticSessionState, clientCancellationFields } from "@/lib/session-s
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
 import { cancelDraftClient, resizeClientPickerRows, retainSessionEditorRows, type DraftCancellation } from "@/lib/session-draft-clients";
+import { clientCancellationTitle } from "@/lib/centre-cancellation";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
 type Pestana = "reservados" | "cola" | "cancelados";
@@ -245,7 +246,7 @@ export function HuecoPanel({
   async function pedirCancelacion(reserva: PanelReserva) {
     if (!reserva.client_id) return;
     let incidencia = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: reserva.clients?.nombre ?? reserva.titulo ?? "Cliente", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { incidencia = value; } } }))) return;
+    if (!(await confirm({ title: clientCancellationTitle(reserva.clients?.nombre ?? reserva.titulo), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { incidencia = value; } } }))) return;
     const cancellation: DraftCancellation = {
       id: reserva.id, sessionId: reserva.id, clientId: reserva.client_id,
       incidencia,
@@ -263,7 +264,8 @@ export function HuecoPanel({
 
   async function cancelarSeleccion(clientId: string, row: number) {
     let incidencia = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { incidencia = value; } } }))) return;
+    const nombre = allClients.find((c) => c.id === clientId)?.nombre;
+    if (!(await confirm({ title: clientCancellationTitle(nombre), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { incidencia = value; } } }))) return;
     const result = cancelDraftClient(pickerValues, draftCancelled, clientId, porConfirmar, behavior.cancelacionDefaultNoContabilizar, incidencia);
     setPickerValues(result.selected);
     setDraftCancelled(result.cancelled);

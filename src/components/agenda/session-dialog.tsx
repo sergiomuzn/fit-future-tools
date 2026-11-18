@@ -37,7 +37,7 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canEditSessionPending, isSelfBooking } from "./online-booking";
-import { requiresDeletionReason } from "@/lib/centre-cancellation";
+import { clientCancellationTitle, requiresDeletionReason } from "@/lib/centre-cancellation";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -311,7 +311,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function cancelarCliente(row: Session) {
     let note = "";
-    if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", description: "Solo se cancelará la reserva de este cliente.", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
+    const nombre = clientsForCancelled.find((c) => c.id === row.client_id)?.nombre;
+    if (!(await confirm({ title: clientCancellationTitle(nombre), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
     const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.id === session?.id ? incidencia : row.incidencia, note) } as Session;
     if (row.id === session?.id) setIncidencia(updated.incidencia ?? "");
     setCancelledIds((old) => [...old, row.id]);
@@ -326,7 +327,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={async () => { if (savedRow && !(await confirmOnlineRemoval(savedRow))) return; remove(); }}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       let note = "";
-      if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
+      const nombre = clientsForCancelled.find((c) => c.id === selectedId)?.nombre;
+      if (!(await confirm({ title: clientCancellationTitle(nombre), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
       const result = cancelDraftClient(grupo ? groupClientIds : [clientId], draftCancelled, selectedId, porConfirmar, behaviorCfg.cancelacionDefaultNoContabilizar, note);
       setDraftCancelled(result.cancelled);
       remove();
