@@ -9,6 +9,18 @@ export interface DraftCancellation {
   incidencia?: string;
 }
 
+/** Resize free rows without moving a selected client into an earlier empty row. */
+export function resizeClientPickerRows(selected: (string | null)[], count: number) {
+  const next = [...selected];
+  const size = Math.max(0, count);
+  while (next.length > size) {
+    const empty = next.lastIndexOf(null);
+    if (empty < 0) return next.slice(0, size);
+    next.splice(empty, 1);
+  }
+  return [...next, ...Array.from({ length: size - next.length }, () => null)];
+}
+
 /** Keep existing notes; a cancellation note belongs only to its client's row. */
 export function cancellationIncidence(existing: string | null | undefined, note: string | null | undefined) {
   return [existing?.trim(), note?.trim()].filter(Boolean).join("\n") || null;

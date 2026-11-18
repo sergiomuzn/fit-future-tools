@@ -1,6 +1,17 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits } from "./session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits, resizeClientPickerRows } from "./session-draft-clients";
+
+test("Daniel in the third place leaves the second place empty when rows refresh", () => {
+  const freeRows = [null, "Daniel Aguado", null, null, null];
+  deepStrictEqual(resizeClientPickerRows(freeRows, 5), freeRows);
+});
+test("growing the capacity preserves the empty rows before selected clients", () => {
+  deepStrictEqual(resizeClientPickerRows([null, "Daniel Aguado"], 4), [null, "Daniel Aguado", null, null]);
+});
+test("reducing capacity trims trailing empty rows before moving any selection", () => {
+  deepStrictEqual(resizeClientPickerRows([null, "Daniel Aguado", null, null], 3), [null, "Daniel Aguado", null]);
+});
 
 test("a cancellation incidence is not copied to future sessions", () => {
   const edits = sessionIncidenceEdits("Cliente enfermo", true);

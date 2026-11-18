@@ -38,3 +38,4 @@
 - Session editors stage all field, membership, cancellation and accounting edits locally until Save; only explicit session deletion is immediate, so closing an editor cannot persist partial configuration.
 - Cancellation notes live in each client's session incidence and in the local cancellation draft until Save; shared session edits must preserve them so mixed-block history and client calendars retain the correct note.
 - SessionDialog uses sessionIncidenceEdits to save the current edited note and omit incidence from future updates when the current individual session is cancelled, preventing cancellation notes from leaking into its series.
+- Freeze panel reservations during Save; preserve empty picker rows so cache refreshes never duplicate or move draft clients.

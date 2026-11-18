@@ -26,7 +26,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
-import { cancelDraftClient, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancelDraftClient, resizeClientPickerRows, type DraftCancellation } from "@/lib/session-draft-clients";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
 type Pestana = "reservados" | "cola" | "cancelados";
@@ -145,11 +145,15 @@ export function HuecoPanel({
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
+  const savingReservas = useRef<PanelReserva[]>([]);
   // Una fila reutilizada para otro cliente se muestra con su cliente nuevo hasta que llega el refresco.
   const reservasAll = useMemo(() => {
-    const vigentes = reservas.map((r) => pendientes.find((x) => x.id === r.id) ?? r);
-    return [...vigentes, ...pendientes.filter((p) => !reservas.some((r) => r.id === p.id))];
-  }, [reservas, pendientes]);
+    // The returned booking rows can reach the Agenda cache before Save closes
+    // this panel. Keep its pre-save rows so new clients aren't shown twice.
+    const source = saving ? savingReservas.current : reservas;
+    const vigentes = source.map((r) => pendientes.find((x) => x.id === r.id) ?? r);
+    return [...vigentes, ...pendientes.filter((p) => !source.some((r) => r.id === p.id))];
+  }, [reservas, pendientes, saving]);
   const reservasVisibles = reservasAll.filter((r) => !removedIds.includes(r.id));
   const puedeMarcarPorConfirmar = canEditSessionPending(estado, reservasVisibles.some((r) => r.online === true), porConfirmarInicial);
   async function quitarCliente(reserva: PanelReserva) {
@@ -223,13 +227,9 @@ export function HuecoPanel({
   const selectedNewCount = pickerValues.filter(Boolean).length;
   const places = sessionPlaces(capacidad, reservedSessionPlaces(reservasVisibles) + selectedNewCount);
   useEffect(() => {
-    // Conserva las selecciones en curso y recorta primero los buscadores vacíos.
-    setPickerValues((old) => {
-      const n = Math.max(0, capacidad - reservasVisibles.length);
-      const elegidos = old.filter(Boolean).slice(0, n);
-      return [...elegidos, ...Array.from({ length: n - elegidos.length }, () => null)];
-    });
-  }, [capacidad, reservasVisibles.length, inst?.id]);
+    if (saving) return;
+    setPickerValues((old) => resizeClientPickerRows(old, capacidad - reservasVisibles.length));
+  }, [capacidad, reservasVisibles.length, inst?.id, saving]);
 
   async function pedirCancelacion(reserva: PanelReserva) {
     if (!reserva.client_id) return;
@@ -269,6 +269,7 @@ export function HuecoPanel({
       toast.error("Revisa las horas de la sesión");
       return;
     }
+    savingReservas.current = reservas;
     setSaving(true);
     try {
       const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), noContabilizar: noContLocal, plazas: plazasOverride });
