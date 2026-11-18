@@ -37,6 +37,7 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { formatDateShort } from "@/lib/utils";
 import { activeTrainerOptions } from "@/lib/trainer-availability";
 import { canEditSessionPending, isSelfBooking } from "./online-booking";
+import { requiresDeletionReason } from "@/lib/centre-cancellation";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -77,6 +78,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [cancelledIds, setCancelledIds] = useState<string[]>([]);
   const [cancelledOverrides, setCancelledOverrides] = useState<Session[]>([]);
   const [draftCancelled, setDraftCancelled] = useState<DraftCancellation[]>([]);
+  const [removalReasons, setRemovalReasons] = useState<Record<string, string>>({});
   const [deleteAsk, setDeleteAsk] = useState(false);
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const notasRef = useRef<HTMLTextAreaElement>(null);
@@ -192,6 +194,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setCancelledIds([]);
     setCancelledOverrides([]);
     setDraftCancelled([]);
+    setRemovalReasons({});
     setClientId(session?.estado === "cancelada" ? null : session?.client_id ?? null);
     setTrainerId(session?.trainer_id ?? null);
     setEsPrueba(session?.estado === "prueba" || (session as any)?.tipo === "prueba");
@@ -320,7 +323,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   function clientMenu(selectedId: string | null, row: Session | undefined, remove: () => void) {
     if (!selectedId) return null;
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
-    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={remove}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={async () => { if (savedRow && !(await confirmOnlineRemoval(savedRow))) return; remove(); }}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       let note = "";
       if (!(await confirm({ title: "¿Cancelar la reserva de este cliente?", confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
@@ -328,6 +331,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       setDraftCancelled(result.cancelled);
       remove();
     }}><Ban />Cliente Cancela</DropdownMenuItem></DropdownMenuContent></DropdownMenu>;
+  }
+  async function confirmOnlineRemoval(row: Session): Promise<boolean> {
+    if (!isSelfBooking(row)) return true;
+    let motivo = "";
+    const ok = await confirm({ title: "¿Quitar a este cliente?", description: "Se cancelará la reserva que este cliente hizo de forma online y recibirá un aviso.", confirmText: "Quitar cliente", textInput: { label: "Motivo de la cancelación", required: true, onConfirm: (value) => { motivo = value.trim(); } } });
+    if (ok) setRemovalReasons((old) => ({ ...old, [row.id]: motivo }));
+    return ok;
   }
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
   const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).map((row) => cancelledOverrides.find((r) => r.id === row.id) ?? row).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
@@ -345,6 +355,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     if (!horaInicio || !horaFin || horaFin <= horaInicio) {
       toast.error("Revisa las horas de la sesión");
       return;
+    }
+    const saveRemovalReasons = { ...removalReasons };
+    const desiredClients = new Set(grupo ? groupClientIds.filter(Boolean) : [clientId]);
+    const affectedRows = [...(groupMembersData?.length ? groupMembersData : session.id ? [session as Session] : []), ...(scope === "future" ? futureSiblings : [])];
+    for (const row of affectedRows) {
+      if (!isSelfBooking(row) || row.estado === "cancelada" || cancelledIds.includes(row.id) || desiredClients.has(row.client_id)) continue;
+      if (!saveRemovalReasons[row.id]) {
+        const source = affectedRows.find((other) => other.client_id === row.client_id && saveRemovalReasons[other.id]);
+        if (source) saveRemovalReasons[row.id] = saveRemovalReasons[source.id];
+        else {
+          let motivo = "";
+          const ok = await confirm({ title: "Justificar la cancelación", description: "Se quitará una reserva online al guardar estos cambios.", confirmText: "Cancelar reserva", textInput: { label: "Motivo de la cancelación", required: true, onConfirm: (value) => { motivo = value.trim(); } } });
+          if (!ok) return;
+          saveRemovalReasons[row.id] = motivo;
+        }
+      }
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
@@ -585,14 +611,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
         // Quitar miembros eliminados.
         if (toRemove.length) {
-          const canceladas = toRemove
-            .filter((m) => !!(m as { booked_by_user_id?: string | null }).booked_by_user_id)
-            .map((m) => m.id);
+          const canceladas = toRemove.filter(isSelfBooking).map((m) => m.id);
           if (canceladas.length) {
             try {
-              await notificarReservasCanceladas({ data: { sessionIds: canceladas } });
-            } catch {
-              /* el aviso es best-effort */
+              for (const id of canceladas) await notificarReservasCanceladas({ data: { sessionIds: [id], motivo: saveRemovalReasons[id] } });
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "No se pudo guardar el motivo de la cancelación");
+              return;
             }
           }
           await supabase.from("sessions").delete().in("id", toRemove.map((m) => m.id));
@@ -661,6 +686,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               if (eIns) updateErr = eIns;
             }
             if (removeIds2.length) {
+              for (const row of rows.filter((row) => removeIds2.includes(row.id) && isSelfBooking(row))) {
+                try { await notificarReservasCanceladas({ data: { sessionIds: [row.id], motivo: saveRemovalReasons[row.id] } }); }
+                catch (error) { toast.error(error instanceof Error ? error.message : "No se pudo guardar el motivo de la cancelación"); return; }
+              }
               await supabase.from("sessions").delete().in("id", removeIds2);
             }
             // Si el grupo queda vacío en esta fecha, mantener un placeholder.
@@ -686,6 +715,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
       } else {
         // Sesión individual.
+        if (session.id && session.client_id !== clientId && isSelfBooking(session as Session) && !cancelledIds.includes(session.id) && session.estado !== "cancelada") {
+          await notificarReservasCanceladas({ data: { sessionIds: [session.id], motivo: saveRemovalReasons[session.id] } });
+        }
         const cancelledRow = cancelledRows.find((r) => r.id === session.id);
         const incidenceEdits = sessionIncidenceEdits(base.incidencia, !!cancelledRow);
         const payload = { ...base, ...incidenceEdits.current, estado: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? "cancelada" as SesionEstado : estadoForDate(session.fecha!), no_contabilizar: cancelledRow?.no_contabilizar ?? false, client_id: session.estado === "cancelada" || cancelledIds.includes(session.id ?? "") ? session.client_id : clientId };
@@ -805,14 +837,26 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function doDelete(scope: "one" | "future") {
     if (!session?.id) return;
+    const deletionRows = scope === "future" ? [...filasReserva, ...futureSiblings] : filasReserva;
+    let motivo = "";
+    if (requiresDeletionReason(deletionRows as Session[])) {
+      const ok = await confirm({ title: "Justificar la eliminación", description: "Se cancelarán las reservas online confirmadas de esta sesión y se avisará a los clientes.", confirmText: "Eliminar", textInput: { label: "Motivo de la eliminación", required: true, onConfirm: (value) => { motivo = value.trim(); } } });
+      if (!ok) return;
+    }
+    const confirmedOnline = deletionRows.filter((row) => isSelfBooking(row as Session) && !row.por_confirmar && row.estado !== "cancelada");
+    if (confirmedOnline.length) {
+      try { for (let i = 0; i < confirmedOnline.length; i += 50) await notificarReservasCanceladas({ data: { sessionIds: confirmedOnline.slice(i, i + 50).map((row) => row.id), motivo } }); }
+      catch (error) { return toast.error(error instanceof Error ? error.message : "No se pudo enviar el motivo de la cancelación"); }
+    }
     // Cerrar al instante: el borrado continúa en segundo plano.
     setDeleteAsk(false);
     onClose();
-    if (pendientesIds.length) {
-      quitarAvisosPendientes(pendientesIds);
+    const pendingDeletionIds = deletionRows.filter((row) => row.por_confirmar && isSelfBooking(row as Session)).map((row) => row.id);
+    if (pendingDeletionIds.length) {
+      quitarAvisosPendientes(pendingDeletionIds);
       // Denegar primero para avisar al cliente y liberar la plaza a la cola.
       await Promise.all(
-        pendientesIds.map((id) =>
+        pendingDeletionIds.map((id) =>
           resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {}),
         ),
       );
@@ -924,16 +968,10 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                           const reserva = (groupMembersData ?? []).find(
                             (m) =>
                               m.client_id === cid &&
-                              !!(m as { booked_by_user_id?: string | null }).booked_by_user_id,
+                              isSelfBooking(m),
                           );
                           if (reserva) {
-                            const ok = await confirm({
-                              title: "¿Quitar a este cliente?",
-                              description:
-                                "Este cliente reservó esta sesión desde su portal. Si lo quitas, se cancelará su reserva y recibirá un aviso.",
-                              confirmText: "Quitar",
-                            });
-                            if (!ok) return;
+                            if (!(await confirmOnlineRemoval(reserva))) return;
                           }
                         }
                         setGroupClientIds((prev) => prev.map((p, idx) => (idx === i ? id : p)));
@@ -952,7 +990,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   value={clientId}
                   showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                   servicioSlug={servicioSlug}
-                  onChange={(id) => setClientId(id)}
+                  onChange={async (id) => { if (clientId && id !== clientId && session?.id && !(await confirmOnlineRemoval(session as Session))) return; setClientId(id); }}
                   autoFocus={isNew}
                   initialText={nombreLibre}
                   onTextChange={(t) => setNombreLibre(t)}

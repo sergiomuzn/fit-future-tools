@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { validCancellationReason } from "@/lib/centre-cancellation";
 
 type ConfirmOptions = {
   title?: string;
@@ -18,7 +19,7 @@ type ConfirmOptions = {
   confirmText?: string;
   cancelText?: string;
   destructive?: boolean;
-  textInput?: { label: string; onConfirm: (value: string) => void };
+  textInput?: { label: string; required?: boolean; onConfirm: (value: string) => void };
 };
 
 /**
@@ -42,6 +43,7 @@ export function useConfirm() {
   }, []);
 
   const close = (value: boolean) => {
+    if (value && opts.textInput?.required && !validCancellationReason(text)) return;
     if (value) opts.textInput?.onConfirm(text);
     setOpen(false);
     resolver.current?.(value);
@@ -63,6 +65,7 @@ export function useConfirm() {
             {opts.cancelText ?? "Cancelar"}
           </AlertDialogCancel>
           <AlertDialogAction
+            disabled={!!opts.textInput?.required && !validCancellationReason(text)}
             className={opts.destructive === false ? undefined : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
             onClick={() => close(true)}
           >

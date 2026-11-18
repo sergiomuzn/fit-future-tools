@@ -3,13 +3,17 @@ import { commitAgendaRows, removeAgendaRows } from "@/lib/agenda-session-cache";
 import { cancellationIncidence, sessionDraftChanges } from "@/lib/session-draft-clients";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { notificarReservasCanceladas, notificarSesionesAsignadas, ofrecerPlazasLiberadas } from "@/lib/notificaciones.functions";
-import { sessionQueueKey } from "./online-booking";
+import { isSelfBooking, sessionQueueKey } from "./online-booking";
+import { validCancellationReason } from "@/lib/centre-cancellation";
 import type { HuecoPanelDraft } from "./hueco-panel";
 import type { QueryClient } from "@tanstack/react-query";
 
 /** Called only by Save: edit-time actions never write rows or emit notices. */
 export async function saveSessionClients(qc: QueryClient, rows: Session[], draft: HuecoPanelDraft, base: Session) {
   const changes = sessionDraftChanges(rows, draft.removedSessionIds, draft.cancelledClients);
+  for (const row of changes.removed) {
+    if (isSelfBooking(row) && !validCancellationReason(draft.removalReasons?.[row.id] ?? "")) throw new Error("Indica el motivo de la cancelación de la reserva online.");
+  }
   let next = [...rows];
   const notices: string[] = [];
   const queueKeys = new Set<string>();
@@ -36,8 +40,8 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
     const others = next.filter((r) => r.id !== original.id && r.client_id && r.estado !== "cancelada" && !draft.removedSessionIds.includes(r.id));
     const keepsCancellation = next.some((r) => r.estado === "cancelada") || newCancellations.length > 0;
     const action = clientRemovalAction(!!base.slot_instance_id, others.length, keepsCancellation);
-    if (original.booked_by_user_id) {
-      await notificarReservasCanceladas({ data: { sessionIds: [original.id] } }).catch(() => {});
+    if (isSelfBooking(original)) {
+      await notificarReservasCanceladas({ data: { sessionIds: [original.id], motivo: draft.removalReasons?.[original.id] } });
     }
     const key = sessionQueueKey(original); if (key) queueKeys.add(key);
     if (action === "clear") {

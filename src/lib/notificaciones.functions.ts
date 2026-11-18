@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { withCancellationReason } from "./centre-cancellation";
+import { isSelfBooking } from "@/components/agenda/online-booking";
 
 /**
  * Avisa a los clientes cuyas reservas han sido canceladas por el administrador.
@@ -9,7 +11,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 export const notificarReservasCanceladas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ sessionIds: z.array(z.string().uuid()).min(1).max(50) }).parse(d),
+    z.object({ sessionIds: z.array(z.string().uuid()).min(1).max(50), motivo: z.string().trim().optional() }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -25,7 +27,7 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
 
     const { data: rows } = await supabaseAdmin
       .from("sessions")
-      .select("id,fecha,hora_inicio,titulo,servicio_slug,booked_by_user_id,por_confirmar,group_id,trainer_id,slot_instance_id")
+      .select("id,fecha,hora_inicio,titulo,servicio_slug,client_id,estado,booking_tipo,booked_by_user_id,por_confirmar,group_id,trainer_id,slot_instance_id")
       .in("id", data.sessionIds);
     const { data: cfgRow } = await supabaseAdmin
       .from("center_config")
@@ -43,7 +45,7 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
     const nombreServicio = new Map((servicios ?? []).map((s) => [s.slug, s.nombre]));
 
     const items = (rows ?? [])
-      .filter((r) => !!r.booked_by_user_id)
+      .filter(isSelfBooking)
       .map((r) => {
         const donde =
           (r.servicio_slug ? nombreServicio.get(r.servicio_slug) : null) ?? r.titulo ?? "tu sesión";
@@ -54,14 +56,14 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
             userId: r.booked_by_user_id,
             tipo: "reserva_denegada",
             titulo: "Reserva no confirmada",
-            mensaje: `${centroNombre} no ha podido confirmar tu reserva de ${donde} el ${cuando}`,
+            mensaje: withCancellationReason(`${centroNombre} no ha podido confirmar tu reserva de ${donde} el ${cuando}`, data.motivo),
           };
         }
         return {
           userId: r.booked_by_user_id,
           tipo: "reserva_cancelada",
           titulo: "Reserva cancelada por el centro",
-          mensaje: `en ${donde} (${describeSesion(r.fecha, r.hora_inicio)})`,
+          mensaje: withCancellationReason(`en ${donde} (${describeSesion(r.fecha, r.hora_inicio)})`, data.motivo),
         };
       });
 

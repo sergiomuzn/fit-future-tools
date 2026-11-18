@@ -24,6 +24,7 @@ import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { saveSessionClients } from "./save-session-clients";
 import type { Session } from "@/lib/db";
 import { isSelfBooking } from "./online-booking";
+import { requiresDeletionReason } from "@/lib/centre-cancellation";
 
 /** Sesión reservada asociada a un hueco propagado. */
 interface Reserva {
@@ -304,9 +305,19 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
   }
 
   async function deletePanelHueco(inst: SlotInstance) {
-    if (!(await confirmarEdicionReservadas([inst]))) return;
-    const ok = await confirm({ title: "¿Eliminar sesión?", description: "La sesión se eliminará de Reservas.", confirmText: "Eliminar" });
+    const { data: rows, error: readError } = await supabase.from("sessions").select("*").eq("slot_instance_id", inst.id);
+    if (readError) return toast.error(readError.message);
+    const online = (rows ?? []).filter((r) => isSelfBooking(r) && r.estado !== "cancelada");
+    let motivo = "";
+    const ok = await confirm({ title: "¿Eliminar sesión?", description: online.length ? "La sesión se eliminará de Reservas y se avisará a los clientes que reservaron online." : "La sesión se eliminará de Reservas.", confirmText: "Eliminar", textInput: requiresDeletionReason(online) ? { label: "Motivo de la eliminación", required: true, onConfirm: (value) => { motivo = value.trim(); } } : undefined });
     if (!ok) return;
+    if (online.length) {
+      try {
+        await notificarCanceladas({ data: { sessionIds: online.map((r) => r.id), motivo } });
+        const { error } = await supabase.from("sessions").delete().in("id", online.map((r) => r.id));
+        if (error) throw error;
+      } catch (error) { return toast.error(error instanceof Error ? error.message : "No se pudo cancelar la reserva"); }
+    }
     const { error } = await supabase.from("service_slot_instances").delete().eq("id", inst.id);
     if (error) return toast.error(error.message);
     setReservasDe(null);

@@ -1,5 +1,7 @@
 # Tareas
 
+- [x] Exigir justificación al eliminar sesiones con reservas online confirmadas o quitar clientes online; motivo conservado en el aviso, 44 pruebas correctas y retirada guardada/borrado comprobados con reserva temporal eliminada.
+
 - [x] Quitar «Modalidad» del selector Desglose de todas las métricas, conservando la casilla «Desglosar en modalidades» sobre Servicio; 3 pruebas nuevas y selector real comprobado en las 8 métricas, con split de servicio verificado.
 
 - [x] Separar entrenador y mes en comparativas por turno y día de la semana, conservar colores y convertir la segunda en líneas; 9 pruebas correctas y selección de uno/dos/tres entrenadores, cifras exportadas, móvil y ambos temas verificados.

@@ -56,6 +56,7 @@ export interface HuecoPanelDraft {
   plazas: number | null;
   cancelledClients: DraftCancellation[];
   removedSessionIds: string[];
+  removalReasons?: Record<string, string>;
   /** Valores de "No contabilizar" marcados antes de guardar (id de sesión → valor). */
   noContabilizar: Record<string, boolean>;
 }
@@ -144,6 +145,7 @@ export function HuecoPanel({
   const [servicioSlug, setServicioSlug] = useState("");
   const [perfilCliente, setPerfilCliente] = useState<Client | null>(null);
   const [removedIds, setRemovedIds] = useState<string[]>([]);
+  const [removalReasons, setRemovalReasons] = useState<Record<string, string>>({});
   const [pendientes, setPendientes] = useState<PanelReserva[]>([]);
   const [reservasSnapshot, setReservasSnapshot] = useState<{ key: string | null; rows: PanelReserva[] }>({ key: null, rows: [] });
   const editorKey = inst ? `${inst.id}|${inst.fecha}` : null;
@@ -161,7 +163,12 @@ export function HuecoPanel({
   const puedeMarcarPorConfirmar = canEditSessionPending(estado, reservasVisibles.some((r) => r.online === true), porConfirmarInicial);
   async function quitarCliente(reserva: PanelReserva) {
     // Confirmation is local; persistence belongs exclusively to Save.
-    if (reserva.online && await onCancelarReserva(reserva, () => {}) === false) return;
+    if (reserva.online) {
+      let reason = "";
+      const ok = await confirm({ title: "Cancelar la reserva", description: `Se cancelará la sesión que ${reserva.clients?.nombre ?? "este cliente"} reservó de forma online.`, confirmText: "Cancelar reserva", textInput: { label: "Motivo de la cancelación", required: true, onConfirm: (value) => { reason = value.trim(); } } });
+      if (!ok) return;
+      setRemovalReasons((old) => ({ ...old, [reserva.id]: reason }));
+    }
     setRemovedIds((old) => [...new Set([...old, reserva.id])]);
   }
   const { data: allClients = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data as Client[] ?? [] });
@@ -187,6 +194,7 @@ export function HuecoPanel({
     setDraftCancelled([]);
     setNoContLocal({});
     setRemovedIds([]);
+    setRemovalReasons({});
     setPendientes([]);
   }, [inst?.id, inst?.fecha]);
 
@@ -274,7 +282,7 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), noContabilizar: noContLocal, plazas: plazasOverride });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), removalReasons, noContabilizar: noContLocal, plazas: plazasOverride });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.

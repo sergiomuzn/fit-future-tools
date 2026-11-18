@@ -12,6 +12,7 @@ import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/l
 import { agendaBlockMembers } from "./use-online-bookings";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking } from "./online-booking";
+import { requiresDeletionReason } from "@/lib/centre-cancellation";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { commitAgendaRows, refreshAgenda, removeAgendaRows } from "@/lib/agenda-session-cache";
 import { useOnlineAgendaVisibility } from "./use-online-bookings";
@@ -1156,20 +1157,22 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   async function deleteFutureSessions(ps: Session) {
     if (!ps.recurrencia_id) return;
+    const { data: rows, error: readError } = await supabase.from("sessions").select("*").eq("recurrencia_id", ps.recurrencia_id).gte("fecha", ps.fecha).neq("estado", "realizada");
+    if (readError) return toast.error(readError.message);
+    const all = (rows ?? []) as Session[];
+    let motivo = "";
     const ok = await confirmPanel({
       title: "¿Eliminar sesiones futuras?",
       description: `Se eliminarán esta sesión y todas sus repeticiones desde el ${formatDateShort(ps.fecha)}. Las sesiones anteriores se conservan.`,
       confirmText: "Eliminar",
+      textInput: requiresDeletionReason(all) ? { label: "Motivo de la eliminación", required: true, onConfirm: (value) => { motivo = value.trim(); } } : undefined,
     });
     if (!ok) return;
     pendingPanelWrites.current += 1;
     setPanelSession(null);
     try {
-      const { data: rows, error: readError } = await supabase.from("sessions").select("id,booked_by_user_id,booking_tipo,por_confirmar").eq("recurrencia_id", ps.recurrencia_id).gte("fecha", ps.fecha).neq("estado", "realizada");
-      if (readError) throw readError;
-      const all = (rows ?? []) as any[];
       const portalIds = all.filter((row) => isPortalRow(row as Session)).map((row) => row.id as string);
-      if (portalIds.length) await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
+      for (let i = 0; i < portalIds.length; i += 50) await notificarReservasCanceladas({ data: { sessionIds: portalIds.slice(i, i + 50), motivo } });
       const ids = all.map((row) => row.id as string);
       if (ids.length) {
         removeAgendaRows(qc, ids);
@@ -1187,7 +1190,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
 
   async function deletePanelSession(ps: Session) {
     const ids = blockIds(ps.id);
-    const portalIds = sessions.filter((row) => ids.includes(row.id) && isPortalRow(row)).map((row) => row.id);
+    const block = sessions.filter((row) => ids.includes(row.id));
+    const portalIds = block.filter((row) => row.estado !== "cancelada" && isPortalRow(row)).map((row) => row.id);
+    let motivo = "";
     // El aviso de denegación solo aplica a reservas online pendientes; si el
     // centro marcó la sesión como "por confirmar" se elimina sin ese cuadro.
     const pendingIds = sessions.filter((row) => ids.includes(row.id) && row.por_confirmar && isSelfBooking(row)).map((row) => row.id);
@@ -1197,6 +1202,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         ? "Si eliminas esta sesión, se denegará la reserva pendiente y el cliente recibirá un aviso."
         : "La sesión se eliminará de la agenda.",
       confirmText: "Eliminar",
+      textInput: requiresDeletionReason(block) ? { label: "Motivo de la eliminación", required: true, onConfirm: (value) => { motivo = value.trim(); } } : undefined,
     });
     if (!ok) return;
     pendingPanelWrites.current += 1;
@@ -1207,9 +1213,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     try {
     if (pendingIds.length) {
       await Promise.all(pendingIds.map((id) => resolverReservaPendiente({ data: { sessionId: id, accion: "denegar" } }).catch(() => {})));
-    } else if (portalIds.length) {
-      await notificarReservasCanceladas({ data: { sessionIds: portalIds } }).catch(() => {});
     }
+    const confirmedIds = portalIds.filter((id) => !pendingIds.includes(id));
+    if (confirmedIds.length) await notificarReservasCanceladas({ data: { sessionIds: confirmedIds, motivo } });
     const { error } = await supabase.from("sessions").delete().in("id", ids);
     if (error) {
       commitAgendaRows(qc, removed);
