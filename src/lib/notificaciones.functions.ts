@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { withCancellationReason } from "./centre-cancellation";
+import { notifiesClientOnCancellation, withCancellationReason } from "./centre-cancellation";
 import { isSelfBooking } from "@/components/agenda/online-booking";
 
 /**
@@ -11,7 +11,12 @@ import { isSelfBooking } from "@/components/agenda/online-booking";
 export const notificarReservasCanceladas = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) =>
-    z.object({ sessionIds: z.array(z.string().uuid()).min(1).max(50), motivo: z.string().trim().optional() }).parse(d),
+    z.object({
+      sessionIds: z.array(z.string().uuid()).min(1).max(50),
+      motivo: z.string().trim().optional(),
+      // "cliente" = el centro ha marcado «Cliente cancela»: no se avisa al cliente.
+      origen: z.enum(["centro", "cliente"]).optional(),
+    }).parse(d),
   )
   .handler(async ({ data, context }) => {
     const { data: isAdmin } = await context.supabase.rpc("has_role", {
@@ -44,7 +49,10 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
       : { data: [] };
     const nombreServicio = new Map((servicios ?? []).map((s) => [s.slug, s.nombre]));
 
-    const items = (rows ?? [])
+    // Cuando el centro indica que ha cancelado el propio cliente, no se le envía
+    // ningún aviso: la plaza se libera igual y el aviso interno se resuelve.
+    const rowsToNotify = notifiesClientOnCancellation(data.origen) ? rows ?? [] : [];
+    const items = rowsToNotify
       .filter(isSelfBooking)
       .map((r) => {
         const donde =

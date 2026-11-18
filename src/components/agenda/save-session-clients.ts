@@ -90,7 +90,8 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
     if (removedIds.length) removeAgendaRows(qc, removedIds);
     if (committed.size) commitAgendaRows(qc, [...committed.values()]);
   }
-  if (notices.length) void notificarReservasCanceladas({ data: { sessionIds: notices } }).catch(() => {});
+  // El centro ha marcado que ha cancelado el propio cliente: no se le avisa.
+  if (notices.length) void notificarReservasCanceladas({ data: { sessionIds: notices, origen: "cliente" } }).catch(() => {});
   if (queueKeys.size) void ofrecerPlazasLiberadas({ data: { claves: [...queueKeys] } }).catch(() => {});
   return next;
 }

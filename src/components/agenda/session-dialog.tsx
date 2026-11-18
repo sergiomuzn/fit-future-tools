@@ -398,7 +398,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       const { error } = await supabase.from("sessions").update({ estado: "cancelada", por_confirmar: false, no_contabilizar: !!row.no_contabilizar, incidencia: row.id === session.id ? incidencia || null : row.incidencia }).eq("id", row.id);
       if (error) return toast.error(error.message);
     }
-    if (cancelledIds.length) void notificarReservasCanceladas({ data: { sessionIds: cancelledIds } }).then((r) => {
+    // El centro ha marcado que ha cancelado el propio cliente: no se le avisa.
+    if (cancelledIds.length) void notificarReservasCanceladas({ data: { sessionIds: cancelledIds, origen: "cliente" } }).then((r) => {
       if (r?.claves?.length) return import("@/lib/notificaciones.functions").then(({ ofrecerPlazasLiberadas }) => ofrecerPlazasLiberadas({ data: { claves: r.claves } }));
     }).catch(() => {});
 
