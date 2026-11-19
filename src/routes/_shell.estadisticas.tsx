@@ -354,7 +354,7 @@ function KpiPanel({ ym, onYmChange, sessions, totalSessions, clients, events, ho
       label: "Bajas del mes",
       value: String(bajasMes),
       hint: `Clientes que pasaron a inactivo`,
-      info: "Número de clientes marcados como inactivos durante el mes seleccionado. Si un cliente se reactiva, su baja deja de contar.",
+      info: "Número de clientes con bono contratado marcados como inactivos durante el mes seleccionado (los de solo prueba no cuentan). Si un cliente se reactiva, su baja deja de contar.",
     },
     {
       id: "facturacionMes",
@@ -580,7 +580,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
     altasBajas:
       "Altas y bajas por mes:\n" +
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
-      "• Bajas: clientes marcados como inactivos en el mes. Si un cliente se reactiva su baja deja de contar.",
+      "• Bajas: clientes con bono contratado marcados como inactivos en el mes (los de solo prueba no cuentan). Si un cliente se reactiva su baja deja de contar.",
     sexo:
       "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
     edad:

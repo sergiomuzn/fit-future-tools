@@ -350,8 +350,9 @@ export function BehaviorForm() {
             </li>
             <li>
               <b>Altas y bajas:</b> el primer bono (individual, pareja o grupal, no de prueba ni
-              pases genéricos) genera un <i>alta</i>. Marcar un cliente como inactivo registra una
-              <i> baja</i>; volver a activarlo la retira.
+              pases genéricos) genera un <i>alta</i>. Marcar como inactivo a un cliente dado de alta registra una
+              <i> baja</i>; volver a activarlo la retira. Los clientes que solo hicieron la prueba
+              pasan a inactivo sin contar como baja.
             </li>
             <li>
               <b>Sesiones de prueba:</b> al marcar la casilla <i>Sesión de prueba</i> en la agenda, el

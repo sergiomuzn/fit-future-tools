@@ -99,6 +99,13 @@
       "when": 1794269431724,
       "tag": "0013_session_plazas_override",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1795104184025,
+      "tag": "0014_baja_only_for_real_clients",
+      "breakpoints": true
     }
   ]
 }
