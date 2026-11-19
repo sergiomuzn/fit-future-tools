@@ -42,6 +42,16 @@ describe("bonoSesionesContratadas", () => {
     );
   });
 
+  test("un catálogo con 0 sesiones (Gympass) no cuenta: se usan las hechas y las que quedaban", () => {
+    strictEqual(
+      bonoSesionesContratadas(
+        { bono_catalogo_id: "pack-cero", sesiones_realizadas: 1, sesiones_disponibles: -2 },
+        catalogo,
+      ),
+      1,
+    );
+  });
+
   test("sin catálogo y sin sesiones, no se muestra nada", () => {
     strictEqual(
       bonoSesionesContratadas(
