@@ -8,6 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { enterToSave } from "@/lib/enter-to-save";
 import { supabase, prettyBonoNombre, colorEstadoFor, type Client, type ClientBono, type BonoCatalogo, type Session, type Invoice } from "@/lib/db";
+import { bonoSesionesContratadas } from "@/lib/bono-closed-sessions";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -480,9 +481,15 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                       {dayInvoices.map((iv) => {
                         const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
                         const cerrado = closedByDate.get(iv.fecha);
+                        const contratadas = cerrado ? bonoSesionesContratadas(cerrado, catMap) : null;
                         return (
                           <div key={iv.id}>
                             <div>{nombre}</div>
+                            {contratadas != null && (
+                              <div>
+                                Cerró con {contratadas} {contratadas === 1 ? "sesión" : "sesiones"}
+                              </div>
+                            )}
                             {cerrado && <div>Restantes al cerrar: {cerrado.sesiones_disponibles}</div>}
                           </div>
                         );
