@@ -36,7 +36,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
         <span
           aria-hidden
           className={cn(
-            "pointer-events-none absolute h-3 w-3 rotate-45 rounded-[2px] bg-primary",
+            "pointer-events-none absolute h-3 w-3 rotate-45 rounded-[2px] bg-primary group-data-[side=top]:bg-popover",
             tailTop,
             "group-data-[side=right]:-left-1 group-data-[side=left]:-right-1 group-data-[side=top]:top-auto group-data-[side=top]:-bottom-1 group-data-[side=top]:left-5 group-data-[side=bottom]:top-auto group-data-[side=bottom]:-top-1 group-data-[side=bottom]:left-5",
           )}
