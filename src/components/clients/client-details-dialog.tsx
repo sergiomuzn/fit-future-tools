@@ -482,8 +482,8 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                         const cerrado = closedByDate.get(iv.fecha);
                         return (
                           <div key={iv.id}>
-                            {nombre}
-                            {cerrado ? ` · Restantes al cerrar: ${cerrado.sesiones_disponibles}` : ""}
+                            <div>{nombre}</div>
+                            {cerrado && <div>Restantes al cerrar: {cerrado.sesiones_disponibles}</div>}
                           </div>
                         );
                       })}
