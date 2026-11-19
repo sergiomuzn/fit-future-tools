@@ -22,10 +22,13 @@ export function clientCancellationTitle(nombre?: string | null): string {
 /** Quién cerró la reserva: el centro o el propio cliente. */
 export type CancellationOrigin = "centro" | "cliente";
 
-/**
- * El cliente solo recibe un aviso cuando es el centro quien cancela su reserva.
- * Si el centro marca «Cliente cancela», el cliente ya sabe que ha cancelado él.
- */
-export function notifiesClientOnCancellation(origin: CancellationOrigin | undefined): boolean {
-  return (origin ?? "centro") !== "cliente";
+/** El cliente siempre recibe aviso; el texto depende de quién canceló. */
+export function cancellationNotice(origin: CancellationOrigin | undefined, donde: string, cuando: string) {
+  if (origin === "cliente") {
+    return {
+      titulo: "Cancelación gestionada por el centro",
+      mensaje: `Has cancelado tu reserva de ${donde} (${cuando}). El centro ha gestionado la cancelación por ti.`,
+    };
+  }
+  return { titulo: "Reserva cancelada por el centro", mensaje: `en ${donde} (${cuando})` };
 }

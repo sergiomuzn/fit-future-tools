@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { notifiesClientOnCancellation, withCancellationReason } from "./centre-cancellation";
+import { cancellationNotice, withCancellationReason } from "./centre-cancellation";
 import { isSelfBooking } from "@/components/agenda/online-booking";
 
 /**
@@ -14,7 +14,7 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
     z.object({
       sessionIds: z.array(z.string().uuid()).min(1).max(50),
       motivo: z.string().trim().optional(),
-      // "cliente" = el centro ha marcado «Cliente cancela»: no se avisa al cliente.
+      // "cliente" = el centro ha marcado «Cliente cancela»: se avisa de que lo gestionó por él.
       origen: z.enum(["centro", "cliente"]).optional(),
     }).parse(d),
   )
@@ -49,10 +49,7 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
       : { data: [] };
     const nombreServicio = new Map((servicios ?? []).map((s) => [s.slug, s.nombre]));
 
-    // Cuando el centro indica que ha cancelado el propio cliente, no se le envía
-    // ningún aviso: la plaza se libera igual y el aviso interno se resuelve.
-    const rowsToNotify = notifiesClientOnCancellation(data.origen) ? rows ?? [] : [];
-    const items = rowsToNotify
+    const items = (rows ?? [])
       .filter(isSelfBooking)
       .map((r) => {
         const donde =
@@ -67,11 +64,13 @@ export const notificarReservasCanceladas = createServerFn({ method: "POST" })
             mensaje: withCancellationReason(`${centroNombre} no ha podido confirmar tu reserva de ${donde} el ${cuando}`, data.motivo),
           };
         }
+        const aviso = cancellationNotice(data.origen, donde, describeSesion(r.fecha, r.hora_inicio));
         return {
           userId: r.booked_by_user_id,
           tipo: "reserva_cancelada",
-          titulo: "Reserva cancelada por el centro",
-          mensaje: withCancellationReason(`en ${donde} (${describeSesion(r.fecha, r.hora_inicio)})`, data.motivo),
+          titulo: aviso.titulo,
+          // La incidencia de «Cliente cancela» es interna del centro.
+          mensaje: data.origen === "cliente" ? aviso.mensaje : withCancellationReason(aviso.mensaje, data.motivo),
         };
       });
 
