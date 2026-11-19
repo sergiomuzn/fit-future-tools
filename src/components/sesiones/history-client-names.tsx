@@ -5,7 +5,7 @@ import { formatNameTitle } from "@/lib/utils";
 import { fittingHistoryClientCount } from "@/lib/history-session-clients";
 import type { Client } from "@/lib/db";
 
-export function HistoryClientNames({ clients, onSelect }: { clients: Client[]; onSelect: (client: Client) => void }) {
+export function HistoryClientNames({ clients, onSelect, fallback }: { clients: Client[]; onSelect: (client: Client) => void; fallback?: string | null }) {
   const container = useRef<HTMLDivElement>(null);
   const measurements = useRef<HTMLDivElement>(null);
   const [visibleCount, setVisibleCount] = useState(clients.length);
@@ -30,7 +30,7 @@ export function HistoryClientNames({ clients, onSelect }: { clients: Client[]; o
       {clients.map((client) => <span key={client.id} data-client-width className="text-sm font-medium">{formatNameTitle(client.nombre)}</span>)}
       <span data-overflow-width className="px-1 text-xs font-medium">+{clients.length}</span>
     </div>
-    {!clients.length && <span className="text-muted-foreground">—</span>}
+    {!clients.length && <span className={fallback ? "text-sm font-medium" : "text-muted-foreground"}>{fallback ? formatNameTitle(fallback) : "—"}</span>}
     {clients.slice(0, visibleCount).map((client) => <Button key={client.id} variant="link" className="h-auto shrink-0 p-0 text-sm font-medium text-foreground" onClick={() => onSelect(client)}>{formatNameTitle(client.nombre)}</Button>)}
     {remaining > 0 && <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild><Button variant="ghost" className="h-7 shrink-0 px-1 text-xs" aria-label={`Ver ${remaining} clientes más`}>+{remaining}</Button></PopoverTrigger>

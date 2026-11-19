@@ -91,7 +91,7 @@ export function HistorialPanel() {
     .flatMap((id) => { const client = clientMap.get(id); return client ? [client] : []; });
   // Search/export include every client in the exact history block.
   const nameForSession = (s: Session): string => {
-    return clientsForSession(s).map((client) => formatNameTitle(client.nombre)).join(", ") || "—";
+    return clientsForSession(s).map((client) => formatNameTitle(client.nombre)).join(", ") || (s.titulo ? formatNameTitle(s.titulo) : "—");
   };
 
   const blocks = new Map<string, Session[]>();
@@ -231,7 +231,7 @@ export function HistorialPanel() {
               <TableRow key={s.id}>
                  <TableCell className="whitespace-nowrap">{formatDateShort(s.fecha)}</TableCell>
                 <TableCell>{s.hora_inicio.slice(0,5)}</TableCell>
-                <TableCell><HistoryClientNames clients={clientsForSession(s)} onSelect={setPerfilCliente} /></TableCell>
+                <TableCell><HistoryClientNames clients={clientsForSession(s)} onSelect={setPerfilCliente} fallback={s.titulo} /></TableCell>
                 <TableCell>
                   {(() => {
                     const sl = servicioForSession(s);
