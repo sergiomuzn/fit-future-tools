@@ -6,9 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { supabase, type Client } from "@/lib/db";
+import { supabase, type Client, type ClientBono } from "@/lib/db";
 import { toast } from "sonner";
-import { normalizeText, formatNameTitle, rankByMatch } from "@/lib/utils";
+import { normalizeText, formatNameTitle, rankByMatchWithPreference } from "@/lib/utils";
+import { clientsWithServiceBono, partitionPreferred } from "@/lib/session-client-preference";
 import { enterToSave } from "@/lib/enter-to-save";
 import { SessionClientBalance } from "./session-client-balance";
 
@@ -46,6 +47,31 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
 
   const selected = clients.find((c) => c.id === value) ?? null;
 
+  // Bonos del centro: sirven para ofrecer antes a quien tiene contratado el
+  // servicio de la sesión. Se comparten con el resto de la app (misma clave).
+  const { data: bonos = [] } = useQuery({
+    queryKey: ["client_bonos"],
+    enabled: !!servicioSlug,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("client_bonos").select("*");
+      if (error) throw error;
+      return (data ?? []) as ClientBono[];
+    },
+  });
+  const { data: catalogo = [] } = useQuery({
+    queryKey: ["bonos_catalogo"],
+    enabled: !!servicioSlug,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("bonos_catalogo").select("*").order("orden");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+  const preferidos = useMemo(
+    () => clientsWithServiceBono(bonos, catalogo, servicioSlug),
+    [bonos, catalogo, servicioSlug],
+  );
+
   // Keep the input text in sync with the externally selected client so the
   // user can actually edit/delete the visible name (previously it was shown
   // only as placeholder, so backspacing did nothing and the field felt locked).
@@ -59,12 +85,17 @@ export function ClientPicker({ value, onChange, autoFocus, onTextChange, initial
   const filtered = useMemo(
     () => {
       const q = normalizeText(deferredSearch).trim();
-      // Texto vacío o solo espacios → lista completa.
-      if (!q || (selected && normalizeText(selected.nombre) === q)) return clients;
-      // Ordenados por parecido: primero lo que más se parece a lo escrito.
-      return rankByMatch(clients, (c) => c.nombre, q);
+      const esPreferido = (c: Client) => preferidos.has(c.id);
+      // Texto vacío o solo espacios → lista completa, con los que tienen
+      // contratado el servicio de la sesión delante del resto.
+      if (!q || (selected && normalizeText(selected.nombre) === q)) {
+        return partitionPreferred(clients, esPreferido);
+      }
+      // Ordenados por parecido: primero lo que más se parece a lo escrito y,
+      // dentro del mismo parecido, los que tienen contratado el servicio.
+      return rankByMatchWithPreference(clients, (c) => c.nombre, q, esPreferido);
     },
-    [clients, deferredSearch, selected],
+    [clients, deferredSearch, selected, preferidos],
   );
 
   useEffect(() => {

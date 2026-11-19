@@ -93,6 +93,13 @@ export function fuzzyMatch(text: string | null | undefined, query: string): bool
 }
 
 /**
+ * Peso de cada tramo de parecido en `matchScore`. Los tramos son:
+ * 0 palabra exacta, 1 palabra que empieza, 2 palabra que contiene,
+ * 3 aparición en cualquier sitio y 10 coincidencia aproximada.
+ */
+const TIER_WEIGHT = 100000;
+
+/**
  * Puntuación de parecido para ordenar resultados de búsqueda (menor = más parecido).
  * Prioriza lo escrito: coincidencia exacta > palabra que empieza por el texto >
  * texto al principio del nombre > palabra que lo contiene > aparición en cualquier
@@ -115,7 +122,6 @@ export function matchScore(text: string | null | undefined, query: string): numb
   }
   const inParens = (pos: number) => parenSpans.some(([a, b]) => pos >= a && pos < b);
 
-  const TIER_WEIGHT = 100000;
   const PAREN_PENALTY = 50000;
   const FUZZY_SCORE = 1000000;
 
@@ -154,6 +160,32 @@ export function rankByMatch<T>(
     .filter((x): x is { item: T; score: number } => x.score !== null)
     .sort(
       (a, b) =>
+        a.score - b.score ||
+        normalizeText(getText(a.item) ?? "").localeCompare(normalizeText(getText(b.item) ?? "")),
+    )
+    .map((x) => x.item);
+}
+
+/**
+ * Como `rankByMatch`, pero dentro del mismo nivel de parecido van antes los
+ * elementos preferidos. Un nivel de parecido mejor siempre gana, así que las
+ * normas de parecido con lo escrito no se rompen; la preferencia solo desempata.
+ */
+export function rankByMatchWithPreference<T>(
+  items: T[],
+  getText: (item: T) => string | null | undefined,
+  query: string,
+  isPreferred: (item: T) => boolean,
+): T[] {
+  const q = query.trim();
+  if (!q) return items;
+  return items
+    .map((item) => ({ item, score: matchScore(getText(item), q) }))
+    .filter((x): x is { item: T; score: number } => x.score !== null)
+    .sort(
+      (a, b) =>
+        Math.floor(a.score / TIER_WEIGHT) - Math.floor(b.score / TIER_WEIGHT) ||
+        Number(isPreferred(b.item)) - Number(isPreferred(a.item)) ||
         a.score - b.score ||
         normalizeText(getText(a.item) ?? "").localeCompare(normalizeText(getText(b.item) ?? "")),
     )
