@@ -29,7 +29,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
     return () => mq.removeEventListener("change", sync);
   }, []);
   return (
-    <HoverCard openDelay={700} closeDelay={60}>
+    <HoverCard openDelay={900} closeDelay={60}>
       <HoverCardTrigger asChild>{children}</HoverCardTrigger>
       <HoverCardContent side={narrow ? "bottom" : "right"} align="start" sideOffset={8} className="group w-60 rounded-xl border-0 p-0 shadow-xl">
         {/* Tail pointing at the session this summary comes from */}
