@@ -19,7 +19,6 @@ import { ClientDetailsDialog } from "@/components/clients/client-details-dialog"
 import { ClientPicker } from "@/components/clients/client-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowUpDown, Plus, Info, Search, X, SlidersHorizontal } from "lucide-react";
@@ -202,7 +201,6 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
     const { error } = await supabase.from("client_bonos").update({
       bono_catalogo_id: editing.bono_catalogo_id,
       sesiones_disponibles: editing.sesiones_disponibles,
-      activo: editing.activo,
       ultimo_bono_nombre: selectedCatalogo?.nombre ?? editing.ultimo_bono_nombre,
       nota: editing.nota ?? null,
     }).eq("id", editing.id);
@@ -523,7 +521,6 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
                   />
                 </div>
               </div>
-              <div className="flex items-center gap-2"><Switch checked={editing.activo} onCheckedChange={(c) => setEditing({ ...editing, activo: c })} /><Label>Activo</Label></div>
               <div className="space-y-1.5">
                 <Label>Nota</Label>
                 <Textarea rows={3} placeholder="Añade una nota opcional…" value={editing.nota ?? ""} onChange={(e) => setEditing({ ...editing, nota: e.target.value })} />
