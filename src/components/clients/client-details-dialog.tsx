@@ -446,49 +446,19 @@ function ClientCalendar({ clientId }: { clientId: string }) {
           const daySessions = sessionsByDate.get(iso) ?? [];
           const dayInvoices = invoicesByDate.get(iso) ?? [];
           const isToday = today.getFullYear() === date.getFullYear() && today.getMonth() === date.getMonth() && today.getDate() === day;
-          // Aviso de renovación: se muestra al pasar el cursor por cualquier parte del día.
-          const renovacionInfo = dayInvoices.length > 0 && (
-            <>
-              <div className="font-medium">Renovación</div>
-              {dayInvoices.map((iv) => {
-                const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
-                const cerrado = closedByDate.get(iv.fecha);
-                const contratadas = cerrado ? bonoSesionesContratadas(cerrado, catMap) : null;
-                return (
-                  <div key={iv.id}>
-                    <div>{nombre}</div>
-                    {contratadas != null && (
-                      <div>
-                        Cerró con {contratadas} {contratadas === 1 ? "sesión" : "sesiones"}
-                      </div>
-                    )}
-                    {cerrado && <div>Restantes al cerrar: {cerrado.sesiones_disponibles}</div>}
-                  </div>
-                );
-              })}
-            </>
-          );
           return (
             <div
               key={i}
               className={cn(
-                "relative h-10 rounded border p-0.5 text-[10px] flex flex-col gap-0.5 overflow-hidden",
+                "h-10 rounded border p-0.5 text-[10px] flex flex-col gap-0.5 overflow-hidden",
                 isToday ? "border-primary bg-primary/5" : "border-border",
                 isOutside && "bg-muted/20",
                 isOutside && "opacity-60",
               )}
             >
-              {dayInvoices.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <span aria-label={`Renovación el día ${day}`} className="absolute inset-0 z-0" />
-                  </TooltipTrigger>
-                  <TooltipContent className="max-w-56">{renovacionInfo}</TooltipContent>
-                </Tooltip>
-              )}
-              <div className="pointer-events-none relative z-10 flex items-center justify-between gap-0.5">
+              <div className="flex items-center justify-between gap-0.5">
                 <span className={cn("font-semibold", isToday && "text-primary", isOutside && "text-muted-foreground/40")}>{day}</span>
-                <span className="pointer-events-auto flex items-center gap-0.5">
+                <span className="flex items-center gap-0.5">
                 {daySessions.some((s) => s.incidencia?.trim()) && <Tooltip><TooltipTrigger asChild><span aria-label="Sesiones con incidencia" className="font-bold text-destructive cursor-default">!</span></TooltipTrigger><TooltipContent className="max-w-56 whitespace-pre-wrap">{daySessions.filter((s) => s.incidencia?.trim()).map((s) => <div key={s.id}>{s.hora_inicio.slice(0, 5)} · Incidencia: {s.incidencia}</div>)}</TooltipContent></Tooltip>}
                 {notaByDate.has(iso) && (
                   <Tooltip>
@@ -502,11 +472,34 @@ function ClientCalendar({ clientId }: { clientId: string }) {
                   </Tooltip>
                 )}
                 {dayInvoices.length > 0 && (
-                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500 cursor-default" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 cursor-default" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-56">
+                      <div className="font-medium">Renovación</div>
+                      {dayInvoices.map((iv) => {
+                        const nombre = prettyBonoNombre(catMap.get(iv.bono_catalogo_id ?? "")?.nombre) ?? "Bono";
+                        const cerrado = closedByDate.get(iv.fecha);
+                        const contratadas = cerrado ? bonoSesionesContratadas(cerrado, catMap) : null;
+                        return (
+                          <div key={iv.id}>
+                            <div>{nombre}</div>
+                            {contratadas != null && (
+                              <div>
+                                Cerró con {contratadas} {contratadas === 1 ? "sesión" : "sesiones"}
+                              </div>
+                            )}
+                            {cerrado && <div>Restantes al cerrar: {cerrado.sesiones_disponibles}</div>}
+                          </div>
+                        );
+                      })}
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 </span>
               </div>
-              <div className="relative z-10 flex flex-col gap-0.5 overflow-hidden">
+              <div className="flex flex-col gap-0.5 overflow-hidden">
                 {daySessions.slice(0, 2).map((s) => {
                   const isNC = s.estado === "cancelada" && (s as any).no_contabilizar;
                   const inc = (s.incidencia ?? "").trim();

@@ -1,7 +1,5 @@
 # Tareas
 
-- [x] Que el aviso de renovación del calendario del cliente salga al pasar el cursor por cualquier parte del día (no solo por el puntito), con el bono, «Cerró con X sesiones» y los restantes al cerrar; comprobado en ordenador y teléfono, claro y oscuro, con un bono y con dos el mismo día.
-
 - [x] Exigir justificación al eliminar sesiones con reservas online confirmadas o quitar clientes online; motivo conservado en el aviso, 44 pruebas correctas y retirada guardada/borrado comprobados con reserva temporal eliminada.
 
 - [x] Quitar «Modalidad» del selector Desglose de todas las métricas, conservando la casilla «Desglosar en modalidades» sobre Servicio; 3 pruebas nuevas y selector real comprobado en las 8 métricas, con split de servicio verificado.
