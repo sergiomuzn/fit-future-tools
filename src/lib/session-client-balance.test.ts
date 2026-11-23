@@ -61,4 +61,8 @@ test("all services preserves existing settings while selecting none hides all", 
   strictEqual(showSessionBalanceForService(true, [], "personal"), false);
   strictEqual(showSessionBalanceForService(true, null, ""), false);
   deepStrictEqual(parseSessionBalanceServices(["personal", "personal", 2, ""]), ["personal"]);
+});test("an expired bono shows caducado instead of its remaining sessions", () => {
+  const expired = [{ ...bonos[0]!, fecha_caducidad: "2026-11-20" }];
+  strictEqual(sessionClientBalance(true, "client", expired, catalogo, "personal", "2026-11-23"), "caducado");
+  strictEqual(sessionClientBalance(true, "client", expired, catalogo, "personal", "2026-11-20"), 7);
 });

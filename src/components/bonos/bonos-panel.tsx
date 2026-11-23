@@ -50,7 +50,7 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
   const deferredQ = useDeferredValue(q);
   const [historyClient, setHistoryClient] = useState<Client | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado">("todos");
+  const [fEstado, setFEstado] = useState<"todos" | "activo" | "agotado" | "caducado">("todos");
   const [fServicio, setFServicio] = useState<string>("todos");
   const [fModalidad, setFModalidad] = useState<string>("todas");
   const [addOpen, setAddOpen] = useState(false);
@@ -165,7 +165,8 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
     }
 
     if (fEstado === "activo" && !activo) return false;
-    if (fEstado === "agotado" && activo) return false;
+    if (fEstado === "agotado" && (activo || isCaducado(b))) return false;
+    if (fEstado === "caducado" && !isCaducado(b)) return false;
     if (fServicio !== "todos") {
       const slug = catMap.get(b.bono_catalogo_id ?? "")?.servicio_slug ?? b.servicio_slug;
       if (slug !== fServicio) return false;
@@ -282,6 +283,7 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
                 <SelectItem value="todos">Todos</SelectItem>
                 <SelectItem value="activo">Activo</SelectItem>
                 <SelectItem value="agotado">Agotado</SelectItem>
+                <SelectItem value="caducado">Caducado</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -435,7 +437,7 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
                           <span
                              title={`Bono caducado el ${formatDateShort(b.fecha_caducidad)}`}
                             className="text-xs px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                          >Agotado</span>
+                          >Caducado</span>
                         ) : (
                           <span className="text-xs px-2 py-0.5 rounded-full bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/20">Agotado</span>
                         )}
