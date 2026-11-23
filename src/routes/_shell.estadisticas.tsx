@@ -31,6 +31,7 @@ import { hasAttendee, countsInSessionTotal, sessionsInMonthTotal, fetchAllSessio
 import { trainerActiveOnDate, trainerAvailableInMonth } from "@/lib/trainer-availability";
 import { trainerMonthComparison } from "@/lib/stats-trainer-comparison";
 import { trainerShiftHistory } from "@/lib/stats-trainer-shift-history";
+import { contarPorSexo } from "@/lib/stats-sexo";
 
 export const Route = createFileRoute("/_shell/estadisticas")({
   head: () => ({ meta: [
@@ -582,7 +583,7 @@ function getChartInfo(metric: Metric, desglose: Desglose, period: PeriodMode): s
       "• Altas: clientes cuyo primer bono (individual/pareja/grupal) se registró en el mes. No cuenta bonos de prueba ni pases genéricos (Gympass/ClassPass).\n" +
       "• Bajas: clientes con bono contratado marcados como inactivos en el mes (los de solo prueba no cuentan). Si un cliente se reactiva su baja deja de contar.",
     sexo:
-      "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre, Mujer o Sin especificar).",
+      "Clientes por sexo: número de clientes distintos con al menos una sesión contabilizada en el periodo (realizada o cancelada contabilizada), agrupados por el sexo indicado en su ficha (Hombre o Mujer). Los clientes sin sexo indicado no se cuentan.",
     edad:
       "Clientes por edad: número de clientes distintos con al menos una sesión contabilizada en el periodo, agrupados por tramos de edad calculados con su fecha de nacimiento. Los clientes sin fecha de nacimiento se indican en un aviso sobre la gráfica.",
   };
@@ -1384,8 +1385,11 @@ function buildSeriesRaw(args: {
   }
 
   // -------- Clientes por sexo (clientes distintos con sesiones en el mes) --------
+  // «Sin especificar» no es una categoría: los clientes sin sexo indicado no
+  // se cuentan en ninguna barra (aviso aparte, igual que en «Clientes por edad»).
   if (metric === "sexo") {
     const buckets = collectMonthList("sessions");
+    const sinSexo = new Set<string>();
     const rows: SeriesRow[] = buckets.map(({ key, y, m }) => {
       const ini = ymd(monthStart(y, m));
       const fin = ymd(monthEnd(y, m));
@@ -1396,19 +1400,22 @@ function buildSeriesRaw(args: {
         if (s.client_id) ids.add(s.client_id);
         else if (s.group_id) for (const cid of groupClientsMap.get(s.group_id) ?? []) ids.add(cid);
       }
-      let hombres = 0, mujeres = 0, sin = 0;
-      for (const id of ids) {
-        const sx = clientSexoMap.get(id) ?? "";
-        if (sx === "hombre") hombres++;
-        else if (sx === "mujer") mujeres++;
-        else sin++;
-      }
-      return { bucket: key, Hombres: hombres, Mujeres: mujeres, "Sin especificar": sin };
+      const cuenta = contarPorSexo(ids, (id) => clientSexoMap.get(id));
+      for (const id of cuenta.sinSexo) sinSexo.add(id);
+      return { bucket: key, Hombres: cuenta.hombres, Mujeres: cuenta.mujeres };
     });
+    const notice = sinSexo.size > 0
+      ? {
+          title: `${sinSexo.size} ${sinSexo.size === 1 ? "cliente sin sexo" : "clientes sin sexo"}`,
+          items: ["No se incluyen en ninguna barra. Indícalo en la ficha del cliente."],
+          samples: Array.from(sinSexo).slice(0, 20).map((id) => clientNombreMap.get(id) ?? id),
+        }
+      : undefined;
     return {
       rows,
-      seriesKeys: ["Hombres", "Mujeres", "Sin especificar"],
+      seriesKeys: ["Hombres", "Mujeres"],
       isLineChart: period === "historico",
+      notice,
     };
   }
 
