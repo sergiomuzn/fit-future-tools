@@ -368,12 +368,13 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   );
   /** Clientes apuntados a la misma franja de un servicio con varias plazas. */
   const slotClientsMap = useMemo(() => {
-    const m = new Map<string, string[]>();
+    const m = new Map<string, { id: string | null; titulo: string | null }[]>();
     for (const s of sessions) {
-      if (s.ocupacion === 2 || !s.client_id || s.estado === "cancelada") continue;
+      if (s.ocupacion === 2 || (!s.client_id && !s.titulo) || s.estado === "cancelada") continue;
       const key = `${(s as { servicio_slug?: string | null }).servicio_slug ?? ""}|${s.hora_inicio}`;
+      const entry = { id: s.client_id, titulo: s.titulo ?? null };
       const arr = m.get(key);
-      if (arr) arr.push(s.client_id); else m.set(key, [s.client_id]);
+      if (arr) arr.push(entry); else m.set(key, [entry]);
     }
     return m;
   }, [sessions]);
@@ -1425,14 +1426,21 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               // Same exact block and reserved/available rule as the session panel.
               const groupCountLabel = sessionPlaces(plazas, reservedSessionPlaces(agendaBlockMembers(session, sessions))).label;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
-              const clientIds: (string | null | undefined)[] = isGroup
-                ? (members ?? [session]).filter((m) => m.estado !== "cancelada").map((m) => m.client_id)
+              const memberRows = isGroup ? (members ?? [session]).filter((m) => m.estado !== "cancelada") : null;
+              const slotRows = memberRows
+                ? null
                 : multiPlaza
-                  ? (slotClientsMap.get(huecoKey) ?? (session.client_id ? [session.client_id] : []))
-                  : (session.client_id ? [session.client_id] : []);
-              const nombres = clientIds
-                .filter((id): id is string => !!id)
-                .map((id) => `${formatNameUpper(clientMap.get(id)?.nombre) ?? "?"}${renovarSufijo(id)}`);
+                  ? (slotClientsMap.get(huecoKey) ?? (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []))
+                  : (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []);
+              const nombres = (memberRows ?? slotRows ?? [])
+                .map((m) => {
+                  const id = "client_id" in m ? m.client_id : m.id;
+                  const titulo = "client_id" in m ? (m.titulo ?? null) : m.titulo;
+                  return id
+                    ? `${formatNameUpper(clientMap.get(id)?.nombre) ?? "?"}${renovarSufijo(id)}`
+                    : (titulo ? formatNameUpper(titulo) : "");
+                })
+                .filter(Boolean);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =
                 sessionMainLabel(plazas, nombres, widthPct) ||
@@ -1593,7 +1601,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         const ps = panelSession;
         const isNewPanel = ps?.id === "";
         const block = ps && !isNewPanel ? agendaBlockMembers(ps, sessions) : [];
-        const activos = block.filter((x) => x.client_id && x.estado !== "cancelada" && !(x as any).__cola);
+        const activos = block.filter((x) => (x.client_id || x.titulo) && x.estado !== "cancelada" && !(x as any).__cola);
         const est = (ps?.estado ?? "reservada") as SesionEstado;
         return (
           <HuecoPanel
@@ -1611,7 +1619,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             notasIniciales={ps?.incidencia}
             plazasIniciales={block.map((x) => (x as any).plazas as number | null).find((n) => n != null) ?? null}
             slotInstanceId={(ps as any)?.slot_instance_id ?? null}
-            fillSessionId={ps && !isNewPanel && !ps.client_id && !(ps as any).__cola ? ps.id : null}
+            fillSessionId={ps && !isNewPanel && !ps.client_id && !ps.titulo && !(ps as any).__cola ? ps.id : null}
             grupoManual={ps && !isNewPanel && !(ps as any).slot_instance_id && !(ps as any).__cola ? { recurrenciaId: ps.recurrencia_id ?? null, ocupacion: ps.ocupacion ?? 1, ids: block.filter((x) => !(x as any).__cola).map((x) => x.id) } : undefined}
             canceladasIds={ps && !(ps as any).slot_instance_id ? (() => {
               const ids = new Set(block.filter((x) => x.estado === "cancelada").map((x) => x.id));

@@ -26,7 +26,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { automaticSessionState, clientCancellationFields } from "@/lib/session-state";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useConfirm } from "@/components/confirm-dialog";
-import { cancelDraftClient, resizeClientPickerRows, retainSessionEditorRows, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancelDraftClient, draftClientNames, resizeClientPickerRows, retainSessionEditorRows, type DraftCancellation } from "@/lib/session-draft-clients";
 import { clientCancellationTitle } from "@/lib/centre-cancellation";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 
@@ -53,6 +53,8 @@ export interface HuecoPanelDraft {
   repeatWeeks: number;
   notas: string;
   clientIds: string[];
+  /** Nombres escritos a mano en huecos sin cliente registrado. */
+  clientNames: string[];
   /** Plazas disponibles propias de la sesión; null = las del servicio. */
   plazas: number | null;
   cancelledClients: DraftCancellation[];
@@ -140,6 +142,7 @@ export function HuecoPanel({
   const [editPlazas, setEditPlazas] = useState(false);
   const [plazasTexto, setPlazasTexto] = useState("");
   const [pickerValues, setPickerValues] = useState<(string | null)[]>([]);
+  const [pickerTexts, setPickerTexts] = useState<string[]>([]);
   const [draftCancelled, setDraftCancelled] = useState<DraftCancellation[]>([]);
   const [noContLocal, setNoContLocal] = useState<Record<string, boolean>>({});
   const [saving, setSaving] = useState(false);
@@ -192,6 +195,7 @@ export function HuecoPanel({
     setNotas(notasIniciales ?? "");
     setServicioSlug(inst.servicio_slug);
     setPickerValues([]);
+    setPickerTexts([]);
     setDraftCancelled([]);
     setNoContLocal({});
     setRemovedIds([]);
@@ -240,7 +244,9 @@ export function HuecoPanel({
   const places = sessionPlaces(capacidad, reservedSessionPlaces(reservasVisibles) + selectedNewCount);
   useEffect(() => {
     if (saving) return;
-    setPickerValues((old) => resizeClientPickerRows(old, capacidad - reservasVisibles.length));
+    const rows = capacidad - reservasVisibles.length;
+    setPickerValues((old) => resizeClientPickerRows(old, rows));
+    setPickerTexts((old) => resizeClientPickerRows(old, rows).map((t) => t ?? ""));
   }, [capacidad, reservasVisibles.length, inst?.id, saving]);
 
   async function pedirCancelacion(reserva: PanelReserva) {
@@ -284,7 +290,8 @@ export function HuecoPanel({
     }
     setSaving(true);
     try {
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), removalReasons, noContabilizar: noContLocal, plazas: plazasOverride });
+      const clientNames = draftClientNames(pickerValues, pickerTexts);
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), clientNames, cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), removalReasons, noContabilizar: noContLocal, plazas: plazasOverride });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
@@ -479,6 +486,7 @@ export function HuecoPanel({
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
                       servicioSlug={servicioSlug}
                       autoFocus={row === 0}
+                      onTextChange={(t) => setPickerTexts((old) => old.map((item, index) => index === row ? t : item))}
                       onChange={(clientId) => {
                         setPickerValues((old) => old.map((item, index) => index === row ? clientId : item));
                       }}

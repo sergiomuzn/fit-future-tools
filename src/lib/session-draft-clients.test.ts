@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import { deepStrictEqual, strictEqual } from "node:assert";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits, resizeClientPickerRows, retainSessionEditorRows } from "./session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftClientNames, draftSessionMembers, sessionDraftChanges, sessionIncidenceEdits, resizeClientPickerRows, retainSessionEditorRows } from "./session-draft-clients";
 
 test("an empty editor keeps Daniel only in the sixth row throughout cache refresh and save completion", () => {
   const initial = retainSessionEditorRows<{ client_id: string }>( { key: null, rows: [] }, "empty-session", []);
@@ -30,6 +30,19 @@ test("growing the capacity preserves the empty rows before selected clients", ()
 });
 test("reducing capacity trims trailing empty rows before moving any selection", () => {
   deepStrictEqual(resizeClientPickerRows([null, "Daniel Aguado", null, null], 3), [null, "Daniel Aguado", null]);
+});
+
+test("a typed-in name without a registered client is saved as a free name", () => {
+  deepStrictEqual(draftClientNames([null], ["Marido Barbara"]), ["Marido Barbara"]);
+});
+test("a row with a selected client never becomes a free name", () => {
+  deepStrictEqual(draftClientNames(["client-id"], ["Marido Barbara"]), []);
+});
+test("blank text in an empty row does not occupy a place", () => {
+  deepStrictEqual(draftClientNames([null, null], ["", "   "]), []);
+});
+test("each empty row keeps its own typed name", () => {
+  deepStrictEqual(draftClientNames([null, "client-id", null], ["Ana", "Otro", "Luis"]), ["Ana", "Luis"]);
 });
 
 test("a cancellation incidence is not copied to future sessions", () => {

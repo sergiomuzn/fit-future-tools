@@ -53,11 +53,13 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       next = next.filter((r) => r.id !== original.id); committed.delete(original.id); removedIds.push(original.id);
     }
   }
-  const additions = draft.clientIds.map((clientId) => ({ clientId, cancellation: null as typeof newCancellations[number] | null }));
-  const members = [...additions, ...newCancellations.map((cancellation) => ({ clientId: cancellation.clientId, cancellation }))];
+  const additions = draft.clientIds.map((clientId) => ({ clientId, cancellation: null as typeof newCancellations[number] | null, nombre: null as string | null }));
+  // Nombres escritos a mano: ocupan plaza sin cliente registrado (titulo).
+  const nameAdditions = (draft.clientNames ?? []).map((nombre) => ({ clientId: null as string | null, cancellation: null as typeof newCancellations[number] | null, nombre }));
+  const members = [...additions, ...nameAdditions, ...newCancellations.map((cancellation) => ({ clientId: cancellation.clientId as string | null, cancellation, nombre: null as string | null }))];
   let rec = base.recurrencia_id;
   // Cancelled rows never turn a single-place session into a group.
-  const grouped = !base.slot_instance_id && (next.filter((r) => r.estado !== "cancelada" && !!r.client_id).length + additions.length > 1 || (draft.plazas ?? 1) > 1);
+  const grouped = !base.slot_instance_id && (next.filter((r) => r.estado !== "cancelada" && !!r.client_id).length + additions.length + nameAdditions.length > 1 || (draft.plazas ?? 1) > 1);
   if (grouped) {
     rec = rec ?? crypto.randomUUID();
     if (next.length) {
@@ -65,11 +67,13 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       if (error) throw error; for (const row of data ?? []) accept(row as Session);
     }
   }
-  for (const { clientId, cancellation } of members) {
-    const empty = cancellation ? undefined : next.find((r) => !r.client_id && r.estado !== "cancelada");
+  for (const { clientId, cancellation, nombre } of members) {
+    // Un hueco con nombre escrito a mano ya está ocupado: no se reutiliza.
+    const empty = cancellation ? undefined : next.find((r) => !r.client_id && !r.titulo && r.estado !== "cancelada");
     const payload = {
       fecha: base.fecha, hora_inicio: `${draft.horaInicio}:00`, hora_fin: `${draft.horaFin}:00`,
       servicio_slug: draft.servicioSlug, trainer_id: draft.trainerId, client_id: clientId,
+      titulo: clientId ? null : (nombre ?? null),
       estado: cancellation ? "cancelada" : draft.estado, por_confirmar: cancellation ? false : draft.porConfirmar,
       no_contabilizar: cancellation?.noContabilizar ?? false, tipo: draft.esPrueba ? "prueba" : null,
       incidencia: cancellation ? cancellationIncidence(draft.notas, cancellation.incidencia) : draft.notas || null, plazas: draft.plazas, booking_tipo: "centro",
@@ -80,7 +84,7 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       ? await supabase.from("sessions").update(payload as any).eq("id", empty.id).select("*").single()
       : await supabase.from("sessions").insert(payload as any).select("*").single();
     if (error) throw error; accept(data as Session);
-    if (!cancellation) void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: base.fecha, hora: payload.hora_inicio }] } }).catch(() => {});
+    if (!cancellation && clientId) void notificarSesionesAsignadas({ data: { sesiones: [{ clientId, fecha: base.fecha, hora: payload.hora_inicio }] } }).catch(() => {});
   }
   for (const [id, value] of Object.entries(draft.noContabilizar)) {
     const { data, error } = await supabase.from("sessions").update({ no_contabilizar: value }).eq("id", id).select("*").single();

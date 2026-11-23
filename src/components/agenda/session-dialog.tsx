@@ -5,7 +5,7 @@ import { enterToSave } from "@/lib/enter-to-save";
 import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clientCancellationFields } from "@/lib/session-state";
-import { cancellationIncidence, cancelDraftClient, draftSessionMembers, sessionIncidenceEdits, type DraftCancellation } from "@/lib/session-draft-clients";
+import { cancellationIncidence, cancelDraftClient, draftClientNames, draftSessionMembers, sessionIncidenceEdits, type DraftCancellation } from "@/lib/session-draft-clients";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
 import { sessionPlaces } from "@/lib/session-places";
@@ -68,6 +68,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
+  const [groupClientNames, setGroupClientNames] = useState<string[]>([]);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
@@ -208,6 +209,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setHoraInicio((session?.hora_inicio ?? "").slice(0,5));
     setHoraFin((session?.hora_fin ?? "").slice(0,5));
     setNombreLibre(!((session as any)?.client_id) ? ((session as any)?.titulo ?? "") : "");
+    setGroupClientNames([]);
 
     const isNewSession = !session?.id;
     const cfgBehavior = cfgBehaviorRef.current;
@@ -237,6 +239,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       while (next.length < plazas) next.push(null);
       return next;
     });
+    setGroupClientNames((prev) => {
+      if (prev.length === plazas) return prev;
+      if (prev.length > plazas) return prev.slice(0, plazas);
+      const next = [...prev];
+      while (next.length < plazas) next.push("");
+      return next;
+    });
   }, [open, grupo, plazas]);
 
   // Cuando llegan los miembros de la sesión desde BD, rellenar los pickers.
@@ -258,6 +267,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData]);
 
 
+  /** Nombres escritos a mano en huecos de grupo sin cliente registrado. */
+  function groupNameOnly(): string[] {
+    if (!grupo) return [];
+    return draftClientNames(groupClientIds, groupClientIds.map((_, i) => (i === 0 ? nombreLibre : groupClientNames[i] ?? "")));
+  }
+
   /**
    * ¿Aplicar los cambios "a las siguientes" alteraría algo en las sesiones
    * futuras de la serie? Si ya son idénticas a lo que se propagaría, no tiene
@@ -269,7 +284,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const hi = `${horaInicio}:00`;
     const hf = `${horaFin}:00`;
     const nombreLibreTrim = nombreLibre.trim();
-    const sinClientes = grupo ? groupClientIds.every((id) => !id) : !clientId;
+    const sinClientes = grupo ? groupClientIds.every((id) => !id) && groupNameOnly().length === 0 : !clientId;
     // Sin cliente seleccionado, el texto escrito en el buscador actúa como
     // nombre libre; si está vacío se usa el nombre del servicio.
     const tituloDeseado = sinClientes ? (nombreLibreTrim || null) : null;
@@ -376,10 +391,11 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     }
     const ocupacion = grupo ? 2 : 1;
     const nombreLibreTrim = nombreLibre.trim();
+    const nameOnly = groupNameOnly();
     // Las plazas las define el servicio (Servicios → capacidad por sesión).
     if (grupo) {
       const pickedMembers = groupClientIds.filter((id): id is string => !!id);
-      if (pickedMembers.length > plazas) {
+      if (pickedMembers.length + nameOnly.length > plazas) {
         toast.error(`Plazas máximas del servicio: ${plazas}`);
         return;
       }
@@ -442,7 +458,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       incidencia: incidencia || null,
       // Nombre de la sesión: el texto libre del buscador (cuando no hay
       // cliente seleccionado) o, si está vacío, el nombre del servicio.
-      titulo: (grupo ? groupClientIds.every((id) => !id) : !clientId)
+      titulo: (grupo ? groupClientIds.every((id) => !id) && nameOnly.length === 0 : !clientId)
         ? (nombreLibreTrim || null)
         : null,
       no_contabilizar: false,
@@ -476,13 +492,22 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       // cancelar la serie futura más adelante). Para grupos también agrupa a
       // los miembros del mismo día.
       const members = draftSessionMembers(memberIds, draftCancelled);
+      // Nombres escritos a mano en huecos sin cliente: ocupan plaza con titulo.
+      const nameRows = nameOnly.map((nombre) => ({ clientId: null as string | null, cancellation: null as DraftCancellation | null, nombre }));
+      // Si solo hay nombres a mano, el hueco vacío genérico no hace falta.
+      const onlyPlaceholder = members.length === 1 && !members[0]!.clientId && !members[0]!.cancellation;
+      const allMembers: { clientId: string | null; cancellation: DraftCancellation | null; nombre?: string | null }[] =
+        [...(onlyPlaceholder && nameRows.length ? [] : members), ...nameRows];
       const seriesId = (repeatWeeks > 0 || grupo || members.length > 1)
         ? (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random()}`)
         : null;
       const inserts = dates.flatMap((fecha) => {
         const isRepeat = fecha !== session.fecha;
-        return (isRepeat ? draftSessionMembers(memberIds, []) : members).map(({ clientId: cid, cancellation }) => ({
+        const fechaMembers: { clientId: string | null; cancellation: DraftCancellation | null; nombre?: string | null }[] =
+          isRepeat ? draftSessionMembers(memberIds, []) : allMembers;
+        return fechaMembers.map(({ clientId: cid, cancellation, nombre }) => ({
           ...base,
+          titulo: cid ? base.titulo : (nombre ?? base.titulo),
           fecha,
           estado: cancellation ? "cancelada" as const : estadoForDate(fecha),
           por_confirmar: cancellation ? false : base.por_confirmar,
@@ -548,17 +573,29 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         const desiredSet = new Set(desiredIds);
         const toRemove = existingWithClient.filter((m) => !desiredSet.has(m.client_id as string));
         const toAdd = desiredIds.filter((id) => !existingIds.has(id));
-        const placeholder = existing.find((m) => !m.client_id);
+        // Un hueco con nombre escrito a mano ya está ocupado: no es placeholder.
+        const placeholder = existing.find((m) => !m.client_id && !m.titulo);
 
         // Aplicar campos compartidos (incluida la nota/incidencia) a TODOS los
         // miembros existentes del bloque para que la nota quede persistida
         // aunque la sesión clicada sea el placeholder o vaya a ser eliminada.
-        if (existing.length) {
+        // Las filas con nombre escrito a mano conservan su titulo.
+        const namedRows = existing.filter((m) => !m.client_id && m.titulo);
+        const sharedTargets = existing.filter((m) => !!m.client_id || !m.titulo);
+        if (sharedTargets.length) {
           await supabase.from("sessions").update({
             ...sharedGroupFields,
             estado: estadoForDate(session.fecha!),
             ocupacion: 2,
-          }).in("id", existing.map((m) => m.id));
+          }).in("id", sharedTargets.map((m) => m.id));
+        }
+        if (namedRows.length) {
+          const { titulo: _tituloGuardado, ...sharedSinTitulo } = sharedGroupFields;
+          await supabase.from("sessions").update({
+            ...sharedSinTitulo,
+            estado: estadoForDate(session.fecha!),
+            ocupacion: 2,
+          }).in("id", namedRows.map((m) => m.id));
         }
 
         // Actualizar miembros existentes que se mantienen (campos compartidos).
@@ -599,7 +636,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             const { error: e } = await supabase.from("sessions").insert(inserts);
             if (e) updateErr = e;
           }
-        } else if (desiredIds.length === 0 && !placeholder && cancelledRows.length === 0 && draftCancelled.length === 0) {
+        } else if (desiredIds.length === 0 && !nameOnly.length && !placeholder && cancelledRows.length === 0 && draftCancelled.length === 0) {
           // Grupo sin clientes: mantener un placeholder para que exista el bloque.
           const { error: e } = await supabase.from("sessions").insert([{
             ...sharedGroupFields,
@@ -609,6 +646,20 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             client_id: null,
             recurrencia_id: recurrenciaId,
           }]);
+          if (e) updateErr = e;
+        }
+
+        // Nombres escritos a mano en huecos sin cliente: ocupan plaza con titulo.
+        if (nameOnly.length) {
+          const { error: e } = await supabase.from("sessions").insert(nameOnly.map((nombre) => ({
+            ...sharedGroupFields,
+            fecha: session.fecha!,
+            estado: estadoForDate(session.fecha!),
+            ocupacion: 2,
+            client_id: null,
+            titulo: nombre,
+            recurrencia_id: recurrenciaId,
+          })));
           if (e) updateErr = e;
         }
 
@@ -640,7 +691,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
             const rows = (futureRows ?? []).filter((r) => r.fecha === fecha && r.estado !== "cancelada");
             const existingWithClient2 = rows.filter((r) => !!r.client_id);
             const existingIds2 = new Set(existingWithClient2.map((r) => r.client_id as string));
-            const placeholder2 = rows.find((r) => !r.client_id);
+            const placeholder2 = rows.find((r) => !r.client_id && !r.titulo);
             const keepIds2 = existingWithClient2.filter((r) => desiredSet2.has(r.client_id as string)).map((r) => r.id);
             const removeIds2 = existingWithClient2.filter((r) => !desiredSet2.has(r.client_id as string)).map((r) => r.id);
             let addQueue2 = desiredIds2.filter((id) => !existingIds2.has(id));
@@ -950,7 +1001,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
           <div className="space-y-1.5">
             <Label>
               {plazas > 1
-                ? `Clientes (${sessionPlaces(plazas, groupClientIds.filter(Boolean).length).label})`
+                ? `Clientes (${sessionPlaces(plazas, groupClientIds.filter(Boolean).length + groupNameOnly().length).label})`
                 : "Cliente"}
             </Label>
             {plazas > 1 ? (
@@ -964,8 +1015,8 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                       showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
                       servicioSlug={servicioSlug}
                       autoFocus={isNew && i === 0}
-                      initialText={i === 0 ? nombreLibre : undefined}
-                      onTextChange={i === 0 ? (t) => setNombreLibre(t) : undefined}
+                      initialText={i === 0 ? nombreLibre : groupClientNames[i] || undefined}
+                      onTextChange={(t) => { if (i === 0) setNombreLibre(t); else setGroupClientNames((old) => old.map((x, idx) => (idx === i ? t : x))); }}
                       onChange={async (id) => {
                         if (cid && id !== cid) {
                           const reserva = (groupMembersData ?? []).find(

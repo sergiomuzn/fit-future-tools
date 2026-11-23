@@ -46,6 +46,11 @@ export function cancelDraftClient(selected: (string | null)[], cancelled: DraftC
   };
 }
 
+/** A typed-in name in a row without a selected client occupies a place as free text. */
+export function draftClientNames(selected: (string | null)[], texts: string[]): string[] {
+  return selected.map((id, i) => (id ? "" : (texts[i] ?? "").trim())).filter(Boolean);
+}
+
 /** Empty sessions get a placeholder only when there is no cancellation row. */
 export function draftSessionMembers(selected: (string | null)[], cancelled: DraftCancellation[]) {
   const active = selected.filter((id): id is string => !!id).map((clientId) => ({ clientId, cancellation: null as DraftCancellation | null }));

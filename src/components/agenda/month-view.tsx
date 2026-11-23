@@ -83,9 +83,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
   const groupNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const s of sessions) {
-      if (s.recurrencia_id && s.ocupacion === 2 && s.client_id) {
+      if (s.recurrencia_id && s.ocupacion === 2 && (s.client_id || s.titulo)) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
-        const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+        const nombre = s.client_id ? clientMap.get(s.client_id)?.nombre ?? "?" : (s.titulo ?? "?");
         const arr = m.get(key);
         if (arr) arr.push(nombre); else m.set(key, [nombre]);
       }
@@ -107,9 +107,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
   const slotNamesMap = useMemo(() => {
     const m = new Map<string, string[]>();
     for (const s of sessions) {
-      if (s.ocupacion === 2 || !s.client_id || s.estado === "cancelada") continue;
+      if (s.ocupacion === 2 || (!s.client_id && !s.titulo) || s.estado === "cancelada") continue;
       const key = `${s.fecha}|${(s as any).servicio_slug ?? ""}|${s.hora_inicio}`;
-      const nombre = clientMap.get(s.client_id)?.nombre ?? "?";
+      const nombre = s.client_id ? clientMap.get(s.client_id)?.nombre ?? "?" : (s.titulo ?? "?");
       const arr = m.get(key);
       if (arr) arr.push(nombre); else m.set(key, [nombre]);
     }
@@ -177,9 +177,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                       ? (groupNamesMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? [])
                       : // Only clients of this exact session block; same-time sessions stay independent.
                         agendaBlockMembers(s, sessions)
-                          .filter((m) => m.estado !== "cancelada" && m.client_id)
-                          .map((m) => clientMap.get(m.client_id as string)?.nombre ?? "?");
-                    const ocupados = isGroup ? nombres.length : (s.client_id ? 1 : 0);
+                          .filter((m) => m.estado !== "cancelada" && (m.client_id || m.titulo))
+                          .map((m) => (m.client_id ? clientMap.get(m.client_id as string)?.nombre : m.titulo) ?? "?");
+                    const ocupados = isGroup ? nombres.length : (s.client_id || s.titulo ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
                     const name = sessionMainLabel(plazas, nombres) || s.titulo || "";
