@@ -1427,19 +1427,15 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const groupCountLabel = sessionPlaces(plazas, reservedSessionPlaces(agendaBlockMembers(session, sessions))).label;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const memberRows = isGroup ? (members ?? [session]).filter((m) => m.estado !== "cancelada") : null;
-              const slotRows = memberRows
-                ? null
+              const nameEntries: { id: string | null | undefined; titulo: string | null }[] = memberRows
+                ? memberRows.map((m) => ({ id: m.client_id, titulo: m.titulo ?? null }))
                 : multiPlaza
                   ? (slotClientsMap.get(huecoKey) ?? (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []))
                   : (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []);
-              const nombres = (memberRows ?? slotRows ?? [])
-                .map((m) => {
-                  const id = "client_id" in m ? m.client_id : m.id;
-                  const titulo = "client_id" in m ? (m.titulo ?? null) : m.titulo;
-                  return id
-                    ? `${formatNameUpper(clientMap.get(id)?.nombre) ?? "?"}${renovarSufijo(id)}`
-                    : (titulo ? formatNameUpper(titulo) : "");
-                })
+              const nombres = nameEntries
+                .map((e) => e.id
+                  ? `${formatNameUpper(clientMap.get(e.id)?.nombre) ?? "?"}${renovarSufijo(e.id)}`
+                  : (e.titulo ? formatNameUpper(e.titulo) : ""))
                 .filter(Boolean);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =

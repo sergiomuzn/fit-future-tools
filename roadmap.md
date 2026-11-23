@@ -1,5 +1,7 @@
 # Tareas
 
+- [x] Guardar sesiones con nombre escrito a mano sin cliente registrado: el texto del buscador se guarda como título de la sesión, ocupa plaza y se muestra en Agenda (día/semana/mes), panel e Historial; 4 pruebas nuevas (187 en total) y verificación real en ordenador y teléfono, claro y oscuro, con datos temporales eliminados.
+
 - [x] Exigir justificación al eliminar sesiones con reservas online confirmadas o quitar clientes online; motivo conservado en el aviso, 44 pruebas correctas y retirada guardada/borrado comprobados con reserva temporal eliminada.
 
 - [x] Quitar «Modalidad» del selector Desglose de todas las métricas, conservando la casilla «Desglosar en modalidades» sobre Servicio; 3 pruebas nuevas y selector real comprobado en las 8 métricas, con split de servicio verificado.
