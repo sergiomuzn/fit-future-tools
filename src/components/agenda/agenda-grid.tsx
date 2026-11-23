@@ -1,3 +1,4 @@
+import { markUnregistered } from "@/lib/unregistered-client";
 import { SessionSummaryHover } from "./session-summary-hover";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -1435,7 +1436,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const nombres = nameEntries
                 .map((e) => e.id
                   ? `${formatNameUpper(clientMap.get(e.id)?.nombre) ?? "?"}${renovarSufijo(e.id)}`
-                  : (e.titulo ? formatNameUpper(e.titulo) : ""))
+                  : (e.titulo ? markUnregistered(formatNameUpper(e.titulo) ?? e.titulo) : ""))
                 .filter(Boolean);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               const displayName =

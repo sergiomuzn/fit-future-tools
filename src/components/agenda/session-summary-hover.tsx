@@ -1,3 +1,4 @@
+import { isMarkedUnregistered, stripUnregistered } from "@/lib/unregistered-client";
 import { useEffect, useState, type ReactElement } from "react";
 import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
@@ -57,7 +58,10 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
           </div>
           <ul className="space-y-1">
             {nombres.map((n, i) => (
-              <li key={i} className="truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">{formatNameTitle(n)}</li>
+              <li key={i} className="flex items-center gap-1.5 truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">
+                <span className="truncate">{formatNameTitle(stripUnregistered(n))}</span>
+                {isMarkedUnregistered(n) && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-normal text-muted-foreground">No registrado</span>}
+              </li>
             ))}
           </ul>
         </div>

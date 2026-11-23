@@ -263,7 +263,7 @@ export function HuecoPanel({
     setTab("cancelados");
   }
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = {
-    reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", reserva: r })),
+    reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", unregistered: !r.client_id && !!r.titulo, reserva: r })),
     cola: extra?.cola ?? [],
     cancelados: [...(isNew ? [] : extra?.cancelados ?? []).map((c) => ({ ...c, noContabilizar: noContLocal[c.id] ?? c.noContabilizar })), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? "Cliente", noContabilizar: c.noContabilizar }))],
   };
@@ -464,6 +464,7 @@ export function HuecoPanel({
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
                     <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
+                    {"unregistered" in item && !!item.unregistered && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] text-muted-foreground">No registrado</span>}
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
