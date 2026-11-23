@@ -1435,6 +1435,10 @@ export type Database = {
         Args: { p_dias?: number }
         Returns: number
       }
+      bono_fecha_caducidad: {
+        Args: { p_dias: number; p_inicio: string; p_tipo: string }
+        Returns: string
+      }
       claim_superadmin: { Args: never; Returns: boolean }
       create_centro: {
         Args: { p_nombre: string; p_plan?: string }
