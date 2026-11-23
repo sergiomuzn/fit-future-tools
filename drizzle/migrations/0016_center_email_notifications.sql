@@ -1,0 +1,1 @@
+ALTER TABLE public.center_config ADD COLUMN IF NOT EXISTS email_centro jsonb NOT NULL DEFAULT '{}'::jsonb;

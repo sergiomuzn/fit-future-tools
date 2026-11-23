@@ -32,7 +32,7 @@ export async function crearNotificaciones(
   const { data: inserted } = await (db as any)
     .from("notificaciones")
     .insert(rows)
-    .select("id,user_id");
+    .select("id,user_id,centro_id,tipo,titulo,mensaje");
 
   // El aviso llega al buzón y, a la vez, al correo del cliente si lo tiene activado.
   const ids = ((inserted ?? []) as { id: string; user_id: string | null }[])
@@ -41,6 +41,11 @@ export async function crearNotificaciones(
   if (ids.length) {
     const { enviarEmailsPendientes } = await import("./notificaciones-email.server");
     await enviarEmailsPendientes({ ids });
+  }
+  const paraCentro = ((inserted ?? []) as any[]).filter((r) => !r.user_id);
+  if (paraCentro.length) {
+    const { enviarEmailsCentro } = await import("./notificaciones-email.server");
+    await enviarEmailsCentro(paraCentro);
   }
 }
 
@@ -82,9 +87,14 @@ export async function resolverAvisoCentro(
       : decision === "denegada"
         ? { tipo: "reserva_denegada_centro", titulo: `Reserva denegada a ${cliente}`, mensaje: `Has denegado la reserva de ${cliente} en ${donde} el ${cuando}` }
         : { tipo: "reserva_denegada_auto", titulo: `Reserva denegada automáticamente a ${cliente}`, mensaje: `La reserva de ${cliente} en ${donde} el ${cuando} se ha denegado al no confirmarse antes del inicio` };
-  await db
+  const { data: actualizados } = await db
     .from("notificaciones")
     .update({ ...txt, session_id: null, leida: false })
     .eq("session_id", sessionId)
-    .is("user_id", null);
+    .is("user_id", null)
+    .select("id,centro_id,tipo,titulo,mensaje");
+  if (decision === "denegada_auto" && actualizados?.length) {
+    const { enviarEmailsCentro } = await import("./notificaciones-email.server");
+    await enviarEmailsCentro(actualizados);
+  }
 }

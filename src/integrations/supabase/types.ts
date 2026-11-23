@@ -72,6 +72,7 @@ export type Database = {
           avisos: Json
           centro_id: string
           colores: Json
+          email_centro: Json
           horario_base: Json
           id: boolean
           nombre: string
@@ -82,6 +83,7 @@ export type Database = {
           avisos?: Json
           centro_id?: string
           colores?: Json
+          email_centro?: Json
           horario_base?: Json
           id?: boolean
           nombre?: string
@@ -92,6 +94,7 @@ export type Database = {
           avisos?: Json
           centro_id?: string
           colores?: Json
+          email_centro?: Json
           horario_base?: Json
           id?: boolean
           nombre?: string

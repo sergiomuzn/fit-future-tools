@@ -138,3 +138,58 @@ export async function enviarEmailsPendientes(opts?: {
     return { enviados: 0 };
   }
 }
+
+/**
+ * Envía por correo al centro los avisos de administración, según su
+ * configuración en Configuración › Notificaciones. Nunca lanza.
+ */
+export async function enviarEmailsCentro(
+  rows: { id: string; centro_id: string | null; tipo: string; titulo: string; mensaje: string }[],
+): Promise<void> {
+  try {
+    const { parseEmailCentro, debeEnviarEmailCentro } = await import("./email-centro");
+    const { sendTemplateEmail } = await import("./email-templates/send-email");
+    const porCentro = new Map<string, typeof rows>();
+    for (const r of rows) {
+      if (!r.centro_id) continue;
+      porCentro.set(r.centro_id, [...(porCentro.get(r.centro_id) ?? []), r]);
+    }
+    for (const [centroId, lista] of porCentro) {
+      const { data: cfgRow } = await (supabaseAdmin as any)
+        .from("center_config")
+        .select("nombre,email_centro")
+        .eq("centro_id", centroId)
+        .maybeSingle();
+      const cfg = parseEmailCentro(cfgRow?.email_centro);
+      const enviar = lista.filter((r) => debeEnviarEmailCentro(cfg, r.tipo));
+      if (!enviar.length) continue;
+      let destinos: string[] = cfg.destino ? [cfg.destino] : [];
+      if (!destinos.length) {
+        const { data: admins } = await (supabaseAdmin as any)
+          .from("user_roles")
+          .select("user_id")
+          .eq("centro_id", centroId)
+          .eq("role", "admin");
+        for (const a of (admins ?? []) as { user_id: string }[]) {
+          const { data } = await supabaseAdmin.auth.admin.getUserById(a.user_id);
+          if (data?.user?.email) destinos.push(data.user.email);
+        }
+      }
+      destinos = [...new Set(destinos)];
+      for (const r of enviar) {
+        for (const email of destinos) {
+          try {
+            await sendTemplateEmail("aviso-centro", email, {
+              templateData: { centro: cfgRow?.nombre ?? "Tu centro", titulo: r.titulo, mensaje: r.mensaje },
+              idempotencyKey: `aviso-centro-${r.id}-${email}`,
+            });
+          } catch (e) {
+            console.error("[avisos centro] no se pudo enviar", r.id, e);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error("[avisos centro] fallo", e);
+  }
+}

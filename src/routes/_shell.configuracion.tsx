@@ -15,6 +15,7 @@ import { EstadoColorsForm } from "@/components/config/estado-colors-form";
 import { SpecialDaysCalendar } from "@/components/config/special-days-calendar";
 import { AccountForm } from "@/components/config/account-form";
 import { StatsConfigForm } from "@/components/config/stats-config-form";
+import { EmailCentroForm } from "@/components/config/email-centro-form";
 import { BehaviorForm } from "@/components/config/behavior-form";
 export const Route = createFileRoute("/_shell/configuracion")({
   head: () => ({ meta: [
@@ -43,6 +44,7 @@ function ConfigPage() {
           <TabsTrigger value="calendario">Calendario y horario</TabsTrigger>
           <TabsTrigger value="estadisticas">Estadísticas</TabsTrigger>
           <TabsTrigger value="funcionamiento">Funcionamiento</TabsTrigger>
+          <TabsTrigger value="notificaciones">Notificaciones</TabsTrigger>
           <TabsTrigger value="cuenta">Cuenta</TabsTrigger>
         </TabsList>
 
@@ -84,6 +86,10 @@ function ConfigPage() {
 
         <TabsContent value="funcionamiento" className="pt-4 space-y-6">
           <BehaviorForm />
+        </TabsContent>
+
+        <TabsContent value="notificaciones" className="pt-4 space-y-6">
+          <EmailCentroForm />
         </TabsContent>
 
         <TabsContent value="cuenta" className="pt-4 space-y-6">
