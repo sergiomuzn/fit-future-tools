@@ -550,11 +550,11 @@ function ResumenBono({ resumen, sumarNC, verCanceladas }: { resumen: ResumenClie
                 <DatoFila label="Tipo" value={b.tipo ? capitalizar(b.tipo) : "—"} />
                 <DatoFila label="Bono" value={b.nombre ?? "—"} />
                 {b.fechaCaducidad && (
-                  <DatoFila label="Caduca el" value={fechaCorta(b.fechaCaducidad)} />
+                  <DatoFila label={b.fechaCaducidad < new Date().toISOString().slice(0, 10) ? "Caducado el" : "Caduca el"} value={fechaCorta(b.fechaCaducidad)} />
                 )}
                 <DatoFila
                   label="Sesiones restantes"
-                  value={b.sesionesRestantes == null ? "—" : String(b.sesionesRestantes)}
+                  value={b.fechaCaducidad && b.fechaCaducidad < new Date().toISOString().slice(0, 10) ? "caducado" : b.sesionesRestantes == null ? "—" : String(b.sesionesRestantes)}
                 />
                 <DatoFila
                   label="Sesiones realizadas"
