@@ -52,14 +52,22 @@ function cupoNombres(widthPct: number): { limite: number; visibles: number } {
   return { limite: 1, visibles: 1 };
 }
 
-/** Texto principal del bloque de sesión según los nombres y el ancho disponible. */
+/**
+ * Texto principal del bloque de sesión según los nombres y el ancho disponible.
+ * Sin clientes, la nota de la sesión ocupa ese sitio; si tampoco hay nota,
+ * "Sin clientes".
+ */
 export function sessionMainLabel(
   plazas: number,
   nombres: string[],
   widthPct = 100,
+  nota?: string | null,
 ): string {
   const list = nombres.filter(Boolean);
-  if (list.length === 0) return "Sin clientes";
+  if (list.length === 0) {
+    const notaTxt = (nota ?? "").trim();
+    return notaTxt || "Sin clientes";
+  }
   const { limite, visibles } = cupoNombres(widthPct);
   if (list.length <= limite) return list.join(", ");
   const shown = list.slice(0, visibles);

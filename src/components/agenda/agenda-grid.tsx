@@ -1439,8 +1439,9 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   : (e.titulo ? markUnregistered(formatNameUpper(e.titulo) ?? e.titulo) : ""))
                 .filter(Boolean);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
+              // Sin clientes, la nota de la sesión ocupa el sitio del nombre.
               const displayName =
-                sessionMainLabel(plazas, nombres, widthPct) ||
+                sessionMainLabel(plazas, nombres, widthPct, session.incidencia) ||
                 formatNameUpper(session.titulo ?? client?.nombre ?? "");
               const abrev = mostrarAbrev ? (servicioAbrevMap.get(servicioSlug) ?? "") : "";
 
@@ -1562,7 +1563,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
                       </div>
-                      {session.incidencia && (
+                      {session.incidencia && nombres.length > 0 && (
                         <div
                           className="text-[10px] opacity-90 italic whitespace-pre-wrap break-words"
                         >

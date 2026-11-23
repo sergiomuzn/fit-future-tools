@@ -247,7 +247,9 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const plazas = agendaBlockMembers(session, sessions).map((m) => (m as any).plazas as number | null).find((n) => n != null) ?? servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const places = sessionPlaces(plazas, ocupados);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
-                    const name = sessionMainLabel(plazas, nombres, w) || session.titulo || "";
+                    // Sin clientes, la nota de la sesión ocupa el sitio del nombre.
+                    const name = sessionMainLabel(plazas, nombres, w, session.incidencia) || session.titulo || "";
+                    const notaComoNombre = nombres.length === 0 && !!session.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
                     const blockColor = summary.estado === "cancelada" ? "cancelada" : colorEstadoFor({ ...session, estado: summary.estado });
@@ -280,7 +282,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                           <div className="flex items-center gap-1 min-w-0">
                             {abrev && <span className="shrink-0 font-semibold">{abrev}</span>}
                             {abrev && <span className="shrink-0">·</span>}
-                            <span className="truncate">{name.toUpperCase()} ({places.label})</span>
+                            <span className="truncate">{(notaComoNombre ? name : name.toUpperCase())} ({places.label})</span>
                           </div>
                         )}
                         {trainer && height > 34 && <div className="truncate opacity-90">{trainer.iniciales}</div>}

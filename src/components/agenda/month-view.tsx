@@ -183,7 +183,9 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const ocupados = isGroup ? nombres.length : (s.client_id || s.titulo ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
-                    const name = sessionMainLabel(plazas, nombres) || s.titulo || "";
+                    // Sin clientes, la nota de la sesión ocupa el sitio del nombre.
+                    const name = sessionMainLabel(plazas, nombres, 100, s.incidencia) || s.titulo || "";
+                    const notaComoNombre = nombres.length === 0 && !!s.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorEstadoFor(s));
                     return (
@@ -212,7 +214,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         {s.hora_inicio.slice(0, 5)}{" "}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && " · "}
-                        {name.toUpperCase()} ({ocupados}/{plazas})
+                        {notaComoNombre ? name : name.toUpperCase()} ({ocupados}/{plazas})
 
                       </button>
                       </SessionSummaryHover>
