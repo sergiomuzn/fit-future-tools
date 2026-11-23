@@ -13,13 +13,13 @@ export interface EmailCentroConfig {
   tipos: Record<string, boolean>;
 }
 
-export const EMAIL_CENTRO_DEFAULT: EmailCentroConfig = { activo: false, destino: "", tipos: {} };
+export const EMAIL_CENTRO_DEFAULT: EmailCentroConfig = { activo: true, destino: "", tipos: {} };
 
 export function parseEmailCentro(raw: unknown): EmailCentroConfig {
   const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
   const tipos = (o.tipos && typeof o.tipos === "object" ? o.tipos : {}) as Record<string, boolean>;
   return {
-    activo: o.activo === true,
+    activo: o.activo !== false,
     destino: typeof o.destino === "string" ? o.destino.trim() : "",
     tipos,
   };

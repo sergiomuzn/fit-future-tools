@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,15 +39,10 @@ export function EmailCentroForm() {
   };
 
   async function save(): Promise<boolean> {
-    const destino = cfg.destino.trim();
-    if (destino && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destino)) {
-      toast.error("El correo de destino no es válido");
-      return false;
-    }
     setSaving(true);
     const { error } = await supabase
       .from("center_config")
-      .update({ email_centro: { ...cfg, destino } as never })
+      .update({ email_centro: { ...cfg, destino: "" } as never })
       .eq("id", true);
     setSaving(false);
     if (error) {
@@ -78,33 +72,23 @@ export function EmailCentroForm() {
         <div className="flex items-center justify-between gap-4 border-b pb-3">
           <div>
             <Label className="text-sm font-medium">Recibir avisos por correo</Label>
-            <p className="text-xs text-muted-foreground mt-1">Desactivado, no llega ningún correo al centro.</p>
+            <p className="text-xs text-muted-foreground mt-1">Los avisos llegan al correo del centro.</p>
           </div>
           <Switch checked={cfg.activo} onCheckedChange={(v) => change({ ...cfg, activo: v })} />
         </div>
-        <div className="space-y-1">
-          <Label htmlFor="email-centro-destino" className="text-sm font-medium">Correo de destino</Label>
-          <Input
-            id="email-centro-destino"
-            type="email"
-            placeholder="Si lo dejas vacío, al correo de las cuentas del centro"
-            value={cfg.destino}
-            disabled={!cfg.activo}
-            onChange={(e) => change({ ...cfg, destino: e.target.value })}
-          />
-        </div>
-        <div className={cfg.activo ? "" : "opacity-50"}>
+        {cfg.activo && (
+        <div>
           {TIPOS_AVISO_CENTRO.map((t) => (
             <div key={t.tipo} className="flex items-center justify-between gap-4 py-2.5 border-b last:border-b-0">
               <Label className="text-sm">{t.label}</Label>
               <Switch
-                disabled={!cfg.activo}
                 checked={tipoCentroActivo(cfg, t.tipo)}
                 onCheckedChange={(v) => change({ ...cfg, tipos: { ...cfg.tipos, [t.tipo]: v } })}
               />
             </div>
           ))}
         </div>
+        )}
         <div className="flex justify-end">
           <Button onClick={() => void save()} disabled={!dirty || saving}>Guardar</Button>
         </div>

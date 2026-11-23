@@ -163,8 +163,8 @@ export async function enviarEmailsCentro(
       const cfg = parseEmailCentro(cfgRow?.email_centro);
       const enviar = lista.filter((r) => debeEnviarEmailCentro(cfg, r.tipo));
       if (!enviar.length) continue;
-      let destinos: string[] = cfg.destino ? [cfg.destino] : [];
-      if (!destinos.length) {
+      let destinos: string[] = [];
+      {
         const { data: admins } = await (supabaseAdmin as any)
           .from("user_roles")
           .select("user_id")

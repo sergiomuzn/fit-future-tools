@@ -2,8 +2,11 @@ import { test } from "node:test";
 import { strictEqual } from "node:assert";
 import { debeEnviarEmailCentro, parseEmailCentro } from "./email-centro";
 
-test("center emails are off until the centre turns them on", () => {
-  strictEqual(debeEnviarEmailCentro(parseEmailCentro({}), "reserva_creada"), false);
+test("center emails are on by default", () => {
+  strictEqual(debeEnviarEmailCentro(parseEmailCentro({}), "reserva_creada"), true);
+});
+test("turned off, the centre receives no emails", () => {
+  strictEqual(debeEnviarEmailCentro(parseEmailCentro({ activo: false }), "reserva_creada"), false);
 });
 test("turned on, a new booking emails the centre by default", () => {
   strictEqual(debeEnviarEmailCentro(parseEmailCentro({ activo: true }), "reserva_creada"), true);
