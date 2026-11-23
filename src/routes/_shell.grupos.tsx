@@ -223,7 +223,7 @@ function ServiciosPage() {
               </CardContent>
             </Card>
 
-            <Card className="w-full max-w-[576px] overflow-hidden">
+            <Card className="w-full overflow-hidden">
               <CardContent className="p-4">
                 <ServicioBonosPanel servicioSlug={s.slug} />
               </CardContent>
