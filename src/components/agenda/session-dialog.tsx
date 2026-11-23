@@ -73,6 +73,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [nombreLibre, setNombreLibre] = useState("");
+  const [pickerResetKey, setPickerResetKey] = useState(0);
   const [noContabilizar, setNoContabilizar] = useState(false);
   const [porConfirmar, setPorConfirmar] = useState(false);
   const [scopeAsk, setScopeAsk] = useState(false);
@@ -326,7 +327,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
   async function cancelarCliente(row: Session) {
     let note = "";
-    const nombre = clientsForCancelled.find((c) => c.id === row.client_id)?.nombre;
+    const nombre = clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? (row.client_id ? undefined : row.titulo ?? undefined);
     if (!(await confirm({ title: clientCancellationTitle(nombre), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { note = value; } } }))) return;
     const updated = { ...row, ...clientCancellationFields(row.por_confirmar, behaviorCfg.cancelacionDefaultNoContabilizar), incidencia: cancellationIncidence(row.id === session?.id ? incidencia : row.incidencia, note) } as Session;
     if (row.id === session?.id) setIncidencia(updated.incidencia ?? "");
@@ -336,6 +337,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     setGroupClientIds((old) => old.map((id) => id === row.client_id ? null : id));
   }
 
+  /** Actions for a hand-written (unregistered) name, matching registered clients. */
+  function freeNameMenu(text: string, row: Session | undefined, clear: () => void) {
+    const name = text.trim();
+    if (!name) return null;
+    const savedRow = row && !row.client_id && row.titulo === name && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={clear}><UserMinus />Quitar cliente</DropdownMenuItem>{savedRow && <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => { await cancelarCliente(savedRow); clear(); }}><Ban />Cliente Cancela</DropdownMenuItem>}</DropdownMenuContent></DropdownMenu>;
+  }
   function clientMenu(selectedId: string | null, row: Session | undefined, remove: () => void) {
     if (!selectedId) return null;
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
@@ -1009,7 +1017,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               {groupClientIds.map((cid, i) => (
                 <div key={i} className="flex items-center gap-2">
                   <div className="flex-1 min-w-0">
-                    <ClientPicker
+                    <ClientPicker key={`p-${i}-${pickerResetKey}`}
                       hideClearButton
                       value={cid}
                       showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
@@ -1034,12 +1042,13 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                     />
                   </div>
                   {clientMenu(cid, (groupMembersData ?? []).find((row) => row.client_id === cid), () => setGroupClientIds((old) => old.map((id, index) => index === i ? null : id)))}
+                  {!cid && (() => { const text = i === 0 ? nombreLibre : groupClientNames[i] ?? ""; return freeNameMenu(text, (groupMembersData ?? []).find((row) => !row.client_id && row.titulo === text.trim()), () => { if (i === 0) setNombreLibre(""); else setGroupClientNames((old) => old.map((x, idx) => (idx === i ? "" : x))); setPickerResetKey((k) => k + 1); }); })()}
                 </div>
               ))}
               </div>
             ) : (
               <div className="flex items-start gap-2"><div className="min-w-0 flex-1">
-                <ClientPicker
+                <ClientPicker key={`p-${pickerResetKey}`}
                       hideClearButton
                   value={clientId}
                   showRemainingSessions={behaviorCfg.mostrarSesionesRestantesEnSesion}
@@ -1050,6 +1059,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
                   onTextChange={(t) => setNombreLibre(t)}
                   onNameClick={(c) => setPerfilCliente(c)}
                 /></div>{clientMenu(clientId, session?.id ? session as Session : undefined, () => setClientId(null))}
+                {!clientId && freeNameMenu(nombreLibre, session?.id ? session as Session : undefined, () => { setNombreLibre(""); setPickerResetKey((k) => k + 1); })}
               </div>
             )}
           </div>
