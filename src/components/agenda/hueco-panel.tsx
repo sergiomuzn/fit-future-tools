@@ -250,11 +250,11 @@ export function HuecoPanel({
   }, [capacidad, reservasVisibles.length, inst?.id, saving]);
 
   async function pedirCancelacion(reserva: PanelReserva) {
-    if (!reserva.client_id) return;
+    if (!reserva.client_id && !reserva.titulo) return;
     let incidencia = "";
     if (!(await confirm({ title: clientCancellationTitle(reserva.clients?.nombre ?? reserva.titulo), confirmText: "Cliente Cancela", cancelText: "Cerrar", textInput: { label: "Incidencia", onConfirm: (value) => { incidencia = value; } } }))) return;
     const cancellation: DraftCancellation = {
-      id: reserva.id, sessionId: reserva.id, clientId: reserva.client_id,
+      id: reserva.id, sessionId: reserva.id, clientId: reserva.client_id ?? "",
       incidencia,
       noContabilizar: clientCancellationFields(reserva.pending ?? porConfirmar, behavior.cancelacionDefaultNoContabilizar).no_contabilizar,
     };
@@ -265,7 +265,7 @@ export function HuecoPanel({
   const listas: Record<Pestana, { id: string; clientId?: string | null; nombre: string; reserva?: PanelReserva; noContabilizar?: boolean }[]> = {
     reservados: reservasVisibles.map((r) => ({ id: r.id, clientId: r.client_id, nombre: r.clients?.nombre ?? r.titulo ?? "Cliente", unregistered: !r.client_id && !!r.titulo, reserva: r })),
     cola: extra?.cola ?? [],
-    cancelados: [...(isNew ? [] : extra?.cancelados ?? []).map((c) => ({ ...c, noContabilizar: noContLocal[c.id] ?? c.noContabilizar })), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? "Cliente", noContabilizar: c.noContabilizar }))],
+    cancelados: [...(isNew ? [] : extra?.cancelados ?? []).map((c) => ({ ...c, noContabilizar: noContLocal[c.id] ?? c.noContabilizar })), ...draftCancelled.map((c) => ({ id: c.id, clientId: c.clientId, nombre: allClients.find((client) => client.id === c.clientId)?.nombre ?? reservasAll.find((r) => r.id === c.sessionId)?.titulo ?? "Cliente", noContabilizar: c.noContabilizar }))],
   };
 
   async function cancelarSeleccion(clientId: string, row: number) {
@@ -465,6 +465,13 @@ export function HuecoPanel({
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
                     <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
                     {"unregistered" in item && !!item.unregistered && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] text-muted-foreground">No registrado</span>}
+                    {tab === "reservados" && "reserva" in item && !!item.reserva && <DropdownMenu>
+                      <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto h-8 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>}
                     {tab === "cancelados" && (
                       <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
                         <Checkbox
