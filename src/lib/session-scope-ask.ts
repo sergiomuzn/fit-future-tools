@@ -132,7 +132,8 @@ export function isOnlyClientCancellationPanel(a: PanelOnlyCancellationArgs): boo
   if (a.porConfirmarOriginal !== a.porConfirmar) return false;
   if (a.notasOriginal !== a.notas) return false;
   if ((a.plazasOriginal ?? null) !== (a.plazas ?? null)) return false;
-  if (a.noContabilizarCount > 0) return false;
+  // "No contabilizar" solo existe en cancelaciones: es una edición de la
+  // cancelación y nunca obliga a preguntar por las sesiones futuras.
 
   const esperados = new Set(a.clientesOriginales.filter((id) => !a.cancelledClientIds.includes(id)));
   const actuales = new Set(a.clientIds.filter(Boolean));

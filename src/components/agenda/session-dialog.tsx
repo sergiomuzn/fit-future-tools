@@ -375,7 +375,9 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
    */
   function onlyClientCancellation(): boolean {
     if (!session?.id) return false;
-    if (!cancelledIds.length && !draftCancelled.length) return false;
+    // Editar una cancelación (incluido "No contabilizar") también cuenta.
+    const editaCancelada = session.estado === "cancelada" || cancelledOverrides.length > 0;
+    if (!cancelledIds.length && !draftCancelled.length && !editaCancelada) return false;
     const slugResuelto = servicioSlug || (grupo ? (servicioGrupo?.slug ?? null) : (servicioIndividual?.slug ?? null));
     const slugSesion =
       ((session as any)?.servicio_slug as string | null | undefined) ??
@@ -384,6 +386,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     const cancelledClientIds = [
       ...cancelledIds.map((id) => rows.find((r) => r.id === id)?.client_id).filter((id): id is string => !!id),
       ...draftCancelled.map((c) => c.clientId),
+      ...(session.estado === "cancelada" && session.client_id ? [session.client_id] : []),
     ];
     return isOnlyClientCancellation({
       hasCancellation: true,
@@ -410,7 +413,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       expectedIncidencia: cancelledOverrides.find((r) => r.id === session.id)?.incidencia ?? session.incidencia ?? null,
       clientId,
       nombreLibre,
-      sessionCancelada: cancelledIds.includes(session.id),
+      sessionCancelada: cancelledIds.includes(session.id) || session.estado === "cancelada",
       cancelledClientIds,
       groupClientIds,
       groupNameOnlyCount: groupNameOnly().length,

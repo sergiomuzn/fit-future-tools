@@ -131,3 +131,10 @@ test("panel del día: cancelar y tocar las notas ya no es solo cancelación", ()
 test("panel del día: cancelar y cambiar las plazas ya no es solo cancelación", () => {
   strictEqual(isOnlyClientCancellationPanel({ ...panelBase, plazas: 4 }), false);
 });
+
+test("panel del día: marcar «No contabilizar» en una cancelación no pregunta por las futuras", () => {
+  strictEqual(
+    isOnlyClientCancellationPanel({ ...panelBase, noContabilizarCount: 1, cancelledClientIds: [], clientesOriginales: ["c2"] }),
+    true,
+  );
+});

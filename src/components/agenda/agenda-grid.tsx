@@ -1031,7 +1031,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const activasOrig = filasBloque.filter((row) => row.estado !== "cancelada");
     const canceladosSessionIds = new Set(draft.cancelledClients.map((c) => c.sessionId).filter((id): id is string => !!id));
     const soloCancelacionClientes = isOnlyClientCancellationPanel({
-      hasCancellation: draft.cancelledClients.length > 0,
+      hasCancellation: draft.cancelledClients.length > 0 || Object.keys(draft.noContabilizar ?? {}).length > 0,
       removedCount: draft.removedSessionIds.length,
       repeatWeeks: draft.repeatWeeks,
       horaInicioOriginal: ps.hora_inicio ?? "",
