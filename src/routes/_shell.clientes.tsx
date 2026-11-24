@@ -419,7 +419,8 @@ function ClientesPage() {
                 </TableCell>
                 {show("servicio") && <TableCell>
                   {(() => {
-                    const rows = bonosByClient.get(c.id) ?? [];
+                    // En prueba solo se muestra el indicador de prueba, igual que en Bonos.
+                    const rows = enPrueba.has(c.id) ? [] : bonosByClient.get(c.id) ?? [];
                     if (rows.length === 0 && !enPrueba.has(c.id)) return <span className="text-muted-foreground">—</span>;
                     return (
                       <div className="flex flex-col gap-1">
