@@ -300,8 +300,8 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
                         title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${places.label}) ${name}`}
                       >
-                        {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 top-0.5 rounded-sm bg-state-cancelada px-1 font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
-                        {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute top-0.5 rounded-sm bg-state-cola px-1 font-semibold text-state-cola-fg shadow-sm", summary.active.length > 0 && summary.cancelled.length > 0 ? "right-6" : "right-1")}>{enCola}</span>}
+                        {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 bottom-0.5 rounded-sm bg-state-cancelada px-1 font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
+                        {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute bottom-0.5 rounded-sm bg-state-cola px-1 font-semibold text-state-cola-fg shadow-sm", summary.active.length > 0 && summary.cancelled.length > 0 ? "right-6" : "right-1")}>{enCola}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">

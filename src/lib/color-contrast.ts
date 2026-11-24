@@ -45,6 +45,8 @@ function rgbToHsl(r: number, g: number, b: number): [number, number, number] {
 
 /**
  * ¿El fondo es tan cercano al rojo que el indicador rojo de cancelados se perdería?
+ * Cuentan los rojos y también los magentas y morados rosáceos (p. ej. grupos
+ * reducidos), sobre los que el rojo apenas se distingue.
  * `true` → hay que conservarle el contorno claro; `false` → puede ir sin contorno.
  * Un color que no se sabe interpretar se considera cercano, por seguridad.
  */
@@ -54,5 +56,5 @@ export function colorCercaDeRojo(color: string | null | undefined): boolean {
   if (!rgb) return true;
   const [h, s, l] = rgbToHsl(rgb[0], rgb[1], rgb[2]);
   if (s < 0.3 || l < 0.2 || l > 0.9) return false;
-  return Math.min(h, 360 - h) <= 25;
+  return h <= 25 || h >= 300;
 }

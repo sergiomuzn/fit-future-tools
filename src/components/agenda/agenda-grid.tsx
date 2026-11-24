@@ -1587,8 +1587,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     }}
                     onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
-                  {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 top-0.5 z-10 rounded-sm bg-state-cancelada px-1 text-[10px] font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
-                  {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute top-0.5 z-10 rounded-sm bg-state-cola px-1 text-[10px] font-semibold text-state-cola-fg shadow-sm", summary.cancelled.length > 0 && summary.active.length > 0 ? "right-7" : "right-1")}>{enCola}</span>}
+                  {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 bottom-0.5 z-10 rounded-sm bg-state-cancelada px-1 text-[10px] font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
+                  {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute bottom-0.5 z-10 rounded-sm bg-state-cola px-1 text-[10px] font-semibold text-state-cola-fg shadow-sm", summary.cancelled.length > 0 && summary.active.length > 0 ? "right-7" : "right-1")}>{enCola}</span>}
                   {isCompact ? (
                     <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
                       <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
