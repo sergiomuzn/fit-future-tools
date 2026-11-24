@@ -123,3 +123,7 @@ export function useEstadoColorVars() {
     }
   }, [colores]);
 }
+
+/* ── Legibilidad del indicador de cancelados sobre el color de la sesión ── */
+
+export { colorCercaDeRojo, parseColorRgb } from "./color-contrast";
