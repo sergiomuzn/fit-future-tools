@@ -1563,7 +1563,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     }}
                     onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
-                  {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 z-10 rounded-sm bg-background px-1 text-[10px] font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
+                  {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 z-10 rounded-sm bg-state-cancelada px-1 text-[10px] font-semibold text-state-cancelada-fg ring-1 ring-background shadow-sm">{summary.cancelled.length}</span>}
                   {isCompact ? (
                     <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
                       <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>

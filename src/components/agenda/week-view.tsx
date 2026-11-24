@@ -276,7 +276,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
                         title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${places.label}) ${name}`}
                       >
-                        {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 rounded-sm bg-background px-1 font-semibold text-state-cancelada">{summary.cancelled.length}</span>}
+                        {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className="absolute right-1 top-0.5 rounded-sm bg-state-cancelada px-1 font-semibold text-state-cancelada-fg ring-1 ring-background shadow-sm">{summary.cancelled.length}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">
