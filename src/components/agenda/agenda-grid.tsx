@@ -8,6 +8,7 @@ import { HOUR_START, HOUR_END, SLOT_MIN, SLOT_PX, TOTAL_PX, pxToMin, pxToMinRaw,
 import { HuecoPanel, type HuecoPanelDraft } from "./hueco-panel";
 import { saveSessionClients } from "./save-session-clients";
 import { cancellationIncidence, draftSessionMembers } from "@/lib/session-draft-clients";
+import { isOnlyClientCancellationPanel } from "@/lib/session-scope-ask";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
@@ -1023,7 +1024,42 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     for (const [sessionId, value] of Object.entries(draft.noContabilizar ?? {})) {
       await supabase.from("sessions").update({ no_contabilizar: value } as any).eq("id", sessionId);
     }
-    if (draft.repeatWeeks === 0 && ps.recurrencia_id && futureSeries) {
+    // Si el único cambio es la cancelación de uno o varios clientes, no se
+    // pregunta por el alcance: la cancelación se guarda siempre solo en la
+    // sesión presente, nunca en las futuras de la serie.
+    const filasBloque = sessions.filter((row) => blockIdList.includes(row.id));
+    const activasOrig = filasBloque.filter((row) => row.estado !== "cancelada");
+    const canceladosSessionIds = new Set(draft.cancelledClients.map((c) => c.sessionId).filter((id): id is string => !!id));
+    const soloCancelacionClientes = isOnlyClientCancellationPanel({
+      hasCancellation: draft.cancelledClients.length > 0,
+      removedCount: draft.removedSessionIds.length,
+      repeatWeeks: draft.repeatWeeks,
+      horaInicioOriginal: ps.hora_inicio ?? "",
+      horaFinOriginal: ps.hora_fin ?? "",
+      horaInicio: draft.horaInicio,
+      horaFin: draft.horaFin,
+      trainerOriginal: ps.trainer_id ?? null,
+      trainerId: draft.trainerId,
+      servicioOriginal: ps.servicio_slug ?? "",
+      servicioSlug: draft.servicioSlug,
+      esPruebaOriginal: ps.tipo === "prueba" || ps.estado === "prueba",
+      esPrueba: draft.esPrueba,
+      porConfirmarOriginal: !!ps.por_confirmar,
+      porConfirmar: draft.porConfirmar,
+      notasOriginal: ps.incidencia ?? "",
+      notas: draft.notas,
+      plazasOriginal: (ps as any).plazas ?? null,
+      plazas: draft.plazas,
+      noContabilizarCount: Object.keys(draft.noContabilizar ?? {}).length,
+      clientesOriginales: activasOrig.map((row) => row.client_id).filter((id): id is string => !!id),
+      cancelledClientIds: draft.cancelledClients.map((c) => c.clientId),
+      clientIds: draft.clientIds,
+      nombresEsperados: activasOrig
+        .filter((row) => !row.client_id && row.titulo && !canceladosSessionIds.has(row.id))
+        .map((row) => (row.titulo as string).trim()),
+      nombresActuales: draft.clientNames.map((nombre) => nombre.trim()).filter(Boolean),
+    });
+    if (draft.repeatWeeks === 0 && ps.recurrencia_id && futureSeries && !soloCancelacionClientes) {
       const aplicar = await confirmPanel({
         title: "Esta sesión se repite en semanas futuras",
         description: "¿Quieres aplicar los cambios también a las sesiones futuras o solo a esta sesión?",

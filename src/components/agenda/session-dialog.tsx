@@ -6,6 +6,7 @@ import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clientCancellationFields } from "@/lib/session-state";
 import { cancellationIncidence, cancelDraftClient, draftClientNames, draftSessionMembers, sessionIncidenceEdits, type DraftCancellation } from "@/lib/session-draft-clients";
+import { isOnlyClientCancellation } from "@/lib/session-scope-ask";
 import { commitAgendaRows } from "@/lib/agenda-session-cache";
 import { automaticSessionState } from "@/lib/session-state";
 import { sessionPlaces } from "@/lib/session-places";
@@ -367,8 +368,61 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const { data: clientsForCancelled = [] } = useQuery({ queryKey: ["clients"], queryFn: async () => (await supabase.from("clients").select("*")).data ?? [] });
   const cancelledRows = (groupMembersData?.length ? groupMembersData : session?.id ? [session as Session] : []).map((row) => cancelledOverrides.find((r) => r.id === row.id) ?? row).filter((row) => row.estado === "cancelada" || cancelledIds.includes(row.id));
 
+  /**
+   * ¿El único cambio del borrador es la cancelación de uno o varios clientes?
+   * Entonces no se pregunta por el alcance: la cancelación se guarda siempre
+   * solo en la sesión presente, nunca en las futuras de la serie.
+   */
+  function onlyClientCancellation(): boolean {
+    if (!session?.id) return false;
+    if (!cancelledIds.length && !draftCancelled.length) return false;
+    const slugResuelto = servicioSlug || (grupo ? (servicioGrupo?.slug ?? null) : (servicioIndividual?.slug ?? null));
+    const slugSesion =
+      ((session as any)?.servicio_slug as string | null | undefined) ??
+      ((session?.ocupacion ?? 1) === 2 ? (servicioGrupo?.slug ?? null) : (servicioIndividual?.slug ?? null));
+    const rows = groupMembersData?.length ? groupMembersData : [session as Session];
+    const cancelledClientIds = [
+      ...cancelledIds.map((id) => rows.find((r) => r.id === id)?.client_id).filter((id): id is string => !!id),
+      ...draftCancelled.map((c) => c.clientId),
+    ];
+    return isOnlyClientCancellation({
+      hasCancellation: true,
+      session: {
+        hora_inicio: session.hora_inicio ?? null,
+        hora_fin: session.hora_fin ?? null,
+        trainer_id: session.trainer_id ?? null,
+        servicio_slug: slugSesion,
+        esPrueba: session.estado === "prueba" || (session as any)?.tipo === "prueba",
+        por_confirmar: !!(session as any)?.por_confirmar,
+        ocupacion: session.ocupacion ?? 1,
+        client_id: session.client_id ?? null,
+        titulo: (session as any)?.titulo ?? null,
+      },
+      horaInicio,
+      horaFin,
+      trainerId,
+      servicioSlug: slugResuelto,
+      esPrueba,
+      porConfirmar,
+      grupo,
+      repeatWeeks,
+      incidencia: incidencia || null,
+      expectedIncidencia: cancelledOverrides.find((r) => r.id === session.id)?.incidencia ?? session.incidencia ?? null,
+      clientId,
+      nombreLibre,
+      sessionCancelada: cancelledIds.includes(session.id),
+      cancelledClientIds,
+      groupClientIds,
+      groupNameOnlyCount: groupNameOnly().length,
+      originalGroupClientIds: (groupMembersData ?? [])
+        .filter((m) => m.estado !== "cancelada")
+        .map((m) => m.client_id)
+        .filter((id): id is string => !!id),
+    });
+  }
+
   function requestSave() {
-    if (isSeries && futureWouldChange()) {
+    if (isSeries && futureWouldChange() && !onlyClientCancellation()) {
       setScopeAsk(true);
     } else {
       void doSave("one");
