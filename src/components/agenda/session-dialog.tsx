@@ -712,8 +712,21 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
         }
 
         // Nombres escritos a mano en huecos sin cliente: ocupan plaza con titulo.
-        if (nameOnly.length) {
-          const { error: e } = await supabase.from("sessions").insert(nameOnly.map((nombre) => ({
+        // Emparejar con las filas con nombre ya guardadas: solo se insertan los
+        // nombres nuevos y se borran las filas cuyo nombre se ha quitado.
+        const namedActivas = namedRows.filter((m) => m.estado !== "cancelada");
+        const pendientesNombre = [...namedActivas];
+        const nombresNuevos: string[] = [];
+        for (const nombre of nameOnly) {
+          const idx = pendientesNombre.findIndex((m) => (m.titulo ?? "").trim() === nombre.trim());
+          if (idx >= 0) pendientesNombre.splice(idx, 1);
+          else nombresNuevos.push(nombre);
+        }
+        if (pendientesNombre.length) {
+          await supabase.from("sessions").delete().in("id", pendientesNombre.map((m) => m.id));
+        }
+        if (nombresNuevos.length) {
+          const { error: e } = await supabase.from("sessions").insert(nombresNuevos.map((nombre) => ({
             ...sharedGroupFields,
             fecha: session.fecha!,
             estado: estadoForDate(session.fecha!),
