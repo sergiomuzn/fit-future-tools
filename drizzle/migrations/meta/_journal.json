@@ -120,6 +120,13 @@
       "when": 1795452856508,
       "tag": "0016_center_email_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795533695333,
+      "tag": "0017_remove_trial_placeholder_bono_on_contract",
+      "breakpoints": true
     }
   ]
 }
