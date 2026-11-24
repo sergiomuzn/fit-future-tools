@@ -1,3 +1,4 @@
+import { blockAllTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
 import { SessionSummaryHover } from "./session-summary-hover";
 import { useMemo, useState } from "react";
@@ -187,7 +188,8 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const name = sessionMainLabel(plazas, nombres, 100, s.incidencia) || s.titulo || "";
                     const notaComoNombre = nombres.length === 0 && !!s.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorEstadoFor(s));
+                    const colorBloque = s.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(s, sessions)) ? "prueba" : s.estado;
+                    const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorBloque);
                     return (
                       <SessionSummaryHover
                         key={s.id}
@@ -205,7 +207,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(s); setDialogOpen(true); }}
                         className={cn(
                           "relative overflow-hidden truncate rounded px-1 text-left text-[10px] leading-tight",
-                          fill ? "text-white" : isGroup ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorEstadoFor(s)],
+                          fill ? "text-white" : isGroup && colorBloque !== "prueba" ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[colorBloque],
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(s, sessions)) && "agenda-online-booking",
                         )}
                         style={{ backgroundColor: fill ?? undefined }}

@@ -1,3 +1,4 @@
+import { blockAllTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
 import { SessionSummaryHover } from "./session-summary-hover";
 import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
@@ -274,7 +275,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const notaComoNombre = nombres.length === 0 && !!session.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
-                    const blockColor = summary.estado === "cancelada" ? "cancelada" : colorEstadoFor({ ...session, estado: summary.estado });
+                    const blockColor = summary.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(session, sessions)) ? "prueba" : summary.estado;
                     const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, blockColor);
                     const colaKey = sessionQueueKey(session);
                     const enCola = colaKey ? colaCounts.get(colaKey) ?? 0 : 0;
@@ -294,7 +295,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         onClick={() => { setDialogSession(session); setDialogOpen(true); }}
                         className={cn(
                           "absolute overflow-hidden rounded px-1 text-left text-[10px] leading-tight shadow-sm border border-black/5",
-                          fill ? "text-white" : isGroup && blockColor !== "cancelada" ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[blockColor],
+                          fill ? "text-white" : isGroup && blockColor !== "cancelada" && blockColor !== "prueba" ? "bg-state-grupo text-state-grupo-fg" : ESTADO_BG[blockColor],
                           hasOnlineBookingDistinction(behavior.distinguirReservasOnline, agendaBlockMembers(session, sessions)) && "agenda-online-booking",
                         )}
                         style={{ top, height, left: `calc(${col * w}% + 1px)`, width: `calc(${w}% - 2px)`, backgroundColor: fill ?? undefined }}
