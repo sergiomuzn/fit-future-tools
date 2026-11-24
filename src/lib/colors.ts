@@ -68,7 +68,9 @@ export function sessionFillColor(
   estadoOverride?: string,
 ): string | null {
   const estado = estadoOverride ?? session.estado;
-  if (session.tipo === "prueba") return null;
+  // Con estado explícito (bloque de Agenda) manda ese estado; la marca de prueba
+  // de una sola fila no debe quitar el color del servicio al resto del bloque.
+  if (!estadoOverride && session.tipo === "prueba") return null;
   if (estado === "prueba" || estado === "cancelada" || estado === "renovacion") return null;
   const base = servicioColorOf(colores, session.servicio_slug ?? null);
   if (!base) return null;
