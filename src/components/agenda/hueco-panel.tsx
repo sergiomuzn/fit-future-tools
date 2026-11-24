@@ -181,6 +181,12 @@ export function HuecoPanel({
     if (c) setPerfilCliente(c);
   };
 
+  // Las sesiones de prueba solo existen en Entrenamiento personal: al cambiar a
+  // otro servicio la casilla desaparece y el tipo de prueba se quita del borrador.
+  useEffect(() => {
+    if (servicioSlug && servicioSlug !== "personal") setEsPrueba(false);
+  }, [servicioSlug]);
+
   useEffect(() => {
     if (!inst) return;
     setTab("reservados");
@@ -406,12 +412,14 @@ export function HuecoPanel({
 
               <FueraHorarioAviso show={isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap)} />
 
-              <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
-                <div className="flex items-center gap-1.5">
-                <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
-                <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">Sesion de Prueba</Label>
+              {servicioSlug === "personal" && (
+                <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
+                  <div className="flex items-center gap-1.5">
+                    <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
+                    <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">Sesion de Prueba</Label>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">

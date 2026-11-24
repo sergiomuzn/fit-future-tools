@@ -1139,10 +1139,12 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           {(cancelledRows.length > 0 || draftCancelled.length > 0) && <div className="space-y-2"><Label>Cancelados ({cancelledRows.length + draftCancelled.length})</Label>{cancelledRows.map((row) => <div key={row.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={!!row.no_contabilizar} onCheckedChange={(v) => { setCancelledOverrides((old) => [...old.filter((r) => r.id !== row.id), { ...row, no_contabilizar: !!v }]); }} />No contabilizar</label></div>)}{draftCancelled.map((c) => <div key={c.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((client) => client.id === c.clientId)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={c.noContabilizar} onCheckedChange={(v) => setDraftCancelled((old) => old.map((row) => row.id === c.id ? { ...row, noContabilizar: !!v } : row))} />No contabilizar</label></div>)}</div>}
           <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-2">
-              <Checkbox id="esprueba" checked={esPrueba} disabled={servicioSlug !== "personal" && !esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-              <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
-            </div>
+            {servicioSlug === "personal" && (
+              <div className="flex items-center gap-2">
+                <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
+                <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
+              </div>
+            )}
             <div className="flex items-center gap-2">
               {canEditSessionPending(estado, reservasPortalIds.length > 0, !!(session as any)?.por_confirmar) ? (
                 <>

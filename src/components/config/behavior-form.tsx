@@ -355,7 +355,8 @@ export function BehaviorForm() {
               pasan a inactivo sin contar como baja.
             </li>
             <li>
-              <b>Sesiones de prueba:</b> al marcar la casilla <i>Sesión de prueba</i> en la agenda, el
+              <b>Sesiones de prueba:</b> la casilla <i>Sesión de prueba</i> solo aparece en la agenda
+              cuando el servicio es <i>Entrenamiento personal</i>; al marcarla, el
               cliente queda registrado con bono de tipo <i>Prueba</i>. El estado de esa sesión
               (reservada, realizada o cancelada) se puede cambiar igualmente. Tras{" "}
               {cfg.pruebaDiasInactivar} días desde la sesión de prueba sin haber contratado bono, el
