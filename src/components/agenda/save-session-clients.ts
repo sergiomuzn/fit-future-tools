@@ -75,7 +75,7 @@ export async function saveSessionClients(qc: QueryClient, rows: Session[], draft
       servicio_slug: draft.servicioSlug, trainer_id: draft.trainerId, client_id: clientId,
       titulo: clientId ? null : (nombre ?? null),
       estado: cancellation ? "cancelada" : draft.estado, por_confirmar: cancellation ? false : draft.porConfirmar,
-      no_contabilizar: cancellation?.noContabilizar ?? false, tipo: draft.esPrueba ? "prueba" : null,
+      no_contabilizar: cancellation?.noContabilizar ?? false, tipo: !cancellation && clientId && draft.pruebaClientIds.includes(clientId) ? "prueba" : null,
       incidencia: cancellation ? cancellationIncidence(draft.notas, cancellation.incidencia) : draft.notas || null, plazas: draft.plazas, booking_tipo: "centro",
       slot_instance_id: base.slot_instance_id ?? null, recurrencia_id: rec, ocupacion: grouped ? 2 : base.ocupacion,
       reemplaza_session_id: !base.slot_instance_id ? next.find((r) => r.estado === "cancelada")?.id ?? null : null,

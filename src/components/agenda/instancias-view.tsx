@@ -107,7 +107,7 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const { data } = await supabase
         .from("sessions")
         .select(
-          "id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,titulo,booking_tipo,booked_by_user_id,slot_instance_id,clients(nombre)",
+          "id,fecha,hora_inicio,servicio_slug,trainer_id,client_id,estado,titulo,tipo,booking_tipo,booked_by_user_id,slot_instance_id,clients(nombre)",
         )
         .gte("fecha", from)
         .lte("fecha", to);
@@ -263,7 +263,6 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
       const nextEstado = draft.estado;
       const { error: sessionError } = await supabase.from("sessions").update({
         estado: nextEstado,
-        tipo: draft.esPrueba ? "prueba" : null,
         por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
         hora_inicio: `${draft.horaInicio}:00`,
         hora_fin: `${draft.horaFin}:00`,
@@ -271,6 +270,13 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         servicio_slug: draft.servicioSlug,
         incidencia: draft.notas || null,
       }).in("id", activeReservations.map((reservation) => reservation.id));
+      if (!sessionError) {
+        const esFila = (r: Session) => draft.pruebaSessionIds.includes(r.id) || (!!r.client_id && draft.pruebaClientIds.includes(r.client_id));
+        const pruebaIds = activeReservations.filter(esFila).map((r) => r.id);
+        const normalIds = activeReservations.filter((r) => !esFila(r)).map((r) => r.id);
+        if (pruebaIds.length) await supabase.from("sessions").update({ tipo: "prueba" } as any).in("id", pruebaIds);
+        if (normalIds.length) await supabase.from("sessions").update({ tipo: null } as any).in("id", normalIds);
+      }
       if (sessionError) {
         toast.error(sessionError.message);
         return false;
@@ -546,9 +552,8 @@ export function InstanciasView({ servicioSlug, view = "semana", date, paintServi
         trainerNombre={reservasDe?.trainer_id ? (trainers.find((t) => t.id === reservasDe.trainer_id)?.nombre ?? null) : null}
         trainers={trainers}
         servicios={servicios}
-        reservas={reservasDe ? reservasDeHueco(reservasDe).map((r) => ({ ...r, online: isSelfBooking(r) })) : []}
+        reservas={reservasDe ? reservasDeHueco(reservasDe).map((r) => ({ ...r, online: isSelfBooking(r), prueba: (r as any).tipo === "prueba" })) : []}
         estadoInicial={(reservasDe && reservasDeHueco(reservasDe)[0]?.estado as any) ?? "reservada"}
-        esPruebaInicial={false}
         porConfirmarInicial={false}
         onClose={() => setReservasDe(null)}
         onSave={(draft) => reservasDe ? savePanelHueco(reservasDe, draft) : false}

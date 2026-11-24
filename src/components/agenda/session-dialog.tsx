@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
-import { MoreHorizontal, Ban, UserMinus } from "lucide-react";
+import { MoreHorizontal, Ban, UserMinus, FlaskConical } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { clientCancellationFields } from "@/lib/session-state";
 import { cancellationIncidence, cancelDraftClient, draftClientNames, draftSessionMembers, sessionIncidenceEdits, type DraftCancellation } from "@/lib/session-draft-clients";
@@ -170,7 +170,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
     servicios.find((s) => s.slug === "personal") ?? servicios.find((s) => !/grupo/i.test(s.slug));
   const servicioActual = servicios.find((s) => s.slug === servicioSlug);
   // Las sesiones de prueba solo existen en Entrenamiento personal.
-  useEffect(() => { if (servicioSlug && servicioSlug !== "personal") setEsPrueba(false); }, [servicioSlug]);
   // Plazas del servicio (definidas en Servicios). 1 plaza = sesión individual.
   const plazas = Math.max(1, servicioActual?.capacidad_default ?? 1);
 
@@ -350,7 +349,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   function clientMenu(selectedId: string | null, row: Session | undefined, remove: () => void) {
     if (!selectedId) return null;
     const savedRow = row?.client_id === selectedId && row.estado !== "cancelada" && !cancelledIds.includes(row.id) ? row : undefined;
-    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={async () => { if (savedRow && !(await confirmOnlineRemoval(savedRow))) return; remove(); }}><UserMinus />Quitar cliente</DropdownMenuItem><DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
+    return <DropdownMenu><DropdownMenuTrigger asChild><Button size="icon" variant="ghost" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger><DropdownMenuContent align="end"><DropdownMenuItem onSelect={async () => { if (savedRow && !(await confirmOnlineRemoval(savedRow))) return; remove(); }}><UserMinus />Quitar cliente</DropdownMenuItem>{!grupo && <DropdownMenuItem onSelect={() => setEsPrueba((v) => !v)}><FlaskConical />{esPrueba ? "Quitar Sesión de Prueba" : "Sesión de Prueba"}</DropdownMenuItem>}<DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={async () => {
       if (savedRow) { await cancelarCliente(savedRow); return; }
       let note = "";
       const nombre = clientsForCancelled.find((c) => c.id === selectedId)?.nombre;
@@ -1139,12 +1138,6 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
 
           {(cancelledRows.length > 0 || draftCancelled.length > 0) && <div className="space-y-2"><Label>Cancelados ({cancelledRows.length + draftCancelled.length})</Label>{cancelledRows.map((row) => <div key={row.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((c) => c.id === row.client_id)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={!!row.no_contabilizar} onCheckedChange={(v) => { setCancelledOverrides((old) => [...old.filter((r) => r.id !== row.id), { ...row, no_contabilizar: !!v }]); }} />No contabilizar</label></div>)}{draftCancelled.map((c) => <div key={c.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm"><span>{clientsForCancelled.find((client) => client.id === c.clientId)?.nombre ?? "Cliente"}</span><label className="flex items-center gap-2 text-xs"><Checkbox checked={c.noContabilizar} onCheckedChange={(v) => setDraftCancelled((old) => old.map((row) => row.id === c.id ? { ...row, noContabilizar: !!v } : row))} />No contabilizar</label></div>)}</div>}
           <div className="grid grid-cols-2 gap-3">
-            {servicioSlug === "personal" && (
-              <div className="flex items-center gap-2">
-                <Checkbox id="esprueba" checked={esPrueba} onCheckedChange={(v) => setEsPrueba(!!v)} />
-                <Label htmlFor="esprueba" className="cursor-pointer">Sesión de prueba</Label>
-              </div>
-            )}
             <div className="flex items-center gap-2">
               {canEditSessionPending(estado, reservasPortalIds.length > 0, !!(session as any)?.por_confirmar) ? (
                 <>

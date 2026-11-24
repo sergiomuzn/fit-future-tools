@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MoreHorizontal, UserMinus, Ban, Pencil } from "lucide-react";
+import { MoreHorizontal, UserMinus, Ban, Pencil, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -40,6 +40,8 @@ export interface PanelReserva {
   /** La reserva la hizo el propio cliente desde su portal. */
   online?: boolean;
   pending?: boolean;
+  /** El cliente está en Sesión de Prueba en esta sesión (tipo = prueba). */
+  prueba?: boolean;
 }
 
 export interface HuecoPanelDraft {
@@ -48,7 +50,10 @@ export interface HuecoPanelDraft {
   horaFin: string;
   trainerId: string | null;
   estado: SesionEstado;
-  esPrueba: boolean;
+  /** Filas guardadas cuyo cliente queda en Sesión de Prueba. */
+  pruebaSessionIds: string[];
+  /** Clientes nuevos añadidos en Sesión de Prueba. */
+  pruebaClientIds: string[];
   porConfirmar: boolean;
   repeatWeeks: number;
   notas: string;
@@ -74,7 +79,6 @@ interface Props {
   isNew?: boolean;
   reservas: PanelReserva[];
   estadoInicial?: SesionEstado;
-  esPruebaInicial?: boolean;
   porConfirmarInicial?: boolean;
   notasIniciales?: string | null;
   /** Plazas disponibles guardadas en la sesión; null = las del servicio. */
@@ -108,7 +112,6 @@ export function HuecoPanel({
   isNew = false,
   reservas,
   estadoInicial,
-  esPruebaInicial = false,
   porConfirmarInicial = false,
   notasIniciales,
   plazasIniciales = null,
@@ -132,7 +135,9 @@ export function HuecoPanel({
   const [horaInicio, setHoraInicio] = useState("");
   const [horaFin, setHoraFin] = useState("");
   const [trainerId, setTrainerId] = useState<string | null>(null);
-  const [esPrueba, setEsPrueba] = useState(false);
+  // Sesión de Prueba por cliente: id de fila guardada / id de cliente nuevo → activado.
+  const [pruebaRows, setPruebaRows] = useState<Record<string, boolean>>({});
+  const [pruebaNuevos, setPruebaNuevos] = useState<Record<string, boolean>>({});
   const [porConfirmar, setPorConfirmar] = useState(false);
   const estado = automaticSessionState(inst?.fecha ?? "", `${horaFin || finInst}:00`, behavior.graciaAutoRealizadaMin, porConfirmar);
   const { confirm, dialog: cancelDialog } = useConfirm();
@@ -181,11 +186,10 @@ export function HuecoPanel({
     if (c) setPerfilCliente(c);
   };
 
-  // Las sesiones de prueba solo existen en Entrenamiento personal: al cambiar a
-  // otro servicio la casilla desaparece y el tipo de prueba se quita del borrador.
-  useEffect(() => {
-    if (servicioSlug && servicioSlug !== "personal") setEsPrueba(false);
-  }, [servicioSlug]);
+  const esPruebaReserva = (r: PanelReserva) => pruebaRows[r.id] ?? !!r.prueba;
+  const pruebaItem = (activo: boolean, toggle: () => void) => (
+    <DropdownMenuItem onSelect={toggle}><FlaskConical />{activo ? "Quitar Sesión de Prueba" : "Sesión de Prueba"}</DropdownMenuItem>
+  );
 
   useEffect(() => {
     if (!inst) return;
@@ -195,7 +199,8 @@ export function HuecoPanel({
     setHoraInicio(hhmm(inst.hora_inicio));
     setHoraFin(hhmm(inst.hora_fin));
     setTrainerId(inst.trainer_id);
-    setEsPrueba(esPruebaInicial);
+    setPruebaRows({});
+    setPruebaNuevos({});
     setPorConfirmar(porConfirmarInicial);
     setRepeatWeeks(0);
     setNotas(notasIniciales ?? "");
@@ -297,7 +302,7 @@ export function HuecoPanel({
     setSaving(true);
     try {
       const clientNames = draftClientNames(pickerValues, pickerTexts);
-      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, esPrueba, porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), clientNames, cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), removalReasons, noContabilizar: noContLocal, plazas: plazasOverride });
+      const result = await onSave({ servicioSlug, horaInicio, horaFin, trainerId, estado, pruebaSessionIds: reservasVisibles.filter(esPruebaReserva).map((r) => r.id), pruebaClientIds: pickerValues.filter((id): id is string => !!id && !!pruebaNuevos[id]), porConfirmar, repeatWeeks, notas, clientIds: pickerValues.filter((id): id is string => !!id), clientNames, cancelledClients: draftCancelled, removedSessionIds: removedIds.filter((id) => !draftCancelled.some((c) => c.sessionId === id)), removalReasons, noContabilizar: noContLocal, plazas: plazasOverride });
       if (result !== false) {
         // Las listas de cola/cancelados quedan en caché por hueco: se refrescan
         // para que, al reabrir, los clientes recién cancelados aparezcan ya.
@@ -412,14 +417,6 @@ export function HuecoPanel({
 
               <FueraHorarioAviso show={isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap)} />
 
-              {servicioSlug === "personal" && (
-                <div className={cn("flex flex-wrap items-center gap-4", isOutsideOpening(inst.fecha, horaInicio, horaFin, horario, specialsMap) && "mt-3")}>
-                  <div className="flex items-center gap-1.5">
-                    <Checkbox id="panel-prueba" checked={esPrueba} onCheckedChange={(value) => setEsPrueba(!!value)} className="border-primary-foreground/70 data-[state=checked]:bg-primary-foreground data-[state=checked]:text-primary" />
-                    <Label htmlFor="panel-prueba" className="cursor-pointer text-[11px] font-semibold text-primary-foreground/75">Sesion de Prueba</Label>
-                  </div>
-                </div>
-              )}
             </div>
 
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
@@ -465,6 +462,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        {pruebaItem(esPruebaReserva(item.reserva as PanelReserva), () => { const r = item.reserva as PanelReserva; setPruebaRows((old) => ({ ...old, [r.id]: !esPruebaReserva(r) })); })}
                         <DropdownMenuItem onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -477,6 +475,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="ml-auto h-8 w-8 shrink-0" aria-label={`Opciones de ${item.nombre}`} title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarCliente(item.reserva as PanelReserva)}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        {pruebaItem(esPruebaReserva(item.reserva as PanelReserva), () => { const r = item.reserva as PanelReserva; setPruebaRows((old) => ({ ...old, [r.id]: !esPruebaReserva(r) })); })}
                         <DropdownMenuItem onSelect={() => void pedirCancelacion(item.reserva as PanelReserva)} className="text-destructive focus:bg-destructive/10 focus:text-destructive"><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>}
@@ -512,6 +511,7 @@ export function HuecoPanel({
                       <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-10 w-8 shrink-0" aria-label="Opciones del cliente" title="Opciones del cliente"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem onSelect={() => void quitarSeleccion(value, row)}><UserMinus />Quitar cliente</DropdownMenuItem>
+                        {pruebaItem(!!pruebaNuevos[value], () => setPruebaNuevos((old) => ({ ...old, [value]: !old[value] })))}
                         <DropdownMenuItem className="text-destructive focus:bg-destructive/10 focus:text-destructive" onSelect={() => void cancelarSeleccion(value, row)}><Ban />Cliente Cancela</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>}

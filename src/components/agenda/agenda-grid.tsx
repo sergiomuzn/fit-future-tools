@@ -12,6 +12,7 @@ import { isOnlyClientCancellationPanel } from "@/lib/session-scope-ask";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
+import { blockAllTrial } from "@/lib/session-trial";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { requiresDeletionReason } from "@/lib/centre-cancellation";
@@ -913,7 +914,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           servicio_slug: draft.servicioSlug,
           client_id: clientId,
           estado: cancellation ? "cancelada" : automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
-          tipo: draft.esPrueba ? "prueba" : null,
+          tipo: week === 0 && clientId && draft.pruebaClientIds.includes(clientId) ? "prueba" : null,
           por_confirmar: !cancellation && draft.estado === "reservada" && draft.porConfirmar,
           no_contabilizar: cancellation?.noContabilizar ?? false,
           incidencia: cancellation ? cancellationIncidence(draft.notas, cancellation.incidencia) : draft.notas || null,
@@ -952,6 +953,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     const idSet = new Set(ids);
     const cancelledOnlyIds = hayActivas ? [] : allIds;
     const rows = allRows.filter((row) => idSet.has(row.id));
+    // Sesión de Prueba es de cada cliente: filas guardadas marcadas o clientes nuevos marcados.
+    const esFilaPrueba = (row: Session) => draft.pruebaSessionIds.includes(row.id) || (!!row.client_id && draft.pruebaClientIds.includes(row.client_id));
     const pendingPortalIds = rows.filter((row) => !!row.por_confirmar && isPortalRow(row)).map((row) => row.id);
     const portalIds = rows.filter(isPortalRow).map((row) => row.id);
     const changesBookedSlot =
@@ -999,7 +1002,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       hora_fin: `${draft.horaFin}:00`,
       trainer_id: draft.trainerId,
       estado: nextEstado,
-      tipo: draft.esPrueba ? "prueba" : null,
+      tipo: esFilaPrueba(row) ? "prueba" : null,
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
       plazas: draft.plazas,
@@ -1011,11 +1014,16 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       servicio_slug: draft.servicioSlug,
       trainer_id: draft.trainerId,
       estado: nextEstado,
-      tipo: draft.esPrueba ? "prueba" : null,
       por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
       incidencia: draft.notas || null,
       plazas: draft.plazas,
     } as any).in("id", updateIds) : { error: null };
+    if (!error && updateIds.length) {
+      const pruebaIds = allRows.filter((row) => updateIds.includes(row.id) && esFilaPrueba(row)).map((row) => row.id);
+      const normalIds = updateIds.filter((id) => !pruebaIds.includes(id));
+      if (pruebaIds.length) await supabase.from("sessions").update({ tipo: "prueba" } as any).in("id", pruebaIds);
+      if (normalIds.length) await supabase.from("sessions").update({ tipo: null } as any).in("id", normalIds);
+    }
     if (error) {
       qc.setQueryData(["sessions", isoDate], previous);
       toast.error(error.message);
@@ -1030,7 +1038,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
         hora_fin: `${draft.horaFin}:00`,
         servicio_slug: draft.servicioSlug,
         trainer_id: draft.trainerId,
-        tipo: draft.esPrueba ? "prueba" : null,
         plazas: draft.plazas,
       } as any).in("id", cancelledOnlyIds);
       if (cancelledError) return toast.error(cancelledError.message), false;
@@ -1064,8 +1071,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       trainerId: draft.trainerId,
       servicioOriginal: ps.servicio_slug ?? "",
       servicioSlug: draft.servicioSlug,
-      esPruebaOriginal: ps.tipo === "prueba" || ps.estado === "prueba",
-      esPrueba: draft.esPrueba,
+      esPruebaOriginal: false,
+      esPrueba: draft.pruebaClientIds.length > 0 || activasOrig.some((row) => (row.tipo === "prueba") !== draft.pruebaSessionIds.includes(row.id)),
       porConfirmarOriginal: !!ps.por_confirmar,
       porConfirmar: draft.porConfirmar,
       notasOriginal: ps.incidencia ?? "",
@@ -1120,7 +1127,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
           hora_fin: `${draft.horaFin}:00`,
           trainer_id: null,
           estado: automaticSessionState(formatDateISO(fecha), `${draft.horaFin}:00`, behavior.graciaAutoRealizadaMin, draft.porConfirmar),
-          tipo: draft.esPrueba ? "prueba" : null,
+          tipo: null,
           por_confirmar: draft.estado === "reservada" && draft.porConfirmar,
           incidencia: draft.notas || null,
           plazas: draft.plazas,
@@ -1155,7 +1162,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
       hora_fin: `${draft.horaFin}:00`,
       servicio_slug: draft.servicioSlug,
       trainer_id: draft.trainerId,
-      tipo: draft.esPrueba ? "prueba" : null,
       incidencia: draft.notas || null,
       plazas: draft.plazas,
     };
@@ -1477,7 +1483,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const multiPlaza = plazas > 1;
               const renovarSufijo = (_clientId: string | null | undefined) => "";
               const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
-              const estadoForColor = summary.estado === "cancelada" ? "cancelada" : session.tipo === "prueba"
+              const estadoForColor = summary.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(session, sessions))
                 ? "prueba"
                 : needsRenewal && !multiPlaza
                   ? "renovacion"
@@ -1671,9 +1677,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
             trainers={trainers}
             servicios={servicios}
             isNew={isNewPanel}
-            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, pending: !!x.por_confirmar, online: !!(x as any).booked_by_user_id && (x as any).booking_tipo !== "centro" }))}
+            reservas={activos.map((x) => ({ id: x.id, client_id: x.client_id, titulo: x.titulo, clients: x.client_id ? { nombre: clientMap.get(x.client_id)?.nombre ?? "Cliente" } : null, pending: !!x.por_confirmar, prueba: x.tipo === "prueba", online: !!(x as any).booked_by_user_id && (x as any).booking_tipo !== "centro" }))}
             estadoInicial={est}
-            esPruebaInicial={ps?.tipo === "prueba" || ps?.estado === "prueba"}
             porConfirmarInicial={!!ps?.por_confirmar && !(ps as any)?.__cola}
             notasIniciales={ps?.incidencia}
             plazasIniciales={block.map((x) => (x as any).plazas as number | null).find((n) => n != null) ?? null}
