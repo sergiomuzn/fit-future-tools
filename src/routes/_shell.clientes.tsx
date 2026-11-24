@@ -239,11 +239,13 @@ function ClientesPage() {
     }
     const total = reservas.length;
     const enGrupo = reservas.filter((s) => s.group_id).length;
-    const description = total
-      ? `Este cliente tiene ${total} ${total === 1 ? "sesión reservada" : "sesiones reservadas"} pendientes${
-          enGrupo ? ` (${enGrupo} en entrenamientos grupales)` : ""
-        }. Si lo eliminas, esas reservas se borrarán. Esta acción no se puede deshacer.`
-      : "Se eliminarán todos sus datos y su historial. Esta acción no se puede deshacer.";
+    const description = `Al eliminar este cliente desaparecerán todos los datos asociados a él: sus sesiones (pasadas y futuras), sus facturas, sus bonos y su historial.${
+      total
+        ? ` Además, tiene ${total} ${total === 1 ? "sesión reservada" : "sesiones reservadas"} pendientes${
+            enGrupo ? ` (${enGrupo} en entrenamientos grupales)` : ""
+          } que se borrarán.`
+        : ""
+    } Esta acción no se puede deshacer.`;
     if (!(await confirm({ title: "¿Eliminar cliente?", description }))) return;
     const { error } = await supabase.from("clients").delete().eq("id", id);
     if (error) toast.error(error.message);
