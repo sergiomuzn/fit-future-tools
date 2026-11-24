@@ -13,7 +13,7 @@ import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
 import { visibleAgendaSessions } from "./session-visibility";
-import { hasOnlineBookingDistinction, isSelfBooking } from "./online-booking";
+import { hasOnlineBookingDistinction, isSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { requiresDeletionReason } from "@/lib/centre-cancellation";
 import { clientRemovalAction, EMPTY_SESSION_CLIENT } from "./remove-session-client";
 import { commitAgendaRows, refreshAgenda, removeAgendaRows } from "@/lib/agenda-session-cache";
@@ -329,6 +329,28 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
     // Sin sondeo mientras se guarda: el guardado no compite con lecturas y no hay parpadeos.
     refetchInterval: () => (confirmingPortalRef.current || paintingTrainerCountRef.current > 0 || pendingPanelWrites.current > 0 || qc.isMutating() > 0 ? false : 1000),
   });
+
+  // Personas en cola (esperando o con plaza ofrecida) por sesión del día.
+  const { data: colaDia = [] } = useQuery({
+    queryKey: ["reserva-cola-dia", isoDate],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("reserva_cola")
+        .select("clave")
+        .eq("fecha", isoDate)
+        .in("estado", ["en_cola", "ofrecida"]);
+      return (data ?? []) as { clave: string }[];
+    },
+    refetchInterval: 1000,
+  });
+  const colaCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of colaDia) {
+      const k = normalizeQueueKey(c.clave);
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [colaDia]);
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -1487,6 +1509,8 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const isCanceladaNC = summary.estado === "cancelada" && summary.cancelled.every((row) => row.no_contabilizar);
               const isPorConfirmar = session.estado === "reservada" && (session as any).por_confirmar;
               const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: servicioSlug }, estadoForColor);
+              const colaKey = sessionQueueKey(session);
+              const enCola = colaKey ? colaCounts.get(colaKey) ?? 0 : 0;
               const blockBookings = session.slot_instance_id
                 ? sessions.filter((row) => row.slot_instance_id === session.slot_instance_id)
                 : members ?? [session];
@@ -1564,6 +1588,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     onClick={isUltraCompact ? undefined : (e) => e.stopPropagation()}
                   />
                   {summary.cancelled.length > 0 && summary.active.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 top-0.5 z-10 rounded-sm bg-state-cancelada px-1 text-[10px] font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
+                  {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute top-0.5 z-10 rounded-sm bg-state-cola px-1 text-[10px] font-semibold text-state-cola-fg shadow-sm", summary.cancelled.length > 0 && summary.active.length > 0 ? "right-7" : "right-1")}>{enCola}</span>}
                   {isCompact ? (
                     <div className={cn("flex items-center h-full", isUltraCompact ? "gap-1" : "gap-1.5")}>
                       <div className={cn("shrink-0 font-semibold leading-none", isUltraCompact ? "text-[9px]" : "text-[11px]")}>

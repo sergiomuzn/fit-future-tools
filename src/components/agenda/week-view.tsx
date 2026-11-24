@@ -13,7 +13,7 @@ import { sessionFillColor, colorCercaDeRojo } from "@/lib/colors";
 import { useServicios } from "@/lib/servicios";
 import { abreviaturaServicio, sessionMainLabel } from "@/lib/session-label";
 import { useBehaviorConfig } from "@/lib/behavior-config";
-import { hasOnlineBookingDistinction } from "./online-booking";
+import { hasOnlineBookingDistinction, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { agendaBlockMembers, useOnlineAgendaVisibility } from "./use-online-bookings";
 
 interface Props {
@@ -104,6 +104,28 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
       return (data ?? []) as Client[];
     },
   });
+  // Personas en cola (esperando o con plaza ofrecida) por sesión de la semana.
+  const { data: colaSemana = [] } = useQuery({
+    queryKey: ["reserva-cola-range", from, to],
+    queryFn: async () => {
+      const { data } = await (supabase as any)
+        .from("reserva_cola")
+        .select("clave")
+        .gte("fecha", from)
+        .lte("fecha", to)
+        .in("estado", ["en_cola", "ofrecida"]);
+      return (data ?? []) as { clave: string }[];
+    },
+    refetchInterval: 1000,
+  });
+  const colaCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of colaSemana) {
+      const k = normalizeQueueKey(c.clave);
+      m.set(k, (m.get(k) ?? 0) + 1);
+    }
+    return m;
+  }, [colaSemana]);
   const clientMap = useMemo(() => new Map(clients.map((c) => [c.id, c])), [clients]);
   const trainerMap = useMemo(() => new Map(trainers.map((t) => [t.id, t])), [trainers]);
   const { data: servicios = [] } = useServicios();
@@ -254,6 +276,8 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
                     const blockColor = summary.estado === "cancelada" ? "cancelada" : colorEstadoFor({ ...session, estado: summary.estado });
                     const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, blockColor);
+                    const colaKey = sessionQueueKey(session);
+                    const enCola = colaKey ? colaCounts.get(colaKey) ?? 0 : 0;
                     return (
                       <SessionSummaryHover
                         key={session.id}
@@ -277,6 +301,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         title={`${session.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${places.label}) ${name}`}
                       >
                         {summary.active.length > 0 && summary.cancelled.length > 0 && <span aria-label={`${summary.cancelled.length} cancelaciones`} className={cn("absolute right-1 top-0.5 rounded-sm bg-state-cancelada px-1 font-semibold text-state-cancelada-fg shadow-sm", colorCercaDeRojo(fill) && "ring-1 ring-background")}>{summary.cancelled.length}</span>}
+                        {enCola > 0 && <span aria-label={`${enCola} en cola`} className={cn("absolute top-0.5 rounded-sm bg-state-cola px-1 font-semibold text-state-cola-fg shadow-sm", summary.active.length > 0 && summary.cancelled.length > 0 ? "right-6" : "right-1")}>{enCola}</span>}
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">

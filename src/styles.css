@@ -61,6 +61,8 @@
   --color-state-renovacion-fg: var(--state-renovacion-fg);
   --color-state-grupo: var(--state-grupo);
   --color-state-grupo-fg: var(--state-grupo-fg);
+  --color-state-cola: var(--state-cola);
+  --color-state-cola-fg: var(--state-cola-fg);
 }
 
 :root {
@@ -113,6 +115,8 @@
   --state-renovacion-fg: oklch(1 0 0);
   --state-grupo: #E959DE;
   --state-grupo-fg: oklch(1 0 0);
+  --state-cola: #F59E0B;
+  --state-cola-fg: #ffffff;
 }
 
 .dark {
@@ -162,6 +166,8 @@
   --state-renovacion-fg: oklch(1 0 0);
   --state-grupo: #E959DE;
   --state-grupo-fg: oklch(1 0 0);
+  --state-cola: #D97706;
+  --state-cola-fg: #ffffff;
 }
 
 @layer base {
