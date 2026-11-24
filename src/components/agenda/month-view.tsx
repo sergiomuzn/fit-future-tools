@@ -1,4 +1,4 @@
-import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
+import { blockAllTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
 import { SessionSummaryHover, type HoverName } from "./session-summary-hover";
 import { useMemo, useState } from "react";
@@ -192,8 +192,6 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const todoPrueba = blockAllTrial(agendaBlockMembers(s, sessions));
                     const colorBloque = s.estado === "cancelada" ? "cancelada" : todoPrueba ? "prueba" : s.estado;
-                    // Franja verde: algún cliente tiene Sesión de Prueba activada.
-                    const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(s, sessions));
                     const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorBloque);
                     return (
                       <SessionSummaryHover
@@ -218,7 +216,6 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         style={{ backgroundColor: fill ?? undefined }}
                         title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${ocupados}/${plazas}) ${name}`}
                       >
-                        {franjaPrueba && <span aria-hidden className="mr-1 inline-block h-2.5 w-1 shrink-0 rounded-full bg-state-prueba align-middle" />}
                         {s.hora_inicio.slice(0, 5)}{" "}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && " · "}

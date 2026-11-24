@@ -1,4 +1,4 @@
-import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
+import { blockAllTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
 import { SessionSummaryHover, type HoverName } from "./session-summary-hover";
 import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
@@ -279,8 +279,6 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
                     const todoPrueba = blockAllTrial(agendaBlockMembers(session, sessions));
                     const blockColor = summary.estado === "cancelada" ? "cancelada" : todoPrueba ? "prueba" : summary.estado;
-                    // Franja verde: algún cliente tiene Sesión de Prueba activada.
-                    const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(session, sessions));
                     const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, blockColor);
                     const colaKey = sessionQueueKey(session);
                     const enCola = colaKey ? colaCounts.get(colaKey) ?? 0 : 0;
@@ -311,7 +309,6 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">
-                            {franjaPrueba && <span aria-hidden className="h-3 w-1 shrink-0 rounded-full bg-state-prueba" />}
                             {abrev && <span className="shrink-0 font-semibold">{abrev}</span>}
                             {abrev && <span className="shrink-0">·</span>}
                             <span className="truncate">{(notaComoNombre ? name : name.toUpperCase())} ({places.label})</span>

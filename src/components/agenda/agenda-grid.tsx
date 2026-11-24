@@ -12,7 +12,7 @@ import { isOnlyClientCancellationPanel } from "@/lib/session-scope-ask";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
-import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
+import { blockAllTrial } from "@/lib/session-trial";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { requiresDeletionReason } from "@/lib/centre-cancellation";
@@ -1489,9 +1489,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                 : needsRenewal && !multiPlaza
                   ? "renovacion"
                   : summary.estado;
-              // Franja verde: algún cliente tiene Sesión de Prueba activada. Cuando
-              // todos la tienen, el bloque entero ya se pinta de color prueba.
-              const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(session, sessions));
               // Same exact block and reserved/available rule as the session panel.
               const groupCountLabel = sessionPlaces(plazas, reservedSessionPlaces(agendaBlockMembers(session, sessions))).label;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
@@ -1611,7 +1608,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
-                        {franjaPrueba && <span aria-hidden className={cn("mr-1 inline-block w-1 shrink-0 rounded-full bg-state-prueba align-middle", isUltraCompact ? "h-2" : "h-3")} />}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
@@ -1635,7 +1631,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         )}
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
-                        {franjaPrueba && <span aria-hidden className="mr-1 inline-block h-3 w-1 shrink-0 rounded-full bg-state-prueba align-middle" />}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}

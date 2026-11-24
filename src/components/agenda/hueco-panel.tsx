@@ -187,6 +187,8 @@ export function HuecoPanel({
   };
 
   const esPruebaReserva = (r: PanelReserva) => pruebaRows[r.id] ?? !!r.prueba;
+  // Franja verde junto al cliente que tiene Sesión de Prueba activada.
+  const trialStripe = <span aria-hidden className="h-6 w-1 shrink-0 self-center rounded-full bg-state-prueba" />;
   const pruebaItem = (activo: boolean, toggle: () => void) => (
     <DropdownMenuItem onSelect={toggle}><FlaskConical />{activo ? "Quitar Sesión de Prueba" : "Sesión de Prueba"}</DropdownMenuItem>
   );
@@ -448,6 +450,7 @@ export function HuecoPanel({
               <div className="space-y-2">
                 {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
                   <div key={item.id} className="flex min-w-0 items-start gap-2">
+                    {esPruebaReserva(item.reserva as PanelReserva) && trialStripe}
                     <div className="min-w-0 flex-1"><ClientPicker
                       hideClearButton
                       value={item.reserva.client_id}
@@ -469,6 +472,7 @@ export function HuecoPanel({
                   </div>
                 ) : (
                   <div key={item.id} className="flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
+                    {"reserva" in item && item.reserva && esPruebaReserva(item.reserva as PanelReserva) && trialStripe}
                     <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
                     {"unregistered" in item && !!item.unregistered && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] text-muted-foreground">No registrado</span>}
                     {tab === "reservados" && "reserva" in item && !!item.reserva && <DropdownMenu>
@@ -494,7 +498,7 @@ export function HuecoPanel({
                   </div>
                 ))}
                 {tab === "reservados" && pickerValues.map((value, row) => (
-                  <div key={`free-${row}`} className="flex min-w-0 items-start gap-2"><div className="min-w-0 flex-1">
+                  <div key={`free-${row}`} className="flex min-w-0 items-start gap-2">{value && pruebaNuevos[value] && trialStripe}<div className="min-w-0 flex-1">
                     <ClientPicker
                       hideClearButton
                       value={value}
