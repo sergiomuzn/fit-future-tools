@@ -1,6 +1,6 @@
-import { blockAllTrial } from "@/lib/session-trial";
+import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
-import { SessionSummaryHover } from "./session-summary-hover";
+import { SessionSummaryHover, type HoverName } from "./session-summary-hover";
 import { sessionBlockKey, sessionBlockSummary } from "@/lib/session-state";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { useMemo, useState } from "react";
@@ -145,13 +145,14 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
   );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
   const groupNamesMap = useMemo(() => {
-    const m = new Map<string, string[]>();
+    const m = new Map<string, { nombre: string; prueba: boolean }[]>();
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2 && (s.client_id || s.titulo) && s.estado !== "cancelada") {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
         const nombre = s.client_id ? clientMap.get(s.client_id)?.nombre ?? "?" : markUnregistered(s.titulo ?? "?");
+        const entry = { nombre, prueba: s.tipo === "prueba" };
         const arr = m.get(key);
-        if (arr) arr.push(nombre); else m.set(key, [nombre]);
+        if (arr) arr.push(entry); else m.set(key, [entry]);
       }
     }
     return m;
@@ -260,12 +261,13 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                       (session as any).servicio_slug ??
                       (isGroup ? servicioGrupoSlug : "") ??
                       "";
-                    const nombres = isGroup
+                    const nombresConPrueba: HoverName[] = isGroup
                       ? (groupNamesMap.get(`${session.fecha}|${session.recurrencia_id}|${session.hora_inicio}|${session.hora_fin}`) ?? [])
                       : // Only clients of this exact session block; same-time sessions stay independent.
                         agendaBlockMembers(session, sessions)
                           .filter((m) => m.estado !== "cancelada" && (m.client_id || m.titulo))
-                          .map((m) => (m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?")));
+                          .map((m) => ({ nombre: m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?"), prueba: m.tipo === "prueba" }));
+                    const nombres = nombresConPrueba.map((n) => n.nombre);
                     const ocupados = reservedSessionPlaces(agendaBlockMembers(session, sessions));
                     const plazas = agendaBlockMembers(session, sessions).map((m) => (m as any).plazas as number | null).find((n) => n != null) ?? servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     const places = sessionPlaces(plazas, ocupados);
@@ -275,7 +277,10 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                     const notaComoNombre = nombres.length === 0 && !!session.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
                     const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
-                    const blockColor = summary.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(session, sessions)) ? "prueba" : summary.estado;
+                    const todoPrueba = blockAllTrial(agendaBlockMembers(session, sessions));
+                    const blockColor = summary.estado === "cancelada" ? "cancelada" : todoPrueba ? "prueba" : summary.estado;
+                    // Franja verde: algún cliente tiene Sesión de Prueba activada.
+                    const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(session, sessions));
                     const fill = sessionFillColor(colores, { ...(session as any), servicio_slug: slug }, blockColor);
                     const colaKey = sessionQueueKey(session);
                     const enCola = colaKey ? colaCounts.get(colaKey) ?? 0 : 0;
@@ -287,7 +292,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         horario={`${session.hora_inicio.slice(0, 5)} – ${session.hora_fin.slice(0, 5)}`}
                         plazas={places.label}
                         entrenador={trainerMap.get(session.trainer_id ?? "")?.nombre ?? null}
-                        nombres={nombres.map((n) => String(n).toUpperCase())}
+                        nombres={nombresConPrueba.map((n) => ({ nombre: String(n.nombre).toUpperCase(), prueba: n.prueba }))}
                         nota={session.incidencia}
                       >
                       <button
@@ -306,6 +311,7 @@ export function WeekView({ date, trainers, onSelectDay }: Props) {
                         <div className="font-semibold">{session.hora_inicio.slice(0, 5)}</div>
                         {height > 22 && (
                           <div className="flex items-center gap-1 min-w-0">
+                            {franjaPrueba && <span aria-hidden className="h-3 w-1 shrink-0 rounded-full bg-state-prueba" />}
                             {abrev && <span className="shrink-0 font-semibold">{abrev}</span>}
                             {abrev && <span className="shrink-0">·</span>}
                             <span className="truncate">{(notaComoNombre ? name : name.toUpperCase())} ({places.label})</span>

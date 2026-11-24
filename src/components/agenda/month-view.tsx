@@ -1,6 +1,6 @@
-import { blockAllTrial } from "@/lib/session-trial";
+import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
 import { markUnregistered } from "@/lib/unregistered-client";
-import { SessionSummaryHover } from "./session-summary-hover";
+import { SessionSummaryHover, type HoverName } from "./session-summary-hover";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase, type Session, type Trainer, type Client, colorEstadoFor, ESTADO_BG } from "@/lib/db";
@@ -83,13 +83,14 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
   );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
   const groupNamesMap = useMemo(() => {
-    const m = new Map<string, string[]>();
+    const m = new Map<string, { nombre: string; prueba: boolean }[]>();
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2 && (s.client_id || s.titulo)) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
         const nombre = s.client_id ? clientMap.get(s.client_id)?.nombre ?? "?" : markUnregistered(s.titulo ?? "?");
+        const entry = { nombre, prueba: s.tipo === "prueba" };
         const arr = m.get(key);
-        if (arr) arr.push(nombre); else m.set(key, [nombre]);
+        if (arr) arr.push(entry); else m.set(key, [entry]);
       }
     }
     return m;
@@ -175,12 +176,13 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                       (s as any).servicio_slug ??
                       (isGroup ? servicioGrupoSlug : "") ??
                       "";
-                    const nombres = isGroup
+                    const nombresConPrueba: HoverName[] = isGroup
                       ? (groupNamesMap.get(`${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`) ?? [])
                       : // Only clients of this exact session block; same-time sessions stay independent.
                         agendaBlockMembers(s, sessions)
                           .filter((m) => m.estado !== "cancelada" && (m.client_id || m.titulo))
-                          .map((m) => (m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?")));
+                          .map((m) => ({ nombre: m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?"), prueba: m.tipo === "prueba" }));
+                    const nombres = nombresConPrueba.map((n) => n.nombre);
                     const ocupados = isGroup ? nombres.length : (s.client_id || s.titulo ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
                     // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
@@ -188,7 +190,10 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                     const name = sessionMainLabel(plazas, nombres, 100, s.incidencia) || s.titulo || "";
                     const notaComoNombre = nombres.length === 0 && !!s.incidencia?.trim();
                     const abrev = mostrarAbrev ? (servicioAbrevMap.get(slug) ?? "") : "";
-                    const colorBloque = s.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(s, sessions)) ? "prueba" : s.estado;
+                    const todoPrueba = blockAllTrial(agendaBlockMembers(s, sessions));
+                    const colorBloque = s.estado === "cancelada" ? "cancelada" : todoPrueba ? "prueba" : s.estado;
+                    // Franja verde: algún cliente tiene Sesión de Prueba activada.
+                    const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(s, sessions));
                     const fill = sessionFillColor(colores, { ...(s as any), servicio_slug: slug }, colorBloque);
                     return (
                       <SessionSummaryHover
@@ -198,7 +203,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         horario={`${s.hora_inicio.slice(0, 5)} – ${s.hora_fin.slice(0, 5)}`}
                         plazas={`${ocupados}/${plazas}`}
                         entrenador={s.trainer_id ? trainers.find((t) => t.id === s.trainer_id)?.nombre ?? null : null}
-                        nombres={nombres.map((n) => String(n).toUpperCase())}
+                        nombres={nombresConPrueba.map((n) => ({ nombre: String(n.nombre).toUpperCase(), prueba: n.prueba }))}
                         nota={s.incidencia}
                         tailTop="top-0"
                       >
@@ -213,6 +218,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         style={{ backgroundColor: fill ?? undefined }}
                         title={`${s.hora_inicio.slice(0, 5)} ${abrev ? `${abrev} · ` : ""}(${ocupados}/${plazas}) ${name}`}
                       >
+                        {franjaPrueba && <span aria-hidden className="mr-1 inline-block h-2.5 w-1 shrink-0 rounded-full bg-state-prueba align-middle" />}
                         {s.hora_inicio.slice(0, 5)}{" "}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && " · "}

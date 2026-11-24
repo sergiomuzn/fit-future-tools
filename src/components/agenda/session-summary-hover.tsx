@@ -4,6 +4,9 @@ import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn, formatNameTitle } from "@/lib/utils";
 
+/** Cliente del resumen; `prueba` marca que tiene activada la Sesión de Prueba. */
+export type HoverName = { nombre: string; prueba?: boolean };
+
 interface Props {
   children: ReactElement;
   servicio: string;
@@ -11,7 +14,7 @@ interface Props {
   horario: string;
   plazas: string;
   entrenador?: string | null;
-  nombres: string[];
+  nombres: Array<string | HoverName>;
   nota?: string | null;
   /** Vertical position of the tail; short rows (month view) need it higher. */
   tailTop?: string;
@@ -20,6 +23,7 @@ interface Props {
 /** Session summary bubble shown on hover, styled like the Agenda session menu header. */
 export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota, tailTop = "top-4" }: Props) {
   const notaTxt = nota?.trim();
+  const entries = nombres.map((n) => (typeof n === "string" ? { nombre: n, prueba: false } : { nombre: n.nombre, prueba: !!n.prueba }));
   // Narrow windows have no room beside the session, so the bubble goes under it.
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {
@@ -57,10 +61,12 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
             <Users className="h-3 w-3" /> Clientes reservados
           </div>
           <ul className="space-y-1">
-            {nombres.map((n, i) => (
+            {entries.map((e, i) => (
               <li key={i} className="flex items-center gap-1.5 truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">
-                <span className="truncate">{formatNameTitle(stripUnregistered(n))}</span>
-                {isMarkedUnregistered(n) && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-normal text-muted-foreground">No registrado</span>}
+                {/* Green stripe: this client has Sesión de Prueba active */}
+                {e.prueba && <span aria-hidden className="h-3.5 w-1 shrink-0 rounded-full bg-state-prueba" />}
+                <span className="truncate">{formatNameTitle(stripUnregistered(e.nombre))}</span>
+                {isMarkedUnregistered(e.nombre) && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-normal text-muted-foreground">No registrado</span>}
               </li>
             ))}
           </ul>

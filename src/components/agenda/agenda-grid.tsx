@@ -1,5 +1,5 @@
 import { markUnregistered } from "@/lib/unregistered-client";
-import { SessionSummaryHover } from "./session-summary-hover";
+import { SessionSummaryHover, type HoverName } from "./session-summary-hover";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { formatDateShort } from "@/lib/utils";
@@ -12,7 +12,7 @@ import { isOnlyClientCancellationPanel } from "@/lib/session-scope-ask";
 import { reservedSessionPlaces, sessionPlaces } from "@/lib/session-places";
 import { automaticSessionState, sessionBlockSummary, sessionBlockKey } from "@/lib/session-state";
 import { agendaBlockMembers } from "./use-online-bookings";
-import { blockAllTrial } from "@/lib/session-trial";
+import { blockAllTrial, blockAnyTrial } from "@/lib/session-trial";
 import { visibleAgendaSessions } from "./session-visibility";
 import { hasOnlineBookingDistinction, isSelfBooking, normalizeQueueKey, sessionQueueKey } from "./online-booking";
 import { requiresDeletionReason } from "@/lib/centre-cancellation";
@@ -393,11 +393,11 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
   );
   /** Clientes apuntados a la misma franja de un servicio con varias plazas. */
   const slotClientsMap = useMemo(() => {
-    const m = new Map<string, { id: string | null; titulo: string | null }[]>();
+    const m = new Map<string, { id: string | null; titulo: string | null; prueba: boolean }[]>();
     for (const s of sessions) {
       if (s.ocupacion === 2 || (!s.client_id && !s.titulo) || s.estado === "cancelada") continue;
       const key = `${(s as { servicio_slug?: string | null }).servicio_slug ?? ""}|${s.hora_inicio}`;
-      const entry = { id: s.client_id, titulo: s.titulo ?? null };
+      const entry = { id: s.client_id, titulo: s.titulo ?? null, prueba: s.tipo === "prueba" };
       const arr = m.get(key);
       if (arr) arr.push(entry); else m.set(key, [entry]);
     }
@@ -1483,25 +1483,33 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
               const multiPlaza = plazas > 1;
               const renovarSufijo = (_clientId: string | null | undefined) => "";
               const summary = sessionBlockSummary(agendaBlockMembers(session, sessions), behavior.graciaAutoRealizadaMin);
-              const estadoForColor = summary.estado === "cancelada" ? "cancelada" : blockAllTrial(agendaBlockMembers(session, sessions))
+              const todoPrueba = blockAllTrial(agendaBlockMembers(session, sessions));
+              const estadoForColor = summary.estado === "cancelada" ? "cancelada" : todoPrueba
                 ? "prueba"
                 : needsRenewal && !multiPlaza
                   ? "renovacion"
                   : summary.estado;
+              // Franja verde: algún cliente tiene Sesión de Prueba activada. Cuando
+              // todos la tienen, el bloque entero ya se pinta de color prueba.
+              const franjaPrueba = !todoPrueba && blockAnyTrial(agendaBlockMembers(session, sessions));
               // Same exact block and reserved/available rule as the session panel.
               const groupCountLabel = sessionPlaces(plazas, reservedSessionPlaces(agendaBlockMembers(session, sessions))).label;
               // Clientes de la sesión (grupo, franja compartida o sesión suelta).
               const memberRows = isGroup ? (members ?? [session]).filter((m) => m.estado !== "cancelada") : null;
-              const nameEntries: { id: string | null | undefined; titulo: string | null }[] = memberRows
-                ? memberRows.map((m) => ({ id: m.client_id, titulo: m.titulo ?? null }))
+              const nameEntries: { id: string | null | undefined; titulo: string | null; prueba: boolean }[] = memberRows
+                ? memberRows.map((m) => ({ id: m.client_id, titulo: m.titulo ?? null, prueba: m.tipo === "prueba" }))
                 : multiPlaza
-                  ? (slotClientsMap.get(huecoKey) ?? (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []))
-                  : (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null }] : []);
-              const nombres = nameEntries
-                .map((e) => e.id
-                  ? `${formatNameUpper(clientMap.get(e.id)?.nombre) ?? "?"}${renovarSufijo(e.id)}`
-                  : (e.titulo ? markUnregistered(formatNameUpper(e.titulo) ?? e.titulo) : ""))
-                .filter(Boolean);
+                  ? (slotClientsMap.get(huecoKey) ?? (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null, prueba: session.tipo === "prueba" }] : []))
+                  : (session.client_id || session.titulo ? [{ id: session.client_id, titulo: session.titulo ?? null, prueba: session.tipo === "prueba" }] : []);
+              const nombresConPrueba: HoverName[] = nameEntries
+                .map((e) => ({
+                  nombre: e.id
+                    ? `${formatNameUpper(clientMap.get(e.id)?.nombre) ?? "?"}${renovarSufijo(e.id)}`
+                    : (e.titulo ? markUnregistered(formatNameUpper(e.titulo) ?? e.titulo) : ""),
+                  prueba: e.prueba,
+                }))
+                .filter((n) => n.nombre);
+              const nombres = nombresConPrueba.map((n) => n.nombre);
               // Regla común: 1 plaza → cliente; 2-3 → nombres; 4+ → "N personas".
               // Sin clientes, la nota de la sesión ocupa el sitio del nombre.
               const displayName =
@@ -1529,7 +1537,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   horario={`${session.hora_inicio.slice(0, 5)} – ${session.hora_fin.slice(0, 5)}`}
                   plazas={groupCountLabel}
                   entrenador={session.trainer_id ? trainers.find((t) => t.id === session.trainer_id)?.nombre ?? null : null}
-                  nombres={nombres}
+                  nombres={nombresConPrueba}
                   nota={session.incidencia}
                 >
                 <div
@@ -1603,6 +1611,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                           : `${session.hora_inicio.slice(0,5)}–${session.hora_fin.slice(0,5)}`}
                       </div>
                       <div className={cn("font-medium truncate leading-none flex-1 min-w-0", isUltraCompact ? "text-[9px]" : "text-[11px]")}>
+                        {franjaPrueba && <span aria-hidden className={cn("mr-1 inline-block w-1 shrink-0 rounded-full bg-state-prueba align-middle", isUltraCompact ? "h-2" : "h-3")} />}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
@@ -1626,6 +1635,7 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                         )}
                       </div>
                       <div className="font-medium text-xs truncate leading-tight">
+                        {franjaPrueba && <span aria-hidden className="mr-1 inline-block h-3 w-1 shrink-0 rounded-full bg-state-prueba align-middle" />}
                         {abrev && <span className="font-semibold">{abrev}</span>}
                         {abrev && <span className="mx-1">·</span>}
                         {`${isCanceladaNC ? (displayName ? `NC · ${displayName}` : "NC") : (displayName || "—")} (${groupCountLabel})`}
