@@ -5,7 +5,7 @@ import { supabase, prettyBonoNombre, type ClientBono, type Client, type BonoCata
 import { BonoSelectContent, withModalidad } from "@/components/bonos/bono-select-content";
 import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
-import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
+import { useClientesEnPrueba, usePruebaServicios, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { useModalidades } from "@/lib/modalidades";
 import { formatDateShort, formatNameTitle, filterByMatch } from "@/lib/utils";
@@ -93,6 +93,7 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
   });
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const { data: enPrueba = new Set<string>() } = useClientesEnPrueba();
+  const { data: pruebaServicios = new Map<string, string | null>() } = usePruebaServicios();
   const { data: servicios = [] } = useServicios();
   const servMap = new Map(servicios.map((s) => [s.slug, s.nombre]));
   const servicioDe = (b: ClientBono) => {
@@ -365,12 +366,22 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
                   {g.bonos.map((b) => (
                     <div key={b.id} className="h-9 flex items-center gap-1.5">
                       {enPrueba.has(g.clientId) ? (
-                        <span
-                          className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
-                          style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
-                        >
-                          {PRUEBA_LABEL}
-                        </span>
+                        <>
+                          <span
+                            className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                            style={chipStyle(tipoColorOf(tipoColores, PRUEBA_SLUG) ?? "#1CDB14")}
+                          >
+                            {PRUEBA_LABEL}
+                          </span>
+                          {pruebaServicios.get(g.clientId) && (
+                            <span
+                              className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                              style={chipStyle(servicioColorOf(tipoColores, pruebaServicios.get(g.clientId)!) ?? "#888888")}
+                            >
+                              {servMap.get(pruebaServicios.get(g.clientId)!) ?? pruebaServicios.get(g.clientId)}
+                            </span>
+                          )}
+                        </>
                       ) : servicioDe(b) ? (
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"

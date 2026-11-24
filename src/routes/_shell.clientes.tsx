@@ -31,7 +31,7 @@ import { useCenterConfig } from "@/lib/center-schedule";
 import { servicioColorOf, tipoColorOf, chipStyle } from "@/lib/colors";
 import { useEffect } from "react";
 import { fetchBehaviorConfig } from "@/lib/behavior-config";
-import { useClientesEnPrueba, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
+import { useClientesEnPrueba, usePruebaServicios, PRUEBA_SLUG, PRUEBA_LABEL } from "@/lib/prueba";
 import { useServicios } from "@/lib/servicios";
 import { Tooltip as UITooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -114,6 +114,7 @@ function ClientesPage() {
   // Clientes cuya última sesión realizada fue una prueba y que aún no han
   // contratado ningún bono: su servicio se muestra como "Prueba".
   const { data: enPrueba = new Set<string>() } = useClientesEnPrueba();
+  const { data: pruebaServicios = new Map<string, string | null>() } = usePruebaServicios();
   const catMap = new Map(catalogo.map((c) => [c.id, c]));
   const tipoByClient = new Map<string, string>();
   const serviciosByClient = new Map<string, string[]>();
@@ -432,6 +433,14 @@ function ClientesPage() {
                             >
                               {PRUEBA_LABEL}
                             </span>
+                            {pruebaServicios.get(c.id) && (
+                              <span
+                                className="text-xs px-2 py-0.5 rounded-full font-medium w-fit whitespace-nowrap"
+                                style={chipStyle(servicioColorOf(colores, pruebaServicios.get(c.id)!) ?? "#888888")}
+                              >
+                                {nombreServicio(pruebaServicios.get(c.id)!)}
+                              </span>
+                            )}
                           </div>
                         )}
                         {rows.map((b, i) => {
