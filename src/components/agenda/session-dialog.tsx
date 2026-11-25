@@ -264,9 +264,18 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
       .filter((m) => m.estado !== "cancelada" && !cancelledIds.includes(m.id))
       .map((m) => m.client_id)
       .filter((id): id is string => !!id);
+    const nombres = groupMembersData
+      .filter((m) => m.estado !== "cancelada" && !cancelledIds.includes(m.id) && !m.client_id && (m.titulo ?? "").trim())
+      .map((m) => (m.titulo ?? "").trim());
     const padded: (string | null)[] = [...ids];
-    while (padded.length < plazas) padded.push(null);
-    setGroupClientIds(padded.slice(0, Math.max(plazas, ids.length)));
+    while (padded.length < ids.length + nombres.length || padded.length < plazas) padded.push(null);
+    const total = Math.max(plazas, ids.length + nombres.length);
+    setGroupClientIds(padded.slice(0, total));
+    // Los nombres escritos a mano ocupan los huecos libres tras los registrados.
+    const textos: string[] = Array.from({ length: total }, () => "");
+    nombres.forEach((n, k) => { textos[ids.length + k] = n; });
+    setNombreLibre(ids.length === 0 ? (textos[0] ?? "") : "");
+    setGroupClientNames(textos);
   }, [open, isNew, session?.ocupacion, session?.client_id, groupMembersData]);
 
 
