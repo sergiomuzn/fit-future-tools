@@ -1504,7 +1504,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                     ? `${formatNameUpper(clientMap.get(e.id)?.nombre) ?? "?"}${renovarSufijo(e.id)}`
                     : (e.titulo ? markUnregistered(formatNameUpper(e.titulo) ?? e.titulo) : ""),
                   prueba: e.prueba,
-                  clientId: e.id ?? null,
                 }))
                 .filter((n) => n.nombre);
               const nombres = nombresConPrueba.map((n) => n.nombre);
@@ -1536,7 +1535,6 @@ export function AgendaGrid({ date, trainers, paintTrainerId }: Props) {
                   plazas={groupCountLabel}
                   entrenador={session.trainer_id ? trainers.find((t) => t.id === session.trainer_id)?.nombre ?? null : null}
                   nombres={nombresConPrueba}
-                  servicioSlug={servicioSlug}
                   nota={session.incidencia}
                 >
                 <div

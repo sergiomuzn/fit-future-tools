@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { ClientStatusStripe, useNeedsRenewal } from "@/components/clients/client-status-stripe";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { MoreHorizontal, UserMinus, Ban, Pencil, FlaskConical } from "lucide-react";
 import { toast } from "sonner";
@@ -189,9 +188,8 @@ export function HuecoPanel({
 
   const esPruebaReserva = (r: PanelReserva) => pruebaRows[r.id] ?? !!r.prueba;
   // Franja verde de Sesión de Prueba: pegada al borde izquierdo del cuadro del cliente.
-  // Si no está en prueba y le toca renovar (bono agotado o caducado), la franja va en color de renovación.
-  const needsRenewal = useNeedsRenewal();
-  const stripe = (prueba: boolean, clientId: string | null | undefined, full = false) => <ClientStatusStripe prueba={prueba} renovar={needsRenewal(clientId, servicioSlug)} full={full} />;
+  const trialStripe = <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-9 w-1 rounded-l-md bg-state-prueba" />;
+  const trialStripeBox = <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-1 rounded-l-md bg-state-prueba" />;
   const pruebaItem = (activo: boolean, toggle: () => void) => (
     <DropdownMenuItem onSelect={toggle}><FlaskConical />{activo ? "Quitar Sesión de Prueba" : "Sesión de Prueba"}</DropdownMenuItem>
   );
@@ -453,7 +451,7 @@ export function HuecoPanel({
               <div className="space-y-2">
                 {listas[tab].map((item) => item.reserva && item.reserva.client_id && tab !== "cancelados" ? (
                   <div key={item.id} className="flex min-w-0 items-start gap-2">
-                    <div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{stripe(esPruebaReserva(item.reserva as PanelReserva), item.reserva.client_id)}<ClientPicker
+                    <div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{esPruebaReserva(item.reserva as PanelReserva) && trialStripe}<ClientPicker
                       hideClearButton
                       value={item.reserva.client_id}
                       showRemainingSessions={behavior.mostrarSesionesRestantesEnSesion}
@@ -474,7 +472,7 @@ export function HuecoPanel({
                   </div>
                 ) : (
                   <div key={item.id} className="relative flex h-10 items-center justify-between gap-3 rounded-md border bg-muted/35 px-3">
-                    {"reserva" in item && item.reserva && stripe(esPruebaReserva(item.reserva as PanelReserva), item.reserva.client_id, true)}
+                    {"reserva" in item && item.reserva && esPruebaReserva(item.reserva as PanelReserva) && trialStripeBox}
                     <button type="button" onClick={() => abrirPerfil(item.clientId)} className="truncate text-left text-sm font-medium hover:underline">{item.nombre}</button>
                     {"unregistered" in item && !!item.unregistered && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] text-muted-foreground">No registrado</span>}
                     {tab === "reservados" && "reserva" in item && !!item.reserva && <DropdownMenu>
@@ -500,7 +498,7 @@ export function HuecoPanel({
                   </div>
                 ))}
                 {tab === "reservados" && pickerValues.map((value, row) => (
-                  <div key={`free-${row}`} className="flex min-w-0 items-start gap-2"><div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{value && stripe(!!pruebaNuevos[value], value)}
+                  <div key={`free-${row}`} className="flex min-w-0 items-start gap-2"><div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{value && pruebaNuevos[value] && trialStripe}
                     <ClientPicker
                       hideClearButton
                       value={value}
