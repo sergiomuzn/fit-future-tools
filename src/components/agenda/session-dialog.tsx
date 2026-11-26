@@ -1127,7 +1127,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               ))}
               </div>
             ) : (
-              <div className="flex items-start gap-2">{esPrueba && <span aria-hidden className="mt-2 h-6 w-1 shrink-0 self-center rounded-full bg-state-prueba" />}<div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2"><div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{esPrueba && <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-9 w-1 rounded-l-md bg-state-prueba" />}
                 <ClientPicker key={`p-${pickerResetKey}`}
                       hideClearButton
                   value={clientId}

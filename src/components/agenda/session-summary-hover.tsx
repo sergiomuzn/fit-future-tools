@@ -62,9 +62,9 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
           </div>
           <ul className="space-y-1">
             {entries.map((e, i) => (
-              <li key={i} className="flex items-center gap-1.5 truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">
-                {/* Green stripe: this client has Sesión de Prueba active */}
-                {e.prueba && <span aria-hidden className="h-3.5 w-1 shrink-0 rounded-full bg-state-prueba" />}
+              <li key={i} className="relative flex items-center gap-1.5 truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">
+                {/* Green stripe: this client has Sesión de Prueba active, glued to the box's left edge */}
+                {e.prueba && <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-1 rounded-l-md bg-state-prueba" />}
                 <span className="truncate">{formatNameTitle(stripUnregistered(e.nombre))}</span>
                 {isMarkedUnregistered(e.nombre) && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-normal text-muted-foreground">No registrado</span>}
               </li>
