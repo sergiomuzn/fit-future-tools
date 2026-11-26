@@ -9,12 +9,12 @@ export const Route = createFileRoute("/api/public/hooks/propagar-huecos")({
     handlers: {
       POST: async ({ request }) => {
         const key = request.headers.get("apikey");
-        const expected = process.env["SUPABASE_ANON_KEY"];
+        const expected = process.env["SUPABASE_PUBLISHABLE_KEY"] ?? process.env["SUPABASE_ANON_KEY"];
         if (!expected || key !== expected) {
           return new Response("Unauthorized", { status: 401 });
         }
         const { propagarSemanasAuto } = await import("@/lib/slot-propagation.server");
-        const result = await propagarSemanasAuto(2);
+        const result = await propagarSemanasAuto();
         return new Response(JSON.stringify(result), {
           status: result.ok ? 200 : 500,
           headers: { "Content-Type": "application/json", "Cache-Control": "no-store" },
