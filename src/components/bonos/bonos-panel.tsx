@@ -138,7 +138,28 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
     return 1;
   }
 
-  const sorted = [...bonos].sort((a, b) => {
+  // Clientes en prueba sin ningún bono registrado (p. ej. prueba sin factura):
+  // se muestran con una fila virtual para que Bonos coincida con Clientes.
+  const conBonoActivo = new Set(bonos.filter((b) => b.activo).map((b) => b.client_id));
+  const virtualesPrueba = [...enPrueba]
+    .filter((id) => !conBonoActivo.has(id) && clientMap.has(id))
+    .map((id) => ({
+      id: `prueba-virtual-${id}`,
+      client_id: id,
+      bono_catalogo_id: null,
+      activo: true,
+      sesiones_disponibles: 0,
+      sesiones_realizadas: 0,
+      servicio_slug: pruebaServicios.get(id) ?? "",
+      tipo: "individual",
+      ultimo_bono_nombre: "Prueba",
+      ultimo_bono_fecha: null,
+      fecha_caducidad: null,
+      modalidad: null,
+    }) as unknown as ClientBono);
+  const isVirtual = (b: ClientBono) => b.id.startsWith("prueba-virtual-");
+
+  const sorted = [...bonos, ...virtualesPrueba].sort((a, b) => {
     if (sortBy === "estado") {
       const ra = estadoRank(a);
       const rb = estadoRank(b);
@@ -465,7 +486,7 @@ export function BonosPanel({ search, onSearchChange }: { search: string; onSearc
                 <TableCell>
                   {g.bonos.map((b) => (
                     <div key={b.id} className={SUB}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>
+                      {!isVirtual(b) && <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditing(b); setOpen(true); }}><Pencil className="h-4 w-4" /></Button>}
                     </div>
                   ))}
                 </TableCell>
