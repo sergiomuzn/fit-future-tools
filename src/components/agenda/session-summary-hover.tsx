@@ -3,9 +3,10 @@ import { useEffect, useState, type ReactElement } from "react";
 import { StickyNote, Users } from "lucide-react";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { cn, formatNameTitle } from "@/lib/utils";
+import { ClientStatusStripe, useNeedsRenewal } from "@/components/clients/client-status-stripe";
 
 /** Cliente del resumen; `prueba` marca que tiene activada la Sesión de Prueba. */
-export type HoverName = { nombre: string; prueba?: boolean };
+export type HoverName = { nombre: string; prueba?: boolean; clientId?: string | null };
 
 interface Props {
   children: ReactElement;
@@ -18,12 +19,15 @@ interface Props {
   nota?: string | null;
   /** Vertical position of the tail; short rows (month view) need it higher. */
   tailTop?: string;
+  /** Service of the session, used for the renewal stripe. */
+  servicioSlug?: string | null;
 }
 
 /** Session summary bubble shown on hover, styled like the Agenda session menu header. */
-export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota, tailTop = "top-4" }: Props) {
+export function SessionSummaryHover({ children, servicio, color, horario, plazas, entrenador, nombres, nota, tailTop = "top-4", servicioSlug }: Props) {
+  const needsRenewal = useNeedsRenewal();
   const notaTxt = nota?.trim();
-  const entries = nombres.map((n) => (typeof n === "string" ? { nombre: n, prueba: false } : { nombre: n.nombre, prueba: !!n.prueba }));
+  const entries = nombres.map((n) => (typeof n === "string" ? { nombre: n, prueba: false, renovar: false } : { nombre: n.nombre, prueba: !!n.prueba, renovar: needsRenewal(n.clientId, servicioSlug) }));
   // Narrow windows have no room beside the session, so the bubble goes under it.
   const [narrow, setNarrow] = useState(false);
   useEffect(() => {
@@ -64,7 +68,7 @@ export function SessionSummaryHover({ children, servicio, color, horario, plazas
             {entries.map((e, i) => (
               <li key={i} className="relative flex items-center gap-1.5 truncate rounded-md bg-muted/50 px-2 py-1 text-xs font-medium">
                 {/* Green stripe: this client has Sesión de Prueba active, glued to the box's left edge */}
-                {e.prueba && <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-full w-1 rounded-l-md bg-state-prueba" />}
+                <ClientStatusStripe prueba={e.prueba} renovar={e.renovar} full />
                 <span className="truncate">{formatNameTitle(stripUnregistered(e.nombre))}</span>
                 {isMarkedUnregistered(e.nombre) && <span className="shrink-0 rounded border border-dashed px-1 text-[10px] font-normal text-muted-foreground">No registrado</span>}
               </li>

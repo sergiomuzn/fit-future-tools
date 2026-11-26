@@ -83,12 +83,12 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
   );
   // Clientes apuntados por sesión de grupo (misma recurrencia + franja + fecha).
   const groupNamesMap = useMemo(() => {
-    const m = new Map<string, { nombre: string; prueba: boolean }[]>();
+    const m = new Map<string, { nombre: string; prueba: boolean; clientId: string | null }[]>();
     for (const s of sessions) {
       if (s.recurrencia_id && s.ocupacion === 2 && (s.client_id || s.titulo)) {
         const key = `${s.fecha}|${s.recurrencia_id}|${s.hora_inicio}|${s.hora_fin}`;
         const nombre = s.client_id ? clientMap.get(s.client_id)?.nombre ?? "?" : markUnregistered(s.titulo ?? "?");
-        const entry = { nombre, prueba: s.tipo === "prueba" };
+        const entry = { nombre, prueba: s.tipo === "prueba", clientId: s.client_id ?? null };
         const arr = m.get(key);
         if (arr) arr.push(entry); else m.set(key, [entry]);
       }
@@ -181,7 +181,7 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                       : // Only clients of this exact session block; same-time sessions stay independent.
                         agendaBlockMembers(s, sessions)
                           .filter((m) => m.estado !== "cancelada" && (m.client_id || m.titulo))
-                          .map((m) => ({ nombre: m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?"), prueba: m.tipo === "prueba" }));
+                          .map((m) => ({ nombre: m.client_id ? clientMap.get(m.client_id as string)?.nombre ?? "?" : markUnregistered(m.titulo ?? "?"), prueba: m.tipo === "prueba", clientId: (m.client_id as string | null) ?? null }));
                     const nombres = nombresConPrueba.map((n) => n.nombre);
                     const ocupados = isGroup ? nombres.length : (s.client_id || s.titulo ? 1 : 0);
                     const plazas = servicioCapMap.get(slug) ?? (isGroup ? Math.max(2, ocupados) : 1);
@@ -201,7 +201,8 @@ export function MonthView({ date, trainers, onSelectDay }: Props) {
                         horario={`${s.hora_inicio.slice(0, 5)} – ${s.hora_fin.slice(0, 5)}`}
                         plazas={`${ocupados}/${plazas}`}
                         entrenador={s.trainer_id ? trainers.find((t) => t.id === s.trainer_id)?.nombre ?? null : null}
-                        nombres={nombresConPrueba.map((n) => ({ nombre: String(n.nombre).toUpperCase(), prueba: n.prueba }))}
+                        nombres={nombresConPrueba.map((n) => ({ nombre: String(n.nombre).toUpperCase(), prueba: n.prueba, clientId: n.clientId ?? null }))}
+                        servicioSlug={slug}
                         nota={s.incidencia}
                         tailTop="top-0"
                       >

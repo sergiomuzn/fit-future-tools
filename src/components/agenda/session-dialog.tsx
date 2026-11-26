@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { ClientStatusStripe, useNeedsRenewal } from "@/components/clients/client-status-stripe";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { enterToSave } from "@/lib/enter-to-save";
@@ -68,6 +69,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
   const [incidencia, setIncidencia] = useState("");
   const [grupo, setGrupo] = useState(false);
   const [servicioSlug, setServicioSlug] = useState<string>("");
+  const needsRenewal = useNeedsRenewal();
   const [groupClientIds, setGroupClientIds] = useState<(string | null)[]>([]);
   const [groupClientNames, setGroupClientNames] = useState<string[]>([]);
   const [repeatWeeks, setRepeatWeeks] = useState(0);
@@ -1127,7 +1129,7 @@ export function SessionDialog({ open, onClose, session, trainers }: Props) {
               ))}
               </div>
             ) : (
-              <div className="flex items-start gap-2"><div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none">{esPrueba && <span aria-hidden className="pointer-events-none absolute left-0 top-0 h-9 w-1 rounded-l-md bg-state-prueba" />}
+              <div className="flex items-start gap-2"><div className="relative min-w-0 flex-1 [&>div>div>input]:rounded-l-none"><ClientStatusStripe prueba={esPrueba} renovar={needsRenewal(clientId, servicioSlug)} />
                 <ClientPicker key={`p-${pickerResetKey}`}
                       hideClearButton
                   value={clientId}
