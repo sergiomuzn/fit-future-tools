@@ -82,14 +82,21 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
     return out;
   }, [mes]);
 
-  const fechas = useMemo(
-    () =>
-      semanasSel
-        .slice()
-        .sort()
-        .flatMap((m) => weekDates(new Date(`${m}T00:00:00`))),
-    [semanasSel],
-  );
+  /** Con la propagación automática marcada, «Propagar» también cubre ya las próximas semanas. */
+  const semanasAutoN = Math.min(12, Math.max(1, Number(semanasInput) || autoSemanas));
+  const fechas = useMemo(() => {
+    const lunes = new Set(semanasSel);
+    if (autoChecked) {
+      for (let i = 0; i < semanasAutoN; i++) {
+        const m = new Date(hoyMonday);
+        m.setDate(m.getDate() + i * 7);
+        lunes.add(ymdLocal(m));
+      }
+    }
+    return [...lunes].sort().flatMap((m) => weekDates(new Date(`${m}T00:00:00`)));
+  }, [semanasSel, autoChecked, semanasAutoN, hoyMonday]);
+  const autoCambiado = autoOpt !== null && autoOpt !== autoActivo;
+  const semanasCambiadas = semanasAutoN !== autoSemanas;
 
   const plantilla: PlantillaSlot[] = useMemo(
     () =>
@@ -163,7 +170,13 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
 
   const propagar = useMutation({
     mutationFn: async () => {
-      if (!plan?.rows.length) throw new Error("No hay huecos nuevos que propagar");
+      if (autoCambiado || semanasCambiadas) {
+        await guardarAuto.mutateAsync({
+          ...(autoCambiado ? { propagacion_auto: autoChecked } : {}),
+          ...(semanasCambiadas ? { propagacion_semanas: semanasAutoN } : {}),
+        });
+      }
+      if (!plan?.rows.length) return 0;
       for (let i = 0; i < plan.rows.length; i += 200) {
         const { error } = await supabase
           .from("service_slot_instances")
@@ -178,7 +191,8 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
     onSuccess: (n) => {
       qc.invalidateQueries({ queryKey: ["service_slot_instances"] });
       qc.invalidateQueries({ queryKey: ["propagacion-preview"] });
-      toast.success(`${n} huecos propagados a la agenda`);
+      setAutoOpt(null);
+      if (n > 0) toast.success(`${n} huecos propagados a la agenda`);
     },
     onError: (e: Error) => toast.error(e.message),
   });
@@ -222,13 +236,6 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
     onSuccess: (patch) => {
       qc.invalidateQueries({ queryKey: ["propagacion-auto"] });
       qc.invalidateQueries({ queryKey: ["propagacion-semanas"] });
-      if (patch.propagacion_auto !== undefined) {
-        toast.success(
-          patch.propagacion_auto ? "Propagación automática activada" : "Propagación automática desactivada",
-        );
-      } else {
-        toast.success("Semanas de propagación automática actualizadas");
-      }
     },
     onError: (e: Error) => {
       setAutoOpt(null);
@@ -243,7 +250,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) { setAutoOpt(null); setSemanasInput(String(autoSemanas)); } onOpenChange(v); }}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Propagar a la agenda</DialogTitle>
@@ -360,10 +367,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
               </div>
               <Switch
                 checked={autoChecked}
-                onCheckedChange={(v) => {
-                  setAutoOpt(v);
-                  guardarAuto.mutate({ propagacion_auto: v });
-                }}
+                onCheckedChange={(v) => setAutoOpt(v)}
               />
             </div>
             <div className="flex items-end gap-2">
@@ -378,9 +382,6 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                   onBlur={() => {
                     const n = Math.min(12, Math.max(1, Number(semanasInput) || 1));
                     setSemanasInput(String(n));
-                    if (n !== autoSemanas) {
-                      guardarAuto.mutate({ propagacion_semanas: n });
-                    }
                   }}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
@@ -419,7 +420,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cerrar
             </Button>
-            <Button onClick={() => { propagar.mutate(); onOpenChange(false); }} disabled={total === 0 || propagar.isPending}>
+            <Button onClick={() => { propagar.mutate(); onOpenChange(false); }} disabled={(total === 0 && !autoCambiado && !semanasCambiadas) || propagar.isPending}>
               {propagar.isPending ? "Propagando…" : "Propagar"}
             </Button>
           </div>
