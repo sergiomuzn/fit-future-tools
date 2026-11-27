@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ChevronLeft, ChevronRight, Loader2, Trash2 } from "lucide-react";
@@ -31,6 +31,7 @@ import {
   type PlantillaSlot,
 } from "@/lib/slot-propagation";
 import { cn } from "@/lib/utils";
+import { propagationWeeksDraft } from "@/lib/propagation-weeks-draft";
 
 const DOW = ["L", "M", "X", "J", "V", "S", "D"];
 const MESES_LARGOS = [
@@ -52,17 +53,24 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   const { data: modo = DEFAULT_BOOKING_MODE } = useBookingMode();
   const modoInfo = bookingModeInfo(modo);
   const { data: slots = [] } = useServiceSlots();
-  const { data: autoActivo = false } = usePropagacionAuto();
-  const { data: autoSemanas = 2 } = usePropagacionSemanas();
+  const { data: autoActivo = false, isPending: autoLoading, isError: autoError } = usePropagacionAuto();
+  const { data: autoSemanas = 2, isPending: semanasLoading, isError: semanasError } = usePropagacionSemanas();
+  const configUnavailable = autoLoading || semanasLoading || autoError || semanasError;
   const { horario, specialsMap } = useCenterConfig();
 
   const hoyMonday = useMemo(() => mondayOf(new Date()), []);
   const [mes, setMes] = useState(() => new Date(new Date().getFullYear(), new Date().getMonth(), 1));
   const [semanasSel, setSemanasSel] = useState<string[]>([ymdLocal(hoyMonday)]);
-  const [semanasInput, setSemanasInput] = useState(String(autoSemanas));
+  const [semanasDraft, setSemanasInput] = useState<string | null>(null);
+  const { input: semanasInput, weeks: semanasAutoN, changed: semanasCambiadas } = propagationWeeksDraft(semanasDraft, autoSemanas);
   /** Valor optimista del interruptor para que responda al instante. */
   const [autoOpt, setAutoOpt] = useState<boolean | null>(null);
   const autoChecked = autoOpt ?? autoActivo;
+
+  useEffect(() => {
+    setAutoOpt(null);
+    setSemanasInput(null);
+  }, [open]);
 
   /** Días cerrados (festivos/cierres o día no laborable del horario base). */
   function diaCerrado(fecha: string): boolean {
@@ -83,7 +91,6 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   }, [mes]);
 
   /** Con la propagación automática marcada, «Propagar» también cubre ya las próximas semanas. */
-  const semanasAutoN = Math.min(12, Math.max(1, Number(semanasInput) || autoSemanas));
   const fechas = useMemo(() => {
     const lunes = new Set(semanasSel);
     if (autoChecked) {
@@ -96,7 +103,6 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
     return [...lunes].sort().flatMap((m) => weekDates(new Date(`${m}T00:00:00`)));
   }, [semanasSel, autoChecked, semanasAutoN, hoyMonday]);
   const autoCambiado = autoOpt !== null && autoOpt !== autoActivo;
-  const semanasCambiadas = semanasAutoN !== autoSemanas;
 
   const plantilla: PlantillaSlot[] = useMemo(
     () =>
@@ -250,7 +256,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) { setAutoOpt(null); setSemanasInput(String(autoSemanas)); } onOpenChange(v); }}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Propagar a la agenda</DialogTitle>
@@ -367,6 +373,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
               </div>
               <Switch
                 checked={autoChecked}
+                disabled={configUnavailable}
                 onCheckedChange={(v) => setAutoOpt(v)}
               />
             </div>
@@ -378,6 +385,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
                   min={1}
                   max={12}
                   value={semanasInput}
+                  disabled={configUnavailable}
                   onChange={(e) => setSemanasInput(e.target.value)}
                   onBlur={() => {
                     const n = Math.min(12, Math.max(1, Number(semanasInput) || 1));
@@ -420,7 +428,7 @@ export function PropagarDialog({ open, onOpenChange, servicioSlug }: Props) {
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               Cerrar
             </Button>
-            <Button onClick={() => { propagar.mutate(); onOpenChange(false); }} disabled={(total === 0 && !autoCambiado && !semanasCambiadas) || propagar.isPending}>
+            <Button onClick={() => { propagar.mutate(); onOpenChange(false); }} disabled={configUnavailable || (total === 0 && !autoCambiado && !semanasCambiadas) || propagar.isPending}>
               {propagar.isPending ? "Propagando…" : "Propagar"}
             </Button>
           </div>

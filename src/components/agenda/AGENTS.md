@@ -1,0 +1,1 @@
+- Keep propagation weeks as a nullable local draft, deriving untouched values from the loaded configuration and clearing drafts between openings, so asynchronous defaults cannot overwrite saved settings.
